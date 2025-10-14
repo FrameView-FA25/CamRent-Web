@@ -1,0 +1,298 @@
+﻿@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+
+:root {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display",
+    "SF Pro Text", "Inter", "Segoe UI", Roboto, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #121212;
+  background-color: #ffffff;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: inherit;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background-color: #ffffff;
+  color: #121212;
+  font-weight: 500;
+  border-bottom: 1px solid #f0f0f0;
+  position: relative;
+}
+
+.brand {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #121212;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 0 0 auto;
+}
+
+.brand img {
+  transition: transform 0.3s ease;
+}
+
+.brand:hover img {
+  transform: scale(1.05);
+}
+
+/* Navigation Styles */
+.app-nav {
+  display: flex;
+  gap: 3rem;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.app-content {
+  flex: 1;
+  width: 100%;
+  padding: 0;
+}
+
+.page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+.home-page {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+
+.page h1 {
+  margin: 0;
+  font-size: 2rem;
+}
+
+.page p {
+  margin-top: 0.5rem;
+  color: #4b5563;
+  max-width: 540px;
+}
+
+.app-nav a {
+  color: #121212;
+  text-decoration: none;
+  padding: 0.5rem 0;
+  font-weight: 500;
+  transition: color 0.2s;
+  position: relative;
+}
+
+.app-nav a:hover {
+  color: #121212;
+}
+
+.app-nav a.active {
+  color: #121212;
+}
+
+.app-nav a.active::after {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background-color: #ffc800;
+}
+
+.header-menu {
+  display: none;
+  align-items: center;
+}
+
+.menu-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.menu-toggle span {
+  width: 20px;
+  height: 2px;
+  background-color: #121212;
+  transition: all 0.3s ease;
+}
+
+.menu-toggle:hover span {
+  background-color: #ffc800;
+}
+
+/* Hero Section */
+.hero {
+  display: flex;
+  align-items: center;
+  min-height: 80vh;
+  padding: 4rem 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  gap: 4rem;
+}
+
+.hero-content {
+  flex: 1;
+  max-width: 500px;
+}
+
+.hero-title {
+  font-size: 4rem;
+  font-weight: 700;
+  line-height: 1.1;
+  margin: 0 0 2rem 0;
+  color: #121212;
+  letter-spacing: -0.02em;
+}
+
+.hero-subtitle {
+  font-size: 1.125rem;
+  line-height: 1.6;
+  color: #121212;
+  margin: 0 0 3rem 0;
+  max-width: 400px;
+}
+
+.hero-buttons {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.btn {
+  padding: 1rem 2rem;
+  border-radius: 50px;
+  font-weight: 600;
+  font-size: 1rem;
+  text-decoration: none;
+  display: inline-block;
+  transition: all 0.3s ease;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-primary {
+  background-color: #ffc800;
+  color: #121212;
+}
+
+.btn-primary:hover {
+  background-color: #e6b300;
+  transform: translateY(-2px);
+}
+
+.btn-secondary {
+  background-color: transparent;
+  color: #121212;
+  border: 2px solid #121212;
+}
+
+.btn-secondary:hover {
+  background-color: #121212;
+  color: #ffffff;
+}
+
+.hero-image {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.hero-image img {
+  max-width: 100%;
+  height: auto;
+  max-height: 500px;
+  object-fit: contain;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .hero {
+    flex-direction: column;
+    text-align: center;
+    padding: 2rem 1rem;
+    gap: 2rem;
+  }
+
+  .hero-title {
+    font-size: 2.5rem;
+  }
+
+  .hero-buttons {
+    justify-content: center;
+  }
+
+  .app-header {
+    padding: 1rem;
+  }
+
+  .app-nav {
+    display: none;
+  }
+
+  .header-menu {
+    display: flex;
+  }
+}
+
+@media (min-width: 769px) {
+  .header-menu {
+    display: none;
+  }
+
+  .app-nav {
+    display: flex;
+  }
+}
+
+@media (max-width: 1024px) {
+  .app-nav {
+    gap: 1.5rem;
+  }
+}
+
+@media (max-width: 900px) {
+  .app-nav {
+    gap: 1rem;
+  }
+
+  .app-nav a {
+    font-size: 0.9rem;
+  }
+}
