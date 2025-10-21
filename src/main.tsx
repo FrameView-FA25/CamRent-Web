@@ -2,7 +2,7 @@
 import { createRoot } from "react-dom/client";
 import { RouterProvider } from "react-router-dom";
 
-import { router } from "./config/router.tsx";
+import { router } from "./routers/MainRouter";
 import "./styles/global.css";
 
 createRoot(document.getElementById("root")!).render(
