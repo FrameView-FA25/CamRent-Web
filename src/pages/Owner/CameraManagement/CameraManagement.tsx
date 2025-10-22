@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Box,
   Typography,
@@ -15,6 +16,8 @@ import {
   Delete as DeleteIcon,
   Visibility as ViewIcon,
 } from "@mui/icons-material";
+import ModalAddCamera from "../../../components/ModalAddCamera";
+import type { CameraFormData } from "../../../components/ModalAddCamera";
 
 // Mock data for cameras
 const cameras = [
@@ -69,6 +72,8 @@ const cameras = [
 ];
 
 export default function CameraManagement() {
+  const [openAddModal, setOpenAddModal] = useState(false);
+
   const getStatusColor = (
     status: string
   ): "success" | "error" | "warning" | "default" => {
@@ -97,6 +102,13 @@ export default function CameraManagement() {
     }
   };
 
+  const handleAddCamera = (cameraData: CameraFormData) => {
+    console.log("Thêm camera mới:", cameraData);
+    // Ở đây bạn sẽ gọi API để thêm camera vào database
+    // Ví dụ: await addCameraAPI(cameraData);
+    alert("Camera đã được thêm thành công!");
+  };
+
   return (
     <Box sx={{ p: 3 }}>
       {/* Header */}
@@ -116,7 +128,12 @@ export default function CameraManagement() {
             Quản lý tất cả camera của bạn tại đây
           </Typography>
         </Box>
-        <Button variant="contained" startIcon={<AddIcon />} size="large">
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          size="large"
+          onClick={() => setOpenAddModal(true)}
+        >
           Thêm Camera mới
         </Button>
       </Box>
@@ -263,6 +280,13 @@ export default function CameraManagement() {
           </Card>
         ))}
       </Box>
+
+      {/* Add Camera Modal */}
+      <ModalAddCamera
+        open={openAddModal}
+        onClose={() => setOpenAddModal(false)}
+        onAdd={handleAddCamera}
+      />
     </Box>
   );
 }

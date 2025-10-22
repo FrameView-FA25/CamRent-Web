@@ -21,8 +21,8 @@ import {
   Menu as MenuIcon,
   Dashboard as DashboardIcon,
   PhotoCamera as CameraIcon,
-  CalendarMonth as CalendarIcon,
-  TrendingUp as AnalyticsIcon,
+  People as PeopleIcon,
+  ViewList as ViewListIcon,
   Settings as SettingsIcon,
   Logout as LogoutIcon,
   Notifications as NotificationsIcon,
@@ -33,10 +33,10 @@ const DRAWER_WIDTH = 240;
 
 const menuItems = [
   { text: "Dashboard", icon: <DashboardIcon />, path: "/owner/dashboard" },
-  { text: "My Cameras", icon: <CameraIcon />, path: "/owner/cameras" },
-  { text: "Bookings", icon: <CalendarIcon />, path: "/owner/bookings" },
-  { text: "Analytics", icon: <AnalyticsIcon />, path: "/owner/analytics" },
-  { text: "Settings", icon: <SettingsIcon />, path: "/owner/settings" },
+  { text: "Manager Cameras", icon: <CameraIcon />, path: "/owner/cameras" },
+  { text: "Manage Users", icon: <PeopleIcon />, path: "/owner/users" },
+  { text: "Manage Orders", icon: <ViewListIcon />, path: "/owner/orders" },
+  { text: "Profile", icon: <SettingsIcon />, path: "/owner/profile" },
 ];
 
 const OwnerLayout: React.FC = () => {
