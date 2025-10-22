@@ -79,6 +79,10 @@ const routes: RouteObject[] = [
         path: "users",
         element: <UserManagement />,
       },
+      {
+        path: "profile",
+        element: <div>Owner Profile Page</div>,
+      },
     ],
   },
 ];
