@@ -1,280 +1,278 @@
-import { useState } from "react";
+import React, { useState } from "react";
+import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Box,
-  Drawer,
   AppBar,
   Toolbar,
-  List,
   Typography,
-  Divider,
   IconButton,
+  Avatar,
+  Menu,
+  MenuItem,
+  Drawer,
+  List,
   ListItem,
-  ListItemButton,
   ListItemIcon,
   ListItemText,
-  useTheme,
-  useMediaQuery,
+  ListItemButton,
+  Divider,
 } from "@mui/material";
 import {
   Menu as MenuIcon,
   Dashboard as DashboardIcon,
   PhotoCamera as CameraIcon,
-  People as PeopleIcon,
+  CalendarMonth as CalendarIcon,
+  TrendingUp as AnalyticsIcon,
   Settings as SettingsIcon,
-  AccountCircle as AccountIcon,
-  Notifications as NotificationsIcon,
   Logout as LogoutIcon,
+  Notifications as NotificationsIcon,
+  Person as PersonIcon,
 } from "@mui/icons-material";
-import { Outlet, useNavigate, useLocation } from "react-router-dom";
-import "./OwnerLayout.css";
 
-// Chiều rộng của sidebar drawer
-const DRAWER_WIDTH = 280;
+const DRAWER_WIDTH = 240;
 
-// Danh sách các menu item trong sidebar navigation
-const MENU_ITEMS = [
-  {
-    text: "Dashboard",
-    icon: <DashboardIcon />,
-    path: "/owner/dashboard",
-  },
-  {
-    text: "Quản lý Camera",
-    icon: <CameraIcon />,
-    path: "/owner/cameras",
-  },
-  {
-    text: "Quản lí khách hàng",
-    icon: <PeopleIcon />,
-    path: "/owner/users",
-  },
-  {
-    text: "Quản lí đơn thuê",
-    icon: <SettingsIcon />,
-    path: "/owner/orders",
-  },
+const menuItems = [
+  { text: "Dashboard", icon: <DashboardIcon />, path: "/owner/dashboard" },
+  { text: "My Cameras", icon: <CameraIcon />, path: "/owner/cameras" },
+  { text: "Bookings", icon: <CalendarIcon />, path: "/owner/bookings" },
+  { text: "Analytics", icon: <AnalyticsIcon />, path: "/owner/analytics" },
+  { text: "Settings", icon: <SettingsIcon />, path: "/owner/settings" },
 ];
 
-/**
- * Component OwnerLayout - Layout chính cho khu vực quản lý của Owner
- * Bao gồm sidebar navigation và main content area
- */
-export default function OwnerLayout() {
-  // State để quản lý việc mở/đóng mobile drawer
-  const [mobileOpen, setMobileOpen] = useState(false);
-
-  // Hook để lấy theme MUI và check responsive breakpoint
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
-
-  // Hook để điều hướng giữa các trang
-  const navigate = useNavigate();
-
-  // Hook để lấy đường dẫn hiện tại (dùng để highlight menu active)
+const OwnerLayout: React.FC = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
-  /**
-   * Hàm xử lý toggle mobile drawer (mở/đóng)
-   */
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };
 
-  /**
-   * Hàm xử lý khi click vào menu item
-   * @param path - Đường dẫn cần navigate tới
-   */
-  const handleMenuClick = (path: string) => {
-    navigate(path);
-    // Đóng mobile drawer sau khi navigate (chỉ trên mobile)
-    if (isMobile) {
-      setMobileOpen(false);
-    }
+  const handleProfileMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
   };
 
-  /**
-   * Hàm xử lý khi click logout
-   */
+  const handleProfileMenuClose = () => {
+    setAnchorEl(null);
+  };
+
   const handleLogout = () => {
-    // TODO: Implement logout logic
-    console.log("Đăng xuất được click");
-    // Có thể thêm logic như: clear localStorage, redirect to login, etc.
+    handleProfileMenuClose();
+    navigate("/");
   };
 
-  /**
-   * Kiểm tra xem menu item có đang active không
-   * @param path - Đường dẫn của menu item
-   * @returns boolean - true nếu đang active
-   */
-  const isActiveMenu = (path: string) => {
-    return location.pathname === path;
-  };
-
-  /**
-   * Render nội dung của sidebar drawer
-   */
-  const renderSidebarContent = () => (
-    <Box className="sidebar-drawer">
-      {/* Header/Logo Section */}
-      <Box className="sidebar-header">
-        <Typography className="sidebar-logo" variant="h5">
-          CamRent Owner
+  const drawer = (
+    <Box sx={{ height: "100%", bgcolor: "#121212" }}>
+      {/* Logo */}
+      <Box
+        sx={{
+          p: 3,
+          display: "flex",
+          alignItems: "center",
+          gap: 1.5,
+          borderBottom: "1px solid rgba(255, 200, 0, 0.1)",
+        }}
+      >
+        <img src="/logo.png" alt="CamRent Logo" width="40" height="40" />
+        <Typography
+          variant="h6"
+          sx={{
+            color: "#FFC800",
+            fontWeight: 700,
+            fontSize: "1.25rem",
+          }}
+        >
+          CamRent
         </Typography>
       </Box>
 
-      {/* Navigation Menu Section */}
-      <List className="sidebar-nav">
-        {MENU_ITEMS.map((item) => (
-          <ListItem key={item.text} disablePadding className="nav-item">
-            <ListItemButton
-              onClick={() => handleMenuClick(item.path)}
-              className={`nav-button ${
-                isActiveMenu(item.path) ? "active" : ""
-              }`}
-              sx={{
-                borderRadius: 2,
-                py: 1.5,
-                "&:hover": {
-                  bgcolor: "rgba(255,255,255,0.1)",
-                },
-                "&.active": {
-                  bgcolor: "rgba(255,255,255,0.2)",
-                },
-              }}
-            >
-              <ListItemIcon className="nav-icon">{item.icon}</ListItemIcon>
-              <ListItemText
-                primary={item.text}
-                className="nav-text"
-                primaryTypographyProps={{ fontWeight: 500 }}
-              />
-            </ListItemButton>
-          </ListItem>
-        ))}
+      {/* Menu Items */}
+      <List sx={{ px: 2, pt: 2 }}>
+        {menuItems.map((item) => {
+          const isActive = location.pathname === item.path;
+          return (
+            <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
+              <ListItemButton
+                component={Link}
+                to={item.path}
+                sx={{
+                  borderRadius: 2,
+                  color: isActive ? "#FFC800" : "#FFFFFF",
+                  bgcolor: isActive ? "rgba(243, 194, 17, 0.1)" : "transparent",
+                  "&:hover": {
+                    bgcolor: "rgba(196, 166, 60, 0.05)",
+                  },
+                  py: 1.5,
+                }}
+              >
+                <ListItemIcon
+                  sx={{
+                    color: isActive ? "#FFC800" : "#FFFFFF",
+                    minWidth: 40,
+                  }}
+                >
+                  {item.icon}
+                </ListItemIcon>
+                <ListItemText
+                  primary={item.text}
+                  primaryTypographyProps={{
+                    fontWeight: isActive ? 600 : 400,
+                    fontSize: "0.9rem",
+                  }}
+                />
+              </ListItemButton>
+            </ListItem>
+          );
+        })}
       </List>
 
-      {/* Divider ngăn cách menu và user section */}
-      <Divider className="sidebar-divider" />
+      <Divider sx={{ borderColor: "rgba(255, 200, 0, 0.1)", mt: "auto" }} />
 
-      {/* User Profile/Action Section */}
-      <Box className="user-section">
-        {/* Profile Button */}
-        <ListItem disablePadding>
-          <ListItemButton
-            className="user-button"
-            sx={{
-              borderRadius: 2,
-              py: 1.5,
-              "&:hover": {
-                bgcolor: "rgba(255,255,255,0.1)",
-              },
-            }}
-          >
-            <ListItemIcon className="nav-icon">
-              <AccountIcon />
-            </ListItemIcon>
-            <ListItemText
-              primary="Hồ sơ"
-              className="nav-text"
-              primaryTypographyProps={{ fontWeight: 500 }}
-            />
-          </ListItemButton>
-        </ListItem>
-
-        {/* Logout Button */}
+      {/* Logout */}
+      <List sx={{ px: 2, py: 2 }}>
         <ListItem disablePadding>
           <ListItemButton
             onClick={handleLogout}
-            className="user-button"
             sx={{
               borderRadius: 2,
-              py: 1.5,
-              mt: 1,
+              color: "#FFFFFF",
               "&:hover": {
-                bgcolor: "rgba(255,255,255,0.1)",
+                bgcolor: "rgba(255, 0, 0, 0.1)",
+                color: "#FF5252",
               },
+              py: 1.5,
             }}
           >
-            <ListItemIcon className="nav-icon">
+            <ListItemIcon sx={{ color: "inherit", minWidth: 40 }}>
               <LogoutIcon />
             </ListItemIcon>
             <ListItemText
-              primary="Đăng xuất"
-              className="nav-text"
-              primaryTypographyProps={{ fontWeight: 500 }}
+              primary="Logout"
+              primaryTypographyProps={{
+                fontSize: "0.9rem",
+              }}
             />
           </ListItemButton>
         </ListItem>
-      </Box>
+      </List>
     </Box>
   );
 
   return (
-    <Box className="owner-layout-container">
-      {/* Mobile AppBar - chỉ hiển thị trên màn hình mobile */}
-      {isMobile && (
-        <AppBar
-          position="fixed"
-          className="mobile-appbar"
-          sx={{
-            zIndex: theme.zIndex.drawer + 1,
-          }}
-        >
-          <Toolbar className="mobile-toolbar">
-            <IconButton
-              color="inherit"
-              aria-label="mở menu navigation"
-              edge="start"
-              onClick={handleDrawerToggle}
-              className="mobile-menu-button"
-            >
-              <MenuIcon />
-            </IconButton>
-            <Typography
-              variant="h6"
-              noWrap
-              component="div"
-              className="mobile-title"
-            >
-              CamRent Owner
-            </Typography>
-            <IconButton color="inherit" aria-label="xem thông báo">
-              <NotificationsIcon />
-            </IconButton>
-          </Toolbar>
-        </AppBar>
-      )}
-
-      {/* Sidebar Navigation Container */}
-      <Box
-        component="nav"
-        className="nav-container"
+    <Box sx={{ display: "flex", minHeight: "100vh" }}>
+      {/* AppBar */}
+      <AppBar
+        position="fixed"
+        elevation={0}
         sx={{
-          width: { md: DRAWER_WIDTH },
-          flexShrink: { md: 0 },
+          width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
+          ml: { md: `${DRAWER_WIDTH}px` },
+          bgcolor: "#FFFFFF",
+          borderBottom: "1px solid #F0F0F0",
         }}
       >
-        {/* Mobile Drawer - Temporary (overlay trên mobile) */}
+        <Toolbar>
+          <IconButton
+            color="inherit"
+            edge="start"
+            onClick={handleDrawerToggle}
+            sx={{ mr: 2, display: { md: "none" }, color: "#121212" }}
+          >
+            <MenuIcon />
+          </IconButton>
+
+          <Box sx={{ flexGrow: 1 }} />
+
+          {/* Notifications */}
+          <IconButton sx={{ color: "#666" }}>
+            <NotificationsIcon />
+          </IconButton>
+
+          {/* Profile */}
+          <IconButton onClick={handleProfileMenuOpen} sx={{ ml: 1 }}>
+            <Avatar
+              sx={{
+                bgcolor: "#FFC800",
+                color: "#121212",
+                width: 36,
+                height: 36,
+                fontWeight: 600,
+              }}
+            >
+              JD
+            </Avatar>
+          </IconButton>
+
+          <Menu
+            anchorEl={anchorEl}
+            open={Boolean(anchorEl)}
+            onClose={handleProfileMenuClose}
+            anchorOrigin={{
+              vertical: "bottom",
+              horizontal: "right",
+            }}
+            transformOrigin={{
+              vertical: "top",
+              horizontal: "right",
+            }}
+            sx={{
+              mt: 1,
+              "& .MuiPaper-root": {
+                borderRadius: 2,
+                minWidth: 200,
+                boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.1)",
+              },
+            }}
+          >
+            <MenuItem onClick={handleProfileMenuClose}>
+              <ListItemIcon>
+                <PersonIcon fontSize="small" />
+              </ListItemIcon>
+              Profile
+            </MenuItem>
+            <MenuItem onClick={handleProfileMenuClose}>
+              <ListItemIcon>
+                <SettingsIcon fontSize="small" />
+              </ListItemIcon>
+              Settings
+            </MenuItem>
+            <Divider />
+            <MenuItem onClick={handleLogout}>
+              <ListItemIcon>
+                <LogoutIcon fontSize="small" />
+              </ListItemIcon>
+              Logout
+            </MenuItem>
+          </Menu>
+        </Toolbar>
+      </AppBar>
+
+      {/* Drawer */}
+      <Box
+        component="nav"
+        sx={{ width: { md: DRAWER_WIDTH }, flexShrink: { md: 0 } }}
+      >
+        {/* Mobile drawer */}
         <Drawer
           variant="temporary"
           open={mobileOpen}
           onClose={handleDrawerToggle}
           ModalProps={{
-            keepMounted: true, // Giữ mounted để performance tốt hơn trên mobile
+            keepMounted: true,
           }}
           sx={{
             display: { xs: "block", md: "none" },
             "& .MuiDrawer-paper": {
               boxSizing: "border-box",
               width: DRAWER_WIDTH,
-              border: "none",
             },
           }}
         >
-          {renderSidebarContent()}
+          {drawer}
         </Drawer>
 
-        {/* Desktop Drawer - Permanent (cố định trên desktop) */}
+        {/* Desktop drawer */}
         <Drawer
           variant="permanent"
           sx={{
@@ -282,30 +280,29 @@ export default function OwnerLayout() {
             "& .MuiDrawer-paper": {
               boxSizing: "border-box",
               width: DRAWER_WIDTH,
-              border: "none",
             },
           }}
           open
         >
-          {renderSidebarContent()}
+          {drawer}
         </Drawer>
       </Box>
 
-      {/* Main Content Area - nơi render các trang con */}
+      {/* Main content */}
       <Box
         component="main"
-        className="main-content"
         sx={{
           flexGrow: 1,
           width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
-          mt: { xs: 8, md: 0 }, // Margin top cho mobile AppBar
-          bgcolor: "#f5f5f5",
           minHeight: "100vh",
+          bgcolor: "#F5F5F5",
         }}
       >
-        {/* Render các component con dựa trên route hiện tại */}
+        <Toolbar />
         <Outlet />
       </Box>
     </Box>
   );
-}
+};
+
+export default OwnerLayout;
