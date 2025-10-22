@@ -16,10 +16,29 @@ const categories = [
   },
 ];
 
+const partners = [
+  {
+    name: "Sony",
+    logo: "https://upload.wikimedia.org/wikipedia/commons/c/ca/Sony_logo.svg",
+  },
+  {
+    name: "DJI",
+    logo: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS7HqMfOlgaKaXJgvnEkXArCT9H7qGFj0h7xw&s",
+  },
+  {
+    name: "Canon",
+    logo: "https://logolook.net/wp-content/uploads/2023/03/Canon-Font.png",
+  },
+  {
+    name: "RED",
+    logo: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSCb-Bn1ojk7WNxqkoD5AJiosZVvYuGXm-OqQ&s",
+  },
+];
+
 const HomePage: React.FC = () => {
   return (
     <section className="page home-page">
-      {/* ===== Hero giữ nguyên thiết kế của bạn ===== */}
+      {/* ===== Hero Section ===== */}
       <div className="hero">
         <div className="hero-content">
           <h1 className="hero-title">
@@ -49,13 +68,12 @@ const HomePage: React.FC = () => {
         </div>
       </div>
 
-      {/* ===== Categories Section (MUI, không dùng Grid) ===== */}
+      {/* ===== Categories Section ===== */}
       <Box
         component="section"
         sx={{ py: { xs: 8, md: 12 }, backgroundColor: "#F9FAFB" }}
       >
         <Container maxWidth="lg">
-          {/* Flex layout 3 cột khi rộng, tự xuống hàng khi hẹp */}
           <Box
             sx={{
               display: "flex",
@@ -82,7 +100,7 @@ const HomePage: React.FC = () => {
               >
                 <CardMedia
                   component="img"
-                  height="384" // ~ h-96
+                  height="384"
                   image={cat.img}
                   alt={cat.title}
                   sx={{
@@ -92,7 +110,6 @@ const HomePage: React.FC = () => {
                   }}
                 />
 
-                {/* Overlay gradient */}
                 <Box
                   sx={{
                     position: "absolute",
@@ -102,7 +119,6 @@ const HomePage: React.FC = () => {
                   }}
                 />
 
-                {/* Title badge giữa đáy */}
                 <Box
                   sx={{
                     position: "absolute",
@@ -128,6 +144,248 @@ const HomePage: React.FC = () => {
                   </Typography>
                 </Box>
               </Card>
+            ))}
+          </Box>
+        </Container>
+      </Box>
+
+      {/* ===== Experience Matters Section ===== */}
+      <Box
+        component="section"
+        sx={{
+          py: { xs: 8, md: 12 },
+          backgroundColor: "#FFFFFF",
+        }}
+      >
+        <Container maxWidth="lg">
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: { xs: "column", md: "row" },
+              alignItems: "center",
+              gap: { xs: 4, md: 8 },
+            }}
+          >
+            {/* Left - Image */}
+            <Box
+              sx={{
+                flex: 1,
+                display: "flex",
+                justifyContent: "center",
+              }}
+            >
+              <Box
+                component="img"
+                src="../../public/sony.jpg"
+                alt="Professional Camera"
+                sx={{
+                  width: "100%",
+                  maxWidth: 400,
+                  height: "auto",
+                  objectFit: "contain",
+                }}
+              />
+            </Box>
+
+            {/* Right - Content */}
+            <Box sx={{ flex: 1 }}>
+              <Typography
+                variant="overline"
+                sx={{
+                  color: "#6B7280",
+                  fontWeight: 600,
+                  letterSpacing: 1.5,
+                  mb: 2,
+                  display: "block",
+                }}
+              >
+                EXPERIENCE MATTERS
+              </Typography>
+              <Typography
+                variant="h3"
+                sx={{
+                  color: "#111827",
+                  fontWeight: 700,
+                  fontSize: { xs: "2rem", md: "2.5rem" },
+                  mb: 3,
+                  lineHeight: 1.2,
+                }}
+              >
+                Gear That Elevates
+                <br />
+                Your{" "}
+                <Box component="span" sx={{ fontStyle: "italic" }}>
+                  Creativity
+                </Box>
+              </Typography>
+              <Typography
+                variant="body1"
+                sx={{
+                  color: "#4B5563",
+                  fontSize: { xs: "1rem", md: "1.125rem" },
+                  lineHeight: 1.7,
+                  maxWidth: 500,
+                }}
+              >
+                Whether you're a filmmaker, content creator, or photographer we
+                make sure you always have access to the latest cameras and
+                lenses without breaking the bank. Our gear is professionally
+                maintained and curated for creators who care about quality.
+              </Typography>
+            </Box>
+          </Box>
+        </Container>
+      </Box>
+
+      {/* ===== Trusted Brands Section ===== */}
+      <Box
+        component="section"
+        sx={{
+          py: { xs: 8, md: 12 },
+          backgroundColor: "#F9FAFB",
+        }}
+      >
+        <Container maxWidth="lg">
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: { xs: "column", md: "row" },
+              alignItems: "center",
+              gap: { xs: 4, md: 8 },
+            }}
+          >
+            {/* Left - Content */}
+            <Box sx={{ flex: 1 }}>
+              <Typography
+                variant="overline"
+                sx={{
+                  color: "#6B7280",
+                  fontWeight: 600,
+                  letterSpacing: 1.5,
+                  mb: 2,
+                  display: "block",
+                }}
+              >
+                PREMIUM EQUIPMENT
+              </Typography>
+              <Typography
+                variant="h3"
+                sx={{
+                  color: "#111827",
+                  fontWeight: 700,
+                  fontSize: { xs: "2rem", md: "2.5rem" },
+                  mb: 3,
+                  lineHeight: 1.2,
+                }}
+              >
+                Trusted Brands.
+                <br />
+                Zero Compromises.
+              </Typography>
+              <Typography
+                variant="body1"
+                sx={{
+                  color: "#4B5563",
+                  fontSize: { xs: "1rem", md: "1.125rem" },
+                  lineHeight: 1.7,
+                  maxWidth: 500,
+                }}
+              >
+                We partner with the best. Canon, Sony, RED, DJI so you can shoot
+                with industry-standard equipment, without the upfront cost.
+                Every rental goes through a strict quality check before it
+                reaches you.
+              </Typography>
+            </Box>
+
+            {/* Right - Image */}
+            <Box
+              sx={{
+                flex: 1,
+                display: "flex",
+                justifyContent: "center",
+              }}
+            >
+              <Box
+                component="img"
+                src="../../public/sony1.png"
+                alt="Professional Camera Equipment"
+                sx={{
+                  width: "100%",
+                  maxWidth: 500,
+                  height: "auto",
+                  objectFit: "contain",
+                }}
+              />
+            </Box>
+          </Box>
+        </Container>
+      </Box>
+
+      {/* ===== Our Partners Section ===== */}
+      <Box
+        component="section"
+        sx={{
+          py: { xs: 8, md: 12 },
+          backgroundColor: "#FFFFFF",
+        }}
+      >
+        <Container maxWidth="lg">
+          <Box sx={{ textAlign: "center", mb: 6 }}>
+            <Typography
+              variant="overline"
+              sx={{
+                color: "#6B7280",
+                fontWeight: 600,
+                letterSpacing: 1.5,
+                mb: 2,
+                display: "block",
+              }}
+            >
+              OUR PARTNER
+            </Typography>
+          </Box>
+
+          {/* Partner Logos */}
+          <Box
+            sx={{
+              display: "flex",
+              flexWrap: "wrap",
+              justifyContent: "center",
+              alignItems: "center",
+              gap: { xs: 4, md: 6 },
+            }}
+          >
+            {partners.map((partner) => (
+              <Box
+                key={partner.name}
+                sx={{
+                  width: { xs: "120px", md: "150px" },
+                  height: { xs: "60px", md: "80px" },
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  filter: "grayscale(100%)",
+                  opacity: 0.7,
+                  transition: "all 0.3s ease",
+                  "&:hover": {
+                    filter: "grayscale(0%)",
+                    opacity: 1,
+                    transform: "scale(1.05)",
+                  },
+                }}
+              >
+                <Box
+                  component="img"
+                  src={partner.logo}
+                  alt={partner.name}
+                  sx={{
+                    maxWidth: "100%",
+                    maxHeight: "100%",
+                    objectFit: "contain",
+                  }}
+                />
+              </Box>
             ))}
           </Box>
         </Container>
