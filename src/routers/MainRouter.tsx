@@ -10,6 +10,7 @@ import TestimonialsPage from "../pages/TestimonialsPage";
 import WhyUsPage from "../pages/WhyUsPage";
 import ContactPage from "../pages/ContactPage";
 import ProductPage from "../pages/ProductPage";
+import ProductDetailPage from "../pages/ProductDetailPage";
 import NewsPage from "../pages/NewsPage";
 import NotFoundPage from "../pages/NotFoundPage";
 import DashboardOwner from "../pages/Owner/Dashboard/Dashboard";
@@ -21,7 +22,6 @@ import AccountManagement from "../pages/Admin/AccountManagement/AccountManagemen
 import AgencyManagement from "../pages/Admin/AgencyManagement/AgencyManagement";
 import DeviceManagement from "../pages/Admin/DeviceManagement/DeviceManagement";
 import AdminSettings from "../pages/Admin/Settings/AdminSettings";
-
 const routes: RouteObject[] = [
   {
     path: "/",
@@ -54,6 +54,10 @@ const routes: RouteObject[] = [
       {
         path: "products",
         element: <ProductPage />,
+      },
+      {
+        path: "products/:id",
+        element: <ProductDetailPage />,
       },
       {
         path: "news",
