@@ -2,6 +2,7 @@ import { createBrowserRouter } from "react-router-dom";
 import type { RouteObject } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
 import OwnerLayout from "../layouts/OwnerLayout/OwnerLayout";
+import AdminLayout from "../layouts/AdminLayout/AdminLayout";
 import HomePage from "../pages/HomePage";
 import ExplorePage from "../pages/ExplorePage";
 import HowItWorksPage from "../pages/HowItWorksPage";
@@ -15,6 +16,11 @@ import DashboardOwner from "../pages/Owner/Dashboard/Dashboard";
 import CameraManagement from "../pages/Owner/CameraManagement/CameraManagement";
 import OrderManagement from "../pages/Owner/OrderManagement/OrderManagement";
 import UserManagement from "../pages/Owner/UserManagement/UserManagement";
+import DashboardAdmin from "../pages/Admin/Dashboard/Dashboard";
+import AccountManagement from "../pages/Admin/AccountManagement/AccountManagement";
+import AgencyManagement from "../pages/Admin/AgencyManagement/AgencyManagement";
+import DeviceManagement from "../pages/Admin/DeviceManagement/DeviceManagement";
+import AdminSettings from "../pages/Admin/Settings/AdminSettings";
 
 const routes: RouteObject[] = [
   {
@@ -82,6 +88,32 @@ const routes: RouteObject[] = [
       {
         path: "profile",
         element: <div>Owner Profile Page</div>,
+      },
+    ],
+  },
+  {
+    path: "/admin",
+    element: <AdminLayout />,
+    children: [
+      {
+        path: "dashboard",
+        element: <DashboardAdmin />,
+      },
+      {
+        path: "account",
+        element: <AccountManagement />,
+      },
+      {
+        path: "agencies",
+        element: <AgencyManagement />,
+      },
+      {
+        path: "devices",
+        element: <DeviceManagement />,
+      },
+      {
+        path: "profile",
+        element: <AdminSettings />,
       },
     ],
   },
