@@ -26,11 +26,9 @@ import {
   ArrowDownward as ArrowDownIcon,
 } from "@mui/icons-material";
 import type { ReactElement } from "react";
-import "./Dashboard.css";
 
-/**
- * Interface cho dữ liệu thống kê
- */
+// ===== TYPES =====
+
 interface StatItem {
   title: string;
   value: string;
@@ -38,13 +36,8 @@ interface StatItem {
   changeValue: string;
   isPositive: boolean;
   icon: ReactElement;
-  color: string;
-  bgColor: string;
 }
 
-/**
- * Interface cho đơn thuê
- */
 interface Booking {
   id: string;
   customer: string;
@@ -55,7 +48,12 @@ interface Booking {
   status: "active" | "pending" | "completed";
 }
 
-// ===== MOCK DATA =====
+interface WeeklyDataItem {
+  day: string;
+  value: number;
+}
+
+// ===== CONSTANTS =====
 
 const STATS: StatItem[] = [
   {
@@ -65,8 +63,6 @@ const STATS: StatItem[] = [
     changeValue: "35,000",
     isPositive: true,
     icon: <CameraIcon />,
-    color: "#121212",
-    bgColor: "#FFF9E6",
   },
   {
     title: "Total Users",
@@ -75,8 +71,6 @@ const STATS: StatItem[] = [
     changeValue: "8,900",
     isPositive: true,
     icon: <PeopleIcon />,
-    color: "#121212",
-    bgColor: "#FFF9E6",
   },
   {
     title: "Total Order",
@@ -85,8 +79,6 @@ const STATS: StatItem[] = [
     changeValue: "1,943",
     isPositive: false,
     icon: <MoneyIcon />,
-    color: "#121212",
-    bgColor: "#FFF9E6",
   },
   {
     title: "Total Sales",
@@ -95,8 +87,6 @@ const STATS: StatItem[] = [
     changeValue: "20,395",
     isPositive: false,
     icon: <TrendingUpIcon />,
-    color: "#121212",
-    bgColor: "#FFF9E6",
   },
 ];
 
@@ -130,7 +120,7 @@ const RECENT_BOOKINGS: Booking[] = [
   },
 ];
 
-const WEEKLY_DATA = [
+const WEEKLY_DATA: WeeklyDataItem[] = [
   { day: "Mo", value: 45 },
   { day: "Tu", value: 60 },
   { day: "We", value: 50 },
@@ -140,133 +130,88 @@ const WEEKLY_DATA = [
   { day: "Su", value: 70 },
 ];
 
-/**
- * Component Dashboard - Trang tổng quan quản lý cho Owner
- */
-export default function Dashboard() {
-  /**
-   * Lấy màu cho Chip status của đơn thuê
-   */
-  const getStatusColor = (
-    status: string
-  ): "success" | "warning" | "info" | "default" => {
-    const statusMap: Record<string, "success" | "warning" | "info"> = {
-      active: "success",
-      pending: "warning",
-      completed: "info",
-    };
-    return statusMap[status] || "default";
-  };
+const STATUS_MAP = {
+  active: { label: "Đang thuê", color: "success" as const },
+  pending: { label: "Chờ duyệt", color: "warning" as const },
+  completed: { label: "Hoàn thành", color: "info" as const },
+};
 
-  /**
-   * Lấy text tiếng Việt cho status
-   */
-  const getStatusText = (status: string): string => {
-    const statusTextMap: Record<string, string> = {
-      active: "Đang thuê",
-      pending: "Chờ duyệt",
-      completed: "Hoàn thành",
-    };
-    return statusTextMap[status] || status;
-  };
+// ===== COMPONENTS =====
 
-  /**
-   * Render stat card
-   */
-  const renderStatCard = (stat: StatItem, index: number) => (
-    <Card
-      key={index}
-      elevation={0}
-      sx={{
-        bgcolor: "white",
-        border: "1px solid #F0F0F0",
-        borderRadius: 2,
-        flex: 1,
-        minWidth: {
-          xs: "100%",
-          sm: "calc(50% - 12px)",
-          lg: "calc(25% - 18px)",
-        },
-      }}
-    >
-      <CardContent sx={{ p: 3 }}>
+const StatCard = ({ stat }: { stat: StatItem }) => (
+  <Card
+    elevation={0}
+    sx={{
+      bgcolor: "white",
+      border: "1px solid #F0F0F0",
+      borderRadius: 2,
+      flex: 1,
+      minWidth: {
+        xs: "100%",
+        sm: "calc(50% - 12px)",
+        lg: "calc(25% - 18px)",
+      },
+    }}
+  >
+    <CardContent sx={{ p: 3 }}>
+      <Typography
+        variant="subtitle2"
+        sx={{ color: "#666", fontSize: "0.875rem", mb: 2, fontWeight: 500 }}
+      >
+        {stat.title}
+      </Typography>
+
+      <Box sx={{ display: "flex", alignItems: "baseline", mb: 1.5 }}>
         <Typography
-          variant="subtitle2"
+          variant="h4"
+          sx={{ color: "#121212", fontWeight: 700, fontSize: "1.75rem" }}
+        >
+          {stat.value}
+        </Typography>
+        <Box
           sx={{
-            color: "#666",
-            fontSize: "0.875rem",
-            mb: 2,
-            fontWeight: 500,
+            display: "flex",
+            alignItems: "center",
+            ml: 2,
+            color: stat.isPositive ? "#4CAF50" : "#FF9800",
           }}
         >
-          {stat.title}
-        </Typography>
-
-        <Box sx={{ display: "flex", alignItems: "baseline", mb: 1.5 }}>
+          {stat.isPositive ? (
+            <ArrowUpIcon sx={{ fontSize: 16 }} />
+          ) : (
+            <ArrowDownIcon sx={{ fontSize: 16 }} />
+          )}
           <Typography
-            variant="h4"
-            sx={{
-              color: "#121212",
-              fontWeight: 700,
-              fontSize: "1.75rem",
-            }}
+            variant="body2"
+            sx={{ fontWeight: 600, fontSize: "0.875rem" }}
           >
-            {stat.value}
+            {stat.change}
           </Typography>
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              ml: 2,
-              color: stat.isPositive ? "#4CAF50" : "#FF9800",
-            }}
-          >
-            {stat.isPositive ? (
-              <ArrowUpIcon sx={{ fontSize: 16 }} />
-            ) : (
-              <ArrowDownIcon sx={{ fontSize: 16 }} />
-            )}
-            <Typography
-              variant="body2"
-              sx={{
-                fontWeight: 600,
-                fontSize: "0.875rem",
-              }}
-            >
-              {stat.change}
-            </Typography>
-          </Box>
         </Box>
+      </Box>
 
-        <Typography
-          variant="body2"
+      <Typography variant="body2" sx={{ color: "#999", fontSize: "0.75rem" }}>
+        You made an extra{" "}
+        <Box
+          component="span"
           sx={{
-            color: "#999",
-            fontSize: "0.75rem",
+            color: stat.isPositive ? "#4CAF50" : "#FF9800",
+            fontWeight: 600,
           }}
         >
-          You made an extra{" "}
-          <Box
-            component="span"
-            sx={{
-              color: stat.isPositive ? "#4CAF50" : "#FF9800",
-              fontWeight: 600,
-            }}
-          >
-            {stat.changeValue}
-          </Box>{" "}
-          this year
-        </Typography>
-      </CardContent>
-    </Card>
-  );
+          {stat.changeValue}
+        </Box>{" "}
+        this year
+      </Typography>
+    </CardContent>
+  </Card>
+);
 
-  /**
-   * Render booking row trong bảng
-   */
-  const renderBookingRow = (booking: Booking) => (
+const BookingRow = ({ booking }: { booking: Booking }) => {
+  const statusConfig = STATUS_MAP[booking.status];
+
+  return (
     <TableRow
-      key={booking.id}
       sx={{
         "&:hover": { bgcolor: "#FAFAFA" },
         borderBottom: "1px solid #F0F0F0",
@@ -309,9 +254,9 @@ export default function Dashboard() {
       </TableCell>
       <TableCell sx={{ border: "none" }}>
         <Chip
-          label={getStatusText(booking.status)}
+          label={statusConfig.label}
           size="small"
-          color={getStatusColor(booking.status)}
+          color={statusConfig.color}
           sx={{ borderRadius: 1, fontWeight: 500 }}
         />
       </TableCell>
@@ -330,7 +275,156 @@ export default function Dashboard() {
       </TableCell>
     </TableRow>
   );
+};
 
+const BarChart = ({ data }: { data: WeeklyDataItem[] }) => (
+  <Box
+    sx={{
+      display: "flex",
+      alignItems: "flex-end",
+      gap: { xs: 1, sm: 1.5 },
+      height: { xs: 150, sm: 200 },
+      mt: 3,
+    }}
+  >
+    {data.map((item, index) => (
+      <Box
+        key={index}
+        sx={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 1,
+        }}
+      >
+        <Box
+          sx={{
+            width: "100%",
+            bgcolor: "#FFC800",
+            borderRadius: 1,
+            height: `${item.value * 2}px`,
+            transition: "all 0.3s",
+            "&:hover": { bgcolor: "#FFD633" },
+          }}
+        />
+        <Typography
+          variant="caption"
+          sx={{ color: "#999", fontSize: "0.75rem", fontWeight: 500 }}
+        >
+          {item.day}
+        </Typography>
+      </Box>
+    ))}
+  </Box>
+);
+
+const IncomeOverview = () => (
+  <Card
+    elevation={0}
+    sx={{ border: "1px solid #F0F0F0", borderRadius: 2, height: "100%" }}
+  >
+    <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+      <Typography
+        variant="h6"
+        sx={{ color: "#121212", fontWeight: 700, fontSize: "1.125rem", mb: 3 }}
+      >
+        Income Overview
+      </Typography>
+
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="body2" sx={{ color: "#999", mb: 1 }}>
+          This Week Statistics
+        </Typography>
+        <Typography variant="h4" sx={{ color: "#121212", fontWeight: 700 }}>
+          $7,650
+        </Typography>
+      </Box>
+
+      <BarChart data={WEEKLY_DATA} />
+    </CardContent>
+  </Card>
+);
+
+const RecentOrdersTable = () => {
+  const headerCellStyle = {
+    border: "none",
+    color: "#999",
+    fontWeight: 600,
+    fontSize: "0.75rem",
+  };
+
+  return (
+    <Card
+      elevation={0}
+      sx={{ border: "1px solid #F0F0F0", borderRadius: 2, height: "100%" }}
+    >
+      <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            mb: 3,
+            flexWrap: "wrap",
+            gap: 2,
+          }}
+        >
+          <Typography
+            variant="h6"
+            sx={{ color: "#121212", fontWeight: 700, fontSize: "1.125rem" }}
+          >
+            Recent Orders
+          </Typography>
+          <Button
+            variant="outlined"
+            size="small"
+            sx={{
+              color: "#FFC800",
+              borderColor: "#FFC800",
+              "&:hover": { borderColor: "#FFD633", bgcolor: "#FFF9E6" },
+              textTransform: "none",
+              fontWeight: 600,
+            }}
+          >
+            View All
+          </Button>
+        </Box>
+
+        <TableContainer sx={{ overflowX: "auto" }}>
+          <Table>
+            <TableHead>
+              <TableRow sx={{ borderBottom: "2px solid #F0F0F0" }}>
+                <TableCell
+                  sx={{ ...headerCellStyle, textTransform: "uppercase" }}
+                >
+                  Khách hàng
+                </TableCell>
+                <TableCell sx={headerCellStyle}>Camera</TableCell>
+                <TableCell sx={headerCellStyle}>Thời gian</TableCell>
+                <TableCell sx={headerCellStyle}>Số tiền</TableCell>
+                <TableCell sx={headerCellStyle}>Trạng thái</TableCell>
+                <TableCell align="center" sx={headerCellStyle}>
+                  Hành động
+                </TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {RECENT_BOOKINGS.map((booking) => (
+                <BookingRow key={booking.id} booking={booking} />
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </CardContent>
+    </Card>
+  );
+};
+
+/**
+ * Component Dashboard - Trang tổng quan quản lý cho Owner
+ */
+export default function Dashboard() {
   return (
     <Box
       sx={{
@@ -358,19 +452,14 @@ export default function Dashboard() {
         </Typography>
       </Box>
 
-      {/* Stats Cards - Flexbox Layout */}
-      <Box
-        sx={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: 3,
-          mb: 3,
-        }}
-      >
-        {STATS.map(renderStatCard)}
+      {/* Stats Cards */}
+      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 3, mb: 3 }}>
+        {STATS.map((stat, index) => (
+          <StatCard key={index} stat={stat} />
+        ))}
       </Box>
 
-      {/* Main Content - Flexbox Layout */}
+      {/* Main Content */}
       <Box
         sx={{
           display: "flex",
@@ -378,215 +467,11 @@ export default function Dashboard() {
           gap: 3,
         }}
       >
-        {/* Recent Orders Table */}
-        <Box sx={{ flex: { xs: "1 1 100%", xl: "1 1 65%" } }}>
-          <Card
-            elevation={0}
-            sx={{
-              border: "1px solid #F0F0F0",
-              borderRadius: 2,
-              height: "100%",
-            }}
-          >
-            <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  mb: 3,
-                  flexWrap: "wrap",
-                  gap: 2,
-                }}
-              >
-                <Typography
-                  variant="h6"
-                  sx={{
-                    color: "#121212",
-                    fontWeight: 700,
-                    fontSize: "1.125rem",
-                  }}
-                >
-                  Recent Orders
-                </Typography>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  sx={{
-                    color: "#FFC800",
-                    borderColor: "#FFC800",
-                    "&:hover": {
-                      borderColor: "#FFD633",
-                      bgcolor: "#FFF9E6",
-                    },
-                    textTransform: "none",
-                    fontWeight: 600,
-                  }}
-                >
-                  View All
-                </Button>
-              </Box>
-              <TableContainer sx={{ overflowX: "auto" }}>
-                <Table>
-                  <TableHead>
-                    <TableRow sx={{ borderBottom: "2px solid #F0F0F0" }}>
-                      <TableCell
-                        sx={{
-                          border: "none",
-                          color: "#999",
-                          fontWeight: 600,
-                          fontSize: "0.75rem",
-                          textTransform: "uppercase",
-                        }}
-                      >
-                        Khách hàng
-                      </TableCell>
-                      <TableCell
-                        sx={{
-                          border: "none",
-                          color: "#999",
-                          fontWeight: 600,
-                          fontSize: "0.75rem",
-                        }}
-                      >
-                        Camera
-                      </TableCell>
-                      <TableCell
-                        sx={{
-                          border: "none",
-                          color: "#999",
-                          fontWeight: 600,
-                          fontSize: "0.75rem",
-                        }}
-                      >
-                        Thời gian
-                      </TableCell>
-                      <TableCell
-                        sx={{
-                          border: "none",
-                          color: "#999",
-                          fontWeight: 600,
-                          fontSize: "0.75rem",
-                        }}
-                      >
-                        Số tiền
-                      </TableCell>
-                      <TableCell
-                        sx={{
-                          border: "none",
-                          color: "#999",
-                          fontWeight: 600,
-                          fontSize: "0.75rem",
-                        }}
-                      >
-                        Trạng thái
-                      </TableCell>
-                      <TableCell
-                        align="center"
-                        sx={{
-                          border: "none",
-                          color: "#999",
-                          fontWeight: 600,
-                          fontSize: "0.75rem",
-                        }}
-                      >
-                        Hành động
-                      </TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>{RECENT_BOOKINGS.map(renderBookingRow)}</TableBody>
-                </Table>
-              </TableContainer>
-            </CardContent>
-          </Card>
-        </Box>
-
-        {/* Income Overview */}
         <Box sx={{ flex: { xs: "1 1 100%", xl: "1 1 35%" } }}>
-          <Card
-            elevation={0}
-            sx={{
-              border: "1px solid #F0F0F0",
-              borderRadius: 2,
-              height: "100%",
-            }}
-          >
-            <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-              <Typography
-                variant="h6"
-                sx={{
-                  color: "#121212",
-                  fontWeight: 700,
-                  fontSize: "1.125rem",
-                  mb: 3,
-                }}
-              >
-                Income Overview
-              </Typography>
-
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="body2" sx={{ color: "#999", mb: 1 }}>
-                  This Week Statistics
-                </Typography>
-                <Typography
-                  variant="h4"
-                  sx={{
-                    color: "#121212",
-                    fontWeight: 700,
-                  }}
-                >
-                  $7,650
-                </Typography>
-              </Box>
-
-              {/* Bar Chart */}
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "flex-end",
-                  gap: { xs: 1, sm: 1.5 },
-                  height: { xs: 150, sm: 200 },
-                  mt: 3,
-                }}
-              >
-                {WEEKLY_DATA.map((item, index) => (
-                  <Box
-                    key={index}
-                    sx={{
-                      flex: 1,
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      gap: 1,
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        width: "100%",
-                        bgcolor: "#FFC800",
-                        borderRadius: 1,
-                        height: `${item.value * 2}px`,
-                        transition: "all 0.3s",
-                        "&:hover": {
-                          bgcolor: "#FFD633",
-                        },
-                      }}
-                    />
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        color: "#999",
-                        fontSize: "0.75rem",
-                        fontWeight: 500,
-                      }}
-                    >
-                      {item.day}
-                    </Typography>
-                  </Box>
-                ))}
-              </Box>
-            </CardContent>
-          </Card>
+          <IncomeOverview />
+        </Box>
+        <Box sx={{ flex: { xs: "1 1 100%", xl: "1 1 65%" } }}>
+          <RecentOrdersTable />
         </Box>
       </Box>
     </Box>
