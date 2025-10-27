@@ -16,8 +16,8 @@ import {
   Delete as DeleteIcon,
   Visibility as ViewIcon,
 } from "@mui/icons-material";
-import ModalAddCamera from "../../../components/ModalAddCamera";
-import type { CameraFormData } from "../../../components/ModalAddCamera";
+import ModalAddCamera from "../../../components/Modal/ModalAddCamera";
+import type { CameraFormData } from "../../../components/Modal/ModalAddCamera";
 
 // Mock data for cameras
 const cameras = [
@@ -27,7 +27,8 @@ const cameras = [
     model: "EOS R5",
     brand: "Canon",
     price: "₫400.000/ngày",
-    image: "https://via.placeholder.com/300x200",
+    image:
+      "https://i.pinimg.com/736x/04/de/a7/04dea73d283ea00c886befc309c3f2d1.jpg",
     status: "available",
     rating: 4.9,
     totalBookings: 15,
@@ -39,7 +40,8 @@ const cameras = [
     model: "A7 IV",
     brand: "Sony",
     price: "₫350.000/ngày",
-    image: "https://via.placeholder.com/300x200",
+    image:
+      "https://i.pinimg.com/736x/41/41/9a/41419a1ef80e3781662b9486adbeefe2.jpg",
     status: "rented",
     rating: 4.8,
     totalBookings: 12,
@@ -51,7 +53,8 @@ const cameras = [
     model: "X-T5",
     brand: "Fujifilm",
     price: "₫300.000/ngày",
-    image: "https://via.placeholder.com/300x200",
+    image:
+      "https://i.pinimg.com/1200x/9d/18/33/9d183333260159da234f1ca485e95bef.jpg",
     status: "maintenance",
     rating: 4.7,
     totalBookings: 8,
@@ -63,7 +66,8 @@ const cameras = [
     model: "Z9",
     brand: "Nikon",
     price: "₫450.000/ngày",
-    image: "https://via.placeholder.com/300x200",
+    image:
+      "https://i.pinimg.com/1200x/29/9c/a1/299ca1ec4d88f52bc235637f510b99a9.jpg",
     status: "available",
     rating: 4.9,
     totalBookings: 10,
@@ -122,10 +126,10 @@ export default function CameraManagement() {
       >
         <Box>
           <Typography variant="h4" fontWeight="bold" gutterBottom>
-            Quản lý Camera
+            Camera Management
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Quản lý tất cả camera của bạn tại đây
+            Manage your camera rental listings
           </Typography>
         </Box>
         <Button
@@ -139,7 +143,7 @@ export default function CameraManagement() {
       </Box>
 
       {/* Stats */}
-      <Box sx={{ display: "flex", gap: 3, mb: 4, flexWrap: "wrap" }}>
+      <Box sx={{ display: "flex", gap: 3, mb: 4, flexWrap: "gird" }}>
         <Box sx={{ flex: { xs: "1 1 100%", sm: "1 1 calc(25% - 12px)" } }}>
           <Card>
             <CardContent sx={{ textAlign: "center" }}>

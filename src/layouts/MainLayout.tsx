@@ -1,7 +1,7 @@
 ﻿import React, { useState } from "react";
 import { Outlet, Link, useLocation } from "react-router-dom";
-import CameraLoginModal from "@/components/ModalLogin";
-import CameraRegisterModal from "@/components/ModalRegister";
+import CameraLoginModal from "../components/Modal/ModalLogin";
+import CameraRegisterModal from "@/components/Modal/ModalRegister";
 
 import { Button } from "@mui/material";
 

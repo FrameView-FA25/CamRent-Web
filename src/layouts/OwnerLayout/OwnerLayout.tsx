@@ -2,253 +2,242 @@ import React, { useState } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Box,
-  AppBar,
   Toolbar,
   Typography,
   IconButton,
   Avatar,
-  Menu,
-  MenuItem,
   Drawer,
   List,
   ListItem,
   ListItemIcon,
   ListItemText,
   ListItemButton,
-  Divider,
+  Stack,
 } from "@mui/material";
 import {
   Menu as MenuIcon,
-  Dashboard as DashboardIcon,
-  PhotoCamera as CameraIcon,
+  Home as HomeIcon,
   People as PeopleIcon,
-  ViewList as ViewListIcon,
+  Inventory as ProductsIcon,
+  ShoppingCart as OrdersIcon,
   Settings as SettingsIcon,
-  Logout as LogoutIcon,
-  Notifications as NotificationsIcon,
-  Person as PersonIcon,
+  ExitToApp as LogoutIcon,
 } from "@mui/icons-material";
 
-const DRAWER_WIDTH = 240;
+const DRAWER_WIDTH = 280;
 
 const menuItems = [
-  { text: "Dashboard", icon: <DashboardIcon />, path: "/owner/dashboard" },
-  { text: "Manager Cameras", icon: <CameraIcon />, path: "/owner/cameras" },
-  { text: "Manage Users", icon: <PeopleIcon />, path: "/owner/users" },
-  { text: "Manage Orders", icon: <ViewListIcon />, path: "/owner/orders" },
-  { text: "Profile", icon: <SettingsIcon />, path: "/owner/profile" },
+  { text: "Dashboard", icon: <HomeIcon />, path: "/owner/dashboard" },
+  { text: "User Management", icon: <PeopleIcon />, path: "/owner/users" },
+  { text: "Products", icon: <ProductsIcon />, path: "/owner/cameras" },
+  { text: "Orders", icon: <OrdersIcon />, path: "/owner/orders" },
+  { text: "Settings", icon: <SettingsIcon />, path: "/owner/profile" },
 ];
 
 const OwnerLayout: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };
 
-  const handleProfileMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleProfileMenuClose = () => {
-    setAnchorEl(null);
-  };
-
   const handleLogout = () => {
-    handleProfileMenuClose();
     navigate("/");
   };
 
   const drawer = (
-    <Box sx={{ height: "100%", bgcolor: "#121212" }}>
-      {/* Logo */}
+    <Box
+      sx={{
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        bgcolor: "#FFFFFF",
+        borderRight: "1px solid #E5E7EB",
+      }}
+    >
+      {/* Header với Logo và Tiêu đề */}
       <Box
         sx={{
-          p: 3,
+          px: 3,
+          py: 2.5,
           display: "flex",
           alignItems: "center",
           gap: 1.5,
-          borderBottom: "1px solid rgba(255, 200, 0, 0.1)",
+          borderBottom: "1px solid #E5E7EB",
         }}
       >
-        <img src="/logo.png" alt="CamRent Logo" width="40" height="40" />
+        <Avatar
+          sx={{
+            width: 40,
+            height: 40,
+            bgcolor: "#1F2937",
+            fontSize: "1.25rem",
+            fontWeight: 700,
+          }}
+        >
+          A
+        </Avatar>
         <Typography
           variant="h6"
           sx={{
-            color: "#FFC800",
+            color: "#1F2937",
             fontWeight: 700,
             fontSize: "1.25rem",
+            letterSpacing: "-0.02em",
           }}
         >
-          CamRent
+          Owner Panel
         </Typography>
       </Box>
 
       {/* Menu Items */}
-      <List sx={{ px: 2, pt: 2 }}>
-        {menuItems.map((item) => {
-          const isActive = location.pathname === item.path;
-          return (
-            <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
-              <ListItemButton
-                component={Link}
-                to={item.path}
-                sx={{
-                  borderRadius: 2,
-                  color: isActive ? "#FFC800" : "#FFFFFF",
-                  bgcolor: isActive ? "rgba(243, 194, 17, 0.1)" : "transparent",
-                  "&:hover": {
-                    bgcolor: "rgba(196, 166, 60, 0.05)",
-                  },
-                  py: 1.5,
-                }}
-              >
-                <ListItemIcon
+      <Box sx={{ flex: 1, py: 3, px: 2 }}>
+        <List sx={{ p: 0 }}>
+          {menuItems.map((item) => {
+            const isActive = location.pathname === item.path;
+            return (
+              <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
+                <ListItemButton
+                  component={Link}
+                  to={item.path}
                   sx={{
-                    color: isActive ? "#FFC800" : "#FFFFFF",
-                    minWidth: 40,
+                    borderRadius: 1.5,
+                    py: 1.5,
+                    px: 2,
+                    color: isActive ? "#3B82F6" : "#6B7280",
+                    bgcolor: isActive ? "#EFF6FF" : "transparent",
+                    "&:hover": {
+                      bgcolor: isActive ? "#DBEAFE" : "#F3F4F6",
+                    },
+                    transition: "all 0.2s ease",
                   }}
                 >
-                  {item.icon}
-                </ListItemIcon>
-                <ListItemText
-                  primary={item.text}
-                  primaryTypographyProps={{
-                    fontWeight: isActive ? 600 : 400,
-                    fontSize: "0.9rem",
-                  }}
-                />
-              </ListItemButton>
-            </ListItem>
-          );
-        })}
-      </List>
+                  <ListItemIcon
+                    sx={{
+                      color: "inherit",
+                      minWidth: 40,
+                    }}
+                  >
+                    {item.icon}
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={item.text}
+                    primaryTypographyProps={{
+                      fontWeight: isActive ? 600 : 500,
+                      fontSize: "0.9375rem",
+                    }}
+                  />
+                </ListItemButton>
+              </ListItem>
+            );
+          })}
+        </List>
+      </Box>
 
-      <Divider sx={{ borderColor: "rgba(255, 200, 0, 0.1)", mt: "auto" }} />
-
-      {/* Logout */}
-      <List sx={{ px: 2, py: 2 }}>
-        <ListItem disablePadding>
-          <ListItemButton
-            onClick={handleLogout}
+      {/* User Info và Logout */}
+      <Box
+        sx={{
+          borderTop: "1px solid #E5E7EB",
+          p: 2,
+        }}
+      >
+        {/* User Profile */}
+        <Stack
+          direction="row"
+          spacing={1.5}
+          alignItems="center"
+          sx={{
+            p: 1.5,
+            borderRadius: 1.5,
+            bgcolor: "#F9FAFB",
+            mb: 1,
+          }}
+        >
+          <Avatar
             sx={{
-              borderRadius: 2,
-              color: "#FFFFFF",
-              "&:hover": {
-                bgcolor: "rgba(255, 0, 0, 0.1)",
-                color: "#FF5252",
-              },
-              py: 1.5,
+              width: 40,
+              height: 40,
+              bgcolor: "#3B82F6",
             }}
+            src="/user-avatar.jpg"
           >
-            <ListItemIcon sx={{ color: "inherit", minWidth: 40 }}>
-              <LogoutIcon />
-            </ListItemIcon>
-            <ListItemText
-              primary="Logout"
-              primaryTypographyProps={{
-                fontSize: "0.9rem",
+            JD
+          </Avatar>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography
+              sx={{
+                fontSize: "0.9375rem",
+                fontWeight: 600,
+                color: "#1F2937",
+                lineHeight: 1.3,
               }}
-            />
-          </ListItemButton>
-        </ListItem>
-      </List>
+            >
+              John Doe
+            </Typography>
+            <Typography
+              sx={{
+                fontSize: "0.8125rem",
+                color: "#6B7280",
+                lineHeight: 1.3,
+              }}
+            >
+              Owner
+            </Typography>
+          </Box>
+        </Stack>
+
+        {/* Logout Button */}
+        <ListItemButton
+          onClick={handleLogout}
+          sx={{
+            borderRadius: 1.5,
+            py: 1.5,
+            px: 2,
+            color: "#EF4444",
+            "&:hover": {
+              bgcolor: "#FEF2F2",
+            },
+          }}
+        >
+          <ListItemIcon sx={{ color: "inherit", minWidth: 40 }}>
+            <LogoutIcon />
+          </ListItemIcon>
+          <ListItemText
+            primary="Logout"
+            primaryTypographyProps={{
+              fontWeight: 500,
+              fontSize: "0.9375rem",
+            }}
+          />
+        </ListItemButton>
+      </Box>
     </Box>
   );
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh" }}>
-      {/* AppBar */}
-      <AppBar
-        position="fixed"
-        elevation={0}
+    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#F9FAFB" }}>
+      {/* Mobile Menu Button - Chỉ hiển thị trên mobile */}
+      <IconButton
+        onClick={handleDrawerToggle}
         sx={{
-          width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
-          ml: { md: `${DRAWER_WIDTH}px` },
+          display: { xs: "block", md: "none" },
+          position: "fixed",
+          top: 16,
+          left: 16,
+          zIndex: 1300,
           bgcolor: "#FFFFFF",
-          borderBottom: "1px solid #F0F0F0",
+          boxShadow: "0 1px 3px 0 rgb(0 0 0 / 0.1)",
+          "&:hover": {
+            bgcolor: "#F3F4F6",
+          },
         }}
       >
-        <Toolbar>
-          <IconButton
-            color="inherit"
-            edge="start"
-            onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { md: "none" }, color: "#121212" }}
-          >
-            <MenuIcon />
-          </IconButton>
+        <MenuIcon />
+      </IconButton>
 
-          <Box sx={{ flexGrow: 1 }} />
-
-          {/* Notifications */}
-          <IconButton sx={{ color: "#666" }}>
-            <NotificationsIcon />
-          </IconButton>
-
-          {/* Profile */}
-          <IconButton onClick={handleProfileMenuOpen} sx={{ ml: 1 }}>
-            <Avatar
-              sx={{
-                bgcolor: "#FFC800",
-                color: "#121212",
-                width: 36,
-                height: 36,
-                fontWeight: 600,
-              }}
-            >
-              JD
-            </Avatar>
-          </IconButton>
-
-          <Menu
-            anchorEl={anchorEl}
-            open={Boolean(anchorEl)}
-            onClose={handleProfileMenuClose}
-            anchorOrigin={{
-              vertical: "bottom",
-              horizontal: "right",
-            }}
-            transformOrigin={{
-              vertical: "top",
-              horizontal: "right",
-            }}
-            sx={{
-              mt: 1,
-              "& .MuiPaper-root": {
-                borderRadius: 2,
-                minWidth: 200,
-                boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.1)",
-              },
-            }}
-          >
-            <MenuItem onClick={handleProfileMenuClose}>
-              <ListItemIcon>
-                <PersonIcon fontSize="small" />
-              </ListItemIcon>
-              Profile
-            </MenuItem>
-            <MenuItem onClick={handleProfileMenuClose}>
-              <ListItemIcon>
-                <SettingsIcon fontSize="small" />
-              </ListItemIcon>
-              Settings
-            </MenuItem>
-            <Divider />
-            <MenuItem onClick={handleLogout}>
-              <ListItemIcon>
-                <LogoutIcon fontSize="small" />
-              </ListItemIcon>
-              Logout
-            </MenuItem>
-          </Menu>
-        </Toolbar>
-      </AppBar>
-
-      {/* Drawer */}
+      {/* Sidebar Drawer */}
       <Box
         component="nav"
         sx={{ width: { md: DRAWER_WIDTH }, flexShrink: { md: 0 } }}
@@ -266,6 +255,7 @@ const OwnerLayout: React.FC = () => {
             "& .MuiDrawer-paper": {
               boxSizing: "border-box",
               width: DRAWER_WIDTH,
+              border: "none",
             },
           }}
         >
@@ -280,6 +270,7 @@ const OwnerLayout: React.FC = () => {
             "& .MuiDrawer-paper": {
               boxSizing: "border-box",
               width: DRAWER_WIDTH,
+              border: "none",
             },
           }}
           open
@@ -295,10 +286,10 @@ const OwnerLayout: React.FC = () => {
           flexGrow: 1,
           width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
           minHeight: "100vh",
-          bgcolor: "#F5F5F5",
+          bgcolor: "#F9FAFB",
         }}
       >
-        <Toolbar />
+        <Toolbar sx={{ display: { xs: "block", md: "none" } }} />
         <Outlet />
       </Box>
     </Box>
