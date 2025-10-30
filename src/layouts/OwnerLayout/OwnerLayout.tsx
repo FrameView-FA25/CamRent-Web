@@ -22,6 +22,7 @@ import {
   ShoppingCart as OrdersIcon,
   Settings as SettingsIcon,
   ExitToApp as LogoutIcon,
+  Person as PersonIcon,
 } from "@mui/icons-material";
 
 const DRAWER_WIDTH = 280;
@@ -31,7 +32,8 @@ const menuItems = [
   { text: "User Management", icon: <PeopleIcon />, path: "/owner/users" },
   { text: "Products", icon: <ProductsIcon />, path: "/owner/cameras" },
   { text: "Orders", icon: <OrdersIcon />, path: "/owner/orders" },
-  { text: "Settings", icon: <SettingsIcon />, path: "/owner/profile" },
+  { text: "Profile", icon: <PersonIcon />, path: "/owner/profile" },
+  { text: "Settings", icon: <SettingsIcon />, path: "/owner/settings" },
 ];
 
 const OwnerLayout: React.FC = () => {
