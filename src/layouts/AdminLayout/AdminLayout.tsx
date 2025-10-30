@@ -22,6 +22,7 @@ import {
   Devices as DevicesIcon,
   Settings as SettingsIcon,
   ExitToApp as LogoutIcon,
+  Person as PersonIcon,
 } from "@mui/icons-material";
 
 const DRAWER_WIDTH = 280;
@@ -35,7 +36,8 @@ const menuItems = [
     path: "/admin/agencies",
   },
   { text: "Device Management", icon: <DevicesIcon />, path: "/admin/devices" },
-  { text: "Settings", icon: <SettingsIcon />, path: "/admin/profile" },
+  { text: "Profile", icon: <PersonIcon />, path: "/admin/profile" },
+  { text: "Settings", icon: <SettingsIcon />, path: "/admin/settings" },
 ];
 
 const AdminLayout: React.FC = () => {

@@ -22,6 +22,8 @@ import AccountManagement from "../pages/Admin/AccountManagement/AccountManagemen
 import AgencyManagement from "../pages/Admin/AgencyManagement/AgencyManagement";
 import DeviceManagement from "../pages/Admin/DeviceManagement/DeviceManagement";
 import AdminSettings from "../pages/Admin/Settings/AdminSettings";
+import AdminProfile from "../pages/Admin/Profile/AdminProfile";
+import OwnerProfile from "../pages/Owner/Profile/OwnerProfile";
 const routes: RouteObject[] = [
   {
     path: "/",
@@ -91,7 +93,7 @@ const routes: RouteObject[] = [
       },
       {
         path: "profile",
-        element: <div>Owner Profile Page</div>,
+        element: <OwnerProfile />,
       },
     ],
   },
@@ -117,6 +119,10 @@ const routes: RouteObject[] = [
       },
       {
         path: "profile",
+        element: <AdminProfile />,
+      },
+      {
+        path: "settings",
         element: <AdminSettings />,
       },
     ],
