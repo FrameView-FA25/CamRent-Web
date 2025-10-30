@@ -6,9 +6,9 @@ import AdminLayout from "../layouts/AdminLayout/AdminLayout";
 import HomePage from "../pages/HomePage";
 import ExplorePage from "../pages/ExplorePage";
 import HowItWorksPage from "../pages/HowItWorksPage";
-import TestimonialsPage from "../pages/TestimonialsPage";
+import ContractPage from "../pages/ContractPage";
 import WhyUsPage from "../pages/WhyUsPage";
-import ContactPage from "../pages/ContactPage";
+import ContactPage from "@/pages/ContactPage";
 import ProductPage from "../pages/ProductPage";
 import ProductDetailPage from "../pages/ProductDetailPage";
 import NewsPage from "../pages/NewsPage";
@@ -40,8 +40,8 @@ const routes: RouteObject[] = [
         element: <HowItWorksPage />,
       },
       {
-        path: "testimonials",
-        element: <TestimonialsPage />,
+        path: "contract",
+        element: <ContractPage />,
       },
       {
         path: "why-us",
