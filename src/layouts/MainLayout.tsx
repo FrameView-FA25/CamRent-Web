@@ -61,14 +61,14 @@ const MainLayout: React.FC = () => {
             How it works
           </Link>
           <Link
-            to="/testimonials"
+            to="/contract"
             className={
-              isActive("/testimonials")
+              isActive("/contract")
                 ? "active text-yellow-500 font-semibold"
                 : "text-gray-700 hover:text-yellow-500"
             }
           >
-            Testimonials
+            Contract
           </Link>
           <Link
             to="/why-us"
