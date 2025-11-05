@@ -1,5 +1,4 @@
-// CamRentProductList.tsx
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
@@ -11,9 +10,9 @@ import {
   Card,
   CardContent,
   Chip,
-  Rating,
   Stack,
   Divider,
+  CircularProgress,
 } from "@mui/material";
 import { amber, grey } from "@mui/material/colors";
 import SearchIcon from "@mui/icons-material/Search";
@@ -21,22 +20,45 @@ import PhotoCameraIcon from "@mui/icons-material/PhotoCamera";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import CameraAltOutlinedIcon from "@mui/icons-material/CameraAltOutlined";
 import VisibilityIcon from "@mui/icons-material/Visibility";
+import LocationOnIcon from "@mui/icons-material/LocationOn";
 
-interface Product {
-  id: number;
-  name: string;
+interface Camera {
+  id: string;
   brand: string;
-  price: number;
-  rating: number;
-  reviews: number;
-  image: string;
-  category: string;
+  model: string;
+  variant: string | null;
+  serialNumber: string | null;
+  branchId: string;
+  branch: {
+    name: string;
+    address: {
+      country: string;
+      province: string;
+      district: string;
+      ward: string;
+      line1: string;
+      line2: string | null;
+      postalCode: string;
+      latitude: number | null;
+      longitude: number | null;
+    };
+  };
 }
 
 const ACCENT = amber[400];
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
+const ProductCard: React.FC<{ camera: Camera }> = ({ camera }) => {
   const navigate = useNavigate();
+
+  const fullAddress = [
+    camera.branch.address.line1,
+    camera.branch.address.ward,
+    camera.branch.address.district,
+    camera.branch.address.province,
+  ]
+    .filter(Boolean)
+    .join(", ");
 
   return (
     <Card
@@ -50,38 +72,19 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
       }}
     >
       <Box sx={{ position: "relative", bgcolor: grey[100] }}>
-        <Box sx={{ pt: "100%" }} /> {/* giữ tỷ lệ vuông */}
-        {product.image ? (
-          <Box
-            component="img"
-            src={product.image}
-            alt={product.name}
-            sx={{
-              position: "absolute",
-              inset: 0,
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-              transition: "transform .3s",
-              "&:hover": {
-                transform: "scale(1.05)",
-              },
-            }}
-          />
-        ) : (
-          <Box
-            sx={{
-              position: "absolute",
-              inset: 0,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: grey[300],
-            }}
-          >
-            <CameraAltOutlinedIcon sx={{ fontSize: 64 }} />
-          </Box>
-        )}
+        <Box sx={{ pt: "100%" }} />
+        <Box
+          sx={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: grey[300],
+          }}
+        >
+          <CameraAltOutlinedIcon sx={{ fontSize: 64 }} />
+        </Box>
         <Box
           sx={{
             position: "absolute",
@@ -96,34 +99,54 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
             fontSize: 14,
           }}
         >
-          ${product.price}/day
+          Available
         </Box>
       </Box>
 
       <CardContent sx={{ p: 2.5 }}>
         <Typography variant="body2" sx={{ color: grey[600], mb: 0.5 }}>
-          {product.brand}
+          {camera.brand}
         </Typography>
         <Typography
           variant="h6"
-          sx={{ fontWeight: 700, color: grey[900], mb: 1.25 }}
+          sx={{ fontWeight: 700, color: grey[900], mb: 0.5 }}
         >
-          {product.name}
+          {camera.model}
+          {camera.variant && (
+            <Chip
+              label={camera.variant}
+              size="small"
+              sx={{ ml: 1, height: 20, fontSize: 11 }}
+            />
+          )}
         </Typography>
 
-        <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-          <Rating
-            value={Math.round(product.rating * 2) / 2}
-            precision={0.5}
-            readOnly
-            sx={{
-              "& .MuiRating-iconFilled": { color: ACCENT },
-              "& .MuiRating-iconEmpty": { color: grey[300] },
-            }}
-          />
-          <Typography variant="body2" sx={{ color: grey[600], ml: 1 }}>
-            ({product.reviews})
+        {camera.serialNumber && (
+          <Typography
+            variant="caption"
+            sx={{ color: grey[500], mb: 1.5, display: "block" }}
+          >
+            SN: {camera.serialNumber}
           </Typography>
+        )}
+
+        <Box
+          sx={{ display: "flex", alignItems: "flex-start", mb: 2, gap: 0.5 }}
+        >
+          <LocationOnIcon sx={{ fontSize: 16, color: grey[500], mt: 0.25 }} />
+          <Box>
+            <Typography
+              variant="body2"
+              sx={{ fontWeight: 600, color: grey[800] }}
+            >
+              {camera.branch.name}
+            </Typography>
+            {fullAddress && (
+              <Typography variant="caption" sx={{ color: grey[600] }}>
+                {fullAddress}
+              </Typography>
+            )}
+          </Box>
         </Box>
 
         <Stack spacing={1.5}>
@@ -131,7 +154,7 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
             fullWidth
             variant="outlined"
             startIcon={<VisibilityIcon />}
-            onClick={() => navigate(`/products/${product.id}`)}
+            onClick={() => navigate(`/products/${camera.id}`)}
             sx={{
               borderColor: grey[300],
               color: grey[800],
@@ -171,111 +194,55 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
 const ProductPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [cameras, setCameras] = useState<Camera[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const categories = ["All", "Mirrorless", "DSLR", "Lenses", "Accessories"];
+  useEffect(() => {
+    const fetchCameras = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`${API_BASE_URL}/Cameras`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
 
-  const products: Product[] = useMemo(
-    () => [
-      {
-        id: 1,
-        name: "X-T4",
-        brand: "Fujifilm",
-        price: 45,
-        rating: 4.8,
-        reviews: 124,
-        image:
-          "https://binhminhdigital.com/StoreData/Product/10330/May-anh-Sony-A9%20(2).jpg",
-        category: "Mirrorless",
-      },
-      {
-        id: 2,
-        name: "Alpha A7 IV",
-        brand: "Sony",
-        price: 55,
-        rating: 4.9,
-        reviews: 203,
-        image:
-          "https://tokyocamera.vn/wp-content/uploads/2021/11/1634813219_IMG_1627574.jpg",
-        category: "Mirrorless",
-      },
-      {
-        id: 3,
-        name: "EOS R6",
-        brand: "Canon",
-        price: 50,
-        rating: 4.7,
-        reviews: 156,
-        image:
-          "https://cdn.vjshop.vn/may-anh/mirrorless/canon/canon-eos-r6-mark-ii/canon-eos-r6-mark-ii-6-500x500.jpg",
-        category: "Mirrorless",
-      },
-      {
-        id: 4,
-        name: "Z6 II",
-        brand: "Nikon",
-        price: 48,
-        rating: 4.6,
-        reviews: 98,
-        image:
-          "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTL4wSn0hi1MUlXhYW0JMxAy3VmAl9IH1afjw&s",
-        category: "Mirrorless",
-      },
-      {
-        id: 5,
-        name: "GH6",
-        brand: "Panasonic",
-        price: 52,
-        rating: 4.7,
-        reviews: 87,
-        image:
-          "https://bizweb.dktcdn.net/thumb/1024x1024/100/297/199/products/342481768-5981438308645474-6951211744292669278-n.jpg?v=1682401389670",
-        category: "Mirrorless",
-      },
-      {
-        id: 6,
-        name: "X-S10",
-        brand: "Fujifilm",
-        price: 38,
-        rating: 4.5,
-        reviews: 145,
-        image:
-          "https://cdn.vjshop.vn/may-anh/mirrorless/fujifilm/fujifilm-x-s10/anh-mo-ta/fujifilm-x-s10-chinh-hang-6.jpg",
-        category: "Mirrorless",
-      },
-      {
-        id: 7,
-        name: "5D Mark IV",
-        brand: "Canon",
-        price: 42,
-        rating: 4.8,
-        reviews: 312,
-        image:
-          "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSP5rbfPXm-qwARnhQVnwZAyFTxanVUy442pw&s",
-        category: "DSLR",
-      },
-      {
-        id: 8,
-        name: "D850",
-        brand: "Nikon",
-        price: 46,
-        rating: 4.9,
-        reviews: 267,
-        image: "https://cdn.vjshop.vn/may-anh/dslr/nikon/d850/nikon-d8502.jpg",
-        category: "DSLR",
-      },
-    ],
-    []
-  );
+        if (!response.ok) {
+          throw new Error("Failed to fetch cameras");
+        }
 
-  const filteredProducts = useMemo(() => {
+        const data = await response.json();
+        setCameras(Array.isArray(data) ? data : [data]);
+        setError(null);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "An error occurred");
+        console.error("Error fetching cameras:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCameras();
+  }, []);
+
+  const categories = useMemo(() => {
+    const brands = new Set(cameras.map((c) => c.brand));
+    return ["All", ...Array.from(brands)];
+  }, [cameras]);
+
+  const filteredCameras = useMemo(() => {
     const q = searchQuery.toLowerCase();
-    return products.filter(
-      (p) =>
-        (p.name.toLowerCase().includes(q) ||
-          p.brand.toLowerCase().includes(q)) &&
-        (selectedCategory === "All" || p.category === selectedCategory)
+    return cameras.filter(
+      (c) =>
+        (c.model.toLowerCase().includes(q) ||
+          c.brand.toLowerCase().includes(q) ||
+          (c.variant && c.variant.toLowerCase().includes(q)) ||
+          c.branch.name.toLowerCase().includes(q)) &&
+        (selectedCategory === "All" || c.brand === selectedCategory)
     );
-  }, [products, searchQuery, selectedCategory]);
+  }, [cameras, searchQuery, selectedCategory]);
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: grey[50] }}>
@@ -311,6 +278,7 @@ const ProductPage: React.FC = () => {
                 "& .MuiOutlinedInput-root": {
                   borderRadius: 2,
                   py: 0.25,
+                  bgcolor: "white",
                 },
                 "& .MuiOutlinedInput-notchedOutline": {
                   borderColor: grey[300],
@@ -341,7 +309,7 @@ const ProductPage: React.FC = () => {
             sx={{ color: grey[700], fontWeight: 700 }}
           >
             <FilterListIcon fontSize="small" />
-            <Typography fontWeight={700}>Categories:</Typography>
+            <Typography fontWeight={700}>Brands:</Typography>
           </Stack>
           <Divider
             orientation="vertical"
@@ -372,44 +340,73 @@ const ProductPage: React.FC = () => {
           </Stack>
         </Stack>
 
-        {/* FLEX layout */}
-        <Box
-          sx={(theme) => ({
-            display: "flex",
-            flexWrap: "wrap",
-            gap: theme.spacing(3),
-          })}
-        >
-          {filteredProducts.map((product) => (
-            <Box
-              key={product.id}
-              sx={(theme) => ({
-                flex: "1 1 100%",
-                maxWidth: "100%",
-                [theme.breakpoints.up("sm")]: {
-                  flex: `1 1 calc(50% - ${theme.spacing(3)})`,
-                  maxWidth: `calc(50% - ${theme.spacing(3)})`,
-                },
-                [theme.breakpoints.up("md")]: {
-                  flex: `1 1 calc(33.333% - ${theme.spacing(3)})`,
-                  maxWidth: `calc(33.333% - ${theme.spacing(3)})`,
-                },
-                [theme.breakpoints.up("lg")]: {
-                  flex: `1 1 calc(25% - ${theme.spacing(3)})`,
-                  maxWidth: `calc(25% - ${theme.spacing(3)})`,
-                },
-              })}
-            >
-              <ProductCard product={product} />
-            </Box>
-          ))}
-        </Box>
+        {/* Loading State */}
+        {loading && (
+          <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
+            <CircularProgress sx={{ color: ACCENT }} />
+          </Box>
+        )}
 
-        {filteredProducts.length === 0 && (
+        {/* Error State */}
+        {error && (
+          <Box sx={{ textAlign: "center", py: 8 }}>
+            <Typography variant="h6" sx={{ color: "error.main", mb: 2 }}>
+              {error}
+            </Typography>
+            <Button
+              variant="contained"
+              onClick={() => window.location.reload()}
+              sx={{
+                bgcolor: ACCENT,
+                color: "black",
+                "&:hover": { bgcolor: amber[500] },
+              }}
+            >
+              Retry
+            </Button>
+          </Box>
+        )}
+
+        {/* Products Grid */}
+        {!loading && !error && (
+          <Box
+            sx={(theme) => ({
+              display: "flex",
+              flexWrap: "wrap",
+              gap: theme.spacing(3),
+            })}
+          >
+            {filteredCameras.map((camera) => (
+              <Box
+                key={camera.id}
+                sx={(theme) => ({
+                  flex: "1 1 100%",
+                  maxWidth: "100%",
+                  [theme.breakpoints.up("sm")]: {
+                    flex: `1 1 calc(50% - ${theme.spacing(3)})`,
+                    maxWidth: `calc(50% - ${theme.spacing(3)})`,
+                  },
+                  [theme.breakpoints.up("md")]: {
+                    flex: `1 1 calc(33.333% - ${theme.spacing(3)})`,
+                    maxWidth: `calc(33.333% - ${theme.spacing(3)})`,
+                  },
+                  [theme.breakpoints.up("lg")]: {
+                    flex: `1 1 calc(25% - ${theme.spacing(3)})`,
+                    maxWidth: `calc(25% - ${theme.spacing(3)})`,
+                  },
+                })}
+              >
+                <ProductCard camera={camera} />
+              </Box>
+            ))}
+          </Box>
+        )}
+
+        {!loading && !error && filteredCameras.length === 0 && (
           <Box sx={{ textAlign: "center", py: 8 }}>
             <PhotoCameraIcon sx={{ fontSize: 64, color: grey[300], mb: 1 }} />
             <Typography variant="h6" sx={{ color: grey[500] }}>
-              No products found
+              No cameras found
             </Typography>
           </Box>
         )}

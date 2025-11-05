@@ -59,7 +59,7 @@ const StaffLayout: React.FC = () => {
       >
         <Box sx={{ p: 2, display: "flex", alignItems: "center", gap: 1.5 }}>
           <Avatar sx={{ bgcolor: "#1e3a5f", width: 32, height: 32 }}>S</Avatar>
-          <Typography variant="h6" sx={{ fontWeight: 600, color: "#020202ff" }}>
+          <Typography variant="h6" sx={{ fontWeight: 600, color: "#000000ff" }}>
             Staff Panel
           </Typography>
         </Box>
