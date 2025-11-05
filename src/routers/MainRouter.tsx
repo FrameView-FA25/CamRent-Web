@@ -144,7 +144,11 @@ const routes: RouteObject[] = [
   },
   {
     path: "/manager",
-    element: <ManagerLayout />,
+    element: (
+      <ProtectedRoute requiredRole="Manager">
+        <ManagerLayout />
+      </ProtectedRoute>
+    ),
     children: [
       {
         path: "dashboard",
@@ -174,7 +178,11 @@ const routes: RouteObject[] = [
   },
   {
     path: "/staff",
-    element: <StaffLayout />,
+    element: (
+      <ProtectedRoute requiredRole="Staff">
+        <StaffLayout />
+      </ProtectedRoute>
+    ),
     children: [
       {
         path: "dashboard",
