@@ -8,8 +8,10 @@ export const getDefaultRouteByRole = (role: string): string => {
     return "/admin/dashboard";
   } else if (role === "Owner") {
     return "/owner/dashboard";
-  } else if (role === "Manager") {
-    return "/manager/home";
+  } else if (role === "BranchManager") {
+    return "/manager/dashboard";
+  } else if (role === "Staff") {
+    return "/staff/dashboard";
   }
   // Mặc định trả về trang chủ nếu không có role đặc biệt
   return "/";
@@ -25,6 +27,10 @@ export const getProfileRouteByRole = (role: string): string => {
     return "/admin/profile";
   } else if (role === "Owner") {
     return "/owner/profile";
+  } else if (role === "BranchManager") {
+    return "/manager/profile";
+  } else if (role === "Staff") {
+    return "/staff/profile";
   }
   return "/";
 };

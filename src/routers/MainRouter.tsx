@@ -30,6 +30,7 @@ import DashboardManager from "@/pages/Manager/Dashboard";
 import BookingManagement from "@/pages/Manager/Booking";
 import StaffLayout from "../layouts/StaffLayout/StaffLayout";
 import MyAssignments from "../pages/Staff/MyAssignments";
+import ManagerProfile from "../pages/Manager/ManagerProfile";
 const routes: RouteObject[] = [
   {
     path: "/",
@@ -163,7 +164,7 @@ const routes: RouteObject[] = [
       },
       {
         path: "profile",
-        element: <AdminProfile />,
+        element: <ManagerProfile />,
       },
       {
         path: "settings",
