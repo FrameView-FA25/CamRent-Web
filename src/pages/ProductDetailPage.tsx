@@ -1,18 +1,18 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Box,
   Container,
   Typography,
   Button,
-  Rating,
   Chip,
-  Avatar,
   Divider,
   Stack,
   IconButton,
   Tab,
   Tabs,
+  CircularProgress,
+  Alert,
 } from "@mui/material";
 import { amber, grey } from "@mui/material/colors";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -21,173 +21,186 @@ import ShareIcon from "@mui/icons-material/Share";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined";
 import VerifiedUserOutlinedIcon from "@mui/icons-material/VerifiedUserOutlined";
+import LocationOnIcon from "@mui/icons-material/LocationOn";
+import CameraAltOutlinedIcon from "@mui/icons-material/CameraAltOutlined";
+import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
+import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 
 const ACCENT = amber[400];
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-interface ProductData {
-  id: number;
-  name: string;
-  brand: string;
-  price: number;
-  rating: number;
-  reviews: number;
-  image: string;
-  category: string;
-  description: string;
-  specs: string[];
-  includes: string[];
-  gallery: string[];
-  samplePhotos: string[];
+interface Address {
+  country: string;
+  province: string;
+  district: string;
+  ward: string;
+  line1: string;
+  line2: string | null;
+  postalCode: string;
+  latitude: number | null;
+  longitude: number | null;
 }
 
-// Mock data - thay thế bằng API call thực tế
-const productData: Record<string, ProductData> = {
-  "1": {
-    id: 1,
-    name: "Fujifilm X-T4",
-    brand: "Fujifilm",
-    price: 45,
-    rating: 4.8,
-    reviews: 124,
-    image:
-      "https://binhminhdigital.com/StoreData/Product/10330/May-anh-Sony-A9%20(2).jpg",
-    category: "Mirrorless",
-    description:
-      "The Fujifilm X-T4 is a versatile mirrorless camera that combines impressive image quality with advanced video capabilities. Featuring a 26.1MP X-Trans CMOS 4 sensor and X-Processor 4, it delivers exceptional performance in various shooting conditions.",
-    specs: [
-      "26.1MP X-Trans CMOS 4 Sensor",
-      "X-Processor 4 Image Processing Engine",
-      "In-Body 5-Axis Image Stabilization",
-      "4K 60p Video Recording",
-      "15 fps Continuous Shooting",
-      "425-point Intelligent Hybrid AF",
-    ],
-    includes: [
-      "Fujifilm X-T4 Camera Body",
-      "Rechargeable Battery",
-      "Battery Charger",
-      "Shoulder Strap",
-      "Body Cap",
-      "Protective Cover",
-    ],
-    gallery: [
-      "https://binhminhdigital.com/StoreData/Product/10330/May-anh-Sony-A9%20(2).jpg",
-      "https://product.hstatic.net/200000354621/product/may-anh-fujifilm-x-t4-kit-18-55-mau-bac-1_4d8855bb7c5a423d821ee2de196d4b18_grande.jpg",
-      "https://cdn.vjshop.vn/may-anh/mirrorless/fujifilm/fujifilm-x-t4/fujifilm-x-t4-6-500x500.jpg",
-      "https://tokyocamera.vn/wp-content/uploads/2021/11/1634813219_IMG_1627574.jpg",
-    ],
-    samplePhotos: [
-      "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=800",
-      "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800",
-      "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=800",
-      "https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=800",
-      "https://images.unsplash.com/photo-1426604966848-d7adac402bff?w=800",
-      "https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=800",
-    ],
-  },
-  "2": {
-    id: 2,
-    name: "Sony Alpha A7 IV",
-    brand: "Sony",
-    price: 55,
-    rating: 4.9,
-    reviews: 203,
-    image:
-      "https://tokyocamera.vn/wp-content/uploads/2021/11/1634813219_IMG_1627574.jpg",
-    category: "Mirrorless",
-    description:
-      "The Sony Alpha A7 IV is a powerful full-frame mirrorless camera designed for both photography and videography. With its advanced autofocus system and impressive dynamic range, it's perfect for professionals and enthusiasts alike.",
-    specs: [
-      "33MP Full-Frame Exmor R CMOS Sensor",
-      "BIONZ XR Image Processing Engine",
-      "5-Axis In-Body Image Stabilization",
-      "4K 60p 10-bit Video Recording",
-      "10 fps Continuous Shooting",
-      "759-point Hybrid AF System",
-    ],
-    includes: [
-      "Sony A7 IV Camera Body",
-      "NP-FZ100 Rechargeable Battery",
-      "AC Adapter",
-      "USB Cable",
-      "Shoulder Strap",
-      "Body Cap & Accessory Shoe Cap",
-    ],
-    gallery: [
-      "https://tokyocamera.vn/wp-content/uploads/2021/11/1634813219_IMG_1627574.jpg",
-      "https://binhminhdigital.com/StoreData/Product/10330/May-anh-Sony-A9%20(2).jpg",
-      "https://cdn.vjshop.vn/may-anh/mirrorless/fujifilm/fujifilm-x-t4/fujifilm-x-t4-6-500x500.jpg",
-    ],
-    samplePhotos: [
-      "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800",
-      "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=800",
-      "https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=800",
-      "https://images.unsplash.com/photo-1426604966848-d7adac402bff?w=800",
-    ],
-  },
-};
+interface Branch {
+  name: string;
+  address: Address;
+  id: string;
+  createdAt: string;
+  createdByUserId: string | null;
+  updatedAt: string | null;
+  updatedByUserId: string | null;
+  isDeleted: boolean;
+  rowVersion: string;
+}
 
-const reviews = [
-  {
-    id: 1,
-    name: "Alex Thompson",
-    avatar: "https://i.pravatar.cc/150?img=1",
-    rating: 5,
-    date: "2 days ago",
-    comment:
-      "Absolutely fantastic camera! The image quality is stunning and the autofocus is incredibly fast. Perfect for both photography and video work.",
-  },
-  {
-    id: 2,
-    name: "Sarah Chen",
-    avatar: "https://i.pravatar.cc/150?img=5",
-    rating: 5,
-    date: "1 week ago",
-    comment:
-      "Rented this for a wedding shoot and couldn't be happier. The in-body stabilization is a game-changer. Highly recommend!",
-  },
-  {
-    id: 3,
-    name: "Mike Rodriguez",
-    avatar: "https://i.pravatar.cc/150?img=7",
-    rating: 4,
-    date: "2 weeks ago",
-    comment:
-      "Great camera overall. Battery life could be better, but the image quality more than makes up for it. Will rent again!",
-  },
-  {
-    id: 4,
-    name: "Emma Wilson",
-    avatar: "https://i.pravatar.cc/150?img=9",
-    rating: 5,
-    date: "3 weeks ago",
-    comment:
-      "Professional quality at an affordable rental price. The rental process was smooth and the equipment arrived in perfect condition.",
-  },
-];
+interface Camera {
+  id: string;
+  brand: string;
+  model: string;
+  variant: string | null;
+  serialNumber: string | null;
+  branchId: string;
+  branch: Branch;
+  baseDailyRate: number;
+  platformFeePercent: number;
+  estimatedValueVnd: number;
+  depositPercent: number;
+  depositCapMinVnd: number;
+  depositCapMaxVnd: number;
+  media: Media[];
+  specsJson: string | null;
+  categories: Category[];
+}
+interface Media {
+  url: string;
+  alt?: string | null;
+  isPrimary?: boolean;
+  mimeType?: string;
+}
+
+interface Category {
+  id: string;
+  name: string;
+}
+
+const formatCurrency = (amount: number): string => {
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+  }).format(amount);
+};
 
 const ProductDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [selectedImage, setSelectedImage] = useState(0);
   const [currentTab, setCurrentTab] = useState(0);
+  const [camera, setCamera] = useState<Camera | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const product = productData[id || "1"];
+  useEffect(() => {
+    const fetchCameraDetail = async () => {
+      if (!id) {
+        setError("Camera ID not provided");
+        setLoading(false);
+        return;
+      }
 
-  if (!product) {
+      try {
+        setLoading(true);
+        const response = await fetch(`${API_BASE_URL}/Cameras/${id}`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch camera details");
+        }
+
+        const data = await response.json();
+        setCamera(data);
+        setError(null);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "An error occurred");
+        console.error("Error fetching camera details:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCameraDetail();
+  }, [id]);
+
+  if (loading) {
     return (
-      <Container maxWidth="lg" sx={{ py: 8, textAlign: "center" }}>
-        <Typography variant="h4">Product not found</Typography>
+      <Box
+        sx={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          bgcolor: grey[50],
+        }}
+      >
+        <CircularProgress sx={{ color: ACCENT }} size={60} />
+      </Box>
+    );
+  }
+
+  if (error || !camera) {
+    return (
+      <Container maxWidth="lg" sx={{ py: 8 }}>
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error || "Camera not found"}
+        </Alert>
         <Button
           startIcon={<ArrowBackIcon />}
           onClick={() => navigate("/products")}
-          sx={{ mt: 2 }}
+          variant="contained"
+          sx={{
+            bgcolor: ACCENT,
+            color: "black",
+            "&:hover": { bgcolor: amber[500] },
+          }}
         >
           Back to Products
         </Button>
       </Container>
     );
   }
+
+  const fullAddress = [
+    camera.branch.address.line1,
+    camera.branch.address.ward,
+    camera.branch.address.district,
+    camera.branch.address.province,
+    camera.branch.address.country,
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  const totalDailyRate =
+    camera.baseDailyRate * (1 + camera.platformFeePercent / 100);
+  const calculatedDeposit =
+    (camera.estimatedValueVnd * camera.depositPercent) / 100;
+  const finalDeposit = Math.min(
+    Math.max(calculatedDeposit, camera.depositCapMinVnd),
+    camera.depositCapMaxVnd
+  );
+
+  // Placeholder images if no media available
+  const defaultImages = [
+    "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=800",
+    "https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=800",
+    "https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=800",
+  ];
+  const galleryImages =
+    camera.media && camera.media.length > 0
+      ? camera.media.map((m) => m.url)
+      : defaultImages;
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: grey[50] }}>
@@ -223,41 +236,72 @@ const ProductDetailPage: React.FC = () => {
           <Box sx={{ flex: 1 }}>
             <Box
               sx={{
-                bgcolor: "white",
+                bgcolor: grey[100],
                 borderRadius: 3,
                 overflow: "hidden",
                 mb: 2,
                 boxShadow: 2,
+                position: "relative",
               }}
             >
+              {galleryImages[selectedImage] ? (
+                <Box
+                  component="img"
+                  src={galleryImages[selectedImage]}
+                  alt={`${camera.brand} ${camera.model}`}
+                  sx={{
+                    width: "100%",
+                    height: { xs: 300, md: 500 },
+                    objectFit: "cover",
+                  }}
+                />
+              ) : (
+                <Box
+                  sx={{
+                    width: "100%",
+                    height: { xs: 300, md: 500 },
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <CameraAltOutlinedIcon
+                    sx={{ fontSize: 120, color: grey[300] }}
+                  />
+                </Box>
+              )}
+              {/* Available Badge */}
               <Box
-                component="img"
-                src={product.gallery[selectedImage]}
-                alt={product.name}
                 sx={{
-                  width: "100%",
-                  height: { xs: 300, md: 500 },
-                  objectFit: "cover",
+                  position: "absolute",
+                  top: 16,
+                  right: 16,
+                  bgcolor: ACCENT,
+                  color: "black",
+                  px: 2,
+                  py: 1,
+                  borderRadius: 999,
+                  fontWeight: 700,
                 }}
-              />
+              >
+                Available
+              </Box>
             </Box>
 
-            {/* Thumbnail Gallery */}
+            {/* Thumbnail Gallery - 3 images in a row */}
             <Box
               sx={{
-                display: "flex",
-                gap: 1.5,
-                overflowX: "auto",
-                pb: 1,
+                display: "grid",
+                gridTemplateColumns: "repeat(3, 1fr)",
+                gap: 2,
               }}
             >
-              {product.gallery.map((img: string, idx: number) => (
+              {galleryImages.slice(0, 3).map((img: string, idx: number) => (
                 <Box
                   key={idx}
                   onClick={() => setSelectedImage(idx)}
                   sx={{
-                    minWidth: 80,
-                    height: 80,
+                    aspectRatio: "1",
                     borderRadius: 2,
                     overflow: "hidden",
                     cursor: "pointer",
@@ -266,21 +310,39 @@ const ProductDetailPage: React.FC = () => {
                         ? `3px solid ${ACCENT}`
                         : `2px solid ${grey[200]}`,
                     transition: "all 0.2s",
+                    bgcolor: grey[100],
                     "&:hover": {
                       transform: "scale(1.05)",
+                      boxShadow: 3,
                     },
                   }}
                 >
-                  <Box
-                    component="img"
-                    src={img}
-                    alt={`${product.name} ${idx + 1}`}
-                    sx={{
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "cover",
-                    }}
-                  />
+                  {img ? (
+                    <Box
+                      component="img"
+                      src={img}
+                      alt={`View ${idx + 1}`}
+                      sx={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                      }}
+                    />
+                  ) : (
+                    <Box
+                      sx={{
+                        width: "100%",
+                        height: "100%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <CameraAltOutlinedIcon
+                        sx={{ fontSize: 48, color: grey[300] }}
+                      />
+                    </Box>
+                  )}
                 </Box>
               ))}
             </Box>
@@ -289,10 +351,10 @@ const ProductDetailPage: React.FC = () => {
           {/* Right - Product Info */}
           <Box sx={{ flex: 1 }}>
             <Box sx={{ bgcolor: "white", borderRadius: 3, p: 4, boxShadow: 2 }}>
-              {/* Brand & Category */}
+              {/* Brand */}
               <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
                 <Chip
-                  label={product.brand}
+                  label={camera.brand}
                   size="small"
                   sx={{
                     bgcolor: grey[100],
@@ -300,112 +362,128 @@ const ProductDetailPage: React.FC = () => {
                     color: grey[800],
                   }}
                 />
-                <Chip
-                  label={product.category}
-                  size="small"
-                  sx={{
-                    bgcolor: ACCENT,
-                    fontWeight: 600,
-                    color: "black",
-                  }}
-                />
+                {camera.variant && (
+                  <Chip
+                    label={camera.variant}
+                    size="small"
+                    sx={{
+                      bgcolor: ACCENT,
+                      fontWeight: 600,
+                      color: "black",
+                    }}
+                  />
+                )}
               </Stack>
 
               {/* Product Name */}
               <Typography
-                variant="h3"
+                variant="h4"
                 sx={{
-                  fontWeight: 800,
+                  fontWeight: 700,
                   color: grey[900],
-                  mb: 2,
-                  fontSize: { xs: "2rem", md: "2.5rem" },
+                  mb: 1,
                 }}
               >
-                {product.name}
+                {camera.brand} {camera.model}
               </Typography>
 
-              {/* Rating */}
-              <Stack
-                direction="row"
-                alignItems="center"
-                spacing={1}
-                sx={{ mb: 3 }}
-              >
-                <Rating
-                  value={product.rating}
-                  precision={0.1}
-                  readOnly
-                  sx={{
-                    "& .MuiRating-iconFilled": { color: ACCENT },
-                  }}
-                />
-                <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                  {product.rating}
+              {/* Serial Number */}
+              {camera.serialNumber && (
+                <Typography variant="body2" sx={{ color: grey[600], mb: 3 }}>
+                  SN: {camera.serialNumber}
                 </Typography>
-                <Typography variant="body2" sx={{ color: grey[600] }}>
-                  ({product.reviews} reviews)
-                </Typography>
-              </Stack>
+              )}
 
               {/* Price */}
-              <Box sx={{ mb: 4 }}>
-                <Typography
-                  variant="h3"
-                  sx={{
-                    fontWeight: 800,
-                    color: grey[900],
-                    mb: 0.5,
-                  }}
-                >
-                  ${product.price}
+              <Box sx={{ mb: 3 }}>
+                <Stack direction="row" alignItems="baseline" spacing={1}>
                   <Typography
-                    component="span"
-                    variant="h5"
-                    sx={{ color: grey[600], fontWeight: 600, ml: 1 }}
+                    variant="h4"
+                    sx={{
+                      fontWeight: 700,
+                      color: grey[900],
+                    }}
+                  >
+                    {formatCurrency(totalDailyRate)}
+                  </Typography>
+                  <Typography
+                    variant="body1"
+                    sx={{ color: grey[600], fontWeight: 500 }}
                   >
                     / day
                   </Typography>
-                </Typography>
-                <Typography variant="body2" sx={{ color: grey[600] }}>
-                  Weekly and monthly rates available
+                </Stack>
+                <Typography variant="body2" sx={{ color: grey[600], mt: 0.5 }}>
+                  Base rate: {formatCurrency(camera.baseDailyRate)} + Platform
+                  fee: {camera.platformFeePercent}%
                 </Typography>
               </Box>
 
               <Divider sx={{ my: 3 }} />
 
-              {/* Description */}
-              <Typography
-                variant="body1"
-                sx={{
-                  color: grey[700],
-                  lineHeight: 1.8,
-                  mb: 3,
-                }}
-              >
-                {product.description}
-              </Typography>
+              {/* Location Info */}
+              <Box sx={{ mb: 3 }}>
+                <Stack direction="row" spacing={1} alignItems="flex-start">
+                  <LocationOnIcon sx={{ color: ACCENT, mt: 0.25 }} />
+                  <Box>
+                    <Typography
+                      variant="subtitle1"
+                      sx={{ fontWeight: 700, color: grey[900] }}
+                    >
+                      {camera.branch.name}
+                    </Typography>
+                    {fullAddress && (
+                      <Typography variant="body2" sx={{ color: grey[600] }}>
+                        {fullAddress}
+                      </Typography>
+                    )}
+                  </Box>
+                </Stack>
+              </Box>
 
               <Divider sx={{ my: 3 }} />
 
-              {/* Features */}
+              {/* Financial Info */}
               <Box sx={{ mb: 4 }}>
                 <Typography
                   variant="h6"
                   sx={{ fontWeight: 700, mb: 2, color: grey[900] }}
                 >
-                  Key Features
+                  Rental Information
                 </Typography>
-                <Stack spacing={1.5}>
-                  {product.specs.map((spec: string, idx: number) => (
-                    <Stack key={idx} direction="row" spacing={1.5}>
-                      <CheckCircleOutlineIcon
-                        sx={{ color: ACCENT, fontSize: 20, mt: 0.2 }}
-                      />
-                      <Typography variant="body2" sx={{ color: grey[700] }}>
-                        {spec}
+                <Stack spacing={2}>
+                  <Stack direction="row" spacing={2} alignItems="center">
+                    <AttachMoneyIcon sx={{ color: ACCENT }} />
+                    <Box>
+                      <Typography
+                        variant="body2"
+                        sx={{ fontWeight: 600, color: grey[800] }}
+                      >
+                        Estimated Value
                       </Typography>
-                    </Stack>
-                  ))}
+                      <Typography variant="body1" sx={{ color: grey[900] }}>
+                        {formatCurrency(camera.estimatedValueVnd)}
+                      </Typography>
+                    </Box>
+                  </Stack>
+                  <Stack direction="row" spacing={2} alignItems="center">
+                    <AccountBalanceWalletIcon sx={{ color: ACCENT }} />
+                    <Box>
+                      <Typography
+                        variant="body2"
+                        sx={{ fontWeight: 600, color: grey[800] }}
+                      >
+                        Security Deposit ({camera.depositPercent}%)
+                      </Typography>
+                      <Typography variant="body1" sx={{ color: grey[900] }}>
+                        {formatCurrency(finalDeposit)}
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: grey[600] }}>
+                        Range: {formatCurrency(camera.depositCapMinVnd)} -{" "}
+                        {formatCurrency(camera.depositCapMaxVnd)}
+                      </Typography>
+                    </Box>
+                  </Stack>
                 </Stack>
               </Box>
 
@@ -505,152 +583,136 @@ const ProductDetailPage: React.FC = () => {
               },
             }}
           >
-            <Tab label={`Reviews (${product.reviews})`} />
-            <Tab label="Sample Photos" />
-            <Tab label="What's Included" />
+            <Tab label="Specifications" />
+            <Tab label="Categories" />
+            <Tab label="Rental Terms" />
           </Tabs>
 
-          {/* Reviews Tab */}
+          {/* Specifications Tab */}
           {currentTab === 0 && (
             <Box>
-              <Stack spacing={3}>
-                {reviews.map((review) => (
-                  <Box
-                    key={review.id}
-                    sx={{
-                      p: 3,
-                      bgcolor: grey[50],
-                      borderRadius: 2,
-                      border: `1px solid ${grey[200]}`,
-                    }}
-                  >
-                    <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
-                      <Avatar src={review.avatar} alt={review.name} />
-                      <Box sx={{ flex: 1 }}>
-                        <Typography
-                          variant="subtitle1"
-                          sx={{ fontWeight: 700, color: grey[900] }}
-                        >
-                          {review.name}
-                        </Typography>
-                        <Stack direction="row" spacing={1} alignItems="center">
-                          <Rating
-                            value={review.rating}
-                            readOnly
-                            size="small"
-                            sx={{
-                              "& .MuiRating-iconFilled": { color: ACCENT },
-                            }}
-                          />
-                          <Typography
-                            variant="caption"
-                            sx={{ color: grey[600] }}
-                          >
-                            {review.date}
-                          </Typography>
-                        </Stack>
-                      </Box>
-                    </Stack>
-                    <Typography variant="body2" sx={{ color: grey[700] }}>
-                      {review.comment}
-                    </Typography>
-                  </Box>
-                ))}
-              </Stack>
+              <Typography
+                variant="h6"
+                sx={{ fontWeight: 700, mb: 3, color: grey[900] }}
+              >
+                Camera Specifications
+              </Typography>
+              {camera.specsJson ? (
+                <Box
+                  component="pre"
+                  sx={{
+                    bgcolor: grey[50],
+                    p: 3,
+                    borderRadius: 2,
+                    overflow: "auto",
+                    color: grey[800],
+                  }}
+                >
+                  {JSON.stringify(JSON.parse(camera.specsJson), null, 2)}
+                </Box>
+              ) : (
+                <Typography variant="body1" sx={{ color: grey[600] }}>
+                  No specifications available for this camera.
+                </Typography>
+              )}
             </Box>
           )}
 
-          {/* Sample Photos Tab */}
+          {/* Categories Tab */}
           {currentTab === 1 && (
             <Box>
               <Typography
                 variant="h6"
                 sx={{ fontWeight: 700, mb: 3, color: grey[900] }}
               >
-                Photos Captured With This Camera
+                Camera Categories
               </Typography>
-              <Box
-                sx={{
-                  display: "grid",
-                  gridTemplateColumns: {
-                    xs: "1fr",
-                    sm: "repeat(2, 1fr)",
-                    md: "repeat(3, 1fr)",
-                  },
-                  gap: 2,
-                }}
-              >
-                {product.samplePhotos.map((photo: string, idx: number) => (
-                  <Box
-                    key={idx}
-                    sx={{
-                      borderRadius: 2,
-                      overflow: "hidden",
-                      aspectRatio: "1/1",
-                      cursor: "pointer",
-                      transition: "transform 0.3s",
-                      "&:hover": {
-                        transform: "scale(1.05)",
-                      },
-                    }}
-                  >
-                    <Box
-                      component="img"
-                      src={photo}
-                      alt={`Sample ${idx + 1}`}
+              {camera.categories && camera.categories.length > 0 ? (
+                <Stack direction="row" spacing={1} flexWrap="wrap">
+                  {camera.categories.map((category: Category, idx: number) => (
+                    <Chip
+                      key={idx}
+                      label={category.name}
                       sx={{
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "cover",
+                        bgcolor: ACCENT,
+                        color: "black",
+                        fontWeight: 600,
                       }}
                     />
-                  </Box>
-                ))}
-              </Box>
+                  ))}
+                </Stack>
+              ) : (
+                <Typography variant="body1" sx={{ color: grey[600] }}>
+                  No categories assigned to this camera.
+                </Typography>
+              )}
             </Box>
           )}
 
-          {/* What's Included Tab */}
+          {/* Rental Terms Tab */}
           {currentTab === 2 && (
             <Box>
               <Typography
                 variant="h6"
                 sx={{ fontWeight: 700, mb: 3, color: grey[900] }}
               >
-                Rental Package Includes
+                Rental Terms & Conditions
               </Typography>
               <Stack spacing={2}>
-                {product.includes.map((item: string, idx: number) => (
-                  <Stack
-                    key={idx}
-                    direction="row"
-                    spacing={2}
-                    alignItems="center"
-                  >
-                    <CheckCircleOutlineIcon
-                      sx={{ color: ACCENT, fontSize: 24 }}
-                    />
-                    <Typography variant="body1" sx={{ color: grey[700] }}>
-                      {item}
+                <Stack direction="row" spacing={2} alignItems="flex-start">
+                  <CheckCircleOutlineIcon
+                    sx={{ color: ACCENT, fontSize: 24, mt: 0.5 }}
+                  />
+                  <Box>
+                    <Typography
+                      variant="subtitle1"
+                      sx={{ fontWeight: 600, color: grey[900] }}
+                    >
+                      Security Deposit Required
                     </Typography>
-                  </Stack>
-                ))}
+                    <Typography variant="body2" sx={{ color: grey[700] }}>
+                      A refundable deposit of {formatCurrency(finalDeposit)} is
+                      required before rental.
+                    </Typography>
+                  </Box>
+                </Stack>
+                <Stack direction="row" spacing={2} alignItems="flex-start">
+                  <CheckCircleOutlineIcon
+                    sx={{ color: ACCENT, fontSize: 24, mt: 0.5 }}
+                  />
+                  <Box>
+                    <Typography
+                      variant="subtitle1"
+                      sx={{ fontWeight: 600, color: grey[900] }}
+                    >
+                      Daily Rental Rate
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: grey[700] }}>
+                      {formatCurrency(totalDailyRate)} per day (includes{" "}
+                      {camera.platformFeePercent}% platform fee)
+                    </Typography>
+                  </Box>
+                </Stack>
+                <Stack direction="row" spacing={2} alignItems="flex-start">
+                  <CheckCircleOutlineIcon
+                    sx={{ color: ACCENT, fontSize: 24, mt: 0.5 }}
+                  />
+                  <Box>
+                    <Typography
+                      variant="subtitle1"
+                      sx={{ fontWeight: 600, color: grey[900] }}
+                    >
+                      Equipment Insurance
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: grey[700] }}>
+                      All equipment is fully insured and professionally
+                      maintained.
+                    </Typography>
+                  </Box>
+                </Stack>
               </Stack>
             </Box>
           )}
-        </Box>
-
-        {/* Related Products Section (Optional) */}
-        <Box sx={{ mt: 8 }}>
-          <Typography
-            variant="h4"
-            sx={{ fontWeight: 800, mb: 4, color: grey[900] }}
-          >
-            Similar Products You Might Like
-          </Typography>
-          <Typography variant="body1" sx={{ color: grey[600] }}>
-            Coming soon...
-          </Typography>
         </Box>
       </Container>
     </Box>
