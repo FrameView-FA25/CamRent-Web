@@ -61,7 +61,9 @@ const StaffLayout: React.FC = () => {
         }}
       >
         <Box sx={{ p: 2, display: "flex", alignItems: "center", gap: 1.5 }}>
-          <Avatar sx={{ bgcolor: "#1e3a5f", width: 32, height: 32 }}>S</Avatar>
+          <Avatar sx={{ bgcolor: "#1e3a5f", width: 32, height: 32 }}>
+            {user?.fullName ? user.fullName.charAt(0) : "O"}
+          </Avatar>
           <Typography variant="h6" sx={{ fontWeight: 600, color: "#000000ff" }}>
             Staff Panel
           </Typography>
@@ -111,14 +113,14 @@ const StaffLayout: React.FC = () => {
           <Divider sx={{ mb: 2 }} />
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 2 }}>
             <Avatar sx={{ bgcolor: "#2196f3", width: 40, height: 40 }}>
-              JD
+              {user?.fullName ? user.fullName.charAt(0) : "O"}
             </Avatar>
             <Box>
               <Typography sx={{ fontSize: "0.9rem", fontWeight: 600 }}>
-                John Doe
+                {user?.fullName || "Staff Name"}
               </Typography>
               <Typography sx={{ fontSize: "0.75rem", color: "#666" }}>
-                Staff
+                {user?.roles?.join(", ") || "User Role"}
               </Typography>
             </Box>
           </Box>
