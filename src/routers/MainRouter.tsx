@@ -145,7 +145,7 @@ const routes: RouteObject[] = [
   {
     path: "/manager",
     element: (
-      <ProtectedRoute requiredRole="Manager">
+      <ProtectedRoute requiredRole="BranchManager">
         <ManagerLayout />
       </ProtectedRoute>
     ),
