@@ -20,12 +20,14 @@ import {
   Settings,
   Logout,
 } from "@mui/icons-material";
+import { useAuth } from "../../hooks/useAuth";
 
 const drawerWidth = 240;
 
 const StaffLayout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, logout } = useAuth();
 
   const menuItems = [
     { text: "Dashboard", icon: <Dashboard />, path: "/staff/dashboard" },
@@ -39,6 +41,7 @@ const StaffLayout: React.FC = () => {
   ];
 
   const handleLogout = () => {
+    logout(); // Xóa dữ liệu xác thực
     navigate("/");
   };
 
