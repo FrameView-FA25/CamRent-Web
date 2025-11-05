@@ -3,6 +3,7 @@ import type { RouteObject } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
 import OwnerLayout from "../layouts/OwnerLayout/OwnerLayout";
 import AdminLayout from "../layouts/AdminLayout/AdminLayout";
+import ProtectedRoute from "../components/ProtectedRoute";
 import HomePage from "../pages/HomePage";
 import ExplorePage from "../pages/ExplorePage";
 import HowItWorksPage from "../pages/HowItWorksPage";
@@ -73,7 +74,11 @@ const routes: RouteObject[] = [
   },
   {
     path: "/owner",
-    element: <OwnerLayout />,
+    element: (
+      <ProtectedRoute requiredRole="Owner">
+        <OwnerLayout />
+      </ProtectedRoute>
+    ),
     children: [
       {
         path: "dashboard",
@@ -99,7 +104,11 @@ const routes: RouteObject[] = [
   },
   {
     path: "/admin",
-    element: <AdminLayout />,
+    element: (
+      <ProtectedRoute requiredRole="Admin">
+        <AdminLayout />
+      </ProtectedRoute>
+    ),
     children: [
       {
         path: "dashboard",

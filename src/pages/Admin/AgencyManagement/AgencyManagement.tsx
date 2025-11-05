@@ -75,7 +75,7 @@ const AgencyManagement: React.FC = () => {
   const [agencies] = useState<Agency[]>(mockAgencies);
   const [searchTerm, setSearchTerm] = useState("");
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [selectedAgency, setSelectedAgency] = useState<Agency | null>(null);
+  const [_selectedAgency, setSelectedAgency] = useState<Agency | null>(null);
   const [openDialog, setOpenDialog] = useState(false);
 
   const handleMenuClick = (

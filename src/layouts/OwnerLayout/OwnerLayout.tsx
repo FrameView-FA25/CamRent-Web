@@ -24,6 +24,7 @@ import {
   ExitToApp as LogoutIcon,
   Person as PersonIcon,
 } from "@mui/icons-material";
+import { useAuth } from "../../hooks/useAuth";
 
 const DRAWER_WIDTH = 280;
 
@@ -40,13 +41,15 @@ const OwnerLayout: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { user, logout } = useAuth();
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };
 
   const handleLogout = () => {
-    navigate("/");
+    logout(); // Xóa dữ liệu xác thực
+    navigate("/"); // Chuyển hướng về trang chủ
   };
 
   const drawer = (
@@ -165,7 +168,7 @@ const OwnerLayout: React.FC = () => {
             }}
             src="/user-avatar.jpg"
           >
-            JD
+            {user?.fullName ? user.fullName.charAt(0) : "O"}
           </Avatar>
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Typography
@@ -176,7 +179,7 @@ const OwnerLayout: React.FC = () => {
                 lineHeight: 1.3,
               }}
             >
-              John Doe
+              {user?.fullName || "Owner"}
             </Typography>
             <Typography
               sx={{
@@ -185,7 +188,7 @@ const OwnerLayout: React.FC = () => {
                 lineHeight: 1.3,
               }}
             >
-              Owner
+              {user?.roles?.join(", ") || "User Role"}
             </Typography>
           </Box>
         </Stack>
