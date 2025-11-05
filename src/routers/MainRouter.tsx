@@ -28,6 +28,8 @@ import OwnerProfile from "../pages/Owner/Profile/OwnerProfile";
 import ManagerLayout from "../layouts/ManagerLayout/ManagerLayout";
 import DashboardManager from "@/pages/Manager/Dashboard";
 import BookingManagement from "@/pages/Manager/Booking";
+import StaffLayout from "../layouts/StaffLayout/StaffLayout";
+import MyAssignments from "../pages/Staff/MyAssignments";
 const routes: RouteObject[] = [
   {
     path: "/",
@@ -158,6 +160,28 @@ const routes: RouteObject[] = [
       {
         path: "devices",
         element: <DeviceManagement />,
+      },
+      {
+        path: "profile",
+        element: <AdminProfile />,
+      },
+      {
+        path: "settings",
+        element: <AdminSettings />,
+      },
+    ],
+  },
+  {
+    path: "/staff",
+    element: <StaffLayout />,
+    children: [
+      {
+        path: "dashboard",
+        element: <DashboardManager />,
+      },
+      {
+        path: "my-assignments",
+        element: <MyAssignments />,
       },
       {
         path: "profile",

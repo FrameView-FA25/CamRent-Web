@@ -33,9 +33,12 @@ import {
   MoreVert,
   FileDownload,
   CheckCircle,
+  Cancel,
   HourglassEmpty,
   Assignment,
+  Description,
 } from "@mui/icons-material";
+import { useNavigate } from "react-router-dom";
 
 interface Booking {
   id: string;
@@ -48,14 +51,17 @@ interface Booking {
   deposit: number;
   status: "pending" | "confirmed" | "renting" | "completed" | "cancelled";
   assignedStaff?: string;
+  hasContract?: boolean;
 }
 
 const BookingManagement: React.FC = () => {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTab, setSelectedTab] = useState(0);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [contractDialogOpen, setContractDialogOpen] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState("");
 
   // Mock data
@@ -70,6 +76,7 @@ const BookingManagement: React.FC = () => {
       totalAmount: 1200000,
       deposit: 300000,
       status: "renting",
+      hasContract: true,
     },
     {
       id: "ORD002",
@@ -81,6 +88,7 @@ const BookingManagement: React.FC = () => {
       totalAmount: 1500000,
       deposit: 400000,
       status: "confirmed",
+      hasContract: false,
     },
     {
       id: "ORD003",
@@ -92,6 +100,7 @@ const BookingManagement: React.FC = () => {
       totalAmount: 800000,
       deposit: 200000,
       status: "completed",
+      hasContract: true,
     },
     {
       id: "ORD004",
@@ -103,6 +112,7 @@ const BookingManagement: React.FC = () => {
       totalAmount: 1000000,
       deposit: 250000,
       status: "confirmed",
+      hasContract: false,
     },
   ];
 
@@ -180,6 +190,17 @@ const BookingManagement: React.FC = () => {
     handleMenuClose();
   };
 
+  const handleCreateContract = () => {
+    setContractDialogOpen(true);
+    handleMenuClose();
+  };
+
+  const handleViewContract = () => {
+    // Navigate to contract page or open contract viewer
+    navigate(`/manager/contracts/${selectedBooking?.id}`);
+    handleMenuClose();
+  };
+
   const handleAssignConfirm = () => {
     console.log(
       "Assign staff:",
@@ -191,6 +212,13 @@ const BookingManagement: React.FC = () => {
     setSelectedStaff("");
   };
 
+  const handleContractConfirm = () => {
+    console.log("Create contract for booking:", selectedBooking?.id);
+    // Navigate to contract creation page with booking data
+    navigate(`/manager/contracts/create?bookingId=${selectedBooking?.id}`);
+    setContractDialogOpen(false);
+  };
+
   const filteredBookings = bookings.filter((booking) => {
     const matchesSearch =
       booking.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -199,7 +227,7 @@ const BookingManagement: React.FC = () => {
 
     const matchesTab =
       selectedTab === 0 ||
-      (selectedTab === 1 && booking.status === "confirmed") ||
+      (selectedTab === 1 && booking.status === "pending") ||
       (selectedTab === 2 && booking.status === "confirmed") ||
       (selectedTab === 3 && booking.status === "renting") ||
       (selectedTab === 4 && booking.status === "completed") ||
@@ -312,7 +340,7 @@ const BookingManagement: React.FC = () => {
           >
             <Tab label={`TẤT CẢ (${bookings.length})`} />
             <Tab label="CHỜ XÁC NHẬN (1)" />
-            <Tab label="ĐÃ XÁC NHẬN (1)" />
+            <Tab label="ĐÃ XÁC NHẬN (2)" />
             <Tab label="ĐANG THUÊ (1)" />
             <Tab label="HOÀN THÀNH (1)" />
             <Tab label="ĐÃ HỦY (0)" />
@@ -329,6 +357,7 @@ const BookingManagement: React.FC = () => {
                   <TableCell>Thời gian thuê</TableCell>
                   <TableCell>Tổng tiền</TableCell>
                   <TableCell>Trạng thái</TableCell>
+                  <TableCell>Hợp đồng</TableCell>
                   <TableCell>Hành động</TableCell>
                 </TableRow>
               </TableHead>
@@ -380,6 +409,24 @@ const BookingManagement: React.FC = () => {
                       />
                     </TableCell>
                     <TableCell>
+                      {booking.hasContract ? (
+                        <Chip
+                          icon={<Description />}
+                          label="Đã có"
+                          color="success"
+                          size="small"
+                          variant="outlined"
+                        />
+                      ) : (
+                        <Chip
+                          label="Chưa có"
+                          color="default"
+                          size="small"
+                          variant="outlined"
+                        />
+                      )}
+                    </TableCell>
+                    <TableCell>
                       <IconButton onClick={(e) => handleMenuClick(e, booking)}>
                         <MoreVert />
                       </IconButton>
@@ -398,11 +445,24 @@ const BookingManagement: React.FC = () => {
           onClose={handleMenuClose}
         >
           <MenuItem onClick={handleAssignStaff}>
-            <Assignment sx={{ mr: 1 }} /> Phân công nhân viên
+            <Assignment sx={{ mr: 1, fontSize: 20 }} /> Phân công nhân viên
+          </MenuItem>
+          {selectedBooking?.hasContract ? (
+            <MenuItem onClick={handleViewContract}>
+              <Description sx={{ mr: 1, fontSize: 20 }} /> Xem hợp đồng
+            </MenuItem>
+          ) : (
+            <MenuItem onClick={handleCreateContract}>
+              <Description sx={{ mr: 1, fontSize: 20 }} /> Tạo hợp đồng
+            </MenuItem>
+          )}
+          <MenuItem onClick={handleMenuClose}>
+            <CheckCircle sx={{ mr: 1, fontSize: 20 }} /> Xác nhận đơn
           </MenuItem>
           <MenuItem onClick={handleMenuClose}>Xem chi tiết</MenuItem>
-          <MenuItem onClick={handleMenuClose}>Xác nhận đơn</MenuItem>
-          <MenuItem onClick={handleMenuClose}>Hủy đơn</MenuItem>
+          <MenuItem onClick={handleMenuClose} sx={{ color: "error.main" }}>
+            <Cancel sx={{ mr: 1, fontSize: 20 }} /> Hủy đơn
+          </MenuItem>
         </Menu>
 
         {/* Assign Staff Dialog */}
@@ -442,6 +502,47 @@ const BookingManagement: React.FC = () => {
               disabled={!selectedStaff}
             >
               Xác nhận
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Create Contract Dialog */}
+        <Dialog
+          open={contractDialogOpen}
+          onClose={() => setContractDialogOpen(false)}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle>Tạo hợp đồng thuê</DialogTitle>
+          <DialogContent>
+            <Box sx={{ pt: 2 }}>
+              <Typography variant="body2" sx={{ mb: 2, color: "#666" }}>
+                Bạn có chắc chắn muốn tạo hợp đồng cho đơn thuê này?
+              </Typography>
+              <Paper sx={{ p: 2, bgcolor: "#f5f5f5" }}>
+                <Typography variant="body2" sx={{ mb: 1 }}>
+                  <strong>Mã đơn:</strong> {selectedBooking?.id}
+                </Typography>
+                <Typography variant="body2" sx={{ mb: 1 }}>
+                  <strong>Khách hàng:</strong> {selectedBooking?.customerName}
+                </Typography>
+                <Typography variant="body2" sx={{ mb: 1 }}>
+                  <strong>Camera:</strong> {selectedBooking?.camera}
+                </Typography>
+                <Typography variant="body2">
+                  <strong>Thời gian:</strong> {selectedBooking?.rentalPeriod}
+                </Typography>
+              </Paper>
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setContractDialogOpen(false)}>Hủy</Button>
+            <Button
+              onClick={handleContractConfirm}
+              variant="contained"
+              startIcon={<Description />}
+            >
+              Tạo hợp đồng
             </Button>
           </DialogActions>
         </Dialog>
