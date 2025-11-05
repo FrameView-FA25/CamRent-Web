@@ -189,7 +189,7 @@ export default function OrderManagement() {
   const [searchTerm, setSearchTerm] = useState("");
   const [tabValue, setTabValue] = useState(0);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [_selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   /**
    * Lấy màu cho status chip

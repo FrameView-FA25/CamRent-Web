@@ -9,29 +9,62 @@ import {
   InputAdornment,
   Button,
   Divider,
+  Alert,
+  CircularProgress,
 } from "@mui/material";
 import { X, Eye, EyeOff, Camera } from "lucide-react";
+import { authService } from "../../services/auth.service";
 
 type Props = {
   open: boolean;
   onClose: () => void;
-  onSubmit?: (payload: { email: string; password: string }) => void;
-  onSwitchToRegister?: () => void; // NEW
+  onLoginSuccess?: () => void;
+  onSwitchToRegister?: () => void;
 };
 
 const ModalLogin: React.FC<Props> = ({
   open,
   onClose,
-  onSubmit,
+  onLoginSuccess,
   onSwitchToRegister,
 }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit?.({ email, password });
+    setError(null);
+    setLoading(true);
+
+    try {
+      // authService.login sẽ tự động lưu data vào localStorage
+      const response = await authService.login({ email, password });
+
+      console.log("Login successful:", response);
+
+      // Reset form
+      setEmail("");
+      setPassword("");
+
+      // Đóng modal
+      onClose();
+
+      // Gọi callback để điều hướng
+      setTimeout(() => {
+        onLoginSuccess?.();
+      }, 100);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin."
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -97,6 +130,13 @@ const ModalLogin: React.FC<Props> = ({
           onSubmit={handleLogin}
           sx={{ display: "grid", rowGap: 2.5 }}
         >
+          {/* Error Alert */}
+          {error && (
+            <Alert severity="error" onClose={() => setError(null)}>
+              {error}
+            </Alert>
+          )}
+
           <Box>
             <Typography
               variant="body2"
@@ -165,6 +205,7 @@ const ModalLogin: React.FC<Props> = ({
             type="submit"
             variant="contained"
             disableElevation
+            disabled={loading || !email || !password}
             sx={{
               bgcolor: "#FACC15",
               color: "#111827",
@@ -172,9 +213,14 @@ const ModalLogin: React.FC<Props> = ({
               py: 1.25,
               borderRadius: 999,
               "&:hover": { bgcolor: "#EAB308" },
+              "&:disabled": { bgcolor: "#FDE68A", color: "#9CA3AF" },
             }}
           >
-            Login
+            {loading ? (
+              <CircularProgress size={24} sx={{ color: "#111827" }} />
+            ) : (
+              "Login"
+            )}
           </Button>
 
           {/* OR divider */}
