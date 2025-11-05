@@ -23,3 +23,16 @@ export interface LoginResponse {
   email: string;
   roles: string[];
 }
+
+export interface RegisterRequest {
+  email: string;
+  phone: string;
+  password: string;
+  fullName: string;
+  role: number;
+}
+
+export interface RegisterResponse {
+  message?: string;
+  success?: boolean;
+}

@@ -14,6 +14,19 @@ export interface LoginResponse {
   roles: string[];
 }
 
+export interface RegisterRequest {
+  email: string;
+  phone: string;
+  password: string;
+  fullName: string;
+  role: number;
+}
+
+export interface RegisterResponse {
+  message?: string;
+  success?: boolean;
+}
+
 export const authService = {
   async login(credentials: LoginRequest): Promise<LoginResponse> {
     const response = await fetch(`${API_BASE_URL}/Auths/Login`, {
@@ -81,5 +94,37 @@ export const authService = {
     localStorage.removeItem("accessToken");
     localStorage.removeItem("role");
     localStorage.removeItem("userInfo");
+  },
+
+  async register(data: RegisterRequest): Promise<RegisterResponse> {
+    const response = await fetch(`${API_BASE_URL}/Auths/RenterRegister`, {
+      method: "POST",
+      headers: {
+        accept: "*/*",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      let errorMessage = `Đăng ký thất bại với mã lỗi ${response.status}`;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorMessage;
+      } catch {
+        const errorText = await response.text().catch(() => "");
+        if (errorText) errorMessage = errorText;
+      }
+      throw new Error(errorMessage);
+    }
+
+    const contentType = response.headers.get("content-type");
+
+    if (contentType?.includes("application/json")) {
+      return await response.json();
+    }
+
+    const text = await response.text();
+    return { success: true, message: text };
   },
 };

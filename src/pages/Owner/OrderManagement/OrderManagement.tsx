@@ -33,7 +33,6 @@ import {
 } from "@mui/icons-material";
 import { useState } from "react";
 import type { ReactElement } from "react";
-import "./OrderManagement.css";
 
 /**
  * Interface cho đơn hàng
@@ -282,19 +281,36 @@ export default function OrderManagement() {
    * Render stat card
    */
   const renderStatCard = (stat: OrderStat, index: number) => (
-    <Box key={index} className="stat-card-wrapper">
-      <Card className="stat-card">
+    <Box key={index} sx={{ flex: 1, minWidth: 250 }}>
+      <Card
+        sx={{
+          height: "100%",
+          transition: "all 0.3s ease",
+          "&:hover": {
+            transform: "translateY(-4px)",
+            boxShadow: 3,
+          },
+        }}
+      >
         <CardContent>
-          <Box className="stat-card-content">
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
             <Avatar
-              className="stat-icon"
-              sx={{ bgcolor: stat.bgColor, color: stat.color }}
+              sx={{
+                bgcolor: stat.bgColor,
+                color: stat.color,
+                width: 56,
+                height: 56,
+              }}
             >
               {stat.icon}
             </Avatar>
             <Box>
-              <Typography className="stat-value">{stat.value}</Typography>
-              <Typography className="stat-title">{stat.title}</Typography>
+              <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
+                {stat.value}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {stat.title}
+              </Typography>
             </Box>
           </Box>
         </CardContent>
@@ -306,7 +322,14 @@ export default function OrderManagement() {
    * Render order row
    */
   const renderOrderRow = (order: Order) => (
-    <TableRow key={order.id} className="order-row">
+    <TableRow
+      key={order.id}
+      sx={{
+        "&:hover": {
+          backgroundColor: "action.hover",
+        },
+      }}
+    >
       <TableCell>
         <Typography variant="body2" fontWeight="medium" color="primary">
           {order.orderCode}
@@ -316,12 +339,12 @@ export default function OrderManagement() {
         </Typography>
       </TableCell>
       <TableCell>
-        <Box className="customer-info">
-          <Avatar className="customer-avatar" sx={{ bgcolor: "primary.main" }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <Avatar sx={{ bgcolor: "primary.main", width: 48, height: 48 }}>
             {order.customer.name.charAt(0)}
           </Avatar>
           <Box>
-            <Typography className="customer-name" variant="body2">
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>
               {order.customer.name}
             </Typography>
             <Typography variant="caption" color="text.secondary">
@@ -365,39 +388,62 @@ export default function OrderManagement() {
   );
 
   return (
-    <Box className="order-management-container">
+    <Box sx={{ p: 3, bgcolor: "background.default", minHeight: "100vh" }}>
       {/* Header */}
-      <Box className="page-header">
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          mb: 3,
+          flexWrap: "wrap",
+          gap: 2,
+        }}
+      >
         <Box>
-          <Typography className="page-title">Quản lý Đơn thuê</Typography>
-          <Typography className="page-subtitle">
+          <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
+            Quản lý Đơn thuê
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
             Quản lý tất cả đơn thuê camera trong hệ thống
           </Typography>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<DownloadIcon />}
-          className="action-button"
-        >
+        <Button variant="contained" startIcon={<DownloadIcon />}>
           Xuất báo cáo
         </Button>
       </Box>
 
       {/* Stats Cards */}
-      <Box className="stats-container">{ORDER_STATS.map(renderStatCard)}</Box>
+      <Box
+        sx={{
+          display: "flex",
+          gap: 2,
+          mb: 3,
+          flexWrap: "wrap",
+        }}
+      >
+        {ORDER_STATS.map(renderStatCard)}
+      </Box>
 
       {/* Main Content */}
       <Card>
         <CardContent>
           {/* Search & Filter Bar */}
-          <Box className="search-bar">
+          <Box
+            sx={{
+              display: "flex",
+              gap: 2,
+              mb: 3,
+              flexWrap: "wrap",
+            }}
+          >
             <TextField
               placeholder="Tìm kiếm theo mã đơn, tên khách hàng, camera..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               variant="outlined"
               size="small"
-              className="search-input"
+              sx={{ flex: 1, minWidth: 300 }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -406,17 +452,13 @@ export default function OrderManagement() {
                 ),
               }}
             />
-            <Button
-              variant="outlined"
-              startIcon={<FilterIcon />}
-              className="filter-button"
-            >
+            <Button variant="outlined" startIcon={<FilterIcon />}>
               Lọc
             </Button>
           </Box>
 
           {/* Status Tabs */}
-          <Box className="tabs-container">
+          <Box sx={{ borderBottom: 1, borderColor: "divider", mb: 2 }}>
             <Tabs
               value={tabValue}
               onChange={handleTabChange}
@@ -453,17 +495,19 @@ export default function OrderManagement() {
           </Box>
 
           {/* Orders Table */}
-          <TableContainer className="orders-table">
+          <TableContainer sx={{ mt: 2 }}>
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell>Mã đơn</TableCell>
-                  <TableCell>Khách hàng</TableCell>
-                  <TableCell>Camera</TableCell>
-                  <TableCell>Thời gian thuê</TableCell>
-                  <TableCell>Tổng tiền</TableCell>
-                  <TableCell>Trạng thái</TableCell>
-                  <TableCell align="center">Hành động</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Mã đơn</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Khách hàng</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Camera</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Thời gian thuê</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Tổng tiền</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Trạng thái</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 600 }}>
+                    Hành động
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>{getFilteredOrders().map(renderOrderRow)}</TableBody>
@@ -472,7 +516,12 @@ export default function OrderManagement() {
 
           {/* Empty State */}
           {getFilteredOrders().length === 0 && (
-            <Box className="empty-state">
+            <Box
+              sx={{
+                textAlign: "center",
+                py: 8,
+              }}
+            >
               <Typography variant="body1" color="text.secondary">
                 Không tìm thấy đơn thuê nào
               </Typography>

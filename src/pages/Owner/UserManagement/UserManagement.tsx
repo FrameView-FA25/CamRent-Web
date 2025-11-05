@@ -20,6 +20,7 @@ import {
   Tab,
   Tabs,
   Rating,
+  // Paper,
 } from "@mui/material";
 import {
   Search as SearchIcon,
@@ -36,7 +37,6 @@ import {
 } from "@mui/icons-material";
 import { useState } from "react";
 import type { ReactElement } from "react";
-import "./UserManagement.css";
 
 /**
  * Interface cho khách hàng
@@ -263,19 +263,36 @@ export default function UserManagement() {
    * Render stat card
    */
   const renderStatCard = (stat: CustomerStat, index: number) => (
-    <Box key={index} className="stat-card-wrapper">
-      <Card className="stat-card">
+    <Box key={index} sx={{ flex: 1, minWidth: 250 }}>
+      <Card
+        sx={{
+          height: "100%",
+          transition: "all 0.3s ease",
+          "&:hover": {
+            transform: "translateY(-4px)",
+            boxShadow: 3,
+          },
+        }}
+      >
         <CardContent>
-          <Box className="stat-card-content">
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
             <Avatar
-              className="stat-icon"
-              sx={{ bgcolor: stat.bgColor, color: stat.color }}
+              sx={{
+                bgcolor: stat.bgColor,
+                color: stat.color,
+                width: 56,
+                height: 56,
+              }}
             >
               {stat.icon}
             </Avatar>
             <Box>
-              <Typography className="stat-value">{stat.value}</Typography>
-              <Typography className="stat-title">{stat.title}</Typography>
+              <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
+                {stat.value}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {stat.title}
+              </Typography>
             </Box>
           </Box>
         </CardContent>
@@ -287,18 +304,22 @@ export default function UserManagement() {
    * Render customer row
    */
   const renderCustomerRow = (customer: Customer) => (
-    <TableRow key={customer.id} className="customer-row">
+    <TableRow
+      key={customer.id}
+      sx={{
+        "&:hover": {
+          backgroundColor: "action.hover",
+        },
+      }}
+    >
       <TableCell>
-        <Box className="customer-info-cell">
-          <Avatar
-            className="customer-avatar"
-            sx={{ bgcolor: "primary.main", width: 48, height: 48 }}
-          >
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <Avatar sx={{ bgcolor: "primary.main", width: 48, height: 48 }}>
             {customer.name.charAt(0)}
           </Avatar>
           <Box>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <Typography className="customer-name" variant="body2">
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
                 {customer.name}
               </Typography>
               {isVipCustomer(customer.totalOrders) && (
@@ -366,19 +387,28 @@ export default function UserManagement() {
   );
 
   return (
-    <Box className="user-management-container">
+    <Box sx={{ p: 3, bgcolor: "background.default", minHeight: "100vh" }}>
       {/* Header */}
-      <Box className="page-header">
+      <Box sx={{ mb: 3 }}>
         <Box>
-          <Typography className="page-title">Quản lý Khách hàng</Typography>
-          <Typography className="page-subtitle">
+          <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
+            Quản lý Khách hàng
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
             Quản lý thông tin và hoạt động của khách hàng
           </Typography>
         </Box>
       </Box>
 
       {/* Stats Cards */}
-      <Box className="stats-container">
+      <Box
+        sx={{
+          display: "flex",
+          gap: 2,
+          mb: 3,
+          flexWrap: "wrap",
+        }}
+      >
         {CUSTOMER_STATS.map(renderStatCard)}
       </Box>
 
@@ -386,14 +416,21 @@ export default function UserManagement() {
       <Card>
         <CardContent>
           {/* Search & Filter Bar */}
-          <Box className="search-bar">
+          <Box
+            sx={{
+              display: "flex",
+              gap: 2,
+              mb: 3,
+              flexWrap: "wrap",
+            }}
+          >
             <TextField
               placeholder="Tìm kiếm theo tên, email, số điện thoại..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               variant="outlined"
               size="small"
-              className="search-input"
+              sx={{ flex: 1, minWidth: 300 }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -402,17 +439,13 @@ export default function UserManagement() {
                 ),
               }}
             />
-            <Button
-              variant="outlined"
-              startIcon={<FilterIcon />}
-              className="filter-button"
-            >
+            <Button variant="outlined" startIcon={<FilterIcon />}>
               Lọc
             </Button>
           </Box>
 
           {/* Status Tabs */}
-          <Box className="tabs-container">
+          <Box sx={{ borderBottom: 1, borderColor: "divider", mb: 2 }}>
             <Tabs
               value={tabValue}
               onChange={handleTabChange}
@@ -444,17 +477,19 @@ export default function UserManagement() {
           </Box>
 
           {/* Customers Table */}
-          <TableContainer className="customers-table">
+          <TableContainer sx={{ mt: 2 }}>
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell>Khách hàng</TableCell>
-                  <TableCell>Đơn thuê</TableCell>
-                  <TableCell>Tổng chi tiêu</TableCell>
-                  <TableCell>Đánh giá</TableCell>
-                  <TableCell>Ngày tham gia</TableCell>
-                  <TableCell>Trạng thái</TableCell>
-                  <TableCell align="center">Hành động</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Khách hàng</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Đơn thuê</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Tổng chi tiêu</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Đánh giá</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Ngày tham gia</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Trạng thái</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 600 }}>
+                    Hành động
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -465,7 +500,12 @@ export default function UserManagement() {
 
           {/* Empty State */}
           {getFilteredCustomers().length === 0 && (
-            <Box className="empty-state">
+            <Box
+              sx={{
+                textAlign: "center",
+                py: 8,
+              }}
+            >
               <Typography variant="body1" color="text.secondary">
                 Không tìm thấy khách hàng nào
               </Typography>

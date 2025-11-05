@@ -97,7 +97,7 @@ const MainLayout: React.FC = () => {
           <Link
             to="/products"
             className={
-              isActive("/explore")
+              isActive("/products")
                 ? "active text-yellow-500 font-semibold"
                 : "text-gray-700 hover:text-yellow-500"
             }

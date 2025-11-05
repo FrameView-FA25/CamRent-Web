@@ -8,41 +8,96 @@ import {
   TextField,
   InputAdornment,
   Button,
-  Divider,
+  Alert,
+  CircularProgress,
 } from "@mui/material";
 import { X, Eye, EyeOff, Camera } from "lucide-react";
+import { authService } from "../../services/auth.service";
 
 type Props = {
   open: boolean;
   onClose: () => void;
-  onSubmit?: (payload: {
-    name: string;
-    email: string;
-    password: string;
-  }) => void;
+  onSuccess?: () => void;
   onSwitchToLogin?: () => void;
 };
 
 const ModalRegister: React.FC<Props> = ({
   open,
   onClose,
-  onSubmit,
+  onSuccess,
   onSwitchToLogin,
 }) => {
   const [showPassword, setShowPassword] = useState(false);
-  const [name, setName] = useState("");
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password !== confirm) {
-      // bạn có thể thay thành toast / helperText tuỳ ý
-      alert("Passwords do not match");
+    setError(null);
+    setSuccess(null);
+
+    // Validation
+    if (!fullName.trim()) {
+      setError("Vui lòng nhập họ tên");
       return;
     }
-    onSubmit?.({ name, email, password });
+    if (!email.trim()) {
+      setError("Vui lòng nhập email");
+      return;
+    }
+    if (!phone.trim()) {
+      setError("Vui lòng nhập số điện thoại");
+      return;
+    }
+    if (!password) {
+      setError("Vui lòng nhập mật khẩu");
+      return;
+    }
+    if (password !== confirm) {
+      setError("Mật khẩu xác nhận không khớp");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      await authService.register({
+        email: email.trim(),
+        phone: phone.trim(),
+        password: password,
+        fullName: fullName.trim(),
+        role: 0, // Role 0 cho Renter theo API spec
+      });
+
+      setSuccess("Đăng ký thành công! Vui lòng đăng nhập.");
+
+      // Reset form
+      setFullName("");
+      setEmail("");
+      setPhone("");
+      setPassword("");
+      setConfirm("");
+
+      // Chuyển sang trang đăng nhập sau 2 giây
+      setTimeout(() => {
+        onSuccess?.();
+        onSwitchToLogin?.();
+      }, 2000);
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : "Đăng ký thất bại. Vui lòng thử lại.";
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -86,10 +141,10 @@ const ModalRegister: React.FC<Props> = ({
             color="text.primary"
             gutterBottom
           >
-            Create Account
+            Tạo tài khoản
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Join CamRent and start renting premium gear
+            Tham gia CamRent để thuê thiết bị cao cấp
           </Typography>
         </Box>
 
@@ -98,21 +153,35 @@ const ModalRegister: React.FC<Props> = ({
           onSubmit={handleRegister}
           sx={{ display: "grid", rowGap: 2.5 }}
         >
+          {error && (
+            <Alert severity="error" onClose={() => setError(null)}>
+              {error}
+            </Alert>
+          )}
+
+          {success && (
+            <Alert severity="success" onClose={() => setSuccess(null)}>
+              {success}
+            </Alert>
+          )}
+
           <Box>
             <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>
-              Full name
+              Họ và tên <span style={{ color: "red" }}>*</span>
             </Typography>
             <TextField
               fullWidth
-              placeholder="Your name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              placeholder="Nhập họ và tên"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              required
+              disabled={loading}
             />
           </Box>
 
           <Box>
             <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>
-              Email
+              Email <span style={{ color: "red" }}>*</span>
             </Typography>
             <TextField
               fullWidth
@@ -120,28 +189,49 @@ const ModalRegister: React.FC<Props> = ({
               placeholder="your@email.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              required
+              disabled={loading}
             />
           </Box>
 
           <Box>
             <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>
-              Password
+              Số điện thoại <span style={{ color: "red" }}>*</span>
             </Typography>
             <TextField
               fullWidth
-              placeholder="Create a password"
+              type="tel"
+              placeholder="0123456789"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              required
+              disabled={loading}
+            />
+          </Box>
+
+          <Box>
+            <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>
+              Mật khẩu <span style={{ color: "red" }}>*</span>
+            </Typography>
+            <TextField
+              fullWidth
+              placeholder="Tạo mật khẩu"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               type={showPassword ? "text" : "password"}
+              required
+              disabled={loading}
               InputProps={{
                 endAdornment: (
                   <InputAdornment position="end">
                     <IconButton
                       onClick={() => setShowPassword((s) => !s)}
                       edge="end"
+                      tabIndex={-1}
                       aria-label={
                         showPassword ? "Hide password" : "Show password"
                       }
+                      disabled={loading}
                     >
                       {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </IconButton>
@@ -153,14 +243,16 @@ const ModalRegister: React.FC<Props> = ({
 
           <Box>
             <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>
-              Confirm password
+              Xác nhận mật khẩu <span style={{ color: "red" }}>*</span>
             </Typography>
             <TextField
               fullWidth
-              placeholder="Confirm your password"
+              placeholder="Nhập lại mật khẩu"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               type={showPassword ? "text" : "password"}
+              required
+              disabled={loading}
             />
           </Box>
 
@@ -168,6 +260,7 @@ const ModalRegister: React.FC<Props> = ({
             type="submit"
             variant="contained"
             disableElevation
+            disabled={loading}
             sx={{
               bgcolor: "#FACC15",
               color: "#111827",
@@ -175,60 +268,19 @@ const ModalRegister: React.FC<Props> = ({
               py: 1.25,
               borderRadius: 999,
               "&:hover": { bgcolor: "#EAB308" },
+              "&:disabled": { bgcolor: "#E5E7EB", color: "#9CA3AF" },
             }}
           >
-            Create account
-          </Button>
-
-          <Divider sx={{ my: 1.5 }}>
-            <Typography variant="body2" color="text.secondary">
-              OR
-            </Typography>
-          </Divider>
-
-          <Button
-            type="button"
-            variant="outlined"
-            onClick={() => console.log("Google signup")}
-            sx={{
-              borderWidth: 2,
-              borderColor: "grey.300",
-              color: "text.primary",
-              fontWeight: 700,
-              py: 1.2,
-              borderRadius: 999,
-              gap: 1.25,
-              "&:hover": { borderColor: "black", bgcolor: "transparent" },
-            }}
-            startIcon={
-              <Box component="span" sx={{ display: "inline-flex" }}>
-                <svg width="20" height="20" viewBox="0 0 24 24">
-                  <path
-                    fill="currentColor"
-                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                  />
-                  <path
-                    fill="currentColor"
-                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                  />
-                  <path
-                    fill="currentColor"
-                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                  />
-                  <path
-                    fill="currentColor"
-                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                  />
-                </svg>
-              </Box>
-            }
-          >
-            Sign up with Google
+            {loading ? (
+              <CircularProgress size={24} sx={{ color: "#9CA3AF" }} />
+            ) : (
+              "Tạo tài khoản"
+            )}
           </Button>
 
           <Box sx={{ textAlign: "center", mt: 2 }}>
             <Typography variant="body2" color="text.secondary">
-              Already have an account?{" "}
+              Đã có tài khoản?{" "}
               <Typography
                 component="button"
                 type="button"
@@ -243,7 +295,7 @@ const ModalRegister: React.FC<Props> = ({
                   "&:hover": { color: "#F59E0B" },
                 }}
               >
-                Login
+                Đăng nhập
               </Typography>
             </Typography>
           </Box>
