@@ -25,6 +25,9 @@ import DeviceManagement from "../pages/Admin/DeviceManagement/DeviceManagement";
 import AdminSettings from "../pages/Admin/Settings/AdminSettings";
 import AdminProfile from "../pages/Admin/Profile/AdminProfile";
 import OwnerProfile from "../pages/Owner/Profile/OwnerProfile";
+import ManagerLayout from "../layouts/ManagerLayout/ManagerLayout";
+import DashboardManager from "@/pages/Manager/Dashboard";
+import BookingManagement from "@/pages/Manager/Booking";
 const routes: RouteObject[] = [
   {
     path: "/",
@@ -121,6 +124,36 @@ const routes: RouteObject[] = [
       {
         path: "agencies",
         element: <AgencyManagement />,
+      },
+      {
+        path: "devices",
+        element: <DeviceManagement />,
+      },
+      {
+        path: "profile",
+        element: <AdminProfile />,
+      },
+      {
+        path: "settings",
+        element: <AdminSettings />,
+      },
+    ],
+  },
+  {
+    path: "/manager",
+    element: <ManagerLayout />,
+    children: [
+      {
+        path: "dashboard",
+        element: <DashboardManager />,
+      },
+      {
+        path: "account",
+        element: <AccountManagement />,
+      },
+      {
+        path: "booking",
+        element: <BookingManagement />,
       },
       {
         path: "devices",
