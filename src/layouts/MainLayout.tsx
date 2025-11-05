@@ -239,10 +239,6 @@ const MainLayout: React.FC = () => {
       <CameraRegisterModal
         open={registerOpen}
         onClose={() => setRegisterOpen(false)}
-        onSubmit={(cred) => {
-          console.log("Register:", cred);
-          setRegisterOpen(false);
-        }}
         onSwitchToLogin={handleSwitchToLogin}
       />
     </div>
