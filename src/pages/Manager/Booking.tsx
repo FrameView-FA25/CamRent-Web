@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Container,
@@ -7,7 +7,6 @@ import {
   TextField,
   Button,
   Chip,
-  Avatar,
   IconButton,
   Menu,
   MenuItem,
@@ -26,6 +25,8 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  CircularProgress,
+  Alert,
 } from "@mui/material";
 import {
   Search,
@@ -34,25 +35,22 @@ import {
   FileDownload,
   CheckCircle,
   Cancel,
-  HourglassEmpty,
   Assignment,
   Description,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 
-interface Booking {
-  id: string;
-  date: string;
-  customerName: string;
-  customerPhone: string;
-  camera: string;
-  rentalPeriod: string;
-  totalAmount: number;
-  deposit: number;
-  status: "pending" | "confirmed" | "renting" | "completed" | "cancelled";
-  assignedStaff?: string;
-  hasContract?: boolean;
-}
+// Imports from separated files
+import type { Booking } from "../../types/booking.types";
+import { fetchBookings } from "../../services/booking.service";
+import {
+  formatCurrency,
+  formatDate,
+  getStatusInfo,
+  getBookingType,
+} from "../../utils/booking.utils";
+import { getItemName } from "../../helpers/booking.helper";
+import { BOOKING_STATS, STAFF_LIST } from "../../constants/booking.constants";
 
 const BookingManagement: React.FC = () => {
   const navigate = useNavigate();
@@ -63,115 +61,38 @@ const BookingManagement: React.FC = () => {
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [contractDialogOpen, setContractDialogOpen] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState("");
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock data
-  const bookings: Booking[] = [
-    {
-      id: "ORD001",
-      date: "2024-01-10",
-      customerName: "Nguyễn Văn A",
-      customerPhone: "0901234567",
-      camera: "Canon EOS R5",
-      rentalPeriod: "2024-01-15 — 2024-01-18",
-      totalAmount: 1200000,
-      deposit: 300000,
-      status: "renting",
-      hasContract: true,
-    },
-    {
-      id: "ORD002",
-      date: "2024-01-12",
-      customerName: "Trần Thị B",
-      customerPhone: "0812345678",
-      camera: "Sony A7 IV",
-      rentalPeriod: "2024-01-20 — 2024-01-25",
-      totalAmount: 1500000,
-      deposit: 400000,
-      status: "confirmed",
-      hasContract: false,
-    },
-    {
-      id: "ORD003",
-      date: "2024-01-05",
-      customerName: "Lê Minh C",
-      customerPhone: "0923456789",
-      camera: "Fujifilm X-T5",
-      rentalPeriod: "2024-01-08 — 2024-01-12",
-      totalAmount: 800000,
-      deposit: 200000,
-      status: "completed",
-      hasContract: true,
-    },
-    {
-      id: "ORD004",
-      date: "2024-01-14",
-      customerName: "Phạm Văn D",
-      customerPhone: "0934567890",
-      camera: "Nikon Z6 II",
-      rentalPeriod: "2024-01-22 — 2024-01-26",
-      totalAmount: 1000000,
-      deposit: 250000,
-      status: "confirmed",
-      hasContract: false,
-    },
-  ];
+  useEffect(() => {
+    loadBookings();
+  }, []);
 
-  const stats = [
-    { label: "Tổng đơn thuê", value: 156, icon: <Search />, color: "#2196f3" },
-    {
-      label: "Đang xử lý",
-      value: 23,
-      icon: <HourglassEmpty />,
-      color: "#ff9800",
-    },
-    { label: "Đang thuê", value: 45, icon: <CheckCircle />, color: "#4caf50" },
-    {
-      label: "Đã hoàn thành",
-      value: 88,
-      icon: <Assignment />,
-      color: "#9c27b0",
-    },
-  ];
+  const loadBookings = async () => {
+    setLoading(true);
+    const { bookings: fetchedBookings, error: fetchError } =
+      await fetchBookings();
 
-  const staffList = [
-    { id: "1", name: "Nhân viên A" },
-    { id: "2", name: "Nhân viên B" },
-    { id: "3", name: "Nhân viên C" },
-  ];
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "pending":
-        return "warning";
-      case "confirmed":
-        return "info";
-      case "renting":
-        return "success";
-      case "completed":
-        return "default";
-      case "cancelled":
-        return "error";
-      default:
-        return "default";
+    if (fetchError) {
+      setError(fetchError);
+      if (fetchError.includes("Unauthorized")) {
+        navigate("/login");
+      }
+    } else {
+      setBookings(fetchedBookings);
     }
+    setLoading(false);
   };
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case "pending":
-        return "Chờ xác nhận";
-      case "confirmed":
-        return "Đã xác nhận";
-      case "renting":
-        return "Đang thuê";
-      case "completed":
-        return "Hoàn thành";
-      case "cancelled":
-        return "Đã hủy";
-      default:
-        return status;
-    }
-  };
+  const stats = BOOKING_STATS.map((stat) => ({
+    ...stat,
+    value:
+      stat.statusFilter === null
+        ? bookings.length
+        : bookings.filter((b) => b.status === stat.statusFilter).length,
+    icon: React.createElement(stat.icon),
+  }));
 
   const handleMenuClick = (
     event: React.MouseEvent<HTMLElement>,
@@ -195,12 +116,6 @@ const BookingManagement: React.FC = () => {
     handleMenuClose();
   };
 
-  const handleViewContract = () => {
-    // Navigate to contract page or open contract viewer
-    navigate(`/manager/contracts/${selectedBooking?.id}`);
-    handleMenuClose();
-  };
-
   const handleAssignConfirm = () => {
     console.log(
       "Assign staff:",
@@ -214,7 +129,6 @@ const BookingManagement: React.FC = () => {
 
   const handleContractConfirm = () => {
     console.log("Create contract for booking:", selectedBooking?.id);
-    // Navigate to contract creation page with booking data
     navigate(`/manager/contracts/create?bookingId=${selectedBooking?.id}`);
     setContractDialogOpen(false);
   };
@@ -222,19 +136,37 @@ const BookingManagement: React.FC = () => {
   const filteredBookings = bookings.filter((booking) => {
     const matchesSearch =
       booking.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      booking.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      booking.camera.toLowerCase().includes(searchQuery.toLowerCase());
+      booking.renterId.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      booking.items.some((item) =>
+        getItemName(item).toLowerCase().includes(searchQuery.toLowerCase())
+      );
 
     const matchesTab =
       selectedTab === 0 ||
-      (selectedTab === 1 && booking.status === "pending") ||
-      (selectedTab === 2 && booking.status === "confirmed") ||
-      (selectedTab === 3 && booking.status === "renting") ||
-      (selectedTab === 4 && booking.status === "completed") ||
-      (selectedTab === 5 && booking.status === "cancelled");
+      (selectedTab === 1 && booking.status === 0) ||
+      (selectedTab === 2 && booking.status === 1) ||
+      (selectedTab === 3 && booking.status === 2) ||
+      (selectedTab === 4 && booking.status === 3) ||
+      (selectedTab === 5 && booking.status === 4);
 
     return matchesSearch && matchesTab;
   });
+
+  if (loading) {
+    return (
+      <Box
+        sx={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          bgcolor: "#f5f5f5",
+        }}
+      >
+        <CircularProgress size={60} />
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ bgcolor: "#f5f5f5", minHeight: "100vh", py: 4 }}>
@@ -248,6 +180,13 @@ const BookingManagement: React.FC = () => {
             Quản lý tất cả đơn thuê camera trong hệ thống
           </Typography>
         </Box>
+
+        {/* Error Alert */}
+        {error && (
+          <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
+            {error}
+          </Alert>
+        )}
 
         {/* Stats Cards */}
         <Box
@@ -305,7 +244,7 @@ const BookingManagement: React.FC = () => {
           <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
             <TextField
               fullWidth
-              placeholder="Tìm kiếm theo mã đơn, tên khách hàng, camera..."
+              placeholder="Tìm kiếm theo mã đơn, ID khách hàng, thiết bị..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               InputProps={{
@@ -339,11 +278,31 @@ const BookingManagement: React.FC = () => {
             sx={{ borderBottom: 1, borderColor: "divider", mb: 3 }}
           >
             <Tab label={`TẤT CẢ (${bookings.length})`} />
-            <Tab label="CHỜ XÁC NHẬN (1)" />
-            <Tab label="ĐÃ XÁC NHẬN (2)" />
-            <Tab label="ĐANG THUÊ (1)" />
-            <Tab label="HOÀN THÀNH (1)" />
-            <Tab label="ĐÃ HỦY (0)" />
+            <Tab
+              label={`CHỜ XÁC NHẬN (${
+                bookings.filter((b) => b.status === 0).length
+              })`}
+            />
+            <Tab
+              label={`ĐÃ XÁC NHẬN (${
+                bookings.filter((b) => b.status === 1).length
+              })`}
+            />
+            <Tab
+              label={`ĐANG THUÊ (${
+                bookings.filter((b) => b.status === 2).length
+              })`}
+            />
+            <Tab
+              label={`HOÀN THÀNH (${
+                bookings.filter((b) => b.status === 3).length
+              })`}
+            />
+            <Tab
+              label={`ĐÃ HỦY (${
+                bookings.filter((b) => b.status === 4).length
+              })`}
+            />
           </Tabs>
 
           {/* Table */}
@@ -352,87 +311,109 @@ const BookingManagement: React.FC = () => {
               <TableHead>
                 <TableRow>
                   <TableCell>Mã đơn</TableCell>
-                  <TableCell>Khách hàng</TableCell>
-                  <TableCell>Camera</TableCell>
+                  <TableCell>Loại thuê</TableCell>
+                  <TableCell>Thiết bị</TableCell>
                   <TableCell>Thời gian thuê</TableCell>
                   <TableCell>Tổng tiền</TableCell>
+                  <TableCell>Cọc</TableCell>
                   <TableCell>Trạng thái</TableCell>
-                  <TableCell>Hợp đồng</TableCell>
                   <TableCell>Hành động</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {filteredBookings.map((booking) => (
-                  <TableRow key={booking.id}>
-                    <TableCell>
-                      <Typography sx={{ fontWeight: 500, color: "#2196f3" }}>
-                        {booking.id}
+                {filteredBookings.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
+                      <Typography variant="body2" sx={{ color: "#999" }}>
+                        Không tìm thấy đơn thuê nào
                       </Typography>
-                      <Typography variant="caption" sx={{ color: "#999" }}>
-                        {booking.date}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Box
-                        sx={{ display: "flex", alignItems: "center", gap: 1 }}
-                      >
-                        <Avatar
-                          sx={{ width: 32, height: 32, bgcolor: "#2196f3" }}
-                        >
-                          {booking.customerName.charAt(0)}
-                        </Avatar>
-                        <Box>
-                          <Typography sx={{ fontWeight: 500 }}>
-                            {booking.customerName}
-                          </Typography>
-                          <Typography variant="caption" sx={{ color: "#999" }}>
-                            {booking.customerPhone}
-                          </Typography>
-                        </Box>
-                      </Box>
-                    </TableCell>
-                    <TableCell>{booking.camera}</TableCell>
-                    <TableCell>{booking.rentalPeriod}</TableCell>
-                    <TableCell>
-                      <Typography sx={{ fontWeight: 600, color: "#2196f3" }}>
-                        ₫{booking.totalAmount.toLocaleString()}
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: "#999" }}>
-                        Cọc: ₫{booking.deposit.toLocaleString()}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={getStatusLabel(booking.status)}
-                        color={getStatusColor(booking.status)}
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      {booking.hasContract ? (
-                        <Chip
-                          icon={<Description />}
-                          label="Đã có"
-                          color="success"
-                          size="small"
-                          variant="outlined"
-                        />
-                      ) : (
-                        <Chip
-                          label="Chưa có"
-                          color="default"
-                          size="small"
-                          variant="outlined"
-                        />
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <IconButton onClick={(e) => handleMenuClick(e, booking)}>
-                        <MoreVert />
-                      </IconButton>
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  filteredBookings.map((booking) => {
+                    const statusInfo = getStatusInfo(booking.status);
+                    return (
+                      <TableRow key={booking.id}>
+                        <TableCell>
+                          <Typography
+                            sx={{ fontWeight: 500, color: "#2196f3" }}
+                          >
+                            {booking.id.slice(0, 8)}
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: "#999" }}>
+                            {formatDate(booking.pickupAt)}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={getBookingType(booking.type)}
+                            size="small"
+                            variant="outlined"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          {booking.items.map((item, idx) => (
+                            <Box key={idx} sx={{ mb: 0.5 }}>
+                              <Typography
+                                variant="body2"
+                                sx={{ fontWeight: 500 }}
+                              >
+                                {getItemName(item)}
+                              </Typography>
+                              <Typography
+                                variant="caption"
+                                sx={{ color: "#999" }}
+                              >
+                                Số lượng: {item.quantity} |{" "}
+                                {formatCurrency(item.unitPrice)}
+                              </Typography>
+                            </Box>
+                          ))}
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2">
+                            {formatDate(booking.pickupAt)}
+                          </Typography>
+                          <Typography variant="body2" sx={{ color: "#999" }}>
+                            đến {formatDate(booking.returnAt)}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography
+                            sx={{ fontWeight: 600, color: "#2196f3" }}
+                          >
+                            {formatCurrency(booking.snapshotRentalTotal)}
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: "#999" }}>
+                            Phí: {booking.snapshotPlatformFeePercent}%
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography sx={{ fontWeight: 600 }}>
+                            {formatCurrency(booking.snapshotDepositAmount)}
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: "#999" }}>
+                            {booking.snapshotDepositPercent}%
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={statusInfo.label}
+                            color={statusInfo.color}
+                            size="small"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <IconButton
+                            onClick={(e) => handleMenuClick(e, booking)}
+                          >
+                            <MoreVert />
+                          </IconButton>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
               </TableBody>
             </Table>
           </TableContainer>
@@ -447,15 +428,9 @@ const BookingManagement: React.FC = () => {
           <MenuItem onClick={handleAssignStaff}>
             <Assignment sx={{ mr: 1, fontSize: 20 }} /> Phân công nhân viên
           </MenuItem>
-          {selectedBooking?.hasContract ? (
-            <MenuItem onClick={handleViewContract}>
-              <Description sx={{ mr: 1, fontSize: 20 }} /> Xem hợp đồng
-            </MenuItem>
-          ) : (
-            <MenuItem onClick={handleCreateContract}>
-              <Description sx={{ mr: 1, fontSize: 20 }} /> Tạo hợp đồng
-            </MenuItem>
-          )}
+          <MenuItem onClick={handleCreateContract}>
+            <Description sx={{ mr: 1, fontSize: 20 }} /> Tạo hợp đồng
+          </MenuItem>
           <MenuItem onClick={handleMenuClose}>
             <CheckCircle sx={{ mr: 1, fontSize: 20 }} /> Xác nhận đơn
           </MenuItem>
@@ -476,7 +451,7 @@ const BookingManagement: React.FC = () => {
           <DialogContent>
             <Box sx={{ pt: 2 }}>
               <Typography variant="body2" sx={{ mb: 2, color: "#666" }}>
-                Đơn thuê: <strong>{selectedBooking?.id}</strong>
+                Đơn thuê: <strong>{selectedBooking?.id.slice(0, 8)}</strong>
               </Typography>
               <FormControl fullWidth>
                 <InputLabel>Chọn nhân viên</InputLabel>
@@ -485,7 +460,7 @@ const BookingManagement: React.FC = () => {
                   onChange={(e) => setSelectedStaff(e.target.value)}
                   label="Chọn nhân viên"
                 >
-                  {staffList.map((staff) => (
+                  {STAFF_LIST.map((staff) => (
                     <MenuItem key={staff.id} value={staff.id}>
                       {staff.name}
                     </MenuItem>
@@ -521,16 +496,23 @@ const BookingManagement: React.FC = () => {
               </Typography>
               <Paper sx={{ p: 2, bgcolor: "#f5f5f5" }}>
                 <Typography variant="body2" sx={{ mb: 1 }}>
-                  <strong>Mã đơn:</strong> {selectedBooking?.id}
+                  <strong>Mã đơn:</strong> {selectedBooking?.id.slice(0, 8)}
                 </Typography>
                 <Typography variant="body2" sx={{ mb: 1 }}>
-                  <strong>Khách hàng:</strong> {selectedBooking?.customerName}
+                  <strong>Loại:</strong>{" "}
+                  {selectedBooking && getBookingType(selectedBooking.type)}
                 </Typography>
                 <Typography variant="body2" sx={{ mb: 1 }}>
-                  <strong>Camera:</strong> {selectedBooking?.camera}
+                  <strong>Tổng tiền:</strong>{" "}
+                  {selectedBooking &&
+                    formatCurrency(selectedBooking.snapshotRentalTotal)}
                 </Typography>
                 <Typography variant="body2">
-                  <strong>Thời gian:</strong> {selectedBooking?.rentalPeriod}
+                  <strong>Thời gian:</strong>{" "}
+                  {selectedBooking &&
+                    `${formatDate(selectedBooking.pickupAt)} - ${formatDate(
+                      selectedBooking.returnAt
+                    )}`}
                 </Typography>
               </Paper>
             </Box>
