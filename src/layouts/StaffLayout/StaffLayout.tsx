@@ -65,7 +65,7 @@ const StaffLayout: React.FC = () => {
             {user?.fullName ? user.fullName.charAt(0) : "O"}
           </Avatar>
           <Typography variant="h6" sx={{ fontWeight: 600, color: "#000000ff" }}>
-            Staff Panel
+            Bảng nhân viên
           </Typography>
         </Box>
 
