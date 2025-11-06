@@ -1,5 +1,6 @@
 ﻿import React from "react";
 import { Box, Container, Typography, Card, CardMedia } from "@mui/material";
+import CameraModel from "../components/Modal/CameraModal";
 
 const categories = [
   {
@@ -61,10 +62,7 @@ const HomePage: React.FC = () => {
           </div>
         </div>
         <div className="hero-image">
-          <img
-            src="https://product.hstatic.net/200000354621/product/may-anh-fujifilm-x-t4-kit-18-55-mau-bac-1_4d8855bb7c5a423d821ee2de196d4b18_grande.jpg"
-            alt="Fujifilm X-T4 Camera"
-          />
+          <CameraModel modelPath="/public/camera.glb" />
         </div>
       </div>
 
