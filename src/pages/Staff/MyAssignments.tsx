@@ -5,178 +5,114 @@ import {
   Typography,
   Paper,
   TextField,
-  Button,
-  Chip,
-  Avatar,
-  IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   Alert,
   Snackbar,
+  CircularProgress,
 } from "@mui/material";
 import {
   Search,
-  CheckCircle,
-  Visibility,
   HourglassEmpty,
   Assignment,
+  CheckCircle,
 } from "@mui/icons-material";
-
-interface AssignedBooking {
-  id: string;
-  date: string;
-  customerName: string;
-  customerPhone: string;
-  camera: string;
-  rentalPeriod: string;
-  totalAmount: number;
-  deposit: number;
-  status: "pending" | "completed" | "cancelled";
-  assignedDate: string;
-  notes?: string;
-}
+import type { Booking } from "../../types/booking.types";
+import { useStaffBookings } from "../../hooks/useStaffBookings";
+import { StatsCard } from "../../components/Staff/StatsCard";
+import { BookingsTable } from "../../components/Staff/BookingsTable";
+import { BookingDetailDialog } from "../../components/Staff/BookingDetailDialog";
+import { CompleteConfirmDialog } from "../../components/Staff/CompleteConfirmDialog";
+import {
+  getItemsDisplay,
+  formatCurrency,
+  formatDateRange,
+} from "../../utils/Staff/bookingHelpers";
 
 const MyAssignments: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedBooking, setSelectedBooking] =
-    useState<AssignedBooking | null>(null);
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
 
-  // Mock data - đơn hàng được gán cho staff
-  const [assignments, setAssignments] = useState<AssignedBooking[]>([
-    {
-      id: "ORD001",
-      date: "2024-01-10",
-      customerName: "Nguyễn Văn A",
-      customerPhone: "0901234567",
-      camera: "Canon EOS R5",
-      rentalPeriod: "2024-01-15 — 2024-01-18",
-      totalAmount: 1200000,
-      deposit: 300000,
-      status: "pending",
-      assignedDate: "2024-01-14",
-      notes: "Kiểm tra kỹ thân máy và lens trước khi giao",
-    },
-    {
-      id: "ORD002",
-      date: "2024-01-12",
-      customerName: "Trần Thị B",
-      customerPhone: "0812345678",
-      camera: "Sony A7 IV",
-      rentalPeriod: "2024-01-20 — 2024-01-25",
-      totalAmount: 1500000,
-      deposit: 400000,
-      status: "pending",
-      assignedDate: "2024-01-15",
-    },
-    {
-      id: "ORD003",
-      date: "2024-01-05",
-      customerName: "Lê Minh C",
-      customerPhone: "0923456789",
-      camera: "Fujifilm X-T5",
-      rentalPeriod: "2024-01-08 — 2024-01-12",
-      totalAmount: 800000,
-      deposit: 200000,
-      status: "completed",
-      assignedDate: "2024-01-07",
-    },
-  ]);
+  const { bookings, loading, error } = useStaffBookings();
 
   const stats = [
     {
       label: "Tổng đơn được gán",
-      value: assignments.length,
+      value: bookings.length,
       icon: <Assignment />,
       color: "#2196f3",
     },
     {
       label: "Đang xử lý",
-      value: assignments.filter((a) => a.status === "pending").length,
+      value: bookings.filter((b) => b.status === 1).length,
       icon: <HourglassEmpty />,
       color: "#ff9800",
     },
     {
-      label: "Đã hoàn thành",
-      value: assignments.filter((a) => a.status === "completed").length,
+      label: "Đã xác nhận",
+      value: bookings.filter((b) => b.status === 2).length,
       icon: <CheckCircle />,
       color: "#4caf50",
     },
   ];
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "pending":
-        return "warning";
-      case "completed":
-        return "success";
-      case "cancelled":
-        return "error";
-      default:
-        return "default";
-    }
-  };
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case "pending":
-        return "Đang xử lý";
-      case "completed":
-        return "Đã hoàn thành";
-      case "cancelled":
-        return "Đã hủy";
-      default:
-        return status;
-    }
-  };
-
-  const handleViewDetail = (booking: AssignedBooking) => {
+  const handleViewDetail = (booking: Booking) => {
     setSelectedBooking(booking);
     setDetailDialogOpen(true);
   };
 
-  const handleCompleteClick = (booking: AssignedBooking) => {
+  const handleCompleteClick = (booking: Booking) => {
     setSelectedBooking(booking);
     setCompleteDialogOpen(true);
   };
 
   const handleCompleteConfirm = () => {
     if (selectedBooking) {
-      // Update booking status
-      setAssignments(
-        assignments.map((a) =>
-          a.id === selectedBooking.id ? { ...a, status: "completed" } : a
-        )
-      );
-      setSnackbarMessage(
-        `Đơn hàng ${selectedBooking.id} đã được đánh dấu hoàn thành!`
-      );
+      // TODO: Implement API call to update booking status
+      setSnackbarMessage(`Đơn hàng ${selectedBooking.id} đã được cập nhật!`);
       setSnackbarOpen(true);
       setCompleteDialogOpen(false);
     }
   };
 
-  const filteredAssignments = assignments.filter((assignment) => {
+  const filteredBookings = bookings.filter((booking) => {
+    const itemsText = getItemsDisplay(booking);
     const matchesSearch =
-      assignment.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      assignment.customerName
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase()) ||
-      assignment.camera.toLowerCase().includes(searchQuery.toLowerCase());
+      booking.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      itemsText.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      booking.statusText.toLowerCase().includes(searchQuery.toLowerCase());
 
     return matchesSearch;
   });
+
+  if (loading) {
+    return (
+      <Box
+        sx={{
+          bgcolor: "#f5f5f5",
+          minHeight: "100vh",
+          py: 4,
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ bgcolor: "#f5f5f5", minHeight: "100vh", py: 4 }}>
+        <Container maxWidth="xl">
+          <Alert severity="error">{error}</Alert>
+        </Container>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ bgcolor: "#f5f5f5", minHeight: "100vh", py: 4 }}>
@@ -192,52 +128,15 @@ const MyAssignments: React.FC = () => {
         </Box>
 
         {/* Stats Cards */}
-        <Box
-          sx={{
-            display: "flex",
-            gap: 3,
-            mb: 4,
-            flexWrap: "wrap",
-          }}
-        >
+        <Box sx={{ display: "flex", gap: 3, mb: 4, flexWrap: "wrap" }}>
           {stats.map((stat, index) => (
-            <Paper
+            <StatsCard
               key={index}
-              sx={{
-                flex: {
-                  xs: "1 1 100%",
-                  sm: "1 1 calc(50% - 12px)",
-                  md: "1 1 calc(33.333% - 16px)",
-                },
-                p: 3,
-                display: "flex",
-                alignItems: "center",
-                gap: 2,
-              }}
-            >
-              <Box
-                sx={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: "50%",
-                  bgcolor: `${stat.color}20`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: stat.color,
-                }}
-              >
-                {stat.icon}
-              </Box>
-              <Box>
-                <Typography variant="h4" sx={{ fontWeight: 600 }}>
-                  {stat.value}
-                </Typography>
-                <Typography variant="body2" sx={{ color: "#666" }}>
-                  {stat.label}
-                </Typography>
-              </Box>
-            </Paper>
+              label={stat.label}
+              value={stat.value}
+              icon={stat.icon}
+              color={stat.color}
+            />
           ))}
         </Box>
 
@@ -257,189 +156,34 @@ const MyAssignments: React.FC = () => {
           </Box>
 
           {/* Table */}
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Mã đơn</TableCell>
-                  <TableCell>Khách hàng</TableCell>
-                  <TableCell>Camera</TableCell>
-                  <TableCell>Thời gian thuê</TableCell>
-                  <TableCell>Ngày được gán</TableCell>
-                  <TableCell>Tổng tiền</TableCell>
-                  <TableCell>Trạng thái</TableCell>
-                  <TableCell>Hành động</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {filteredAssignments.map((assignment) => (
-                  <TableRow key={assignment.id}>
-                    <TableCell>
-                      <Typography sx={{ fontWeight: 500, color: "#2196f3" }}>
-                        {assignment.id}
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: "#999" }}>
-                        {assignment.date}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Box
-                        sx={{ display: "flex", alignItems: "center", gap: 1 }}
-                      >
-                        <Avatar
-                          sx={{ width: 32, height: 32, bgcolor: "#2196f3" }}
-                        >
-                          {assignment.customerName.charAt(0)}
-                        </Avatar>
-                        <Box>
-                          <Typography sx={{ fontWeight: 500 }}>
-                            {assignment.customerName}
-                          </Typography>
-                          <Typography variant="caption" sx={{ color: "#999" }}>
-                            {assignment.customerPhone}
-                          </Typography>
-                        </Box>
-                      </Box>
-                    </TableCell>
-                    <TableCell>{assignment.camera}</TableCell>
-                    <TableCell>{assignment.rentalPeriod}</TableCell>
-                    <TableCell>{assignment.assignedDate}</TableCell>
-                    <TableCell>
-                      <Typography sx={{ fontWeight: 600, color: "#2196f3" }}>
-                        ₫{assignment.totalAmount.toLocaleString()}
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: "#999" }}>
-                        Cọc: ₫{assignment.deposit.toLocaleString()}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={getStatusLabel(assignment.status)}
-                        color={getStatusColor(assignment.status)}
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Box sx={{ display: "flex", gap: 1 }}>
-                        <IconButton
-                          size="small"
-                          onClick={() => handleViewDetail(assignment)}
-                          title="Xem chi tiết"
-                        >
-                          <Visibility fontSize="small" />
-                        </IconButton>
-                        {assignment.status === "pending" && (
-                          <IconButton
-                            size="small"
-                            color="success"
-                            onClick={() => handleCompleteClick(assignment)}
-                            title="Hoàn thành"
-                          >
-                            <CheckCircle fontSize="small" />
-                          </IconButton>
-                        )}
-                      </Box>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+          <BookingsTable
+            bookings={filteredBookings}
+            onViewDetail={handleViewDetail}
+            onComplete={handleCompleteClick}
+            getItemsDisplay={getItemsDisplay}
+            formatCurrency={formatCurrency}
+            formatDateRange={formatDateRange}
+          />
         </Paper>
 
         {/* Detail Dialog */}
-        <Dialog
+        <BookingDetailDialog
           open={detailDialogOpen}
+          booking={selectedBooking}
           onClose={() => setDetailDialogOpen(false)}
-          maxWidth="sm"
-          fullWidth
-        >
-          <DialogTitle>Chi tiết đơn hàng</DialogTitle>
-          <DialogContent>
-            <Box sx={{ pt: 2 }}>
-              <Paper sx={{ p: 2, bgcolor: "#f5f5f5", mb: 2 }}>
-                <Typography variant="body2" sx={{ mb: 1 }}>
-                  <strong>Mã đơn:</strong> {selectedBooking?.id}
-                </Typography>
-                <Typography variant="body2" sx={{ mb: 1 }}>
-                  <strong>Khách hàng:</strong> {selectedBooking?.customerName}
-                </Typography>
-                <Typography variant="body2" sx={{ mb: 1 }}>
-                  <strong>Số điện thoại:</strong>{" "}
-                  {selectedBooking?.customerPhone}
-                </Typography>
-                <Typography variant="body2" sx={{ mb: 1 }}>
-                  <strong>Camera:</strong> {selectedBooking?.camera}
-                </Typography>
-                <Typography variant="body2" sx={{ mb: 1 }}>
-                  <strong>Thời gian thuê:</strong>{" "}
-                  {selectedBooking?.rentalPeriod}
-                </Typography>
-                <Typography variant="body2" sx={{ mb: 1 }}>
-                  <strong>Ngày được gán:</strong>{" "}
-                  {selectedBooking?.assignedDate}
-                </Typography>
-                <Typography variant="body2" sx={{ mb: 1 }}>
-                  <strong>Tổng tiền:</strong> ₫
-                  {selectedBooking?.totalAmount.toLocaleString()}
-                </Typography>
-                <Typography variant="body2">
-                  <strong>Tiền cọc:</strong> ₫
-                  {selectedBooking?.deposit.toLocaleString()}
-                </Typography>
-              </Paper>
-              {selectedBooking?.notes && (
-                <Alert severity="info" sx={{ mt: 2 }}>
-                  <Typography variant="body2">
-                    <strong>Ghi chú:</strong> {selectedBooking.notes}
-                  </Typography>
-                </Alert>
-              )}
-            </Box>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setDetailDialogOpen(false)}>Đóng</Button>
-          </DialogActions>
-        </Dialog>
+          getItemsDisplay={getItemsDisplay}
+          formatCurrency={formatCurrency}
+          formatDateRange={formatDateRange}
+        />
 
         {/* Complete Confirmation Dialog */}
-        <Dialog
+        <CompleteConfirmDialog
           open={completeDialogOpen}
+          booking={selectedBooking}
           onClose={() => setCompleteDialogOpen(false)}
-          maxWidth="sm"
-          fullWidth
-        >
-          <DialogTitle>Xác nhận hoàn thành</DialogTitle>
-          <DialogContent>
-            <Box sx={{ pt: 2 }}>
-              <Typography variant="body1" sx={{ mb: 2 }}>
-                Bạn có chắc chắn đã kiểm tra xong đơn hàng này?
-              </Typography>
-              <Paper sx={{ p: 2, bgcolor: "#f5f5f5" }}>
-                <Typography variant="body2" sx={{ mb: 1 }}>
-                  <strong>Mã đơn:</strong> {selectedBooking?.id}
-                </Typography>
-                <Typography variant="body2" sx={{ mb: 1 }}>
-                  <strong>Khách hàng:</strong> {selectedBooking?.customerName}
-                </Typography>
-                <Typography variant="body2">
-                  <strong>Camera:</strong> {selectedBooking?.camera}
-                </Typography>
-              </Paper>
-            </Box>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setCompleteDialogOpen(false)}>Hủy</Button>
-            <Button
-              onClick={handleCompleteConfirm}
-              variant="contained"
-              color="success"
-              startIcon={<CheckCircle />}
-            >
-              Xác nhận hoàn thành
-            </Button>
-          </DialogActions>
-        </Dialog>
+          onConfirm={handleCompleteConfirm}
+          getItemsDisplay={getItemsDisplay}
+        />
 
         {/* Snackbar */}
         <Snackbar

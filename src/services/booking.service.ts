@@ -108,3 +108,45 @@ export const fetchBookings = async (): Promise<{
     return { bookings: [], error: errorMessage };
   }
 };
+
+export const fetchStaffBookings = async (): Promise<{
+  bookings: Booking[];
+  error: string | null;
+}> => {
+  try {
+    console.log("Fetching staff bookings...");
+
+    // Reuse the existing fetchBookings function to ensure consistency
+    const { bookings: allBookings, error } = await fetchBookings();
+
+    if (error) {
+      console.error("Error from fetchBookings:", error);
+      return { bookings: [], error };
+    }
+
+    console.log("All bookings count:", allBookings.length);
+    console.log(
+      "Booking statuses:",
+      allBookings.map((b) => ({ id: b.id, status: b.status }))
+    );
+
+    // Filter bookings for staff (confirmed and processing bookings that need handling)
+    const staffRelevantBookings = allBookings.filter(
+      (booking: Booking) => booking.status === 2 || booking.status === 1 // Confirmed or processing bookings
+    );
+
+    console.log(
+      "Staff relevant bookings:",
+      staffRelevantBookings.length,
+      "out of",
+      allBookings.length
+    );
+
+    return { bookings: staffRelevantBookings, error: null };
+  } catch (err) {
+    const errorMessage =
+      err instanceof Error ? err.message : "An error occurred";
+    console.error("Error fetching staff bookings:", err);
+    return { bookings: [], error: errorMessage };
+  }
+};
