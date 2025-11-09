@@ -90,7 +90,7 @@ const BookingManagement: React.FC = () => {
     value:
       stat.statusFilter === null
         ? bookings.length
-        : bookings.filter((b) => b.status === stat.statusFilter).length,
+        : bookings.filter((b) => b.statusText === stat.statusFilter).length,
     icon: React.createElement(stat.icon),
   }));
 
@@ -331,7 +331,7 @@ const BookingManagement: React.FC = () => {
                   </TableRow>
                 ) : (
                   filteredBookings.map((booking) => {
-                    const statusInfo = getStatusInfo(booking.status);
+                    const statusInfo = getStatusInfo(booking.statusText);
                     return (
                       <TableRow key={booking.id}>
                         <TableCell>

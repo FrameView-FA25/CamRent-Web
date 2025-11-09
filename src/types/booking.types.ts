@@ -44,6 +44,7 @@ export interface Booking {
   pickupAt: string;
   returnAt: string;
   status: number;
+  statusText: string;
   snapshotBaseDailyRate: number;
   snapshotDepositPercent: number;
   snapshotPlatformFeePercent: number;
