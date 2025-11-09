@@ -2,7 +2,6 @@ import {
   Search,
   HourglassEmpty,
   CheckCircle,
-  Assignment,
 } from "@mui/icons-material";
 
 export const BOOKING_STATS = [
@@ -13,22 +12,16 @@ export const BOOKING_STATS = [
     statusFilter: null,
   },
   {
-    label: "Chờ xác nhận",
+    label: "Bản nháp",
     icon: HourglassEmpty,
     color: "#ff9800",
-    statusFilter: 0,
+    statusFilter: "Bản nháp",
   },
   {
-    label: "Đang thuê",
+    label: "Đã xác nhận",
     icon: CheckCircle,
     color: "#4caf50",
-    statusFilter: 2,
-  },
-  {
-    label: "Đã hoàn thành",
-    icon: Assignment,
-    color: "#9c27b0",
-    statusFilter: 3,
+    statusFilter: "Đã xác nhận",
   },
 ];
 

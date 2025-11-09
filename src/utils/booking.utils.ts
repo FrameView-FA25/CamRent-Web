@@ -9,20 +9,14 @@ export const formatDate = (dateString: string): string => {
   return new Date(dateString).toLocaleDateString("vi-VN");
 };
 
-export const getStatusInfo = (status: number) => {
-  switch (status) {
-    case 0:
-      return { label: "Chờ xác nhận", color: "warning" as const };
-    case 1:
-      return { label: "Đã xác nhận", color: "info" as const };
-    case 2:
-      return { label: "Đang thuê", color: "success" as const };
-    case 3:
-      return { label: "Hoàn thành", color: "default" as const };
-    case 4:
-      return { label: "Đã hủy", color: "error" as const };
+export const getStatusInfo = (statusText: string) => {
+  switch (statusText) {
+    case "Bản nháp":
+      return { label: "Bản nháp", color: "warning" as const };
+    case "Đã xác nhận":
+      return { label: "Đã xác nhận", color: "success" as const };
     default:
-      return { label: "Không xác định", color: "default" as const };
+      return { label: statusText || "Không xác định", color: "default" as const };
   }
 };
 
