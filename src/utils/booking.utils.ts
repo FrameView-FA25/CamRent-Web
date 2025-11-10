@@ -15,6 +15,8 @@ export const getStatusInfo = (statusText: string) => {
       return { label: "Bản nháp", color: "warning" as const };
     case "Đã xác nhận":
       return { label: "Đã xác nhận", color: "success" as const };
+    case "Chờ duyệt":
+      return { label: "Chờ duyệt", color: "info" as const };
     default:
       return { label: statusText || "Không xác định", color: "default" as const };
   }
