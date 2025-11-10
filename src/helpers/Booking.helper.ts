@@ -18,3 +18,11 @@ export const getItemName = (item: BookingItem): string => {
   if (item.comboId) return `Combo ID: ${item.comboId.slice(0, 8)}`;
   return "Không xác định";
 };
+export const getBookingStatusText = (status: string): string => {
+  // Tạm thời hiển thị "Đã Xác Nhận" nếu status là "Giỏ Hàng"
+  if (status === "Giỏ Hàng") {
+    return "Đã Xác Nhận";
+  }
+  
+  return status;
+};

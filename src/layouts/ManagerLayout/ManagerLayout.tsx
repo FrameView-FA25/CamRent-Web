@@ -58,7 +58,7 @@ const ManagerLayout: React.FC = () => {
         height: "100%",
         display: "flex",
         flexDirection: "column",
-        bgcolor: "#FFFFFF",
+        bgcolor: "#ffffffff",
         borderRight: "1px solid #E5E7EB",
       }}
     >
@@ -111,10 +111,10 @@ const ManagerLayout: React.FC = () => {
                     borderRadius: 1.5,
                     py: 1.5,
                     px: 2,
-                    color: isActive ? "#3B82F6" : "#6B7280",
-                    bgcolor: isActive ? "#EFF6FF" : "transparent",
+                    color: isActive ? "#f7f7f7ff" : "#6B7280",
+                    bgcolor: isActive ? "#F97316" : "transparent",
                     "&:hover": {
-                      bgcolor: isActive ? "#DBEAFE" : "#F3F4F6",
+                      bgcolor: isActive ? "#F97316" : "#F97316",
                     },
                     transition: "all 0.2s ease",
                   }}

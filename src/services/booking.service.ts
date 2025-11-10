@@ -1,4 +1,4 @@
-import type { Booking, BookingItem } from "../types/booking.types";
+import type { Booking, BookingItem, Staff } from "../types/booking.types";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 const getAuthHeaders = () => {
@@ -106,5 +106,52 @@ export const fetchBookings = async (): Promise<{
       err instanceof Error ? err.message : "An error occurred";
     console.error("Error fetching bookings:", err);
     return { bookings: [], error: errorMessage };
+  }
+};
+
+export const fetchStaffList = async (): Promise<{
+  staff: Staff[];
+  error: string | null;
+}> => {
+  try {
+    const token = localStorage.getItem("accessToken");
+
+    if (!token) {
+      return {
+        staff: [],
+        error: "Unauthorized - No token found",
+      };
+    }
+
+    const response = await fetch(`https://camrent-backend.up.railway.app/memberships`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        return {
+          staff: [],
+          error: "Unauthorized - Please login again",
+        };
+      }
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data: Staff[] = await response.json();
+
+    return {
+      staff: data,
+      error: null,
+    };
+  } catch (error) {
+    console.error("Error fetching staff:", error);
+    return {
+      staff: [],
+      error: error instanceof Error ? error.message : "Failed to fetch staff",
+    };
   }
 };

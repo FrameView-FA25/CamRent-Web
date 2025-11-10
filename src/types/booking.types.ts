@@ -57,3 +57,9 @@ export interface BookingStatusInfo {
   label: string;
   color: "warning" | "info" | "success" | "default" | "error";
 }
+export interface Staff {
+  userId: string;
+  fullName: string;
+  phone: string;
+  email: string;
+}

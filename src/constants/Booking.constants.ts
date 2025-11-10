@@ -23,6 +23,12 @@ export const BOOKING_STATS = [
     color: "#4caf50",
     statusFilter: "Đã xác nhận",
   },
+  {
+    label: "Chờ duyệt",
+    icon: CheckCircle,
+    color: "#e0fd03ff",
+    statusFilter: "Chờ duyệt",
+  },
 ];
 
 export const STAFF_LIST = [
