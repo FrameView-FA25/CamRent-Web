@@ -6,38 +6,29 @@ import {
   DialogActions,
   Button,
   TextField,
-  MenuItem,
   Box,
-  FormControl,
-  InputLabel,
-  Select,
   InputAdornment,
   Typography,
+  CircularProgress,
+  Alert,
 } from "@mui/material";
-import {
-  PhotoCamera as PhotoCameraIcon,
-  Close as CloseIcon,
-} from "@mui/icons-material";
+import { Close as CloseIcon } from "@mui/icons-material";
+import { cameraService } from "../../services/camera.service";
 
 interface ModalAddCameraProps {
   open: boolean;
   onClose: () => void;
-  onAdd: (camera: CameraFormData) => void;
+  onAdd: () => void; // Callback sau khi thêm thành công để refresh danh sách
 }
 
+// Interface cho form data theo API POST /api/Cameras
 export interface CameraFormData {
-  name: string;
-  serialNumber: string;
-  brandId: number;
-  branchId: number;
-  description: string;
-  advantage: string;
-  disadvantage: string;
-  suitableFor: string;
-  price: number;
-  quantity: number;
-  status: "Active" | "Inactive";
-  image?: File | null;
+  brand: string; // Thương hiệu camera
+  model: string; // Model camera
+  variant: string; // Phiên bản
+  serialNumber: string; // Số serial
+  estimatedValueVnd: number; // Giá trị ước tính
+  specsJson: string; // Thông số kỹ thuật
 }
 
 export default function ModalAddCamera({
@@ -45,38 +36,25 @@ export default function ModalAddCamera({
   onClose,
   onAdd,
 }: ModalAddCameraProps) {
+  // State quản lý form data
   const [formData, setFormData] = useState<CameraFormData>({
-    name: "",
+    brand: "",
+    model: "",
+    variant: "",
     serialNumber: "",
-    brandId: 0,
-    branchId: 0,
-    description: "",
-    advantage: "",
-    disadvantage: "",
-    suitableFor: "",
-    price: 0,
-    quantity: 1,
-    status: "Active",
-    image: null,
+    estimatedValueVnd: 0,
+    specsJson: "",
   });
 
-  const [imagePreview, setImagePreview] = useState<string>("");
+  // State quản lý loading, lỗi và thành công
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string>("");
+  const [success, setSuccess] = useState<string>("");
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
-  // Mock data cho brands và branches
-  const brands = [
-    { id: 1, name: "Canon" },
-    { id: 2, name: "Sony" },
-    { id: 3, name: "Nikon" },
-    { id: 4, name: "Fujifilm" },
-  ];
-
-  const branches = [
-    { id: 1, name: "Chi nhánh Hà Nội" },
-    { id: 2, name: "Chi nhánh TP.HCM" },
-    { id: 3, name: "Chi nhánh Đà Nẵng" },
-  ];
-
+  /**
+   * Xử lý thay đổi input text
+   */
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
@@ -85,91 +63,105 @@ export default function ModalAddCamera({
       ...prev,
       [name]: value,
     }));
-    // Clear error when user starts typing
+    // Xóa lỗi khi user bắt đầu nhập
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: "" }));
     }
   };
 
-  const handleSelectChange = (name: string, value: string | number) => {
+  /**
+   * Xử lý thay đổi số (number input)
+   */
+  const handleNumberChange = (name: string, value: string) => {
+    const numValue = parseFloat(value) || 0;
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: numValue,
     }));
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: "" }));
     }
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setFormData((prev) => ({
-        ...prev,
-        image: file,
-      }));
-      // Create preview
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
+  /**
+   * Validate form trước khi submit
+   */
   const validateForm = (): boolean => {
     const newErrors: { [key: string]: string } = {};
 
-    if (!formData.name.trim()) {
-      newErrors.name = "Tên máy ảnh là bắt buộc";
+    if (!formData.brand.trim()) {
+      newErrors.brand = "Thương hiệu là bắt buộc";
+    }
+    if (!formData.model.trim()) {
+      newErrors.model = "Model là bắt buộc";
+    }
+    if (!formData.variant.trim()) {
+      newErrors.variant = "Phiên bản là bắt buộc";
     }
     if (!formData.serialNumber.trim()) {
-      newErrors.serialNumber = "Số seri là bắt buộc";
+      newErrors.serialNumber = "Số serial là bắt buộc";
     }
-    if (!formData.brandId || formData.brandId === 0) {
-      newErrors.brandId = "Vui lòng chọn thương hiệu";
-    }
-    if (!formData.branchId || formData.branchId === 0) {
-      newErrors.branchId = "Vui lòng chọn chi nhánh";
-    }
-    if (!formData.description.trim()) {
-      newErrors.description = "Mô tả là bắt buộc";
-    }
-    if (!formData.price || formData.price <= 0) {
-      newErrors.price = "Giá thuê phải lớn hơn 0";
-    }
-    if (!formData.quantity || formData.quantity <= 0) {
-      newErrors.quantity = "Số lượng phải lớn hơn 0";
+    if (!formData.estimatedValueVnd || formData.estimatedValueVnd <= 0) {
+      newErrors.estimatedValueVnd = "Giá trị ước tính phải lớn hơn 0";
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = () => {
-    if (validateForm()) {
-      onAdd(formData);
-      handleClose();
+  /**
+   * Xử lý submit form - Gọi API tạo camera
+   */
+  const handleSubmit = async () => {
+    // Validate form
+    if (!validateForm()) {
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      // Gọi API tạo camera
+      await cameraService.createCamera(formData);
+
+      // Hiển thị thông báo thành công
+      setSuccess("Thêm camera thành công!");
+
+      // Gọi callback để refresh danh sách
+      onAdd();
+
+      // Đóng modal sau 1.5 giây để user thấy thông báo
+      setTimeout(() => {
+        handleClose();
+      }, 1500);
+    } catch (err) {
+      // Xử lý lỗi
+      const errorMessage =
+        err instanceof Error ? err.message : "Có lỗi xảy ra khi thêm camera";
+      setError(errorMessage);
+      console.error("Lỗi khi thêm camera:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
+  /**
+   * Đóng modal và reset form
+   */
   const handleClose = () => {
-    // Reset form
+    // Reset form về giá trị mặc định
     setFormData({
-      name: "",
+      brand: "",
+      model: "",
+      variant: "",
       serialNumber: "",
-      brandId: 0,
-      branchId: 0,
-      description: "",
-      advantage: "",
-      disadvantage: "",
-      suitableFor: "",
-      price: 0,
-      quantity: 1,
-      status: "Active",
-      image: null,
+      estimatedValueVnd: 0,
+      specsJson: "",
     });
-    setImagePreview("");
+    setError("");
+    setSuccess("");
     setErrors({});
     onClose();
   };
@@ -185,7 +177,7 @@ export default function ModalAddCamera({
             onClick={handleClose}
             color="inherit"
             size="small"
-            sx={{ minWidth: "auto" }}
+            sx={{ inlineSize: "auto" }}
           >
             <CloseIcon />
           </Button>
@@ -193,60 +185,22 @@ export default function ModalAddCamera({
       </DialogTitle>
 
       <DialogContent dividers>
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-          {/* Image Upload */}
-          <Box
-            sx={{
-              border: "2px dashed #ccc",
-              borderRadius: 2,
-              p: 3,
-              textAlign: "center",
-              cursor: "pointer",
-              "&:hover": {
-                borderColor: "primary.main",
-                bgcolor: "action.hover",
-              },
-            }}
-            component="label"
-          >
-            {imagePreview ? (
-              <Box>
-                <img
-                  src={imagePreview}
-                  alt="Preview"
-                  style={{
-                    inlineSize: "100%",
-                    blockSize: "auto",
-                    maxBlockSize: "300px",
-                    objectFit: "contain",
-                  }}
-                />
-                <Typography variant="caption" display="block" mt={2}>
-                  Nhấp để thay đổi ảnh
-                </Typography>
-              </Box>
-            ) : (
-              <Box>
-                <PhotoCameraIcon
-                  sx={{ fontSize: 60, color: "action.active", mb: 2 }}
-                />
-                <Typography variant="body1" gutterBottom>
-                  Nhấp để tải ảnh lên
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  Định dạng: JPG, PNG (Max: 5MB)
-                </Typography>
-              </Box>
-            )}
-            <input
-              type="file"
-              hidden
-              accept="image/*"
-              onChange={handleImageChange}
-            />
-          </Box>
+        {/* Hiển thị thông báo lỗi nếu có */}
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError("")}>
+            {error}
+          </Alert>
+        )}
 
-          {/* Camera Name & Serial Number */}
+        {/* Hiển thị thông báo thành công */}
+        {success && (
+          <Alert severity="success" sx={{ mb: 2 }}>
+            {success}
+          </Alert>
+        )}
+
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+          {/* Thương hiệu & Model */}
           <Box
             sx={{
               display: "flex",
@@ -256,212 +210,112 @@ export default function ModalAddCamera({
           >
             <TextField
               fullWidth
-              label="Tên máy ảnh"
-              name="name"
-              value={formData.name}
+              label="Thương hiệu"
+              name="brand"
+              value={formData.brand}
               onChange={handleChange}
-              error={!!errors.name}
-              helperText={errors.name}
+              error={!!errors.brand}
+              helperText={errors.brand}
               required
+              placeholder="VD: Canon, Sony, Nikon..."
+            />
+
+            <TextField
+              fullWidth
+              label="Model"
+              name="model"
+              value={formData.model}
+              onChange={handleChange}
+              error={!!errors.model}
+              helperText={errors.model}
+              required
+              placeholder="VD: Alpha A7 IV, EOS R5..."
+            />
+          </Box>
+
+          {/* Phiên bản & Số Serial */}
+          <Box
+            sx={{
+              display: "flex",
+              gap: 2,
+              flexDirection: { xs: "column", sm: "row" },
+            }}
+          >
+            <TextField
+              fullWidth
+              label="Phiên bản"
+              name="variant"
+              value={formData.variant}
+              onChange={handleChange}
+              error={!!errors.variant}
+              helperText={errors.variant}
+              required
+              placeholder="VD: Body Only, Kit 24-70mm..."
             />
             <TextField
               fullWidth
-              label="Số seri"
+              label="Số Serial"
               name="serialNumber"
               value={formData.serialNumber}
               onChange={handleChange}
               error={!!errors.serialNumber}
               helperText={errors.serialNumber}
               required
+              placeholder="VD: SN20251110A7IV001"
             />
           </Box>
 
-          {/* Brand & Branch */}
-          <Box
-            sx={{
-              display: "flex",
-              gap: 2,
-              flexDirection: { xs: "column", sm: "row" },
-            }}
-          >
-            <FormControl fullWidth error={!!errors.brandId} required>
-              <InputLabel>Thương hiệu</InputLabel>
-              <Select
-                value={formData.brandId}
-                label="Thương hiệu"
-                onChange={(e) => handleSelectChange("brandId", e.target.value)}
-              >
-                <MenuItem value={0}>
-                  <em>Chọn thương hiệu</em>
-                </MenuItem>
-                {brands.map((brand) => (
-                  <MenuItem key={brand.id} value={brand.id}>
-                    {brand.name}
-                  </MenuItem>
-                ))}
-              </Select>
-              {errors.brandId && (
-                <Typography
-                  variant="caption"
-                  color="error"
-                  sx={{ mt: 0.5, ml: 1.5 }}
-                >
-                  {errors.brandId}
-                </Typography>
-              )}
-            </FormControl>
-
-            <FormControl fullWidth error={!!errors.branchId} required>
-              <InputLabel>Chi nhánh</InputLabel>
-              <Select
-                value={formData.branchId}
-                label="Chi nhánh"
-                onChange={(e) => handleSelectChange("branchId", e.target.value)}
-              >
-                <MenuItem value={0}>
-                  <em>Chọn chi nhánh</em>
-                </MenuItem>
-                {branches.map((branch) => (
-                  <MenuItem key={branch.id} value={branch.id}>
-                    {branch.name}
-                  </MenuItem>
-                ))}
-              </Select>
-              {errors.branchId && (
-                <Typography
-                  variant="caption"
-                  color="error"
-                  sx={{ mt: 0.5, ml: 1.5 }}
-                >
-                  {errors.branchId}
-                </Typography>
-              )}
-            </FormControl>
-          </Box>
-
-          {/* Price & Quantity */}
-          <Box
-            sx={{
-              display: "flex",
-              gap: 2,
-              flexDirection: { xs: "column", sm: "row" },
-            }}
-          >
-            <TextField
-              fullWidth
-              label="Giá thuê/ngày"
-              name="price"
-              type="number"
-              value={formData.price || ""}
-              onChange={handleChange}
-              error={!!errors.price}
-              helperText={errors.price}
-              required
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">₫</InputAdornment>
-                ),
-              }}
-            />
-            <TextField
-              fullWidth
-              label="Số lượng"
-              name="quantity"
-              type="number"
-              value={formData.quantity || ""}
-              onChange={handleChange}
-              error={!!errors.quantity}
-              helperText={errors.quantity}
-              required
-              inputProps={{ min: 1 }}
-            />
-          </Box>
-
-          {/* Status */}
-          <Box
-            sx={{
-              display: "flex",
-              gap: 2,
-              flexDirection: { xs: "column", sm: "row" },
-            }}
-          >
-            <FormControl fullWidth required>
-              <InputLabel>Trạng thái</InputLabel>
-              <Select
-                value={formData.status}
-                label="Trạng thái"
-                onChange={(e) => handleSelectChange("status", e.target.value)}
-              >
-                <MenuItem value="Active">Hoạt động</MenuItem>
-                <MenuItem value="Inactive">Không hoạt động</MenuItem>
-              </Select>
-            </FormControl>
-            <Box sx={{ flex: 1 }} /> {/* Spacer for alignment */}
-          </Box>
-
-          {/* Description */}
+          {/* Giá trị ước tính */}
           <TextField
             fullWidth
-            label="Mô tả"
-            name="description"
-            value={formData.description}
-            onChange={handleChange}
-            error={!!errors.description}
-            helperText={errors.description}
+            label="Giá trị ước tính"
+            name="estimatedValueVnd"
+            type="number"
+            value={formData.estimatedValueVnd || ""}
+            onChange={(e) =>
+              handleNumberChange("estimatedValueVnd", e.target.value)
+            }
+            error={!!errors.estimatedValueVnd}
+            helperText={errors.estimatedValueVnd}
             required
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">₫</InputAdornment>
+              ),
+            }}
+            placeholder="48000000"
+          />
+
+          {/* Thông số kỹ thuật */}
+          <TextField
+            fullWidth
+            label="Thông số kỹ thuật"
+            name="specsJson"
+            value={formData.specsJson}
+            onChange={handleChange}
             multiline
             rows={3}
-          />
-
-          {/* Advantage */}
-          <TextField
-            fullWidth
-            label="Ưu điểm"
-            name="advantage"
-            value={formData.advantage}
-            onChange={handleChange}
-            multiline
-            rows={2}
-            placeholder="Mô tả các ưu điểm của máy ảnh..."
-          />
-
-          {/* Disadvantage */}
-          <TextField
-            fullWidth
-            label="Nhược điểm"
-            name="disadvantage"
-            value={formData.disadvantage}
-            onChange={handleChange}
-            multiline
-            rows={2}
-            placeholder="Mô tả các nhược điểm của máy ảnh..."
-          />
-
-          {/* Suitable For */}
-          <TextField
-            fullWidth
-            label="Phù hợp cho"
-            name="suitableFor"
-            value={formData.suitableFor}
-            onChange={handleChange}
-            multiline
-            rows={2}
-            placeholder="Ví dụ: Chụp ảnh cưới, phong cảnh, chân dung..."
+            placeholder="VD: Full-frame 33MP, 4K 60fps, 5-axis IBIS..."
           />
         </Box>
       </DialogContent>
 
       <DialogActions sx={{ p: 2.5 }}>
-        <Button onClick={handleClose} variant="outlined" size="large">
+        <Button
+          onClick={handleClose}
+          variant="outlined"
+          size="large"
+          disabled={loading}
+        >
           Hủy
         </Button>
         <Button
           onClick={handleSubmit}
           variant="contained"
           size="large"
-          sx={{ minInlineSize: 120 }}
+          disabled={loading}
         >
-          Thêm Camera
+          {loading ? <CircularProgress size={24} /> : "Thêm Camera"}
         </Button>
       </DialogActions>
     </Dialog>
