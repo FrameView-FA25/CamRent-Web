@@ -12,7 +12,11 @@ export function decodeToken(token: string) {
         .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
         .join("")
     );
-    return JSON.parse(jsonPayload);
+    const decoded = JSON.parse(jsonPayload);
+    // console.log("Decoded token payload:", decoded);
+    // console.log("UserId:", decoded.userId || decoded.sub || decoded.id);
+
+    return decoded;
   } catch (error) {
     console.error("Error decoding token:", error);
     return null;

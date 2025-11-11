@@ -62,7 +62,7 @@ export const fetchItemDetails = async (
   }
 };
 
-export const fetchBookings = async (): Promise<{
+export const fetchBookingStaff = async (): Promise<{
   bookings: Booking[];
   error: string | null;
 }> => {
@@ -73,7 +73,7 @@ export const fetchBookings = async (): Promise<{
       throw new Error("No access token found. Please login again.");
     }
 
-    const response = await fetch(`${API_BASE_URL}/Bookings`, {
+    const response = await fetch(`${API_BASE_URL}/Bookings/staffbookings`, {
       method: "GET",
       headers: getAuthHeaders(),
     });
@@ -90,15 +90,39 @@ export const fetchBookings = async (): Promise<{
     const data = await response.json();
     const bookingsArray = Array.isArray(data) ? data : [data];
 
-    // Fetch details for all items in all bookings
-    const bookingsWithDetails = await Promise.all(
-      bookingsArray.map(async (booking) => {
-        const itemsWithDetails = await Promise.all(
-          booking.items.map((item: BookingItem) => fetchItemDetails(item))
-        );
-        return { ...booking, items: itemsWithDetails };
-      })
-    );
+    // The API now returns item names directly, so we don't need to fetch additional details
+    // Just map the data to ensure proper structure
+    const bookingsWithDetails = bookingsArray.map((booking) => ({
+      ...booking,
+      items: booking.items.map((item: BookingItem) => ({
+        ...item,
+        camera:
+          item.cameraId && item.cameraName
+            ? {
+                id: item.cameraId,
+                brand: item.cameraName.split(" ")[0] || item.cameraName,
+                model: item.cameraName,
+                variant: null,
+              }
+            : null,
+        accessory:
+          item.accessoryId && item.accessoryName
+            ? {
+                id: item.accessoryId,
+                brand: item.accessoryName.split(" ")[0] || item.accessoryName,
+                model: item.accessoryName,
+                variant: null,
+              }
+            : null,
+        combo:
+          item.comboId && item.comboName
+            ? {
+                id: item.comboId,
+                name: item.comboName,
+              }
+            : null,
+      })),
+    }));
 
     return { bookings: bookingsWithDetails, error: null };
   } catch (err) {
@@ -116,11 +140,11 @@ export const fetchStaffBookings = async (): Promise<{
   try {
     console.log("Fetching staff bookings...");
 
-    // Reuse the existing fetchBookings function to ensure consistency
-    const { bookings: allBookings, error } = await fetchBookings();
+    // Reuse the existing fetchBookingStaff function to ensure consistency
+    const { bookings: allBookings, error } = await fetchBookingStaff();
 
     if (error) {
-      console.error("Error from fetchBookings:", error);
+      console.error("Error from fetchBookingStaff:", error);
       return { bookings: [], error };
     }
 
@@ -130,9 +154,12 @@ export const fetchStaffBookings = async (): Promise<{
       allBookings.map((b) => ({ id: b.id, status: b.status }))
     );
 
-    // Filter bookings for staff (confirmed and processing bookings that need handling)
+    // Filter bookings for staff (include processing, confirmed, and overdue bookings)
     const staffRelevantBookings = allBookings.filter(
-      (booking: Booking) => booking.status === 2 || booking.status === 1 // Confirmed or processing bookings
+      (booking: Booking) =>
+        booking.status === 1 || // Processing
+        booking.status === 2 || // Confirmed
+        booking.status === 8 // Overdue
     );
 
     console.log(

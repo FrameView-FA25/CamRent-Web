@@ -21,6 +21,7 @@ import { StatsCard } from "../../components/Staff/StatsCard";
 import { BookingsTable } from "../../components/Staff/BookingsTable";
 import { BookingDetailDialog } from "../../components/Staff/BookingDetailDialog";
 import { CompleteConfirmDialog } from "../../components/Staff/CompleteConfirmDialog";
+import { InspectionDialog } from "../../components/Staff/InspectionDialog";
 import {
   getItemsDisplay,
   formatCurrency,
@@ -32,6 +33,8 @@ const MyAssignments: React.FC = () => {
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
+  const [inspectionDialogOpen, setInspectionDialogOpen] = useState(false);
+  const [inspectionType, setInspectionType] = useState(1); // 1 = Before Rental, 2 = After Return
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
 
@@ -56,11 +59,38 @@ const MyAssignments: React.FC = () => {
       icon: <CheckCircle />,
       color: "#4caf50",
     },
+    {
+      label: "Đã hoàn thành",
+      value: bookings.filter((b) => b.status === 4).length,
+      icon: <CheckCircle />,
+      color: "#9c27b0",
+    },
+    {
+      label: "Quá hạn",
+      value: bookings.filter((b) => b.status === 8).length,
+      icon: <CheckCircle />,
+      color: "#f44336",
+    },
   ];
 
   const handleViewDetail = (booking: Booking) => {
     setSelectedBooking(booking);
     setDetailDialogOpen(true);
+  };
+
+  const handleInspectionClick = (booking: Booking) => {
+    setSelectedBooking(booking);
+    // Xác định loại inspection dựa vào trạng thái booking
+    // Status 1 (Processing) = Before Rental
+    // Status 2 (Confirmed) = After Return (có thể điều chỉnh logic này)
+    setInspectionType(booking.status === 1 ? 1 : 1); // Mặc định là kiểm tra trước cho thuê
+    setInspectionDialogOpen(true);
+  };
+
+  const handleInspectionSuccess = () => {
+    setSnackbarMessage("Kiểm tra thiết bị đã được lưu thành công!");
+    setSnackbarOpen(true);
+    // Có thể reload lại danh sách bookings nếu cần
   };
 
   const handleCompleteClick = (booking: Booking) => {
@@ -160,6 +190,7 @@ const MyAssignments: React.FC = () => {
             bookings={filteredBookings}
             onViewDetail={handleViewDetail}
             onComplete={handleCompleteClick}
+            onInspection={handleInspectionClick}
             getItemsDisplay={getItemsDisplay}
             formatCurrency={formatCurrency}
             formatDateRange={formatDateRange}
@@ -183,6 +214,15 @@ const MyAssignments: React.FC = () => {
           onClose={() => setCompleteDialogOpen(false)}
           onConfirm={handleCompleteConfirm}
           getItemsDisplay={getItemsDisplay}
+        />
+
+        {/* Inspection Dialog */}
+        <InspectionDialog
+          open={inspectionDialogOpen}
+          booking={selectedBooking}
+          inspectionType={inspectionType}
+          onClose={() => setInspectionDialogOpen(false)}
+          onSuccess={handleInspectionSuccess}
         />
 
         {/* Snackbar */}

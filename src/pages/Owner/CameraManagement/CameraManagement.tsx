@@ -8,7 +8,9 @@ import {
   CardMedia,
   Chip,
   IconButton,
-  Rating,
+  CircularProgress,
+  Alert,
+  Snackbar,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -18,100 +20,81 @@ import {
 } from "@mui/icons-material";
 import ModalAddCamera from "../../../components/Modal/ModalAddCamera";
 import type { CameraFormData } from "../../../components/Modal/ModalAddCamera";
-
-// Mock data for cameras
-const cameras = [
-  {
-    id: 1,
-    name: "Canon EOS R5",
-    model: "EOS R5",
-    brand: "Canon",
-    price: "₫400.000/ngày",
-    image:
-      "https://i.pinimg.com/736x/04/de/a7/04dea73d283ea00c886befc309c3f2d1.jpg",
-    status: "available",
-    rating: 4.9,
-    totalBookings: 15,
-    description: "Máy ảnh mirrorless full-frame chuyên nghiệp",
-  },
-  {
-    id: 2,
-    name: "Sony A7 IV",
-    model: "A7 IV",
-    brand: "Sony",
-    price: "₫350.000/ngày",
-    image:
-      "https://i.pinimg.com/736x/41/41/9a/41419a1ef80e3781662b9486adbeefe2.jpg",
-    status: "rented",
-    rating: 4.8,
-    totalBookings: 12,
-    description: "Máy ảnh mirrorless với khả năng quay video 4K",
-  },
-  {
-    id: 3,
-    name: "Fujifilm X-T5",
-    model: "X-T5",
-    brand: "Fujifilm",
-    price: "₫300.000/ngày",
-    image:
-      "https://i.pinimg.com/1200x/9d/18/33/9d183333260159da234f1ca485e95bef.jpg",
-    status: "maintenance",
-    rating: 4.7,
-    totalBookings: 8,
-    description: "Máy ảnh mirrorless APS-C với thiết kế retro",
-  },
-  {
-    id: 4,
-    name: "Nikon Z9",
-    model: "Z9",
-    brand: "Nikon",
-    price: "₫450.000/ngày",
-    image:
-      "https://i.pinimg.com/1200x/29/9c/a1/299ca1ec4d88f52bc235637f510b99a9.jpg",
-    status: "available",
-    rating: 4.9,
-    totalBookings: 10,
-    description: "Máy ảnh mirrorless flagship với hiệu suất cao",
-  },
-];
+import { useCameras } from "../../../hooks/useCameras";
+import { cameraService } from "../../../services/camera.service";
 
 export default function CameraManagement() {
   const [openAddModal, setOpenAddModal] = useState(false);
+  const { cameras, loading, error, refetch } = useCameras();
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean;
+    message: string;
+    severity: "success" | "error";
+  }>({
+    open: false,
+    message: "",
+    severity: "success",
+  });
 
-  const getStatusColor = (
-    status: string
-  ): "success" | "error" | "warning" | "default" => {
-    switch (status) {
-      case "available":
-        return "success";
-      case "rented":
-        return "error";
-      case "maintenance":
-        return "warning";
-      default:
-        return "default";
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+    }).format(price);
+  };
+
+  const handleAddCamera = async (cameraData: CameraFormData) => {
+    try {
+      await cameraService.createCamera(cameraData);
+      setSnackbar({
+        open: true,
+        message: "Camera đã được thêm thành công!",
+        severity: "success",
+      });
+      refetch(); // Refresh the camera list after adding
+      setOpenAddModal(false);
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Không thể thêm camera";
+      setSnackbar({
+        open: true,
+        message: errorMessage,
+        severity: "error",
+      });
     }
   };
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case "available":
-        return "Có sẵn";
-      case "rented":
-        return "Đã thuê";
-      case "maintenance":
-        return "Bảo trì";
-      default:
-        return status;
-    }
+  const handleCloseSnackbar = () => {
+    setSnackbar({ ...snackbar, open: false });
   };
 
-  const handleAddCamera = (cameraData: CameraFormData) => {
-    console.log("Thêm camera mới:", cameraData);
-    // Ở đây bạn sẽ gọi API để thêm camera vào database
-    // Ví dụ: await addCameraAPI(cameraData);
-    alert("Camera đã được thêm thành công!");
-  };
+  if (loading) {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minBlockSize: "400px",
+        }}
+      >
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+        <Button variant="contained" onClick={refetch}>
+          Thử lại
+        </Button>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ p: 3 }}>
@@ -160,7 +143,7 @@ export default function CameraManagement() {
           <Card>
             <CardContent sx={{ textAlign: "center" }}>
               <Typography variant="h3" fontWeight="bold" color="success.main">
-                {cameras.filter((c) => c.status === "available").length}
+                {cameras.length}
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 Có sẵn
@@ -172,7 +155,7 @@ export default function CameraManagement() {
           <Card>
             <CardContent sx={{ textAlign: "center" }}>
               <Typography variant="h3" fontWeight="bold" color="error.main">
-                {cameras.filter((c) => c.status === "rented").length}
+                0
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 Đã thuê
@@ -184,7 +167,7 @@ export default function CameraManagement() {
           <Card>
             <CardContent sx={{ textAlign: "center" }}>
               <Typography variant="h3" fontWeight="bold" color="warning.main">
-                {cameras.filter((c) => c.status === "maintenance").length}
+                0
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 Bảo trì
@@ -195,95 +178,138 @@ export default function CameraManagement() {
       </Box>
 
       {/* Camera Grid */}
-      <Box
-        sx={{
-          display: "grid",
-          gridTemplateColumns: {
-            xs: "1fr",
-            sm: "repeat(2, 1fr)",
-            md: "repeat(3, 1fr)",
-            lg: "repeat(4, 1fr)",
-          },
-          gap: 3,
-        }}
-      >
-        {cameras.map((camera) => (
-          <Card
-            key={camera.id}
-            sx={{ height: "100%", display: "flex", flexDirection: "column" }}
+      {cameras.length === 0 ? (
+        <Box sx={{ textAlign: "center", py: 8 }}>
+          <Typography variant="h6" color="text.secondary" gutterBottom>
+            Chưa có camera nào
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Bắt đầu bằng cách thêm camera đầu tiên của bạn
+          </Typography>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => setOpenAddModal(true)}
           >
-            <CardMedia
-              component="img"
-              height="200"
-              image={camera.image}
-              alt={camera.name}
-            />
-            <CardContent sx={{ flexGrow: 1 }}>
-              <Box
+            Thêm Camera mới
+          </Button>
+        </Box>
+      ) : (
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: {
+              xs: "1fr",
+              sm: "repeat(2, 1fr)",
+              md: "repeat(3, 1fr)",
+              lg: "repeat(4, 1fr)",
+            },
+            gap: 3,
+          }}
+        >
+          {cameras.map((camera) => {
+            const cameraImage =
+              camera.media && camera.media.length > 0
+                ? camera.media.find((m) => m.isPrimary)?.url ||
+                  camera.media[0]?.url
+                : "https://via.placeholder.com/400x300?text=No+Image";
+            const cameraName =
+              `${camera.brand} ${camera.model} ${camera.variant}`.trim();
+            const dailyPrice = formatPrice(camera.baseDailyRate);
+
+            return (
+              <Card
+                key={camera.id}
                 sx={{
+                  blockSize: "100%",
                   display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-start",
-                  mb: 1,
+                  flexDirection: "column",
                 }}
               >
-                <Typography variant="h6" fontWeight="bold" gutterBottom>
-                  {camera.name}
-                </Typography>
-                <Chip
-                  label={getStatusText(camera.status)}
-                  size="small"
-                  color={getStatusColor(camera.status)}
-                  variant="outlined"
+                <CardMedia
+                  component="img"
+                  height="200"
+                  image={cameraImage}
+                  alt={cameraName}
                 />
-              </Box>
+                <CardContent sx={{ flexGrow: 1 }}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "flex-start",
+                      mb: 1,
+                    }}
+                  >
+                    <Typography variant="h6" fontWeight="bold" gutterBottom>
+                      {cameraName}
+                    </Typography>
+                    <Chip
+                      label="Có sẵn"
+                      size="small"
+                      color="success"
+                      variant="outlined"
+                    />
+                  </Box>
 
-              <Typography variant="body2" color="text.secondary" gutterBottom>
-                {camera.description}
-              </Typography>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    gutterBottom
+                  >
+                    S/N: {camera.serialNumber}
+                  </Typography>
 
-              <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                <Rating
-                  value={camera.rating}
-                  precision={0.1}
-                  size="small"
-                  readOnly
-                />
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ ml: 1 }}
-                >
-                  ({camera.totalBookings} lượt thuê)
-                </Typography>
-              </Box>
+                  <Box sx={{ mb: 1 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Specs: {camera.specsJson}
+                    </Typography>
+                  </Box>
 
-              <Typography
-                variant="h6"
-                color="primary"
-                fontWeight="bold"
-                gutterBottom
-              >
-                {camera.price}
-              </Typography>
+                  <Typography
+                    variant="h6"
+                    color="primary"
+                    fontWeight="bold"
+                    gutterBottom
+                  >
+                    {dailyPrice}/ngày
+                  </Typography>
 
-              <Box
-                sx={{ display: "flex", justifyContent: "space-between", mt: 2 }}
-              >
-                <IconButton color="primary" size="small">
-                  <ViewIcon />
-                </IconButton>
-                <IconButton color="primary" size="small">
-                  <EditIcon />
-                </IconButton>
-                <IconButton color="error" size="small">
-                  <DeleteIcon />
-                </IconButton>
-              </Box>
-            </CardContent>
-          </Card>
-        ))}
-      </Box>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mb: 1 }}
+                  >
+                    Giá trị ước tính: {formatPrice(camera.estimatedValueVnd)}
+                  </Typography>
+
+                  <Typography variant="body2" color="text.secondary">
+                    Đặt cọc: {(camera.depositPercent * 100).toFixed(0)}%
+                  </Typography>
+
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      mt: 2,
+                    }}
+                  >
+                    <IconButton color="primary" size="small">
+                      <ViewIcon />
+                    </IconButton>
+                    <IconButton color="primary" size="small">
+                      <EditIcon />
+                    </IconButton>
+                    <IconButton color="error" size="small">
+                      <DeleteIcon />
+                    </IconButton>
+                  </Box>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </Box>
+      )}
 
       {/* Add Camera Modal */}
       <ModalAddCamera
@@ -291,6 +317,22 @@ export default function CameraManagement() {
         onClose={() => setOpenAddModal(false)}
         onAdd={handleAddCamera}
       />
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity={snackbar.severity}
+          sx={{ inlineSize: "100%" }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

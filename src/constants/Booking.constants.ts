@@ -3,23 +3,24 @@ import {
   HourglassEmpty,
   CheckCircle,
   Assignment,
+  ErrorOutline,
 } from "@mui/icons-material";
 
 export const BOOKING_STATS = [
   {
-    label: "Tổng đơn thuê",
+    label: "Tổng đơn được gán",
     icon: Search,
     color: "#2196f3",
     statusFilter: null,
   },
   {
-    label: "Chờ xác nhận",
+    label: "Đang xử lý",
     icon: HourglassEmpty,
     color: "#ff9800",
-    statusFilter: 0,
+    statusFilter: 1,
   },
   {
-    label: "Đang thuê",
+    label: "Đã xác nhận",
     icon: CheckCircle,
     color: "#4caf50",
     statusFilter: 2,
@@ -28,7 +29,13 @@ export const BOOKING_STATS = [
     label: "Đã hoàn thành",
     icon: Assignment,
     color: "#9c27b0",
-    statusFilter: 3,
+    statusFilter: 4,
+  },
+  {
+    label: "Quá hạn",
+    icon: ErrorOutline,
+    color: "#f44336",
+    statusFilter: 8,
   },
 ];
 

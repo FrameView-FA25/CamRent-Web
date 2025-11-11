@@ -12,7 +12,7 @@ import {
   Chip,
   IconButton,
 } from "@mui/material";
-import { Visibility, CheckCircle } from "@mui/icons-material";
+import { Visibility, CheckCircle, Assignment } from "@mui/icons-material";
 import type { Booking } from "../../types/booking.types";
 import { getBookingStatusInfo } from "../../types/booking.types";
 
@@ -20,6 +20,7 @@ interface BookingsTableProps {
   bookings: Booking[];
   onViewDetail: (booking: Booking) => void;
   onComplete: (booking: Booking) => void;
+  onInspection: (booking: Booking) => void;
   getItemsDisplay: (booking: Booking) => string;
   formatCurrency: (amount: number) => string;
   formatDateRange: (pickupAt: string, returnAt: string) => string;
@@ -29,6 +30,7 @@ export const BookingsTable: React.FC<BookingsTableProps> = ({
   bookings,
   onViewDetail,
   onComplete,
+  onInspection,
   getItemsDisplay,
   formatCurrency,
   formatDateRange,
@@ -105,6 +107,16 @@ export const BookingsTable: React.FC<BookingsTableProps> = ({
                   >
                     <Visibility fontSize="small" />
                   </IconButton>
+                  {(booking.status === 1 || booking.status === 2) && (
+                    <IconButton
+                      size="small"
+                      color="primary"
+                      onClick={() => onInspection(booking)}
+                      title="Kiểm tra thiết bị"
+                    >
+                      <Assignment fontSize="small" />
+                    </IconButton>
+                  )}
                   {booking.status === 2 && (
                     <IconButton
                       size="small"

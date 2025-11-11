@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Box,
   Container,
@@ -42,15 +42,15 @@ import { useNavigate } from "react-router-dom";
 
 // Imports from separated files
 import type { Booking } from "../../types/booking.types";
-import { fetchBookings } from "../../services/booking.service";
+import { fetchBookingStaff } from "../../services/booking.service";
 import {
   formatCurrency,
   formatDate,
   getStatusInfo,
   getBookingType,
 } from "../../utils/booking.utils";
-import { getItemName } from "../../helpers/booking.helper";
-import { BOOKING_STATS, STAFF_LIST } from "../../constants/booking.constants";
+import { getItemName } from "../../helpers/Booking.helper";
+import { BOOKING_STATS, STAFF_LIST } from "../../constants/Booking.constants";
 
 const BookingManagement: React.FC = () => {
   const navigate = useNavigate();
@@ -72,7 +72,7 @@ const BookingManagement: React.FC = () => {
   const loadBookings = async () => {
     setLoading(true);
     const { bookings: fetchedBookings, error: fetchError } =
-      await fetchBookings();
+      await fetchBookingStaff();
 
     if (fetchError) {
       setError(fetchError);
@@ -80,19 +80,29 @@ const BookingManagement: React.FC = () => {
         navigate("/login");
       }
     } else {
+      console.log("📊 Fetched bookings:", fetchedBookings);
+      console.log("📊 Number of bookings:", fetchedBookings.length);
+      console.log(
+        "📊 Booking statuses:",
+        fetchedBookings.map((b) => ({ id: b.id.slice(0, 8), status: b.status }))
+      );
       setBookings(fetchedBookings);
     }
     setLoading(false);
   };
 
-  const stats = BOOKING_STATS.map((stat) => ({
-    ...stat,
-    value:
-      stat.statusFilter === null
-        ? bookings.length
-        : bookings.filter((b) => b.status === stat.statusFilter).length,
-    icon: React.createElement(stat.icon),
-  }));
+  const stats = useMemo(
+    () =>
+      BOOKING_STATS.map((stat) => ({
+        ...stat,
+        value:
+          stat.statusFilter === null
+            ? bookings.length
+            : bookings.filter((b) => b.status === stat.statusFilter).length,
+        icon: React.createElement(stat.icon),
+      })),
+    [bookings]
+  );
 
   const handleMenuClick = (
     event: React.MouseEvent<HTMLElement>,
@@ -142,15 +152,28 @@ const BookingManagement: React.FC = () => {
       );
 
     const matchesTab =
-      selectedTab === 0 ||
-      (selectedTab === 1 && booking.status === 0) ||
-      (selectedTab === 2 && booking.status === 1) ||
-      (selectedTab === 3 && booking.status === 2) ||
-      (selectedTab === 4 && booking.status === 3) ||
-      (selectedTab === 5 && booking.status === 4);
+      selectedTab === 0 || // Tất cả
+      (selectedTab === 1 && booking.status === 1) || // Đang xử lý
+      (selectedTab === 2 && booking.status === 2) || // Đã xác nhận
+      (selectedTab === 3 && booking.status === 3) || // Đang thực hiện
+      (selectedTab === 4 && booking.status === 4) || // Hoàn thành
+      (selectedTab === 5 && booking.status === 5) || // Đã hủy
+      (selectedTab === 6 && booking.status === 8); // Quá hạn
 
-    return matchesSearch && matchesTab;
+    const passes = matchesSearch && matchesTab;
+
+    console.log(
+      `🔍 Booking ${booking.id.slice(0, 8)} - Status: ${
+        booking.status
+      }, Tab: ${selectedTab}, Matches: ${passes}`
+    );
+
+    return passes;
   });
+
+  console.log(
+    `✅ Filtered bookings count: ${filteredBookings.length} out of ${bookings.length}`
+  );
 
   if (loading) {
     return (
@@ -187,6 +210,18 @@ const BookingManagement: React.FC = () => {
             {error}
           </Alert>
         )}
+
+        {/* Debug Info */}
+        <Alert severity="info" sx={{ mb: 3 }}>
+          <Typography variant="body2">
+            <strong>Debug:</strong> Tổng bookings: {bookings.length} | Sau
+            filter: {filteredBookings.length} | Tab hiện tại: {selectedTab}
+          </Typography>
+          <Typography variant="caption">
+            Statuses:{" "}
+            {bookings.map((b) => `${b.id.slice(0, 8)}=${b.status}`).join(", ")}
+          </Typography>
+        </Alert>
 
         {/* Stats Cards */}
         <Box
@@ -279,29 +314,35 @@ const BookingManagement: React.FC = () => {
           >
             <Tab label={`TẤT CẢ (${bookings.length})`} />
             <Tab
-              label={`CHỜ XÁC NHẬN (${
-                bookings.filter((b) => b.status === 0).length
-              })`}
-            />
-            <Tab
-              label={`ĐÃ XÁC NHẬN (${
+              label={`ĐANG XỬ LÝ (${
                 bookings.filter((b) => b.status === 1).length
               })`}
             />
             <Tab
-              label={`ĐANG THUÊ (${
+              label={`ĐÃ XÁC NHẬN (${
                 bookings.filter((b) => b.status === 2).length
               })`}
             />
             <Tab
-              label={`HOÀN THÀNH (${
+              label={`ĐANG THỰC HIỆN (${
                 bookings.filter((b) => b.status === 3).length
               })`}
             />
             <Tab
-              label={`ĐÃ HỦY (${
+              label={`HOÀN THÀNH (${
                 bookings.filter((b) => b.status === 4).length
               })`}
+            />
+            <Tab
+              label={`ĐÃ HỦY (${
+                bookings.filter((b) => b.status === 5).length
+              })`}
+            />
+            <Tab
+              label={`QUÁ HẠN (${
+                bookings.filter((b) => b.status === 8).length
+              })`}
+              sx={{ color: "error.main" }}
             />
           </Tabs>
 

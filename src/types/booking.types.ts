@@ -19,10 +19,13 @@ export interface Combo {
 
 export interface BookingItem {
   cameraId: string | null;
+  cameraName: string | null;
   camera: Camera | null;
   accessoryId: string | null;
+  accessoryName: string | null;
   accessory: Accessory | null;
   comboId: string | null;
+  comboName: string | null;
   combo: Combo | null;
   quantity: number;
   unitPrice: number;
@@ -65,6 +68,7 @@ export const BookingStatus = {
   IN_PROGRESS: 3,
   COMPLETED: 4,
   CANCELLED: 5,
+  OVERDUE: 8,
 } as const;
 
 export const getBookingStatusInfo = (status: number): BookingStatusInfo => {
@@ -81,6 +85,8 @@ export const getBookingStatusInfo = (status: number): BookingStatusInfo => {
       return { label: "Hoàn thành", color: "success" };
     case BookingStatus.CANCELLED:
       return { label: "Đã hủy", color: "error" };
+    case BookingStatus.OVERDUE:
+      return { label: "Quá hạn", color: "error" };
     default:
       return { label: "Không xác định", color: "default" };
   }

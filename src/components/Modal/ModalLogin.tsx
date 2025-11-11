@@ -14,7 +14,7 @@ import {
 } from "@mui/material";
 import { X, Eye, EyeOff, Camera } from "lucide-react";
 import { authService } from "../../services/auth.service";
-
+import { decodeToken } from "../../utils/decodeToken";
 type Props = {
   open: boolean;
   onClose: () => void;
@@ -44,6 +44,11 @@ const ModalLogin: React.FC<Props> = ({
       const response = await authService.login({ email, password });
 
       console.log("Login successful:", response);
+
+      if (response.token) {
+        const decodedToken = decodeToken(response.token);
+        console.log("Decoded Token in ModalLogin:", decodedToken);
+      }
 
       // Reset form
       setEmail("");
