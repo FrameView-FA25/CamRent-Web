@@ -7,7 +7,7 @@ interface CameraModelProps {
   modelPath?: string;
 }
 
-function Model({ modelPath = "/public/camera.glb" }) {
+function Model({ modelPath = "/camera.glb" }) {
   const { scene } = useGLTF(modelPath);
   return <primitive object={scene} scale={2} />;
 }
