@@ -62,7 +62,7 @@ const HomePage: React.FC = () => {
           </div>
         </div>
         <div className="hero-image">
-          <CameraModel modelPath="/public/camera.glb" />
+          <CameraModel modelPath="/camera.glb" />
         </div>
       </div>
 
