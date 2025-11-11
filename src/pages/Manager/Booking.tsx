@@ -50,8 +50,8 @@ import {
   getStatusInfo,
   getBookingType,
 } from "../../utils/booking.utils";
-import { getItemName } from "../../helpers/booking.helper";
-import { BOOKING_STATS } from "../../constants/booking.constants";
+import { getItemName } from "../../helpers/Booking.helper";
+import { BOOKING_STATS } from "../../constants/Booking.constants";
 
 const BookingManagement: React.FC = () => {
   const navigate = useNavigate();
