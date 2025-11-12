@@ -1,4 +1,4 @@
-import type { Booking, BookingItem, Staff } from "../types/booking.types";
+import type { Booking, BookingItem, Staff, CreateDeliveryRequest } from "../types/booking.types";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 const getAuthHeaders = () => {
@@ -152,6 +152,52 @@ export const fetchStaffList = async (): Promise<{
     return {
       staff: [],
       error: error instanceof Error ? error.message : "Failed to fetch staff",
+    };
+  }
+};
+
+export const createDelivery = async (
+  bookingId: string,
+  assigneeUserId: string
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      return { success: false, error: "Unauthorized - No token found" };
+    }
+
+    const requestBody: CreateDeliveryRequest = {
+      bookingId,
+      assigneeUserId,
+      trackingCode: "",
+      notes: "",
+      deliveryFee: 0,
+    };
+
+    const response = await fetch(`${API_BASE_URL}/Deliveries`, {
+      method: "POST",
+      headers: {
+        accept: "text/plain",
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      return {
+        success: false,
+        error: `Failed to create delivery: ${response.status} - ${errorText}`,
+      };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error creating delivery:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error occurred",
     };
   }
 };

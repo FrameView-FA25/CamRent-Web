@@ -40,6 +40,8 @@ import {
   Description,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 // Imports from separated files
 import type { Booking, Staff } from "../../types/booking.types";
@@ -50,9 +52,9 @@ import {
   getStatusInfo,
   getBookingType,
 } from "../../utils/booking.utils";
-import { getItemName } from "../../helpers/Booking.helper";
-import { BOOKING_STATS } from "../../constants/Booking.constants";
-
+import { getItemName } from "../../helpers/booking.helper";
+import { BOOKING_STATS } from "../../constants/booking.constants";
+import { createDelivery } from "../../services/booking.service";
 const BookingManagement: React.FC = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
@@ -66,6 +68,7 @@ const BookingManagement: React.FC = () => {
   const [staffList, setStaffList] = useState<Staff[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [assignLoading, setAssignLoading] = useState(false);
 
   useEffect(() => {
     loadBookings();
@@ -133,19 +136,71 @@ const BookingManagement: React.FC = () => {
     handleMenuClose();
   };
 
-  const handleAssignConfirm = () => {
-    const selectedStaffInfo = staffList.find((s) => s.userId === selectedStaff);
-    console.log(
-      "Assign staff:",
-      selectedStaffInfo?.fullName,
-      "(ID:",
-      selectedStaff,
-      ")",
-      "to booking:",
-      selectedBooking?.id
+  const handleAssignConfirm = async () => {
+    if (!selectedBooking || !selectedStaff) return;
+
+    setAssignLoading(true);
+    const { success, error: deliveryError } = await createDelivery(
+      selectedBooking.id,
+      selectedStaff
     );
-    setAssignDialogOpen(false);
-    setSelectedStaff("");
+
+    if (deliveryError) {
+      toast.error(`Lỗi phân công nhân viên: ${deliveryError}`, {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+      setAssignLoading(false);
+      return;
+    }
+
+    if (success) {
+      const selectedStaffInfo = staffList.find(
+        (s) => s.userId === selectedStaff
+      );
+
+      console.log(
+        "Successfully assigned staff:",
+        selectedStaffInfo?.fullName,
+        "(ID:",
+        selectedStaff,
+        ")",
+        "to booking:",
+        selectedBooking.id
+      );
+
+      setBookings((prevBookings) =>
+        prevBookings.map((booking) =>
+          booking.id === selectedBooking.id
+            ? {
+                ...booking,
+                // Có thể thêm field để đánh dấu đã assign
+                // assignedStaffId: selectedStaff,
+                // assignedStaffName: selectedStaffInfo?.fullName,
+              }
+            : booking
+        )
+      );
+
+      // Close dialog và reset state
+      setAssignDialogOpen(false);
+      setSelectedStaff("");
+      setAssignLoading(false);
+
+      // Show toast -
+      toast.success("Gán nhân viên thành công!", {
+        position: "top-right",
+        autoClose: 2000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: false,
+        draggable: true,
+      });
+    }
   };
 
   const handleContractConfirm = () => {
@@ -194,6 +249,7 @@ const BookingManagement: React.FC = () => {
 
   return (
     <Box sx={{ bgcolor: "#F5F5F5", minHeight: "100vh", p: 3 }}>
+      <ToastContainer />
       <Container maxWidth="xl">
         {/* Header */}
         <Box
@@ -697,7 +753,7 @@ const BookingManagement: React.FC = () => {
         {/* Assign Staff Dialog */}
         <Dialog
           open={assignDialogOpen}
-          onClose={() => setAssignDialogOpen(false)}
+          onClose={() => !assignLoading && setAssignDialogOpen(false)}
           maxWidth="sm"
           fullWidth
           PaperProps={{
@@ -720,6 +776,7 @@ const BookingManagement: React.FC = () => {
                   value={selectedStaff}
                   onChange={(e) => setSelectedStaff(e.target.value)}
                   label="Chọn nhân viên"
+                  disabled={assignLoading}
                   sx={{
                     borderRadius: 2,
                   }}
@@ -750,6 +807,7 @@ const BookingManagement: React.FC = () => {
           <DialogActions sx={{ p: 3 }}>
             <Button
               onClick={() => setAssignDialogOpen(false)}
+              disabled={assignLoading}
               sx={{
                 color: "#6B7280",
                 "&:hover": {
@@ -762,7 +820,7 @@ const BookingManagement: React.FC = () => {
             <Button
               onClick={handleAssignConfirm}
               variant="contained"
-              disabled={!selectedStaff}
+              disabled={!selectedStaff || assignLoading}
               sx={{
                 bgcolor: "#F97316",
                 "&:hover": {
@@ -773,7 +831,11 @@ const BookingManagement: React.FC = () => {
                 },
               }}
             >
-              Xác nhận
+              {assignLoading ? (
+                <CircularProgress size={24} sx={{ color: "white" }} />
+              ) : (
+                "Xác nhận"
+              )}
             </Button>
           </DialogActions>
         </Dialog>
