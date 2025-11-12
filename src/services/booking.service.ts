@@ -123,13 +123,16 @@ export const fetchStaffList = async (): Promise<{
       };
     }
 
-    const response = await fetch(`https://camrent-backend.up.railway.app/memberships`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const response = await fetch(
+      `https://camrent-backend.up.railway.app/memberships`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
 
     if (!response.ok) {
       if (response.status === 401) {
@@ -153,5 +156,52 @@ export const fetchStaffList = async (): Promise<{
       staff: [],
       error: error instanceof Error ? error.message : "Failed to fetch staff",
     };
+  }
+};
+
+export const fetchStaffBookings = async (): Promise<{
+  bookings: Booking[];
+  error: string | null;
+}> => {
+  try {
+    const accessToken = localStorage.getItem("accessToken");
+
+    if (!accessToken) {
+      throw new Error("No access token found. Please login again.");
+    }
+
+    const response = await fetch(`${API_BASE_URL}/Bookings/staffbookings`, {
+      method: "GET",
+      headers: getAuthHeaders(),
+    });
+
+    if (response.status === 401) {
+      localStorage.removeItem("accessToken");
+      throw new Error("Unauthorized. Please login again.");
+    }
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch staff bookings");
+    }
+
+    const data = await response.json();
+    const bookingsArray = Array.isArray(data) ? data : [data];
+
+    // Fetch details for all items in all bookings
+    const bookingsWithDetails = await Promise.all(
+      bookingsArray.map(async (booking) => {
+        const itemsWithDetails = await Promise.all(
+          booking.items.map((item: BookingItem) => fetchItemDetails(item))
+        );
+        return { ...booking, items: itemsWithDetails };
+      })
+    );
+
+    return { bookings: bookingsWithDetails, error: null };
+  } catch (err) {
+    const errorMessage =
+      err instanceof Error ? err.message : "An error occurred";
+    console.error("Error fetching staff bookings:", err);
+    return { bookings: [], error: errorMessage };
   }
 };

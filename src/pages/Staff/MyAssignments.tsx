@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Container,
@@ -21,6 +21,7 @@ import {
   TableRow,
   Alert,
   Snackbar,
+  CircularProgress,
 } from "@mui/material";
 import {
   Search,
@@ -29,70 +30,43 @@ import {
   HourglassEmpty,
   Assignment,
 } from "@mui/icons-material";
-
-interface AssignedBooking {
-  id: string;
-  date: string;
-  customerName: string;
-  customerPhone: string;
-  camera: string;
-  rentalPeriod: string;
-  totalAmount: number;
-  deposit: number;
-  status: "pending" | "completed" | "cancelled";
-  assignedDate: string;
-  notes?: string;
-}
+import { fetchStaffBookings } from "../../services/booking.service";
+import type { Booking } from "../../types/booking.types";
 
 const MyAssignments: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedBooking, setSelectedBooking] =
-    useState<AssignedBooking | null>(null);
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [assignments, setAssignments] = useState<Booking[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Mock data - đơn hàng được gán cho staff
-  const [assignments, setAssignments] = useState<AssignedBooking[]>([
-    {
-      id: "ORD001",
-      date: "2024-01-10",
-      customerName: "Nguyễn Văn A",
-      customerPhone: "0901234567",
-      camera: "Canon EOS R5",
-      rentalPeriod: "2024-01-15 — 2024-01-18",
-      totalAmount: 1200000,
-      deposit: 300000,
-      status: "pending",
-      assignedDate: "2024-01-14",
-      notes: "Kiểm tra kỹ thân máy và lens trước khi giao",
-    },
-    {
-      id: "ORD002",
-      date: "2024-01-12",
-      customerName: "Trần Thị B",
-      customerPhone: "0812345678",
-      camera: "Sony A7 IV",
-      rentalPeriod: "2024-01-20 — 2024-01-25",
-      totalAmount: 1500000,
-      deposit: 400000,
-      status: "pending",
-      assignedDate: "2024-01-15",
-    },
-    {
-      id: "ORD003",
-      date: "2024-01-05",
-      customerName: "Lê Minh C",
-      customerPhone: "0923456789",
-      camera: "Fujifilm X-T5",
-      rentalPeriod: "2024-01-08 — 2024-01-12",
-      totalAmount: 800000,
-      deposit: 200000,
-      status: "completed",
-      assignedDate: "2024-01-07",
-    },
-  ]);
+  // Fetch bookings từ API
+  useEffect(() => {
+    const loadBookings = async () => {
+      try {
+        setLoading(true);
+        const { bookings, error } = await fetchStaffBookings();
+
+        if (error) {
+          setSnackbarMessage(error);
+          setSnackbarOpen(true);
+        } else {
+          setAssignments(bookings);
+        }
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : "Lỗi tải dữ liệu";
+        setSnackbarMessage(errorMsg);
+        setSnackbarOpen(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadBookings();
+  }, []);
 
   const stats = [
     {
@@ -103,60 +77,82 @@ const MyAssignments: React.FC = () => {
     },
     {
       label: "Đang xử lý",
-      value: assignments.filter((a) => a.status === "pending").length,
+      value: assignments.filter((a) => a.status === 2).length, // Status 2 = Đã xác nhận
       icon: <HourglassEmpty />,
       color: "#ff9800",
     },
     {
       label: "Đã hoàn thành",
-      value: assignments.filter((a) => a.status === "completed").length,
+      value: assignments.filter((a) => a.status === 5).length, // Status 5 = Đã hoàn thành
       icon: <CheckCircle />,
       color: "#4caf50",
     },
   ];
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (
+    status: number
+  ): "warning" | "info" | "success" | "default" | "error" => {
     switch (status) {
-      case "pending":
+      case 1: // Chờ xác nhận
         return "warning";
-      case "completed":
+      case 2: // Đã xác nhận
+        return "info";
+      case 3: // Đang thuê
+        return "info";
+      case 4: // Đang kiểm tra
+        return "warning";
+      case 5: // Đã hoàn thành
         return "success";
-      case "cancelled":
+      case 6: // Đã hủy
         return "error";
       default:
         return "default";
     }
   };
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case "pending":
-        return "Đang xử lý";
-      case "completed":
-        return "Đã hoàn thành";
-      case "cancelled":
-        return "Đã hủy";
-      default:
-        return status;
+  const getItemName = (booking: Booking): string => {
+    if (booking.items && booking.items.length > 0) {
+      const firstItem = booking.items[0];
+      if (firstItem.camera) {
+        return `${firstItem.camera.brand} ${firstItem.camera.model}`;
+      }
+      if (firstItem.accessory) {
+        return `${firstItem.accessory.brand} ${firstItem.accessory.model}`;
+      }
+      if (firstItem.combo) {
+        return firstItem.combo.name;
+      }
     }
+    return "N/A";
   };
 
-  const handleViewDetail = (booking: AssignedBooking) => {
+  const formatDateTime = (dateString: string): string => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("vi-VN", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+  };
+
+  const handleViewDetail = (booking: Booking) => {
     setSelectedBooking(booking);
     setDetailDialogOpen(true);
   };
 
-  const handleCompleteClick = (booking: AssignedBooking) => {
+  const handleCompleteClick = (booking: Booking) => {
     setSelectedBooking(booking);
     setCompleteDialogOpen(true);
   };
 
   const handleCompleteConfirm = () => {
     if (selectedBooking) {
-      // Update booking status
+      // Update booking status to completed (status 5)
       setAssignments(
         assignments.map((a) =>
-          a.id === selectedBooking.id ? { ...a, status: "completed" } : a
+          a.id === selectedBooking.id
+            ? { ...a, status: 5, statusText: "Đã hoàn thành" }
+            : a
         )
       );
       setSnackbarMessage(
@@ -168,15 +164,32 @@ const MyAssignments: React.FC = () => {
   };
 
   const filteredAssignments = assignments.filter((assignment) => {
+    const itemName = getItemName(assignment);
+    const renterName = assignment.renter?.fullName || "";
+
     const matchesSearch =
       assignment.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      assignment.customerName
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase()) ||
-      assignment.camera.toLowerCase().includes(searchQuery.toLowerCase());
+      renterName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      itemName.toLowerCase().includes(searchQuery.toLowerCase());
 
     return matchesSearch;
   });
+
+  // Hiển thị loading state
+  if (loading) {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "100vh",
+        }}
+      >
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ bgcolor: "#f5f5f5", minHeight: "100vh", py: 4 }}>
@@ -272,76 +285,90 @@ const MyAssignments: React.FC = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {filteredAssignments.map((assignment) => (
-                  <TableRow key={assignment.id}>
-                    <TableCell>
-                      <Typography sx={{ fontWeight: 500, color: "#2196f3" }}>
-                        {assignment.id}
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: "#999" }}>
-                        {assignment.date}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Box
-                        sx={{ display: "flex", alignItems: "center", gap: 1 }}
-                      >
-                        <Avatar
-                          sx={{ width: 32, height: 32, bgcolor: "#2196f3" }}
+                {filteredAssignments.map((assignment) => {
+                  const itemName = getItemName(assignment);
+                  const renterName = assignment.renter?.fullName || "N/A";
+                  const renterPhone = assignment.renter?.phoneNumber || "N/A";
+                  const pickupDate = formatDateTime(assignment.pickupAt);
+                  const returnDate = formatDateTime(assignment.returnAt);
+
+                  return (
+                    <TableRow key={assignment.id}>
+                      <TableCell>
+                        <Typography sx={{ fontWeight: 500, color: "#2196f3" }}>
+                          {assignment.id.substring(0, 8)}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: "#999" }}>
+                          {pickupDate}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Box
+                          sx={{ display: "flex", alignItems: "center", gap: 1 }}
                         >
-                          {assignment.customerName.charAt(0)}
-                        </Avatar>
-                        <Box>
-                          <Typography sx={{ fontWeight: 500 }}>
-                            {assignment.customerName}
-                          </Typography>
-                          <Typography variant="caption" sx={{ color: "#999" }}>
-                            {assignment.customerPhone}
-                          </Typography>
+                          <Avatar
+                            sx={{ width: 32, height: 32, bgcolor: "#2196f3" }}
+                          >
+                            {renterName.charAt(0)}
+                          </Avatar>
+                          <Box>
+                            <Typography sx={{ fontWeight: 500 }}>
+                              {renterName}
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              sx={{ color: "#999" }}
+                            >
+                              {renterPhone}
+                            </Typography>
+                          </Box>
                         </Box>
-                      </Box>
-                    </TableCell>
-                    <TableCell>{assignment.camera}</TableCell>
-                    <TableCell>{assignment.rentalPeriod}</TableCell>
-                    <TableCell>{assignment.assignedDate}</TableCell>
-                    <TableCell>
-                      <Typography sx={{ fontWeight: 600, color: "#2196f3" }}>
-                        ₫{assignment.totalAmount.toLocaleString()}
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: "#999" }}>
-                        Cọc: ₫{assignment.deposit.toLocaleString()}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={getStatusLabel(assignment.status)}
-                        color={getStatusColor(assignment.status)}
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Box sx={{ display: "flex", gap: 1 }}>
-                        <IconButton
+                      </TableCell>
+                      <TableCell>{itemName}</TableCell>
+                      <TableCell>
+                        {pickupDate} — {returnDate}
+                      </TableCell>
+                      <TableCell>{pickupDate}</TableCell>
+                      <TableCell>
+                        <Typography sx={{ fontWeight: 600, color: "#2196f3" }}>
+                          ₫{assignment.snapshotRentalTotal.toLocaleString()}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: "#999" }}>
+                          Cọc: ₫
+                          {assignment.snapshotDepositAmount.toLocaleString()}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={assignment.statusText}
+                          color={getStatusColor(assignment.status)}
                           size="small"
-                          onClick={() => handleViewDetail(assignment)}
-                          title="Xem chi tiết"
-                        >
-                          <Visibility fontSize="small" />
-                        </IconButton>
-                        {assignment.status === "pending" && (
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Box sx={{ display: "flex", gap: 1 }}>
                           <IconButton
                             size="small"
-                            color="success"
-                            onClick={() => handleCompleteClick(assignment)}
-                            title="Hoàn thành"
+                            onClick={() => handleViewDetail(assignment)}
+                            title="Xem chi tiết"
                           >
-                            <CheckCircle fontSize="small" />
+                            <Visibility fontSize="small" />
                           </IconButton>
-                        )}
-                      </Box>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                          {assignment.status === 2 && ( // Status 2 = Đã xác nhận
+                            <IconButton
+                              size="small"
+                              color="success"
+                              onClick={() => handleCompleteClick(assignment)}
+                              title="Hoàn thành"
+                            >
+                              <CheckCircle fontSize="small" />
+                            </IconButton>
+                          )}
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </TableContainer>
@@ -359,41 +386,82 @@ const MyAssignments: React.FC = () => {
             <Box sx={{ pt: 2 }}>
               <Paper sx={{ p: 2, bgcolor: "#f5f5f5", mb: 2 }}>
                 <Typography variant="body2" sx={{ mb: 1 }}>
-                  <strong>Mã đơn:</strong> {selectedBooking?.id}
+                  <strong>Mã đơn:</strong> {selectedBooking?.id.substring(0, 8)}
                 </Typography>
                 <Typography variant="body2" sx={{ mb: 1 }}>
-                  <strong>Khách hàng:</strong> {selectedBooking?.customerName}
+                  <strong>Khách hàng:</strong>{" "}
+                  {selectedBooking?.renter?.fullName || "N/A"}
+                </Typography>
+                <Typography variant="body2" sx={{ mb: 1 }}>
+                  <strong>Email:</strong>{" "}
+                  {selectedBooking?.renter?.email || "N/A"}
                 </Typography>
                 <Typography variant="body2" sx={{ mb: 1 }}>
                   <strong>Số điện thoại:</strong>{" "}
-                  {selectedBooking?.customerPhone}
+                  {selectedBooking?.renter?.phoneNumber || "N/A"}
                 </Typography>
                 <Typography variant="body2" sx={{ mb: 1 }}>
-                  <strong>Camera:</strong> {selectedBooking?.camera}
+                  <strong>Thiết bị:</strong>{" "}
+                  {selectedBooking ? getItemName(selectedBooking) : "N/A"}
                 </Typography>
                 <Typography variant="body2" sx={{ mb: 1 }}>
-                  <strong>Thời gian thuê:</strong>{" "}
-                  {selectedBooking?.rentalPeriod}
+                  <strong>Ngày nhận:</strong>{" "}
+                  {selectedBooking?.pickupAt
+                    ? formatDateTime(selectedBooking.pickupAt)
+                    : "N/A"}
                 </Typography>
                 <Typography variant="body2" sx={{ mb: 1 }}>
-                  <strong>Ngày được gán:</strong>{" "}
-                  {selectedBooking?.assignedDate}
+                  <strong>Ngày trả:</strong>{" "}
+                  {selectedBooking?.returnAt
+                    ? formatDateTime(selectedBooking.returnAt)
+                    : "N/A"}
                 </Typography>
                 <Typography variant="body2" sx={{ mb: 1 }}>
-                  <strong>Tổng tiền:</strong> ₫
-                  {selectedBooking?.totalAmount.toLocaleString()}
+                  <strong>Tổng tiền thuê:</strong> ₫
+                  {selectedBooking?.snapshotRentalTotal.toLocaleString()}
+                </Typography>
+                <Typography variant="body2" sx={{ mb: 1 }}>
+                  <strong>Tiền cọc:</strong> ₫
+                  {selectedBooking?.snapshotDepositAmount.toLocaleString()}
                 </Typography>
                 <Typography variant="body2">
-                  <strong>Tiền cọc:</strong> ₫
-                  {selectedBooking?.deposit.toLocaleString()}
+                  <strong>Trạng thái:</strong> {selectedBooking?.statusText}
                 </Typography>
               </Paper>
-              {selectedBooking?.notes && (
-                <Alert severity="info" sx={{ mt: 2 }}>
-                  <Typography variant="body2">
-                    <strong>Ghi chú:</strong> {selectedBooking.notes}
+
+              {/* Hiển thị danh sách items */}
+              {selectedBooking?.items && selectedBooking.items.length > 0 && (
+                <Box sx={{ mt: 2 }}>
+                  <Typography
+                    variant="subtitle2"
+                    sx={{ mb: 1, fontWeight: 600 }}
+                  >
+                    Chi tiết thiết bị:
                   </Typography>
-                </Alert>
+                  {selectedBooking.items.map((item, index) => (
+                    <Paper key={index} sx={{ p: 2, bgcolor: "#f9f9f9", mb: 1 }}>
+                      <Typography variant="body2" sx={{ mb: 0.5 }}>
+                        <strong>Tên:</strong>{" "}
+                        {item.camera
+                          ? `${item.camera.brand} ${item.camera.model}`
+                          : item.accessory
+                          ? `${item.accessory.brand} ${item.accessory.model}`
+                          : item.combo?.name || "N/A"}
+                      </Typography>
+                      <Typography variant="body2" sx={{ mb: 0.5 }}>
+                        <strong>Số lượng:</strong> {item.quantity}
+                      </Typography>
+                      <Typography variant="body2" sx={{ mb: 0.5 }}>
+                        <strong>Đơn giá:</strong> ₫
+                        {item.unitPrice.toLocaleString()}
+                      </Typography>
+                      <Typography variant="body2">
+                        <strong>Tiền cọc:</strong> ₫
+                        {item.depositAmount.toLocaleString()}
+                      </Typography>
+                    </Paper>
+                  ))}
+                </Box>
               )}
             </Box>
           </DialogContent>
@@ -417,13 +485,15 @@ const MyAssignments: React.FC = () => {
               </Typography>
               <Paper sx={{ p: 2, bgcolor: "#f5f5f5" }}>
                 <Typography variant="body2" sx={{ mb: 1 }}>
-                  <strong>Mã đơn:</strong> {selectedBooking?.id}
+                  <strong>Mã đơn:</strong> {selectedBooking?.id.substring(0, 8)}
                 </Typography>
                 <Typography variant="body2" sx={{ mb: 1 }}>
-                  <strong>Khách hàng:</strong> {selectedBooking?.customerName}
+                  <strong>Khách hàng:</strong>{" "}
+                  {selectedBooking?.renter?.fullName || "N/A"}
                 </Typography>
                 <Typography variant="body2">
-                  <strong>Camera:</strong> {selectedBooking?.camera}
+                  <strong>Thiết bị:</strong>{" "}
+                  {selectedBooking ? getItemName(selectedBooking) : "N/A"}
                 </Typography>
               </Paper>
             </Box>
