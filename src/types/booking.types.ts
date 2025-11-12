@@ -63,3 +63,10 @@ export interface Staff {
   phone: string;
   email: string;
 }
+export interface CreateDeliveryRequest {
+  bookingId: string;
+  assigneeUserId: string;
+  trackingCode: string;
+  notes: string;
+  deliveryFee: number;
+}
