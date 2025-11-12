@@ -13,6 +13,8 @@ import {
   Stack,
   Divider,
   CircularProgress,
+  Tabs,
+  Tab,
 } from "@mui/material";
 import { amber, grey } from "@mui/material/colors";
 import SearchIcon from "@mui/icons-material/Search";
@@ -21,6 +23,8 @@ import FilterListIcon from "@mui/icons-material/FilterList";
 import CameraAltOutlinedIcon from "@mui/icons-material/CameraAltOutlined";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
+import { cameraService } from "../services/camera.service";
+import type { Accessory } from "../services/camera.service";
 
 interface Camera {
   id: string;
@@ -57,13 +61,38 @@ const formatCurrency = (amount: number): string => {
   }).format(amount);
 };
 
-const ProductCard: React.FC<{ camera: Camera }> = ({ camera }) => {
+// Component ProductCard có thể hiển thị cả Camera và Accessory
+const ProductCard: React.FC<{ camera: Camera | Accessory }> = ({ camera }) => {
   const navigate = useNavigate();
+
+  // Xử lý media cho cả Camera và Accessory
+  const getMediaUrl = () => {
+    if (
+      "media" in camera &&
+      Array.isArray(camera.media) &&
+      camera.media.length > 0
+    ) {
+      // Accessory case: media là string[]
+      if (typeof camera.media[0] === "string") {
+        return camera.media[0];
+      }
+      // Camera case: media là object với url
+      if (typeof camera.media[0] === "object" && camera.media[0] !== null) {
+        return (camera.media[0] as { url?: string }).url || null;
+      }
+    }
+    return null;
+  };
+
+  const mediaUrl = getMediaUrl();
 
   return (
     <Card
       elevation={2}
       sx={{
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
         borderRadius: 2,
         overflow: "hidden",
         transition: "box-shadow .3s",
@@ -83,9 +112,9 @@ const ProductCard: React.FC<{ camera: Camera }> = ({ camera }) => {
             color: grey[300],
           }}
         >
-          {camera.media && camera.media.length > 0 ? (
+          {mediaUrl ? (
             <img
-              src={camera.media[0]}
+              src={mediaUrl}
               alt={`${camera.brand} ${camera.model}`}
               style={{
                 width: "100%",
@@ -115,87 +144,100 @@ const ProductCard: React.FC<{ camera: Camera }> = ({ camera }) => {
         </Box>
       </Box>
 
-      <CardContent sx={{ p: 2.5 }}>
-        <Typography variant="body2" sx={{ color: grey[600], mb: 0.5 }}>
-          {camera.brand}
-        </Typography>
-        <Typography
-          variant="h6"
-          sx={{ fontWeight: 700, color: grey[900], mb: 0.5 }}
-        >
-          {camera.model}
-          {camera.variant && (
-            <Chip
-              label={camera.variant}
-              size="small"
-              sx={{ ml: 1, height: 20, fontSize: 11 }}
-            />
-          )}
-        </Typography>
-
-        {camera.serialNumber && (
-          <Typography
-            variant="caption"
-            sx={{ color: grey[500], mb: 1.5, display: "block" }}
-          >
-            SN: {camera.serialNumber}
+      <CardContent
+        sx={{
+          p: 2.5,
+          flexGrow: 1,
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        <Box sx={{ flexGrow: 1 }}>
+          <Typography variant="body2" sx={{ color: grey[600], mb: 0.5 }}>
+            {camera.brand}
           </Typography>
-        )}
-
-        <Box
-          sx={{ display: "flex", alignItems: "flex-start", mb: 2, gap: 0.5 }}
-        >
-          <LocationOnIcon sx={{ fontSize: 16, color: grey[500], mt: 0.25 }} />
-          <Box>
-            <Typography
-              variant="body2"
-              sx={{ fontWeight: 600, color: grey[800] }}
-            >
-              {camera.branchName}
-            </Typography>
-          </Box>
-        </Box>
-
-        <Box
-          sx={{
-            bgcolor: amber[50],
-            border: `1px solid ${amber[200]}`,
-            borderRadius: 2,
-            p: 1.5,
-            mb: 2,
-          }}
-        >
-          <Box
-            sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}
+          <Typography
+            variant="h6"
+            sx={{ fontWeight: 700, color: grey[900], mb: 0.5 }}
           >
-            <Typography variant="caption" sx={{ color: grey[600] }}>
-              Giá thuê/ngày:
-            </Typography>
-            <Typography
-              variant="body2"
-              sx={{ fontWeight: 700, color: amber[800] }}
-            >
-              {formatCurrency(camera.baseDailyRate)}
-            </Typography>
-          </Box>
-          <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-            <Typography variant="caption" sx={{ color: grey[600] }}>
-              Đặt cọc ({camera.depositPercent}%):
-            </Typography>
+            {camera.model}
+            {camera.variant && (
+              <Chip
+                label={camera.variant}
+                size="small"
+                sx={{ ml: 1, height: 20, fontSize: 11 }}
+              />
+            )}
+          </Typography>
+
+          {camera.serialNumber && (
             <Typography
               variant="caption"
-              sx={{ fontWeight: 600, color: grey[700] }}
+              sx={{ color: grey[500], mb: 1.5, display: "block" }}
             >
-              {formatCurrency(
-                Math.min(
-                  Math.max(
-                    (camera.estimatedValueVnd * camera.depositPercent) / 100,
-                    camera.depositCapMinVnd
-                  ),
-                  camera.depositCapMaxVnd
-                )
-              )}
+              SN: {camera.serialNumber}
             </Typography>
+          )}
+
+          <Box
+            sx={{ display: "flex", alignItems: "flex-start", mb: 2, gap: 0.5 }}
+          >
+            <LocationOnIcon sx={{ fontSize: 16, color: grey[500], mt: 0.25 }} />
+            <Box>
+              <Typography
+                variant="body2"
+                sx={{ fontWeight: 600, color: grey[800] }}
+              >
+                {camera.branchName}
+              </Typography>
+            </Box>
+          </Box>
+
+          <Box
+            sx={{
+              bgcolor: amber[50],
+              border: `1px solid ${amber[200]}`,
+              borderRadius: 2,
+              p: 1.5,
+              mb: 2,
+              minHeight: 90,
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+            }}
+          >
+            <Box
+              sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}
+            >
+              <Typography variant="caption" sx={{ color: grey[600] }}>
+                Giá thuê/ngày:
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{ fontWeight: 700, color: amber[800] }}
+              >
+                {formatCurrency(camera.baseDailyRate)}
+              </Typography>
+            </Box>
+            <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+              <Typography variant="caption" sx={{ color: grey[600] }}>
+                Đặt cọc ({camera.depositPercent}%):
+              </Typography>
+              <Typography
+                variant="caption"
+                sx={{ fontWeight: 600, color: grey[700] }}
+              >
+                {formatCurrency(
+                  Math.min(
+                    Math.max(
+                      (camera.estimatedValueVnd * camera.depositPercent) / 100,
+                      camera.depositCapMinVnd
+                    ),
+                    camera.depositCapMaxVnd
+                  )
+                )}
+              </Typography>
+            </Box>
           </Box>
         </Box>
 
@@ -245,10 +287,16 @@ const ProductPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [cameras, setCameras] = useState<Camera[]>([]);
+  const [accessories, setAccessories] = useState<Accessory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [totalCameras, setTotalCameras] = useState(0);
+  const [totalAccessories, setTotalAccessories] = useState(0);
+  const [currentTab, setCurrentTab] = useState(0); // 0: Cameras, 1: Accessories
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(20);
 
+  // Fetch cameras
   useEffect(() => {
     const fetchCameras = async () => {
       try {
@@ -279,20 +327,49 @@ const ProductPage: React.FC = () => {
     fetchCameras();
   }, []);
 
+  // Fetch accessories
+  useEffect(() => {
+    const fetchAccessories = async () => {
+      try {
+        setLoading(true);
+        const data = await cameraService.getAccessories(
+          currentPage,
+          pageSize,
+          searchQuery
+        );
+        setAccessories(data.items || []);
+        setTotalAccessories(data.total || 0);
+        setError(null);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "An error occurred");
+        console.error("Error fetching accessories:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (currentTab === 1) {
+      fetchAccessories();
+    }
+  }, [currentTab, currentPage, searchQuery, pageSize]);
+
   const categories = useMemo(() => {
-    const brands = new Set(cameras.map((c) => c.brand));
+    const items = currentTab === 0 ? cameras : accessories;
+    const brands = new Set(items.map((c) => c.brand));
     return ["All", ...Array.from(brands)];
-  }, [cameras]);
+  }, [cameras, accessories, currentTab]);
 
   const filteredCameras = useMemo(() => {
+    const items = currentTab === 0 ? cameras : accessories;
+
     if (!searchQuery) {
       return selectedCategory === "All"
-        ? cameras
-        : cameras.filter((c) => c.brand === selectedCategory);
+        ? items
+        : items.filter((c) => c.brand === selectedCategory);
     }
 
     const q = searchQuery.toLowerCase();
-    return cameras.filter((c) => {
+    return items.filter((c) => {
       const matchesSearch =
         (c.model && c.model.toLowerCase().includes(q)) ||
         (c.brand && c.brand.toLowerCase().includes(q)) ||
@@ -304,7 +381,7 @@ const ProductPage: React.FC = () => {
 
       return matchesSearch && matchesCategory;
     });
-  }, [cameras, searchQuery, selectedCategory]);
+  }, [cameras, accessories, searchQuery, selectedCategory, currentTab]);
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: grey[50] }}>
@@ -323,8 +400,41 @@ const ProductPage: React.FC = () => {
             Cho thuê thiết bị camera chuyên nghiệp cho dự án của bạn
           </Typography>
           <Typography variant="body2" sx={{ color: grey[500], mb: 4 }}>
-            {totalCameras > 0 && `${totalCameras} thiết bị có sẵn`}
+            {currentTab === 0
+              ? `${totalCameras} camera có sẵn`
+              : `${totalAccessories} phụ kiện có sẵn`}
           </Typography>
+
+          {/* Tabs để chuyển đổi giữa Cameras và Accessories */}
+          <Box sx={{ mb: 3 }}>
+            <Tabs
+              value={currentTab}
+              onChange={(_, newValue) => {
+                setCurrentTab(newValue);
+                setSelectedCategory("All");
+                setSearchQuery("");
+                setCurrentPage(1);
+              }}
+              sx={{
+                "& .MuiTab-root": {
+                  textTransform: "none",
+                  fontWeight: 600,
+                  fontSize: 16,
+                  minWidth: 120,
+                },
+                "& .Mui-selected": {
+                  color: "black !important",
+                },
+                "& .MuiTabs-indicator": {
+                  bgcolor: ACCENT,
+                  height: 3,
+                },
+              }}
+            >
+              <Tab label={`Cameras (${totalCameras})`} />
+              <Tab label={`Phụ kiện (${totalAccessories})`} />
+            </Tabs>
+          </Box>
 
           <Box sx={{ maxWidth: 720 }}>
             <TextField
@@ -384,10 +494,11 @@ const ProductPage: React.FC = () => {
           <Stack direction="row" spacing={1}>
             {categories.map((cat) => {
               const selected = selectedCategory === cat;
+              const items = currentTab === 0 ? cameras : accessories;
               const count =
                 cat === "All"
-                  ? cameras.length
-                  : cameras.filter((c) => c.brand === cat).length;
+                  ? items.length
+                  : items.filter((c) => c.brand === cat).length;
               return (
                 <Chip
                   key={cat}
@@ -448,38 +559,24 @@ const ProductPage: React.FC = () => {
               }}
             >
               <Typography variant="body2" sx={{ color: grey[600] }}>
-                Hiển thị {filteredCameras.length} / {totalCameras} sản phẩm
+                Hiển thị {filteredCameras.length} /{" "}
+                {currentTab === 0 ? totalCameras : totalAccessories} sản phẩm
               </Typography>
             </Box>
             <Box
-              sx={(theme) => ({
-                display: "flex",
-                flexWrap: "wrap",
-                gap: theme.spacing(3),
-              })}
+              sx={{
+                display: "grid",
+                gridTemplateColumns: {
+                  xs: "1fr",
+                  sm: "repeat(2, 1fr)",
+                  md: "repeat(3, 1fr)",
+                  lg: "repeat(4, 1fr)",
+                },
+                gap: 3,
+              }}
             >
               {filteredCameras.map((camera) => (
-                <Box
-                  key={camera.id}
-                  sx={(theme) => ({
-                    flex: "1 1 100%",
-                    maxWidth: "100%",
-                    [theme.breakpoints.up("sm")]: {
-                      flex: `1 1 calc(50% - ${theme.spacing(3)})`,
-                      maxWidth: `calc(50% - ${theme.spacing(3)})`,
-                    },
-                    [theme.breakpoints.up("md")]: {
-                      flex: `1 1 calc(33.333% - ${theme.spacing(3)})`,
-                      maxWidth: `calc(33.333% - ${theme.spacing(3)})`,
-                    },
-                    [theme.breakpoints.up("lg")]: {
-                      flex: `1 1 calc(25% - ${theme.spacing(3)})`,
-                      maxWidth: `calc(25% - ${theme.spacing(3)})`,
-                    },
-                  })}
-                >
-                  <ProductCard camera={camera} />
-                </Box>
+                <ProductCard key={camera.id} camera={camera} />
               ))}
             </Box>
           </>
