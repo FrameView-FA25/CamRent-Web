@@ -40,6 +40,34 @@ export interface GetCamerasByOwnerResponse {
   total?: number; // Tổng số camera (optional)
 }
 
+// Interface cho Accessory (phụ kiện)
+export interface Accessory {
+  id: string;
+  brand: string;
+  model: string;
+  variant: string | null;
+  serialNumber: string | null;
+  branchName: string;
+  bookingItemType: number;
+  baseDailyRate: number;
+  platformFeePercent: number;
+  estimatedValueVnd: number;
+  depositPercent: number;
+  depositCapMinVnd: number;
+  depositCapMaxVnd: number;
+  media: string[];
+  specsJson: string | null;
+  categories: string[];
+}
+
+// Interface cho response API Accessories với phân trang
+export interface AccessoriesResponse {
+  page: number;
+  pageSize: number;
+  total: number;
+  items: Accessory[];
+}
+
 // Service xử lý các API liên quan đến Camera
 export const cameraService = {
   /**
@@ -228,6 +256,67 @@ export const cameraService = {
       }
     } catch (error) {
       console.error("Lỗi khi xóa camera:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Lấy danh sách phụ kiện (Accessories) với phân trang
+   * @param page - Số trang (mặc định: 1)
+   * @param pageSize - Số lượng items mỗi trang (mặc định: 20)
+   * @param searchQuery - Từ khóa tìm kiếm (optional)
+   * @param sortBy - Sắp xếp theo trường (mặc định: "createdAt")
+   * @param sortDir - Hướng sắp xếp "asc" hoặc "desc" (mặc định: "desc")
+   * @returns Promise chứa danh sách accessories với thông tin phân trang
+   */
+  async getAccessories(
+    page: number = 1,
+    pageSize: number = 20,
+    searchQuery?: string,
+    sortBy: string = "createdAt",
+    sortDir: "asc" | "desc" = "desc"
+  ): Promise<AccessoriesResponse> {
+    try {
+      // Xây dựng query parameters
+      const params = new URLSearchParams({
+        page: page.toString(),
+        pageSize: pageSize.toString(),
+        sortBy,
+        sortDir,
+      });
+
+      // Thêm search query nếu có
+      if (searchQuery && searchQuery.trim()) {
+        params.append("q", searchQuery.trim());
+      }
+
+      // Gọi API để lấy danh sách accessories
+      const response = await fetch(
+        `${API_BASE_URL}/Accessories?${params.toString()}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      // Kiểm tra nếu response không thành công
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.message ||
+            `Lấy danh sách phụ kiện thất bại với status ${response.status}`
+        );
+      }
+
+      // Parse dữ liệu JSON từ response
+      const data: AccessoriesResponse = await response.json();
+
+      // Trả về dữ liệu accessories
+      return data;
+    } catch (error) {
+      console.error("Lỗi khi lấy danh sách phụ kiện:", error);
       throw error;
     }
   },
