@@ -18,15 +18,17 @@ export interface Combo {
 }
 
 export interface BookingItem {
-  cameraId: string | null;
-  camera: Camera | null;
-  accessoryId: string | null;
-  accessory: Accessory | null;
-  comboId: string | null;
-  combo: Combo | null;
+  id?: string;
+  bookingId?: string;
+  cameraId?: string;
+  accessoryId?: string;
+  productId?: string; // Thêm productId
   quantity: number;
   unitPrice: number;
   depositAmount: number;
+  camera?: Camera;
+  accessory?: Accessory;
+  product?: Product; // Thêm product
 }
 
 export interface Renter {
@@ -34,22 +36,31 @@ export interface Renter {
   fullName: string;
   email: string;
   phoneNumber: string;
+  address: string;
+  dateOfBirth: string;
+  gender: number; // 0: Female, 1: Male, 2: Other
+  avatar: string;
+  emailConfirmed: boolean;
+  phoneNumberConfirmed: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Booking {
   id: string;
-  type: number;
   renterId: string;
-  renter: Renter | null;
+  type: number;
   pickupAt: string;
   returnAt: string;
+  deliveryAddress: string;
   status: number;
   statusText: string;
-  snapshotBaseDailyRate: number;
-  snapshotDepositPercent: number;
-  snapshotPlatformFeePercent: number;
   snapshotRentalTotal: number;
   snapshotDepositAmount: number;
+  snapshotTransportFee: number;
+  createdAt: string;
+  updatedAt: string;
+  renter?: Renter; // Optional renter details
   items: BookingItem[];
 }
 
@@ -69,4 +80,37 @@ export interface CreateDeliveryRequest {
   trackingCode: string;
   notes: string;
   deliveryFee: number;
+}
+export interface Product {
+  id: string;
+  name: string;
+  category: string;
+  brand: string;
+  model: string;
+  price: number;
+  depositAmount: number;
+  rating: number;
+  reviewCount: number;
+  categoryId: string;
+  description: string;
+  specifications: string;
+  status: number; // 0: Inactive, 1: Active, 2: Maintenance
+  createdAt: string;
+  updatedAt: string;
+  images?: string[]; // Optional: array of image URLs
+  thumbnail?: string; // Optional: main product image
+}
+
+export interface BookingItemWithProduct {
+  id: string;
+  bookingId?: string;
+  productId: string;
+  cameraId?: string;
+  accessoryId?: string;
+  quantity: number;
+  unitPrice: number;
+  depositAmount: number;
+  product?: Product; // Product details
+  camera?: Camera; // Camera details (if applicable)
+  accessory?: Accessory; // Accessory details (if applicable)
 }
