@@ -9,7 +9,7 @@ import {
   getDefaultRouteByRole,
   getProfileRouteByRole,
 } from "@/utils/roleUtils";
-
+import { colors } from "../theme/colors";
 const MainLayout: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -153,7 +153,7 @@ const MainLayout: React.FC = () => {
               onClick={handleMenuOpen}
               variant="outlined"
               sx={{
-                borderColor: "#FACC15",
+                borderColor: colors.primary.main,
                 color: "#111827",
                 fontWeight: 600,
                 borderRadius: 999,
@@ -163,8 +163,8 @@ const MainLayout: React.FC = () => {
                 alignItems: "center",
                 gap: 1,
                 "&:hover": {
-                  borderColor: "#EAB308",
-                  bgcolor: "#FEF3C7",
+                  borderColor: colors.primary.dark,
+                  bgcolor: colors.primary.main,
                 },
               }}
             >
@@ -200,13 +200,13 @@ const MainLayout: React.FC = () => {
             variant="contained"
             disableElevation
             sx={{
-              bgcolor: "#FACC15",
+              bgcolor: colors.primary.main,
               color: "#111827",
               fontWeight: 700,
               borderRadius: 999,
               px: 3,
               py: 1,
-              "&:hover": { bgcolor: "#EAB308" },
+              "&:hover": { bgcolor: colors.primary.dark },
             }}
           >
             LOGIN

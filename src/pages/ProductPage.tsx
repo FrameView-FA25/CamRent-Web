@@ -25,7 +25,7 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import { cameraService } from "../services/camera.service";
 import type { Accessory } from "../services/camera.service";
-
+import { colors } from "../theme/colors";
 interface Camera {
   id: string;
   brand: string;
@@ -51,7 +51,6 @@ interface CameraResponse {
   items: Camera[];
 }
 
-const ACCENT = amber[400];
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 const formatCurrency = (amount: number): string => {
@@ -131,7 +130,7 @@ const ProductCard: React.FC<{ camera: Camera | Accessory }> = ({ camera }) => {
             position: "absolute",
             top: 16,
             right: 16,
-            bgcolor: ACCENT,
+            bgcolor: colors.primary.main,
             color: "black",
             px: 1.5,
             py: 0.75,
@@ -426,7 +425,7 @@ const ProductPage: React.FC = () => {
                   color: "black !important",
                 },
                 "& .MuiTabs-indicator": {
-                  bgcolor: ACCENT,
+                  bgcolor: colors.primary.main,
                   height: 3,
                 },
               }}
@@ -461,7 +460,7 @@ const ProductPage: React.FC = () => {
                 },
                 "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline":
                   {
-                    borderColor: ACCENT,
+                    borderColor: colors.primary.main,
                   },
               }}
             />
@@ -506,7 +505,7 @@ const ProductPage: React.FC = () => {
                   onClick={() => setSelectedCategory(cat)}
                   sx={{
                     cursor: "pointer",
-                    bgcolor: selected ? ACCENT : "white",
+                    bgcolor: selected ? colors.primary.main : "white",
                     color: selected ? "black" : grey[800],
                     fontWeight: selected ? 700 : 500,
                     borderRadius: 999,
@@ -523,7 +522,7 @@ const ProductPage: React.FC = () => {
         {/* Loading State */}
         {loading && (
           <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
-            <CircularProgress sx={{ color: ACCENT }} />
+            <CircularProgress sx={{ color: colors.primary.main }} />
           </Box>
         )}
 
@@ -537,9 +536,9 @@ const ProductPage: React.FC = () => {
               variant="contained"
               onClick={() => window.location.reload()}
               sx={{
-                bgcolor: ACCENT,
+                bgcolor: colors.primary.main,
                 color: "black",
-                "&:hover": { bgcolor: amber[500] },
+                "&:hover": { bgcolor: colors.primary.dark },
               }}
             >
               Thử lại
@@ -604,7 +603,7 @@ const ProductPage: React.FC = () => {
           <Button
             variant="contained"
             sx={{
-              bgcolor: ACCENT,
+              bgcolor: colors.primary.main,
               color: "black",
               textTransform: "none",
               fontWeight: 700,

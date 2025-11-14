@@ -14,7 +14,7 @@ import {
 } from "@mui/material";
 import { X, Eye, EyeOff, Camera } from "lucide-react";
 import { authService } from "../../services/auth.service";
-
+import { colors } from "../../theme/colors";
 type Props = {
   open: boolean;
   onClose: () => void;
@@ -108,7 +108,7 @@ const ModalLogin: React.FC<Props> = ({
               mb: 2,
             }}
           >
-            <Camera color="#FACC15" size={32} />
+            <Camera color={colors.primary.main} size={32} />
           </Box>
           <Typography
             id="login-title"
@@ -207,13 +207,16 @@ const ModalLogin: React.FC<Props> = ({
             disableElevation
             disabled={loading || !email || !password}
             sx={{
-              bgcolor: "#FACC15",
+              bgcolor: colors.primary.main,
               color: "#111827",
               fontWeight: 700,
               py: 1.25,
               borderRadius: 999,
-              "&:hover": { bgcolor: "#EAB308" },
-              "&:disabled": { bgcolor: "#FDE68A", color: "#9CA3AF" },
+              "&:hover": { bgcolor: colors.primary.dark },
+              "&:disabled": {
+                bgcolor: colors.primary.light,
+                color: colors.neutral[400],
+              },
             }}
           >
             {loading ? (
