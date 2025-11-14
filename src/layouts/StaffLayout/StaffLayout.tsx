@@ -35,7 +35,11 @@ const menuItems = [
     icon: <PeopleIcon />,
     path: "/staff/my-assignments",
   },
-  { text: "Booking", icon: <ProductsIcon />, path: "/staff/booking" },
+  {
+    text: "Equipment Check",
+    icon: <ProductsIcon />,
+    path: "/staff/equipment-check",
+  },
   { text: "Orders", icon: <OrdersIcon />, path: "/staff/orders" },
   { text: "Profile", icon: <PersonIcon />, path: "/staff/profile" },
   { text: "Settings", icon: <SettingsIcon />, path: "/staff/settings" },
