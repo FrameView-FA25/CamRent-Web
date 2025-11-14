@@ -34,6 +34,8 @@ import ManagerProfile from "../pages/Manager/ManagerProfile";
 import StaffManagement from "../pages/Manager/StaffManagement";
 import EquipmentCheck from "../pages/Staff/EquipmentCheck";
 import BookingDetail from "../pages/Staff/BookingDetail";
+import RenterLayout from "../layouts/RenterLayout/RenterLayout";
+import RenterDashboard from "@/pages/Renter/Dashboard";
 const routes: RouteObject[] = [
   {
     path: "/",
@@ -211,6 +213,21 @@ const routes: RouteObject[] = [
         path: "settings",
         element: <AdminSettings />,
       },
+    ],
+  },
+  {
+    path: "/renter",
+    element: (
+      <ProtectedRoute requiredRole="Rente r">
+        <RenterLayout />
+      </ProtectedRoute>
+    ),
+    children: [
+      {
+        path: "dashboard",
+        element: <RenterDashboard />,
+      },
+      // ...other routes
     ],
   },
 ];

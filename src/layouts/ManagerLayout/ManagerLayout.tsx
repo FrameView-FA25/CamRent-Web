@@ -92,6 +92,7 @@ const ManagerLayout: React.FC = () => {
             fontSize: "1.25rem",
             letterSpacing: "-0.02em",
           }}
+          onClick={() => navigate("/")}
         >
           Manager Panel
         </Typography>

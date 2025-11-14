@@ -98,6 +98,7 @@ const OwnerLayout: React.FC = () => {
             fontSize: "1.25rem",
             letterSpacing: "-0.02em",
           }}
+          onClick={() => navigate("/")}
         >
           Owner Panel
         </Typography>
