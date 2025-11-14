@@ -11,6 +11,7 @@ import {
   Rating,
   CircularProgress,
   Alert,
+  Pagination,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -34,6 +35,10 @@ export default function CameraManagement() {
 
   // State quản lý thông báo lỗi
   const [error, setError] = useState<string | null>(null);
+
+  // State phân trang
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8; // Số lượng camera hiển thị mỗi trang (cố định)
 
   /**
    * Hàm lấy danh sách camera từ API
@@ -84,6 +89,8 @@ export default function CameraManagement() {
   const handleAddCamera = () => {
     // Tải lại danh sách camera sau khi thêm thành công
     fetchCameras();
+    // Reset về trang 1 khi thêm mới
+    setCurrentPage(1);
   };
 
   /**
@@ -108,6 +115,25 @@ export default function CameraManagement() {
       alert(`Lỗi: ${errorMessage}`);
       console.error("Lỗi khi xóa camera:", err);
     }
+  };
+
+  /**
+   * Tính toán phân trang
+   */
+  const totalPages = Math.ceil(cameras.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentCameras = cameras.slice(startIndex, endIndex);
+
+  /**
+   * Xử lý thay đổi trang
+   */
+  const handlePageChange = (
+    _event: React.ChangeEvent<unknown>,
+    page: number
+  ) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   /**
@@ -261,8 +287,8 @@ export default function CameraManagement() {
             </Typography>
           </Box>
         ) : (
-          // Hiển thị danh sách camera
-          cameras.map((camera) => (
+          // Hiển thị danh sách camera của trang hiện tại
+          currentCameras.map((camera) => (
             <Card
               key={camera.id}
               sx={{
@@ -274,7 +300,11 @@ export default function CameraManagement() {
               {/* Hình ảnh camera - Hiển thị ảnh đầu tiên trong mảng media hoặc ảnh mặc định */}
               <CardMedia
                 component="img"
-                sx={{ blockSize: "200px" }}
+                sx={{
+                  blockSize: "250px",
+                  objectFit: "contain",
+                  backgroundColor: "#f5f5f5",
+                }}
                 image={
                   camera.media && camera.media.length > 0
                     ? typeof camera.media[0] === "string"
@@ -393,6 +423,28 @@ export default function CameraManagement() {
           ))
         )}
       </Box>
+
+      {/* Phân trang */}
+      {cameras.length > 0 && (
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            mt: 4,
+          }}
+        >
+          <Pagination
+            count={totalPages}
+            page={currentPage}
+            onChange={handlePageChange}
+            color="primary"
+            size="large"
+            showFirstButton
+            showLastButton
+          />
+        </Box>
+      )}
 
       {/* Add Camera Modal */}
       <ModalAddCamera
