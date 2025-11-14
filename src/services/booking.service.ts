@@ -1,4 +1,10 @@
-import type { Booking, BookingItem, Staff, CreateDeliveryRequest,  } from "../types/booking.types";
+import type {
+  Booking,
+  BookingItem,
+  Staff,
+  CreateDeliveryRequest,
+  CreateInspectionRequest,
+} from "../types/booking.types";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 const getAuthHeaders = () => {
@@ -309,7 +315,7 @@ export const fetchBookingById = async (
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           },
-        },  
+        },
         {
           cameraId: "item-2",
           productId: "product-2",
@@ -341,5 +347,44 @@ export const fetchBookingById = async (
   } catch (error: unknown) {
     console.error("Error fetching booking by ID:", error);
     return { booking: null, error: "Không thể tải thông tin đơn hàng" };
+  }
+};
+
+export const createInspection = async (
+  inspectionData: CreateInspectionRequest
+): Promise<{
+  success: boolean;
+  error?: string;
+}> => {
+  try {
+    const accessToken = localStorage.getItem("accessToken");
+
+    if (!accessToken) {
+      throw new Error("No access token found. Please login again.");
+    }
+
+    const response = await fetch(`${API_BASE_URL}/Inspections`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(inspectionData),
+    });
+
+    if (response.status === 401) {
+      localStorage.removeItem("accessToken");
+      throw new Error("Unauthorized. Please login again.");
+    }
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to create inspection");
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error creating inspection:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error occurred",
+    };
   }
 };
