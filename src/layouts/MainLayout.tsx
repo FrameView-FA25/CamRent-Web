@@ -163,7 +163,7 @@ const MainLayout: React.FC = () => {
                 alignItems: "center",
                 gap: 1,
                 "&:hover": {
-                  borderColor: colors.primary.dark,
+                  borderColor: colors.primary.light,
                   bgcolor: colors.primary.main,
                 },
               }}
@@ -206,7 +206,7 @@ const MainLayout: React.FC = () => {
               borderRadius: 999,
               px: 3,
               py: 1,
-              "&:hover": { bgcolor: colors.primary.dark },
+              "&:hover": { bgcolor: colors.primary.light },
             }}
           >
             LOGIN

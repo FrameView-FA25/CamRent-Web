@@ -212,7 +212,7 @@ const ModalLogin: React.FC<Props> = ({
               fontWeight: 700,
               py: 1.25,
               borderRadius: 999,
-              "&:hover": { bgcolor: colors.primary.dark },
+              "&:hover": { bgcolor: colors.primary.light },
               "&:disabled": {
                 bgcolor: colors.primary.light,
                 color: colors.neutral[400],

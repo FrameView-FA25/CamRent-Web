@@ -25,7 +25,7 @@ import {
   Person as PersonIcon,
 } from "@mui/icons-material";
 import { useAuth } from "../../hooks/useAuth";
-
+import { colors } from "../../theme/colors";
 const DRAWER_WIDTH = 280;
 
 const menuItems = [
@@ -120,9 +120,11 @@ const StaffLayout: React.FC = () => {
                     py: 1.5,
                     px: 2,
                     color: isActive ? "#f7f7f7ff" : "#6B7280",
-                    bgcolor: isActive ? "#F97316" : "transparent",
+                    bgcolor: isActive ? colors.primary.light : "transparent",
                     "&:hover": {
-                      bgcolor: isActive ? "#F97316" : "#F97316",
+                      bgcolor: isActive
+                        ? colors.primary.light
+                        : colors.primary.light,
                     },
                     transition: "all 0.2s ease",
                   }}
