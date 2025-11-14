@@ -11,8 +11,17 @@ import {
   Typography,
   CircularProgress,
   Alert,
+  IconButton,
+  ImageList,
+  ImageListItem,
+  ImageListItemBar,
+  Snackbar,
 } from "@mui/material";
-import { Close as CloseIcon } from "@mui/icons-material";
+import {
+  Close as CloseIcon,
+  CloudUpload as CloudUploadIcon,
+  Delete as DeleteIcon,
+} from "@mui/icons-material";
 import { cameraService } from "../../services/camera.service";
 
 interface ModalAddCameraProps {
@@ -29,6 +38,7 @@ export interface CameraFormData {
   serialNumber: string; // Số serial
   estimatedValueVnd: number; // Giá trị ước tính
   specsJson: string; // Thông số kỹ thuật
+  mediaFiles?: File[]; // Danh sách file ảnh upload
 }
 
 export default function ModalAddCamera({
@@ -44,13 +54,20 @@ export default function ModalAddCamera({
     serialNumber: "",
     estimatedValueVnd: 0,
     specsJson: "",
+    mediaFiles: [],
   });
+
+  // State quản lý preview ảnh
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
 
   // State quản lý loading, lỗi và thành công
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState<string>("");
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+
+  // State quản lý toast thông báo
+  const [openSnackbar, setOpenSnackbar] = useState(false);
 
   /**
    * Xử lý thay đổi input text
@@ -81,6 +98,56 @@ export default function ModalAddCamera({
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: "" }));
     }
+  };
+
+  /**
+   * Xử lý chọn file ảnh
+   */
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const newFiles = Array.from(files);
+
+    // Kiểm tra loại file
+    const validFiles = newFiles.filter((file) => {
+      const isImage = file.type.startsWith("image/");
+      if (!isImage) {
+        setError(`File ${file.name} không phải là ảnh`);
+      }
+      return isImage;
+    });
+
+    if (validFiles.length === 0) return;
+
+    // Cập nhật formData với files mới
+    setFormData((prev) => ({
+      ...prev,
+      mediaFiles: [...(prev.mediaFiles || []), ...validFiles],
+    }));
+
+    // Tạo preview cho ảnh
+    const newPreviews = validFiles.map((file) => URL.createObjectURL(file));
+    setImagePreviews((prev) => [...prev, ...newPreviews]);
+
+    // Clear error nếu có
+    if (errors.mediaFiles) {
+      setErrors((prev) => ({ ...prev, mediaFiles: "" }));
+    }
+  };
+
+  /**
+   * Xóa ảnh đã chọn
+   */
+  const handleRemoveImage = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      mediaFiles: prev.mediaFiles?.filter((_, i) => i !== index) || [],
+    }));
+
+    // Revoke object URL để giải phóng bộ nhớ
+    URL.revokeObjectURL(imagePreviews[index]);
+    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
   /**
@@ -126,16 +193,17 @@ export default function ModalAddCamera({
       // Gọi API tạo camera
       await cameraService.createCamera(formData);
 
-      // Hiển thị thông báo thành công
+      // Hiển thị toast thông báo thành công
       setSuccess("Thêm camera thành công!");
+      setOpenSnackbar(true);
 
       // Gọi callback để refresh danh sách
       onAdd();
 
-      // Đóng modal sau 1.5 giây để user thấy thông báo
+      // Đóng modal sau khi thêm thành công
       setTimeout(() => {
         handleClose();
-      }, 1500);
+      }, 500);
     } catch (err) {
       // Xử lý lỗi
       const errorMessage =
@@ -151,6 +219,9 @@ export default function ModalAddCamera({
    * Đóng modal và reset form
    */
   const handleClose = () => {
+    // Revoke tất cả object URLs để giải phóng bộ nhớ
+    imagePreviews.forEach((url) => URL.revokeObjectURL(url));
+
     // Reset form về giá trị mặc định
     setFormData({
       brand: "",
@@ -159,7 +230,9 @@ export default function ModalAddCamera({
       serialNumber: "",
       estimatedValueVnd: 0,
       specsJson: "",
+      mediaFiles: [],
     });
+    setImagePreviews([]);
     setError("");
     setSuccess("");
     setErrors({});
@@ -173,14 +246,17 @@ export default function ModalAddCamera({
           <Typography variant="h5" fontWeight="bold">
             Thêm Camera mới
           </Typography>
-          <Button
+          <IconButton
             onClick={handleClose}
-            color="inherit"
-            size="small"
-            sx={{ inlineSize: "auto" }}
+            sx={{
+              color: "text.secondary",
+              "&:hover": {
+                color: "text.primary",
+              },
+            }}
           >
             <CloseIcon />
-          </Button>
+          </IconButton>
         </Box>
       </DialogTitle>
 
@@ -189,13 +265,6 @@ export default function ModalAddCamera({
         {error && (
           <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError("")}>
             {error}
-          </Alert>
-        )}
-
-        {/* Hiển thị thông báo thành công */}
-        {success && (
-          <Alert severity="success" sx={{ mb: 2 }}>
-            {success}
           </Alert>
         )}
 
@@ -297,6 +366,65 @@ export default function ModalAddCamera({
             rows={3}
             placeholder="VD: Full-frame 33MP, 4K 60fps, 5-axis IBIS..."
           />
+
+          {/* Upload ảnh */}
+          <Box>
+            <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+              Hình ảnh camera
+            </Typography>
+
+            <Button
+              component="label"
+              variant="outlined"
+              startIcon={<CloudUploadIcon />}
+              sx={{ mb: 2 }}
+            >
+              Chọn ảnh
+              <input
+                type="file"
+                hidden
+                multiple
+                accept="image/*"
+                onChange={handleFileChange}
+              />
+            </Button>
+
+            {/* Hiển thị preview ảnh */}
+            {imagePreviews.length > 0 && (
+              <ImageList
+                sx={{ inlineSize: "100%", maxBlockSize: 300 }}
+                cols={3}
+                rowHeight={164}
+              >
+                {imagePreviews.map((preview, index) => (
+                  <ImageListItem key={index}>
+                    <img
+                      src={preview}
+                      alt={`Preview ${index + 1}`}
+                      loading="lazy"
+                      style={{ blockSize: "164px", objectFit: "cover" }}
+                    />
+                    <ImageListItemBar
+                      actionIcon={
+                        <IconButton
+                          sx={{ color: "rgba(255, 255, 255, 0.8)" }}
+                          onClick={() => handleRemoveImage(index)}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      }
+                    />
+                  </ImageListItem>
+                ))}
+              </ImageList>
+            )}
+
+            {imagePreviews.length === 0 && (
+              <Typography variant="body2" color="text.secondary">
+                Chưa có ảnh nào được chọn
+              </Typography>
+            )}
+          </Box>
         </Box>
       </DialogContent>
 
@@ -318,6 +446,22 @@ export default function ModalAddCamera({
           {loading ? <CircularProgress size={24} /> : "Thêm Camera"}
         </Button>
       </DialogActions>
+
+      {/* Toast thông báo thành công */}
+      <Snackbar
+        open={openSnackbar}
+        autoHideDuration={3000}
+        onClose={() => setOpenSnackbar(false)}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+      >
+        <Alert
+          onClose={() => setOpenSnackbar(false)}
+          severity="success"
+          sx={{ inlineSize: "100%" }}
+        >
+          {success}
+        </Alert>
+      </Snackbar>
     </Dialog>
   );
 }

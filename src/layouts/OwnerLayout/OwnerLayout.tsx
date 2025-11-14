@@ -59,11 +59,12 @@ const OwnerLayout: React.FC = () => {
   const drawer = (
     <Box
       sx={{
-        height: "100%",
+        height: "100vh",
         display: "flex",
         flexDirection: "column",
         bgcolor: "#ffffffff",
         borderRight: "1px solid #E5E7EB",
+        overflow: "hidden", // Loại bỏ hoàn toàn scroll
       }}
     >
       {/* Header với Logo và Tiêu đề */}
@@ -75,6 +76,7 @@ const OwnerLayout: React.FC = () => {
           alignItems: "center",
           gap: 1.5,
           borderBottom: "1px solid #E5E7EB",
+          flexShrink: 0, // Không cho co lại
         }}
       >
         <Avatar
@@ -102,7 +104,16 @@ const OwnerLayout: React.FC = () => {
       </Box>
 
       {/* Menu Items */}
-      <Box sx={{ flex: 1, py: 3, px: 2 }}>
+      <Box
+        sx={{
+          flex: 1,
+          py: 3,
+          px: 2,
+          overflow: "hidden", // Không cho scroll
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
         <List sx={{ p: 0 }}>
           {menuItems.map((item) => {
             const isActive = location.pathname === item.path;
@@ -150,6 +161,7 @@ const OwnerLayout: React.FC = () => {
         sx={{
           borderTop: "1px solid #E5E7EB",
           p: 2,
+          flexShrink: 0, // Không cho co lại
         }}
       >
         {/* User Profile */}
@@ -265,6 +277,7 @@ const OwnerLayout: React.FC = () => {
               boxSizing: "border-box",
               width: DRAWER_WIDTH,
               border: "none",
+              overflow: "hidden", // Loại bỏ scroll
             },
           }}
         >
@@ -280,6 +293,7 @@ const OwnerLayout: React.FC = () => {
               boxSizing: "border-box",
               width: DRAWER_WIDTH,
               border: "none",
+              overflow: "hidden", // Loại bỏ scroll
             },
           }}
           open

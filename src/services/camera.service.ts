@@ -3,10 +3,10 @@ const API_BASE_URL = "https://camrent-backend.up.railway.app/api";
 
 // Interface định nghĩa cấu trúc media/hình ảnh của camera
 export interface CameraMedia {
-  id?: string; // ID của media
-  url: string; // URL của hình ảnh/video
-  type?: string; // Loại media (image, video)
-  isPrimary?: boolean; // Có phải ảnh chính không
+  url: string; // URL của hình ảnh
+  contentType?: string; // Loại content (VD: image/jpeg)
+  sizeBytes?: number; // Kích thước file
+  label?: string; // Nhãn mô tả
 }
 
 // Interface định nghĩa danh mục của camera
@@ -125,9 +125,18 @@ export const cameraService = {
   /**
    * Tạo camera mới
    * @param cameraData - Dữ liệu camera cần tạo
+   * @param mediaFiles - Danh sách file ảnh (optional)
    * @returns Promise chứa thông tin camera vừa tạo
    */
-  async createCamera(cameraData: Partial<Camera>): Promise<Camera | null> {
+  async createCamera(cameraData: {
+    brand: string;
+    model: string;
+    variant: string;
+    serialNumber: string;
+    estimatedValueVnd: number;
+    specsJson: string;
+    mediaFiles?: File[];
+  }): Promise<Camera | null> {
     try {
       const token = localStorage.getItem("accessToken");
 
@@ -137,14 +146,35 @@ export const cameraService = {
         );
       }
 
+      // Tạo FormData để gửi cả file và dữ liệu
+      const formData = new FormData();
+
+      // Thêm các trường dữ liệu text
+      formData.append("Brand", cameraData.brand);
+      formData.append("Model", cameraData.model);
+      formData.append("Variant", cameraData.variant);
+      formData.append("SerialNumber", cameraData.serialNumber);
+      formData.append(
+        "EstimatedValueVnd",
+        cameraData.estimatedValueVnd.toString()
+      );
+      formData.append("SpecsJson", cameraData.specsJson);
+
+      // Thêm các file ảnh nếu có
+      if (cameraData.mediaFiles && cameraData.mediaFiles.length > 0) {
+        cameraData.mediaFiles.forEach((file) => {
+          formData.append("MediaFiles", file);
+        });
+      }
+
       const response = await fetch(`${API_BASE_URL}/Cameras`, {
         method: "POST",
         headers: {
           accept: "*/*",
-          "Content-Type": "application/json",
+          // Không set Content-Type khi dùng FormData, browser tự set với boundary
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(cameraData),
+        body: formData,
       });
 
       if (!response.ok) {
