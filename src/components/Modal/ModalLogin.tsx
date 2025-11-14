@@ -15,6 +15,8 @@ import {
 import { X, Eye, EyeOff, Camera } from "lucide-react";
 import { authService } from "../../services/auth.service";
 import { colors } from "../../theme/colors";
+import { decodeToken } from "../../utils/decodeToken";
+
 type Props = {
   open: boolean;
   onClose: () => void;
@@ -44,6 +46,24 @@ const ModalLogin: React.FC<Props> = ({
       const response = await authService.login({ email, password });
 
       console.log("Login successful:", response);
+
+      // Decode token để lấy userID và thông tin khác
+      const decodedToken = decodeToken(response.token);
+
+      if (decodedToken) {
+        console.log("Decoded Token:", decodedToken);
+        console.log(
+          "User ID:",
+          decodedToken.userId || decodedToken.id || decodedToken.sub
+        );
+
+        // Lưu userID vào localStorage nếu cần
+        const userId =
+          decodedToken.userId || decodedToken.id || decodedToken.sub;
+        if (userId) {
+          localStorage.setItem("userId", userId);
+        }
+      }
 
       // Reset form
       setEmail("");

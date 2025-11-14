@@ -93,7 +93,6 @@ export const cameraService = {
           method: "GET",
           headers: {
             accept: "*/*", // Chấp nhận mọi loại response
-            "Content-Type": "application/json", // Định dạng dữ liệu gửi đi
             Authorization: `Bearer ${token}`, // Token xác thực
           },
         }
