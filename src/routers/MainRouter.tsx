@@ -33,6 +33,7 @@ import MyAssignments from "../pages/Staff/MyAssignments";
 import ManagerProfile from "../pages/Manager/ManagerProfile";
 import StaffManagement from "../pages/Manager/StaffManagement";
 import EquipmentCheck from "../pages/Staff/EquipmentCheck";
+import BookingDetail from "../pages/Staff/BookingDetail";
 const routes: RouteObject[] = [
   {
     path: "/",
@@ -193,6 +194,10 @@ const routes: RouteObject[] = [
       {
         path: "my-assignments",
         element: <MyAssignments />,
+      },
+      {
+        path: "booking/:id",
+        element: <BookingDetail />,
       },
       {
         path: "equipment-check",

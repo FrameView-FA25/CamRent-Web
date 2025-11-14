@@ -1,4 +1,4 @@
-import type { Booking, BookingItem, Staff, CreateDeliveryRequest } from "../types/booking.types";
+import type { Booking, BookingItem, Staff, CreateDeliveryRequest,  } from "../types/booking.types";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 const getAuthHeaders = () => {
@@ -248,5 +248,98 @@ export const fetchStaffBookings = async (): Promise<{
       err instanceof Error ? err.message : "An error occurred";
     console.error("Error fetching staff bookings:", err);
     return { bookings: [], error: errorMessage };
+  }
+};
+
+export const fetchBookingById = async (
+  bookingId: string
+): Promise<{ booking: Booking | null; error: string | null }> => {
+  try {
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    const mockBooking: Booking = {
+      id: bookingId,
+      renterId: "renter-123",
+      type: 0,
+      pickupAt: new Date().toISOString(),
+      returnAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      deliveryAddress: "123 Nguyễn Huệ, Quận 1, TP.HCM",
+      status: 1,
+      statusText: "Confirmed",
+      snapshotRentalTotal: 5000000,
+      snapshotDepositAmount: 2000000,
+      snapshotTransportFee: 100000,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      renter: {
+        id: "renter-123",
+        fullName: "Nguyễn Văn A",
+        email: "nguyenvana@email.com",
+        phoneNumber: "0912345678",
+        address: "123 Nguyễn Huệ, Quận 1, TP.HCM",
+        dateOfBirth: "1990-01-01",
+        gender: 1,
+        avatar: "",
+        emailConfirmed: true,
+        phoneNumberConfirmed: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      items: [
+        {
+          cameraId: "item-1",
+          productId: "product-1",
+          quantity: 1,
+          unitPrice: 3000000,
+          depositAmount: 1000000,
+          product: {
+            id: "product-1",
+            name: "Canon EOS R5",
+            category: "Camera",
+            brand: "Canon",
+            model: "EOS R5",
+            price: 3000000,
+            depositAmount: 1000000,
+            rating: 4.8,
+            reviewCount: 156,
+            categoryId: "cat-1",
+            description: "Máy ảnh chuyên nghiệp",
+            specifications: "42MP, 8K Video",
+            status: 1,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+        },  
+        {
+          cameraId: "item-2",
+          productId: "product-2",
+          quantity: 1,
+          unitPrice: 2000000,
+          depositAmount: 1000000,
+          product: {
+            id: "product-2",
+            name: "Lens RF 24-70mm f/2.8",
+            category: "Lens",
+            brand: "Canon",
+            model: "RF 24-70mm",
+            price: 2000000,
+            depositAmount: 1000000,
+            rating: 4.9,
+            reviewCount: 89,
+            categoryId: "cat-2",
+            description: "Ống kính zoom đa năng",
+            specifications: "24-70mm, f/2.8",
+            status: 1,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+        },
+      ],
+    };
+
+    return { booking: mockBooking, error: null };
+  } catch (error: unknown) {
+    console.error("Error fetching booking by ID:", error);
+    return { booking: null, error: "Không thể tải thông tin đơn hàng" };
   }
 };
