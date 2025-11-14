@@ -56,7 +56,7 @@ const StaffLayout: React.FC = () => {
   };
 
   const handleLogout = () => {
-    logout(); // Xóa dữ liệu xác thực
+    logout();
     navigate("/");
   };
 

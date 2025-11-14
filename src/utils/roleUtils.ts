@@ -12,6 +12,8 @@ export const getDefaultRouteByRole = (role: string): string => {
     return "/manager/dashboard";
   } else if (role === "Staff") {
     return "/staff/dashboard";
+  } else if (role === "Renter") {
+    return "/renter/dashboard";
   }
   // Mặc định trả về trang chủ nếu không có role đặc biệt
   return "/";

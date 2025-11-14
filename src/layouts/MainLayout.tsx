@@ -5,10 +5,7 @@ import CameraRegisterModal from "@/components/Modal/ModalRegister";
 import { useAuth } from "@/hooks/useAuth";
 import { Button, Menu, MenuItem } from "@mui/material";
 import { User, LogOut } from "lucide-react";
-import {
-  getDefaultRouteByRole,
-  getProfileRouteByRole,
-} from "@/utils/roleUtils";
+import { getDefaultRouteByRole } from "@/utils/roleUtils";
 import { colors } from "../theme/colors";
 const MainLayout: React.FC = () => {
   const location = useLocation();
@@ -68,9 +65,14 @@ const MainLayout: React.FC = () => {
   const handleProfile = () => {
     handleMenuClose();
     const role = localStorage.getItem("role");
-    if (role) {
-      const profileRoute = getProfileRouteByRole(role);
-      navigate(profileRoute);
+    if (role == "Renter") {
+      navigate("/renter/dashboard");
+    } else if (role == "Staff") {
+      navigate("/staff/dashboard");
+    } else if (role == "BranchManager") {
+      navigate("/manager/dashboard");
+    } else if (role == "Owner") {
+      navigate("/owner/dashboard");
     }
   };
   return (
