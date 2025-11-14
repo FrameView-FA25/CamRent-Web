@@ -1,146 +1,304 @@
-import React from "react";
-import { Outlet, useNavigate, useLocation } from "react-router-dom";
+import React, { useState } from "react";
+import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Box,
+  Toolbar,
+  Typography,
+  IconButton,
+  Avatar,
   Drawer,
   List,
-  Typography,
   ListItem,
-  ListItemButton,
   ListItemIcon,
   ListItemText,
-  Avatar,
-  Divider,
-  Button,
+  ListItemButton,
+  Stack,
 } from "@mui/material";
 import {
-  Dashboard,
-  Assignment,
-  Person,
-  Settings,
-  Logout,
+  Menu as MenuIcon,
+  Home as HomeIcon,
+  People as PeopleIcon,
+  Inventory as ProductsIcon,
+  ShoppingCart as OrdersIcon,
+  Settings as SettingsIcon,
+  ExitToApp as LogoutIcon,
+  Person as PersonIcon,
 } from "@mui/icons-material";
 import { useAuth } from "../../hooks/useAuth";
 
-const drawerWidth = 240;
+const DRAWER_WIDTH = 280;
+
+const menuItems = [
+  { text: "Dashboard", icon: <HomeIcon />, path: "/staff/dashboard" },
+  {
+    text: "My Assignment",
+    icon: <PeopleIcon />,
+    path: "/staff/my-assignments",
+  },
+  { text: "Booking", icon: <ProductsIcon />, path: "/staff/booking" },
+  { text: "Orders", icon: <OrdersIcon />, path: "/staff/orders" },
+  { text: "Profile", icon: <PersonIcon />, path: "/staff/profile" },
+  { text: "Settings", icon: <SettingsIcon />, path: "/staff/settings" },
+];
 
 const StaffLayout: React.FC = () => {
-  const navigate = useNavigate();
   const location = useLocation();
+  const navigate = useNavigate();
+  const [mobileOpen, setMobileOpen] = useState(false);
   const { user, logout } = useAuth();
 
-  const menuItems = [
-    { text: "Dashboard", icon: <Dashboard />, path: "/staff/dashboard" },
-    {
-      text: "Đơn hàng của tôi",
-      icon: <Assignment />,
-      path: "/staff/my-assignments",
-    },
-    { text: "Profile", icon: <Person />, path: "/staff/profile" },
-    { text: "Settings", icon: <Settings />, path: "/staff/settings" },
-  ];
+  const handleDrawerToggle = () => {
+    setMobileOpen(!mobileOpen);
+  };
 
   const handleLogout = () => {
     logout(); // Xóa dữ liệu xác thực
     navigate("/");
   };
 
-  return (
-    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#f5f7fa" }}>
-      <Drawer
-        variant="permanent"
+  const drawer = (
+    <Box
+      sx={{
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        bgcolor: "#ffffffff",
+        borderRight: "1px solid #E5E7EB",
+      }}
+    >
+      {/* Header với Logo và Tiêu đề */}
+      <Box
         sx={{
-          width: drawerWidth,
-          flexShrink: 0,
-          "& .MuiDrawer-paper": {
-            width: drawerWidth,
-            boxSizing: "border-box",
-            bgcolor: "#fff",
-            borderRight: "1px solid #e0e0e0",
+          px: 3,
+          py: 2.5,
+          display: "flex",
+          alignItems: "center",
+          gap: 1.5,
+          borderBottom: "1px solid #E5E7EB",
+        }}
+      >
+        <Avatar
+          sx={{
+            width: 40,
+            height: 40,
+            bgcolor: "#1F2937",
+            fontSize: "1.25rem",
+            fontWeight: 700,
+          }}
+        >
+          A
+        </Avatar>
+        <Typography
+          variant="h6"
+          sx={{
+            color: "#1F2937",
+            fontWeight: 700,
+            fontSize: "1.25rem",
+            letterSpacing: "-0.02em",
+          }}
+        >
+          Staff Panel
+        </Typography>
+      </Box>
+
+      {/* Menu Items */}
+      <Box sx={{ flex: 1, py: 3, px: 2 }}>
+        <List sx={{ p: 0 }}>
+          {menuItems.map((item) => {
+            const isActive = location.pathname === item.path;
+            return (
+              <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
+                <ListItemButton
+                  component={Link}
+                  to={item.path}
+                  sx={{
+                    borderRadius: 1.5,
+                    py: 1.5,
+                    px: 2,
+                    color: isActive ? "#f7f7f7ff" : "#6B7280",
+                    bgcolor: isActive ? "#F97316" : "transparent",
+                    "&:hover": {
+                      bgcolor: isActive ? "#F97316" : "#F97316",
+                    },
+                    transition: "all 0.2s ease",
+                  }}
+                >
+                  <ListItemIcon
+                    sx={{
+                      color: "inherit",
+                      minWidth: 40,
+                    }}
+                  >
+                    {item.icon}
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={item.text}
+                    primaryTypographyProps={{
+                      fontWeight: isActive ? 600 : 500,
+                      fontSize: "0.9375rem",
+                    }}
+                  />
+                </ListItemButton>
+              </ListItem>
+            );
+          })}
+        </List>
+      </Box>
+
+      {/* User Info và Logout */}
+      <Box
+        sx={{
+          borderTop: "1px solid #E5E7EB",
+          p: 2,
+        }}
+      >
+        {/* User Profile */}
+        <Stack
+          direction="row"
+          spacing={1.5}
+          alignItems="center"
+          sx={{
+            p: 1.5,
+            borderRadius: 1.5,
+            bgcolor: "#F9FAFB",
+            mb: 1,
+          }}
+        >
+          <Avatar
+            sx={{
+              width: 40,
+              height: 40,
+              bgcolor: "#3B82F6",
+            }}
+            src="/user-avatar.jpg"
+          >
+            {user?.fullName ? user.fullName.charAt(0) : "O"}
+          </Avatar>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography
+              sx={{
+                fontSize: "0.9375rem",
+                fontWeight: 600,
+                color: "#1F2937",
+                lineHeight: 1.3,
+              }}
+            >
+              {user?.fullName || "Owner"}
+            </Typography>
+            <Typography
+              sx={{
+                fontSize: "0.8125rem",
+                color: "#6B7280",
+                lineHeight: 1.3,
+              }}
+            >
+              {user?.roles?.join(", ") || "User Role"}
+            </Typography>
+          </Box>
+        </Stack>
+
+        {/* Logout Button */}
+        <ListItemButton
+          onClick={handleLogout}
+          sx={{
+            borderRadius: 1.5,
+            py: 1.5,
+            px: 2,
+            color: "#EF4444",
+            "&:hover": {
+              bgcolor: "#FEF2F2",
+            },
+          }}
+        >
+          <ListItemIcon sx={{ color: "inherit", minWidth: 40 }}>
+            <LogoutIcon />
+          </ListItemIcon>
+          <ListItemText
+            primary="Logout"
+            primaryTypographyProps={{
+              fontWeight: 500,
+              fontSize: "0.9375rem",
+            }}
+          />
+        </ListItemButton>
+      </Box>
+    </Box>
+  );
+
+  return (
+    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#F9FAFB" }}>
+      {/* Mobile Menu Button - Chỉ hiển thị trên mobile */}
+      <IconButton
+        onClick={handleDrawerToggle}
+        sx={{
+          display: { xs: "block", md: "none" },
+          position: "fixed",
+          top: 16,
+          left: 16,
+          zIndex: 1300,
+          bgcolor: "#FFFFFF",
+          boxShadow: "0 1px 3px 0 rgb(0 0 0 / 0.1)",
+          "&:hover": {
+            bgcolor: "#F3F4F6",
           },
         }}
       >
-        <Box sx={{ p: 2, display: "flex", alignItems: "center", gap: 1.5 }}>
-          <Avatar sx={{ bgcolor: "#1e3a5f", width: 32, height: 32 }}>
-            {user?.fullName ? user.fullName.charAt(0) : "O"}
-          </Avatar>
-          <Typography variant="h6" sx={{ fontWeight: 600, color: "#000000ff" }}>
-            Bảng nhân viên
-          </Typography>
-        </Box>
+        <MenuIcon />
+      </IconButton>
 
-        <Divider />
+      {/* Sidebar Drawer */}
+      <Box
+        component="nav"
+        sx={{ width: { md: DRAWER_WIDTH }, flexShrink: { md: 0 } }}
+      >
+        {/* Mobile drawer */}
+        <Drawer
+          variant="temporary"
+          open={mobileOpen}
+          onClose={handleDrawerToggle}
+          ModalProps={{
+            keepMounted: true,
+          }}
+          sx={{
+            display: { xs: "block", md: "none" },
+            "& .MuiDrawer-paper": {
+              boxSizing: "border-box",
+              width: DRAWER_WIDTH,
+              border: "none",
+            },
+          }}
+        >
+          {drawer}
+        </Drawer>
 
-        <List sx={{ px: 1, py: 2 }}>
-          {menuItems.map((item) => (
-            <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
-              <ListItemButton
-                selected={location.pathname === item.path}
-                onClick={() => navigate(item.path)}
-                sx={{
-                  borderRadius: 1,
-                  "&.Mui-selected": {
-                    bgcolor: "#e3f2fd",
-                    color: "#1976d2",
-                    "& .MuiListItemIcon-root": { color: "#1976d2" },
-                  },
-                  "&:hover": { bgcolor: "#f5f5f5" },
-                }}
-              >
-                <ListItemIcon
-                  sx={{
-                    minWidth: 40,
-                    color: location.pathname === item.path ? "#1976d2" : "#666",
-                  }}
-                >
-                  {item.icon}
-                </ListItemIcon>
-                <ListItemText
-                  primary={item.text}
-                  sx={{
-                    "& .MuiTypography-root": {
-                      fontSize: "0.95rem",
-                      fontWeight: location.pathname === item.path ? 600 : 400,
-                    },
-                  }}
-                />
-              </ListItemButton>
-            </ListItem>
-          ))}
-        </List>
+        {/* Desktop drawer */}
+        <Drawer
+          variant="permanent"
+          sx={{
+            display: { xs: "none", md: "block" },
+            "& .MuiDrawer-paper": {
+              boxSizing: "border-box",
+              width: DRAWER_WIDTH,
+              border: "none",
+            },
+          }}
+          open
+        >
+          {drawer}
+        </Drawer>
+      </Box>
 
-        <Box sx={{ mt: "auto", p: 2 }}>
-          <Divider sx={{ mb: 2 }} />
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 2 }}>
-            <Avatar sx={{ bgcolor: "#2196f3", width: 40, height: 40 }}>
-              {user?.fullName ? user.fullName.charAt(0) : "O"}
-            </Avatar>
-            <Box>
-              <Typography sx={{ fontSize: "0.9rem", fontWeight: 600 }}>
-                {user?.fullName || "Staff Name"}
-              </Typography>
-              <Typography sx={{ fontSize: "0.75rem", color: "#666" }}>
-                {user?.roles?.join(", ") || "User Role"}
-              </Typography>
-            </Box>
-          </Box>
-          <Button
-            fullWidth
-            startIcon={<Logout />}
-            onClick={handleLogout}
-            sx={{
-              color: "#d32f2f",
-              justifyContent: "flex-start",
-              textTransform: "none",
-              "&:hover": { bgcolor: "#ffebee" },
-            }}
-          >
-            Logout
-          </Button>
-        </Box>
-      </Drawer>
-
-      <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
+      {/* Main content */}
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
+          minHeight: "100vh",
+          bgcolor: "#F9FAFB",
+        }}
+      >
+        <Toolbar sx={{ display: { xs: "block", md: "none" } }} />
         <Outlet />
       </Box>
     </Box>
