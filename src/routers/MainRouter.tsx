@@ -36,6 +36,8 @@ import EquipmentCheck from "../pages/Staff/EquipmentCheck";
 import BookingDetail from "../pages/Staff/BookingDetail";
 import RenterLayout from "../layouts/RenterLayout/RenterLayout";
 import RenterDashboard from "@/pages/Renter/Dashboard";
+import OrderPage from "@/pages/Renter/OrderPage";
+import OrderDetailPage from "@/pages/Renter/OrderDetailPage";
 const routes: RouteObject[] = [
   {
     path: "/",
@@ -218,7 +220,7 @@ const routes: RouteObject[] = [
   {
     path: "/renter",
     element: (
-      <ProtectedRoute requiredRole="Rente r">
+      <ProtectedRoute requiredRole="Renter">
         <RenterLayout />
       </ProtectedRoute>
     ),
@@ -226,6 +228,14 @@ const routes: RouteObject[] = [
       {
         path: "dashboard",
         element: <RenterDashboard />,
+      },
+      {
+        path: "my-orders",
+        element: <OrderPage />,
+      },
+      {
+        path: "my-orders/:orderId",
+        element: <OrderDetailPage />,
       },
       // ...other routes
     ],

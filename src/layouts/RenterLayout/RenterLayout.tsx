@@ -31,13 +31,17 @@ import { colors } from "../../theme/colors";
 const DRAWER_WIDTH = 280;
 
 const menuItems = [
-  { text: "Dashboard", icon: <HomeIcon />, path: "/renter/dashboard" },
-  { text: "Products", icon: <CameraIcon />, path: "/renter/products" },
-  { text: "My Orders", icon: <OrdersIcon />, path: "/renter/orders" },
-  { text: "Favorites", icon: <FavoriteIcon />, path: "/renter/favorites" },
-  { text: "Cart", icon: <CartIcon />, path: "/renter/cart" },
-  { text: "Profile", icon: <PersonIcon />, path: "/renter/profile" },
-  { text: "Settings", icon: <SettingsIcon />, path: "/renter/settings" },
+  { text: "Trang Chủ", icon: <HomeIcon />, path: "/renter/dashboard" },
+  { text: "Sản Phẩm", icon: <CameraIcon />, path: "/renter/products" },
+  { text: "Đơn Hàng", icon: <OrdersIcon />, path: "/renter/my-orders" },
+  {
+    text: "Sản Phẩm Yêu Thích",
+    icon: <FavoriteIcon />,
+    path: "/renter/favorites",
+  },
+  { text: "Giỏ Hàng", icon: <CartIcon />, path: "/renter/cart" },
+  { text: "Thông Tin Cá Nhân", icon: <PersonIcon />, path: "/renter/profile" },
+  { text: "Cài Đặt", icon: <SettingsIcon />, path: "/renter/settings" },
 ];
 
 const RenterLayout: React.FC = () => {
