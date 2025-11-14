@@ -20,24 +20,31 @@ export interface Camera {
   id: string; // ID duy nhất của camera
   brand: string; // Thương hiệu (VD: Sony, Canon)
   model: string; // Model của camera (VD: Alpha A7 IV, R5)
-  variant: string; // Phiên bản (VD: Body Only, Kit)
-  serialNumber: string; // Số serial của camera
+  variant: string | null; // Phiên bản (VD: Body Only, Kit)
+  serialNumber: string | null; // Số serial của camera
   branchName: string | null; // Tên chi nhánh (có thể null)
-  bookingItemType: number; // Loại mục đặt hàng (1: camera, 2: lens, ...)
+  itemType: number; // Loại mục đặt hàng (1: camera, 2: lens, ...)
   baseDailyRate: number; // Giá thuê cơ bản theo ngày (VNĐ)
   estimatedValueVnd: number; // Giá trị ước tính của camera (VNĐ)
-  depositPercent: number; // Phần trăm đặt cọc (VD: 0.2 = 20%)
+  depositPercent: number; // Phần trăm đặt cọc (VD: 0.2 = 20%, hoặc 30 = 30%)
   depositCapMinVnd: number; // Mức đặt cọc tối thiểu (VNĐ)
   depositCapMaxVnd: number; // Mức đặt cọc tối đa (VNĐ)
   media: CameraMedia[]; // Danh sách hình ảnh/media của camera
-  specsJson: string; // Thông số kỹ thuật dạng JSON string
-  categories: CameraCategory[]; // Danh sách danh mục
+  specsJson: string | null; // Thông số kỹ thuật dạng JSON string
 }
 
 // Interface cho response khi gọi API lấy danh sách camera
 export interface GetCamerasByOwnerResponse {
   cameras: Camera[]; // Mảng chứa danh sách camera
   total?: number; // Tổng số camera (optional)
+}
+
+// Interface cho response API Cameras với phân trang
+export interface CamerasResponse {
+  page: number;
+  pageSize: number;
+  total: number;
+  items: Camera[];
 }
 
 // Interface cho Accessory (phụ kiện)
@@ -71,10 +78,15 @@ export interface AccessoriesResponse {
 // Service xử lý các API liên quan đến Camera
 export const cameraService = {
   /**
-   * Lấy danh sách camera theo Owner ID
-   * @returns Promise chứa danh sách camera của owner
+   * Lấy danh sách camera theo Owner ID với phân trang
+   * @param page - Số trang (mặc định: 1)
+   * @param pageSize - Số lượng items mỗi trang (mặc định: 20)
+   * @returns Promise chứa danh sách camera và thông tin phân trang
    */
-  async getCamerasByOwner(): Promise<Camera[]> {
+  async getCamerasByOwner(
+    page: number = 1,
+    pageSize: number = 20
+  ): Promise<CamerasResponse> {
     try {
       // Lấy token xác thực từ localStorage (key là "accessToken" theo auth service)
       const token = localStorage.getItem("accessToken");
@@ -86,13 +98,19 @@ export const cameraService = {
         );
       }
 
+      // Xây dựng query parameters
+      const params = new URLSearchParams({
+        page: page.toString(),
+        pageSize: pageSize.toString(),
+      });
+
       // Gọi API để lấy danh sách camera của owner
       const response = await fetch(
-        `${API_BASE_URL}/Cameras/GetCamerasByOwnerId`,
+        `${API_BASE_URL}/Cameras/GetCamerasByOwnerId?${params.toString()}`,
         {
           method: "GET",
           headers: {
-            accept: "*/*", // Chấp nhận mọi loại response
+            accept: "application/json",
             Authorization: `Bearer ${token}`, // Token xác thực
           },
         }
@@ -108,11 +126,11 @@ export const cameraService = {
         );
       }
 
-      // Parse dữ liệu JSON từ response
-      const data: Camera[] = await response.json();
+      // Parse dữ liệu JSON từ response (có cấu trúc phân trang)
+      const responseData: CamerasResponse = await response.json();
 
-      // Trả về danh sách camera
-      return data;
+      // Trả về toàn bộ response data bao gồm items và thông tin phân trang
+      return responseData;
     } catch (error) {
       // Log lỗi ra console để debug
       console.error("Lỗi khi lấy danh sách camera:", error);
