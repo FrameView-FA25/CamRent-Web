@@ -538,7 +538,7 @@ const ProductPage: React.FC = () => {
               sx={{
                 bgcolor: colors.primary.main,
                 color: "black",
-                "&:hover": { bgcolor: colors.primary.dark },
+                "&:hover": { bgcolor: colors.primary.light },
               }}
             >
               Thử lại
