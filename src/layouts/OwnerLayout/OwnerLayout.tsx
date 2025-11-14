@@ -20,7 +20,6 @@ import {
   People as PeopleIcon,
   Inventory as ProductsIcon,
   ShoppingCart as OrdersIcon,
-  Settings as SettingsIcon,
   ExitToApp as LogoutIcon,
   Person as PersonIcon,
 } from "@mui/icons-material";
@@ -34,7 +33,6 @@ const menuItems = [
   { text: "Products", icon: <ProductsIcon />, path: "/owner/cameras" },
   { text: "Orders", icon: <OrdersIcon />, path: "/owner/orders" },
   { text: "Profile", icon: <PersonIcon />, path: "/owner/profile" },
-  { text: "Settings", icon: <SettingsIcon />, path: "/owner/settings" },
 ];
 
 const OwnerLayout: React.FC = () => {
