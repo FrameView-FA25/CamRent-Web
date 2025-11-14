@@ -20,6 +20,7 @@ import {
   People as PeopleIcon,
   Inventory as ProductsIcon,
   ShoppingCart as OrdersIcon,
+  Settings as SettingsIcon,
   ExitToApp as LogoutIcon,
   Person as PersonIcon,
 } from "@mui/icons-material";
@@ -29,10 +30,15 @@ const DRAWER_WIDTH = 280;
 
 const menuItems = [
   { text: "Dashboard", icon: <HomeIcon />, path: "/owner/dashboard" },
-  { text: "User Management", icon: <PeopleIcon />, path: "/owner/users" },
-  { text: "Products", icon: <ProductsIcon />, path: "/owner/cameras" },
+  {
+    text: "Camera Management",
+    icon: <PeopleIcon />,
+    path: "/owner/cameras",
+  },
+  { text: "Booking", icon: <ProductsIcon />, path: "/owner/booking" },
   { text: "Orders", icon: <OrdersIcon />, path: "/owner/orders" },
   { text: "Profile", icon: <PersonIcon />, path: "/owner/profile" },
+  { text: "Settings", icon: <SettingsIcon />, path: "/owner/settings" },
 ];
 
 const OwnerLayout: React.FC = () => {
@@ -47,7 +53,7 @@ const OwnerLayout: React.FC = () => {
 
   const handleLogout = () => {
     logout(); // Xóa dữ liệu xác thực
-    navigate("/"); // Chuyển hướng về trang chủ
+    navigate("/");
   };
 
   const drawer = (
@@ -56,7 +62,7 @@ const OwnerLayout: React.FC = () => {
         height: "100%",
         display: "flex",
         flexDirection: "column",
-        bgcolor: "#FFFFFF",
+        bgcolor: "#ffffffff",
         borderRight: "1px solid #E5E7EB",
       }}
     >
@@ -109,10 +115,10 @@ const OwnerLayout: React.FC = () => {
                     borderRadius: 1.5,
                     py: 1.5,
                     px: 2,
-                    color: isActive ? "#3B82F6" : "#6B7280",
-                    bgcolor: isActive ? "#EFF6FF" : "transparent",
+                    color: isActive ? "#f7f7f7ff" : "#6B7280",
+                    bgcolor: isActive ? "#F97316" : "transparent",
                     "&:hover": {
-                      bgcolor: isActive ? "#DBEAFE" : "#F3F4F6",
+                      bgcolor: isActive ? "#F97316" : "#F97316",
                     },
                     transition: "all 0.2s ease",
                   }}
