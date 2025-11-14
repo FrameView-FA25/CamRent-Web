@@ -22,12 +22,14 @@ export interface BookingItem {
   bookingId?: string;
   cameraId?: string;
   accessoryId?: string;
+  comboId?: string; // ID của combo
   productId?: string; // Thêm productId
   quantity: number;
   unitPrice: number;
   depositAmount: number;
   camera?: Camera;
   accessory?: Accessory;
+  combo?: Combo; // Thông tin combo
   product?: Product; // Thêm product
 }
 
@@ -58,6 +60,8 @@ export interface Booking {
   snapshotRentalTotal: number;
   snapshotDepositAmount: number;
   snapshotTransportFee: number;
+  snapshotPlatformFeePercent?: number; // Phần trăm phí nền tảng
+  snapshotDepositPercent?: number; // Phần trăm tiền cọc
   createdAt: string;
   updatedAt: string;
   renter?: Renter; // Optional renter details
