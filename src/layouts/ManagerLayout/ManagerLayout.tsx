@@ -30,7 +30,7 @@ const DRAWER_WIDTH = 280;
 
 const menuItems = [
   { text: "Dashboard", icon: <HomeIcon />, path: "/manager/dashboard" },
-  { text: "User Management", icon: <PeopleIcon />, path: "/manager/users" },
+  { text: "Staff Management", icon: <PeopleIcon />, path: "/manager/staff" },
   { text: "Booking", icon: <ProductsIcon />, path: "/manager/booking" },
   { text: "Orders", icon: <OrdersIcon />, path: "/manager/orders" },
   { text: "Profile", icon: <PersonIcon />, path: "/manager/profile" },

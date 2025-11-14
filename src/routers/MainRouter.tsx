@@ -31,6 +31,8 @@ import BookingManagement from "@/pages/Manager/Booking";
 import StaffLayout from "../layouts/StaffLayout/StaffLayout";
 import MyAssignments from "../pages/Staff/MyAssignments";
 import ManagerProfile from "../pages/Manager/ManagerProfile";
+import StaffManagement from "../pages/Manager/StaffManagement";
+
 const routes: RouteObject[] = [
   {
     path: "/",
@@ -155,8 +157,8 @@ const routes: RouteObject[] = [
         element: <DashboardManager />,
       },
       {
-        path: "account",
-        element: <AccountManagement />,
+        path: "staff",
+        element: <StaffManagement />,
       },
       {
         path: "booking",
