@@ -303,7 +303,7 @@ const ProductPage: React.FC = () => {
         const response = await fetch(`${API_BASE_URL}/Cameras`, {
           method: "GET",
           headers: {
-            "Content-Type": "application/json",
+            accept: "application/json",
           },
         });
 
