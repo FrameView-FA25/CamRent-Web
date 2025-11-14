@@ -118,3 +118,30 @@ export interface BookingItemWithProduct {
   camera?: Camera; // Camera details (if applicable)
   accessory?: Accessory; // Accessory details (if applicable)
 }
+
+export interface InspectionItem {
+  section: string;
+  label: string;
+  value: string;
+  passed: boolean;
+  notes: string;
+  images?: string[]; // URLs của hình ảnh
+}
+
+export interface Inspection {
+  bookingId: string;
+  type: number; // 1: Check-in, 2: Check-out
+  performedByUserId: string;
+  branchId: string;
+  notes: string;
+  items: InspectionItem[];
+}
+
+export interface CreateInspectionRequest {
+  bookingId: string;
+  type: number;
+  performedByUserId: string;
+  branchId: string;
+  notes: string;
+  items: InspectionItem[];
+}

@@ -30,6 +30,7 @@ import {
   CheckCircleOutline,
   TaskAlt,
   Visibility,
+  PlaylistAddCheck,
 } from "@mui/icons-material";
 import { fetchStaffBookings } from "../../services/booking.service";
 import type { Booking } from "../../types/booking.types";
@@ -41,6 +42,8 @@ import {
 } from "../../utils/booking.utils";
 import { getItemName } from "../../helpers/booking.helper";
 import { useNavigate } from "react-router-dom";
+import ModalInspection from "../../components/Modal/ModalInspection";
+
 const MyAssignments: React.FC = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,6 +52,10 @@ const MyAssignments: React.FC = () => {
   const [selectedTab, setSelectedTab] = useState(0);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [inspectionModalOpen, setInspectionModalOpen] = useState(false);
+  const [selectedBookingId, setSelectedBookingId] = useState<string | null>(
+    null
+  );
   const navigate = useNavigate();
   useEffect(() => {
     loadAssignments();
@@ -81,6 +88,20 @@ const MyAssignments: React.FC = () => {
 
   const handleViewDetail = (booking: Booking) => {
     navigate(`/staff/booking/${booking.id}`);
+  };
+
+  const handleOpenInspection = (bookingId: string) => {
+    setSelectedBookingId(bookingId);
+    setInspectionModalOpen(true);
+  };
+
+  const handleCloseInspection = () => {
+    setInspectionModalOpen(false);
+    setSelectedBookingId(null);
+  };
+
+  const handleInspectionSuccess = () => {
+    loadAssignments();
   };
 
   const filteredBookings = useMemo(() => {
@@ -607,24 +628,42 @@ const MyAssignments: React.FC = () => {
                           />
                         </TableCell>
                         <TableCell>
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            startIcon={<Visibility fontSize="small" />}
-                            onClick={() => handleViewDetail(booking)}
-                            sx={{
-                              borderColor: "#F97316",
-                              color: "#F97316",
-                              textTransform: "none",
-                              fontWeight: 600,
-                              "&:hover": {
-                                bgcolor: "#FFF7ED",
+                          <Box sx={{ display: "flex", gap: 1 }}>
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              startIcon={<Visibility fontSize="small" />}
+                              onClick={() => handleViewDetail(booking)}
+                              sx={{
                                 borderColor: "#F97316",
-                              },
-                            }}
-                          >
-                            Xem
-                          </Button>
+                                color: "#F97316",
+                                textTransform: "none",
+                                fontWeight: 600,
+                                "&:hover": {
+                                  bgcolor: "#FFF7ED",
+                                  borderColor: "#F97316",
+                                },
+                              }}
+                            >
+                              Xem
+                            </Button>
+                            <Button
+                              variant="contained"
+                              size="small"
+                              startIcon={<PlaylistAddCheck fontSize="small" />}
+                              onClick={() => handleOpenInspection(booking.id)}
+                              sx={{
+                                bgcolor: "#0284C7",
+                                textTransform: "none",
+                                fontWeight: 600,
+                                "&:hover": {
+                                  bgcolor: "#0369A1",
+                                },
+                              }}
+                            >
+                              Kiểm tra
+                            </Button>
+                          </Box>
                         </TableCell>
                       </TableRow>
                     );
@@ -667,6 +706,16 @@ const MyAssignments: React.FC = () => {
           )}
         </Paper>
       </Container>
+
+      {/* Inspection Modal */}
+      {selectedBookingId && (
+        <ModalInspection
+          open={inspectionModalOpen}
+          onClose={handleCloseInspection}
+          bookingId={selectedBookingId}
+          onSuccess={handleInspectionSuccess}
+        />
+      )}
     </Box>
   );
 };
