@@ -25,27 +25,25 @@ import {
 } from "@mui/material";
 import {
   Add as AddIcon,
-  Edit as EditIcon,
   Delete as DeleteIcon,
-  Visibility as ViewIcon,
   Close as CloseIcon,
 } from "@mui/icons-material";
 import ModalAddCamera from "../../../components/Modal/ModalAddCamera";
-import { cameraService } from "../../../services/camera.service";
-import type { Camera } from "../../../services/camera.service";
+import { useCameraContext } from "../../../context/useCameraContext";
 
 export default function CameraManagement() {
+  // Sử dụng context thay vì state local
+  const {
+    cameras,
+    loading,
+    error,
+    fetchCameras,
+    refreshCameras,
+    deleteCamera: deleteCameraFromContext,
+  } = useCameraContext();
+
   // State quản lý modal thêm camera
   const [openAddModal, setOpenAddModal] = useState(false);
-
-  // State lưu danh sách camera từ API
-  const [cameras, setCameras] = useState<Camera[]>([]);
-
-  // State quản lý trạng thái loading khi gọi API
-  const [loading, setLoading] = useState(true);
-
-  // State quản lý thông báo lỗi
-  const [error, setError] = useState<string | null>(null);
 
   // State phân trang
   const [currentPage, setCurrentPage] = useState(1);
@@ -55,67 +53,20 @@ export default function CameraManagement() {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   /**
-   * Hàm lấy danh sách camera từ API
-   */
-  const fetchCameras = async () => {
-    // Kiểm tra xem có token không trước khi gọi API
-    const token = localStorage.getItem("accessToken");
-    if (!token) {
-      setError(
-        "Bạn chưa đăng nhập. Vui lòng đăng nhập để xem danh sách camera."
-      );
-      setLoading(false);
-      setCameras([]); // Set mảng rỗng
-      return;
-    }
-
-    try {
-      setLoading(true); // Bắt đầu loading
-      setError(null); // Xóa lỗi cũ nếu có
-
-      // Gọi API lấy danh sách camera
-      const data = await cameraService.getCamerasByOwner();
-      console.log("API Response:", data); // Debug: xem cấu trúc dữ liệu
-
-      // Kiểm tra xem data có items không
-      if (data && data.items && Array.isArray(data.items)) {
-        setCameras(data.items);
-        console.log("Cameras loaded:", data.items.length); // Debug: số lượng camera
-      } else if (Array.isArray(data)) {
-        // Trường hợp API trả về trực tiếp mảng
-        setCameras(data);
-        console.log("Cameras loaded (direct array):", data.length);
-      } else {
-        console.warn("Unexpected data structure:", data);
-        setCameras([]);
-      }
-    } catch (err) {
-      // Xử lý lỗi
-      const errorMessage =
-        err instanceof Error
-          ? err.message
-          : "Có lỗi xảy ra khi tải danh sách camera";
-      setError(errorMessage);
-      console.error("Lỗi khi tải camera:", err);
-    } finally {
-      setLoading(false); // Kết thúc loading
-    }
-  };
-
-  /**
    * useEffect: Gọi API lấy danh sách camera khi component được mount
+   * Với context, hàm fetchCameras sẽ kiểm tra cache trước khi gọi API
    */
   useEffect(() => {
     fetchCameras();
-  }, []); // Array rỗng [] = chỉ chạy 1 lần khi component mount
+  }, [fetchCameras]);
 
   /**
    * Hàm xử lý khi thêm camera mới thành công
    * Callback được gọi từ ModalAddCamera sau khi API thành công
    */
   const handleAddCamera = () => {
-    // Tải lại danh sách camera sau khi thêm thành công
-    fetchCameras();
+    // Tải lại danh sách camera sau khi thêm thành công (force refresh)
+    refreshCameras();
     // Reset về trang 1 khi thêm mới
     setCurrentPage(1);
   };
@@ -125,22 +76,10 @@ export default function CameraManagement() {
    * @param cameraId - ID của camera cần xóa
    */
   const handleDeleteCamera = async (cameraId: string) => {
-    if (!window.confirm("Bạn có chắc chắn muốn xóa camera này?")) {
-      return;
-    }
-
     try {
-      // Gọi API xóa camera
-      await cameraService.deleteCamera(cameraId);
-      alert("Xóa camera thành công!");
-
-      // Tải lại danh sách camera sau khi xóa
-      fetchCameras();
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Có lỗi xảy ra khi xóa camera";
-      alert(`Lỗi: ${errorMessage}`);
-      console.error("Lỗi khi xóa camera:", err);
+      await deleteCameraFromContext(cameraId);
+    } catch {
+      // Lỗi đã được xử lý trong context
     }
   };
 
@@ -155,10 +94,7 @@ export default function CameraManagement() {
   /**
    * Xử lý thay đổi trang
    */
-  const handlePageChange = (
-    _event: React.ChangeEvent<unknown>,
-    page: number
-  ) => {
+  const handlePageChange = (_: React.ChangeEvent<unknown>, page: number) => {
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -220,7 +156,7 @@ export default function CameraManagement() {
         <Box sx={{ display: "flex", gap: 2 }}>
           <Button
             variant="contained"
-            onClick={fetchCameras}
+            onClick={() => refreshCameras()}
             sx={{
               bgcolor: "#FF6B35",
               color: "#FFFFFF",
@@ -885,34 +821,6 @@ export default function CameraManagement() {
                         justifyContent: "center",
                       }}
                     >
-                      <Tooltip title="Xem chi tiết">
-                        <IconButton
-                          size="small"
-                          sx={{
-                            color: "#64748B",
-                            "&:hover": {
-                              bgcolor: "#EFF6FF",
-                              color: "#3B82F6",
-                            },
-                          }}
-                        >
-                          <ViewIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Chỉnh sửa">
-                        <IconButton
-                          size="small"
-                          sx={{
-                            color: "#64748B",
-                            "&:hover": {
-                              bgcolor: "#FFF5F0",
-                              color: "#FF6B35",
-                            },
-                          }}
-                        >
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
                       <Tooltip title="Xóa camera">
                         <IconButton
                           size="small"
