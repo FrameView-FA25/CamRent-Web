@@ -5,19 +5,30 @@ import {
   Button,
   Card,
   CardContent,
-  CardMedia,
   Chip,
-  IconButton,
   Rating,
   CircularProgress,
   Alert,
   Pagination,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Avatar,
+  IconButton,
+  Tooltip,
+  Dialog,
+  DialogContent,
 } from "@mui/material";
 import {
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
   Visibility as ViewIcon,
+  Close as CloseIcon,
 } from "@mui/icons-material";
 import ModalAddCamera from "../../../components/Modal/ModalAddCamera";
 import { cameraService } from "../../../services/camera.service";
@@ -40,6 +51,9 @@ export default function CameraManagement() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8; // Số lượng camera hiển thị mỗi trang (cố định)
 
+  // State cho preview ảnh
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+
   /**
    * Hàm lấy danh sách camera từ API
    */
@@ -61,7 +75,20 @@ export default function CameraManagement() {
 
       // Gọi API lấy danh sách camera
       const data = await cameraService.getCamerasByOwner();
-      setCameras(data); // Lưu dữ liệu vào state
+      console.log("API Response:", data); // Debug: xem cấu trúc dữ liệu
+
+      // Kiểm tra xem data có items không
+      if (data && data.items && Array.isArray(data.items)) {
+        setCameras(data.items);
+        console.log("Cameras loaded:", data.items.length); // Debug: số lượng camera
+      } else if (Array.isArray(data)) {
+        // Trường hợp API trả về trực tiếp mảng
+        setCameras(data);
+        console.log("Cameras loaded (direct array):", data.length);
+      } else {
+        console.warn("Unexpected data structure:", data);
+        setCameras([]);
+      }
     } catch (err) {
       // Xử lý lỗi
       const errorMessage =
@@ -120,10 +147,10 @@ export default function CameraManagement() {
   /**
    * Tính toán phân trang
    */
-  const totalPages = Math.ceil(cameras.length / itemsPerPage);
+  const totalPages = Math.ceil((cameras?.length || 0) / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentCameras = cameras.slice(startIndex, endIndex);
+  const currentCameras = cameras?.slice(startIndex, endIndex) || [];
 
   /**
    * Xử lý thay đổi trang
@@ -151,12 +178,24 @@ export default function CameraManagement() {
       <Box
         sx={{
           display: "flex",
+          flexDirection: "column",
           justifyContent: "center",
           alignItems: "center",
           blockSize: "60vh",
+          bgcolor: "#F8FAFC",
         }}
       >
-        <CircularProgress size={60} />
+        <CircularProgress size={50} thickness={4} sx={{ color: "#FF6B35" }} />
+        <Typography
+          variant="body1"
+          sx={{
+            mt: 2,
+            color: "#64748B",
+            fontWeight: 500,
+          }}
+        >
+          Đang tải camera...
+        </Typography>
       </Box>
     );
   }
@@ -164,18 +203,58 @@ export default function CameraManagement() {
   // Hiển thị thông báo lỗi nếu có
   if (error) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="error" sx={{ mb: 2 }}>
+      <Box sx={{ p: { xs: 2, md: 4 }, bgcolor: "#F8FAFC", minHeight: "60vh" }}>
+        <Alert
+          severity="error"
+          sx={{
+            mb: 3,
+            borderRadius: 2,
+            border: "1px solid #FEE2E2",
+            "& .MuiAlert-icon": {
+              color: "#EF4444",
+            },
+          }}
+        >
           {error}
         </Alert>
         <Box sx={{ display: "flex", gap: 2 }}>
-          <Button variant="contained" onClick={fetchCameras}>
+          <Button
+            variant="contained"
+            onClick={fetchCameras}
+            sx={{
+              bgcolor: "#FF6B35",
+              color: "#FFFFFF",
+              fontWeight: 600,
+              px: 3,
+              py: 1,
+              textTransform: "none",
+              borderRadius: 2,
+              boxShadow: "0 2px 8px rgba(255, 107, 53, 0.25)",
+              "&:hover": {
+                bgcolor: "#E85D2A",
+                boxShadow: "0 4px 12px rgba(255, 107, 53, 0.35)",
+              },
+            }}
+          >
             Thử lại
           </Button>
           {!localStorage.getItem("accessToken") && (
             <Button
               variant="outlined"
               onClick={() => (window.location.href = "/")}
+              sx={{
+                borderColor: "#CBD5E1",
+                color: "#64748B",
+                fontWeight: 600,
+                px: 3,
+                py: 1,
+                textTransform: "none",
+                borderRadius: 2,
+                "&:hover": {
+                  borderColor: "#94A3B8",
+                  bgcolor: "#F8FAFC",
+                },
+              }}
             >
               Đăng nhập
             </Button>
@@ -186,7 +265,7 @@ export default function CameraManagement() {
   }
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ p: { xs: 2, md: 4 }, bgcolor: "#F8FAFC", minHeight: "100vh" }}>
       {/* Header */}
       <Box
         sx={{
@@ -194,14 +273,31 @@ export default function CameraManagement() {
           justifyContent: "space-between",
           alignItems: "center",
           mb: 4,
+          pb: 3,
+          borderBottom: "3px solid #E2E8F0",
         }}
       >
         <Box>
-          <Typography variant="h4" fontWeight="bold" gutterBottom>
-            Camera Management
+          <Typography
+            variant="h4"
+            fontWeight={700}
+            gutterBottom
+            sx={{
+              color: "#1E293B",
+              letterSpacing: "-0.5px",
+              mb: 0.5,
+            }}
+          >
+            Quản Lý Camera
           </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Manage your camera rental listings
+          <Typography
+            variant="body1"
+            sx={{
+              color: "#64748B",
+              fontWeight: 500,
+            }}
+          >
+            Quản lý và theo dõi kho thiết bị cho thuê của bạn
           </Typography>
         </Box>
         <Button
@@ -209,223 +305,640 @@ export default function CameraManagement() {
           startIcon={<AddIcon />}
           size="large"
           onClick={() => setOpenAddModal(true)}
+          sx={{
+            bgcolor: "#FF6B35",
+            color: "#FFFFFF",
+            fontWeight: 600,
+            fontSize: "0.95rem",
+            px: 3,
+            py: 1.25,
+            borderRadius: 2,
+            boxShadow: "0 2px 8px rgba(255, 107, 53, 0.25)",
+            textTransform: "none",
+            "&:hover": {
+              bgcolor: "#E85D2A",
+              boxShadow: "0 4px 12px rgba(255, 107, 53, 0.35)",
+            },
+            transition: "all 0.2s ease",
+          }}
         >
-          Thêm Camera mới
+          Thêm Camera Mới
         </Button>
       </Box>
 
       {/* Stats - Thống kê tổng quan */}
-      <Box sx={{ display: "flex", gap: 3, mb: 4, flexWrap: "wrap" }}>
-        <Box sx={{ flex: { xs: "1 1 100%", sm: "1 1 calc(25% - 12px)" } }}>
-          <Card>
-            <CardContent sx={{ textAlign: "center" }}>
-              <Typography variant="h3" fontWeight="bold" color="primary">
-                {cameras.length}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Tổng Camera
-              </Typography>
-            </CardContent>
-          </Card>
-        </Box>
-        <Box sx={{ flex: { xs: "1 1 100%", sm: "1 1 calc(25% - 12px)" } }}>
-          <Card>
-            <CardContent sx={{ textAlign: "center" }}>
-              <Typography variant="h3" fontWeight="bold" color="success.main">
-                {cameras.length}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Có sẵn
-              </Typography>
-            </CardContent>
-          </Card>
-        </Box>
-        <Box sx={{ flex: { xs: "1 1 100%", sm: "1 1 calc(25% - 12px)" } }}>
-          <Card>
-            <CardContent sx={{ textAlign: "center" }}>
-              <Typography variant="h3" fontWeight="bold" color="error.main">
-                0
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Đã thuê
-              </Typography>
-            </CardContent>
-          </Card>
-        </Box>
-        <Box sx={{ flex: { xs: "1 1 100%", sm: "1 1 calc(25% - 12px)" } }}>
-          <Card>
-            <CardContent sx={{ textAlign: "center" }}>
-              <Typography variant="h3" fontWeight="bold" color="warning.main">
-                0
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Bảo trì
-              </Typography>
-            </CardContent>
-          </Card>
-        </Box>
-      </Box>
-
-      {/* Camera Grid - Danh sách camera dạng lưới */}
       <Box
         sx={{
           display: "grid",
           gridTemplateColumns: {
             xs: "1fr",
             sm: "repeat(2, 1fr)",
-            md: "repeat(3, 1fr)",
             lg: "repeat(4, 1fr)",
           },
           gap: 3,
+          mb: 4,
         }}
       >
-        {cameras.length === 0 ? (
+        <Card
+          elevation={0}
+          sx={{
+            bgcolor: "#FFFFFF",
+            border: "1px solid #E2E8F0",
+            borderRadius: 2.5,
+            transition: "all 0.2s ease",
+            "&:hover": {
+              borderColor: "#FF6B35",
+              boxShadow: "0 4px 12px rgba(255, 107, 53, 0.08)",
+            },
+          }}
+        >
+          <CardContent sx={{ p: 3 }}>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+              }}
+            >
+              <Box>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: "#64748B",
+                    fontWeight: 600,
+                    mb: 1,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                    fontSize: "0.75rem",
+                  }}
+                >
+                  Tổng Camera
+                </Typography>
+                <Typography
+                  variant="h3"
+                  fontWeight={700}
+                  sx={{ color: "#1E293B" }}
+                >
+                  {cameras?.length || 0}
+                </Typography>
+              </Box>
+              <Box
+                sx={{
+                  bgcolor: "#FFF5F0",
+                  p: 1.5,
+                  borderRadius: 2,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Typography sx={{ fontSize: "1.5rem" }}>📦</Typography>
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
+
+        <Card
+          elevation={0}
+          sx={{
+            bgcolor: "#FFFFFF",
+            border: "1px solid #E2E8F0",
+            borderRadius: 2.5,
+            transition: "all 0.2s ease",
+            "&:hover": {
+              borderColor: "#10B981",
+              boxShadow: "0 4px 12px rgba(16, 185, 129, 0.08)",
+            },
+          }}
+        >
+          <CardContent sx={{ p: 3 }}>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+              }}
+            >
+              <Box>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: "#64748B",
+                    fontWeight: 600,
+                    mb: 1,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                    fontSize: "0.75rem",
+                  }}
+                >
+                  Có Sẵn
+                </Typography>
+                <Typography
+                  variant="h3"
+                  fontWeight={700}
+                  sx={{ color: "#10B981" }}
+                >
+                  {cameras?.length || 0}
+                </Typography>
+              </Box>
+              <Box
+                sx={{
+                  bgcolor: "#F0FDF4",
+                  p: 1.5,
+                  borderRadius: 2,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Typography sx={{ fontSize: "1.5rem" }}>✅</Typography>
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
+
+        <Card
+          elevation={0}
+          sx={{
+            bgcolor: "#FFFFFF",
+            border: "1px solid #E2E8F0",
+            borderRadius: 2.5,
+            transition: "all 0.2s ease",
+            "&:hover": {
+              borderColor: "#3B82F6",
+              boxShadow: "0 4px 12px rgba(59, 130, 246, 0.08)",
+            },
+          }}
+        >
+          <CardContent sx={{ p: 3 }}>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+              }}
+            >
+              <Box>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: "#64748B",
+                    fontWeight: 600,
+                    mb: 1,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                    fontSize: "0.75rem",
+                  }}
+                >
+                  Đã Cho Thuê
+                </Typography>
+                <Typography
+                  variant="h3"
+                  fontWeight={700}
+                  sx={{ color: "#3B82F6" }}
+                >
+                  0
+                </Typography>
+              </Box>
+              <Box
+                sx={{
+                  bgcolor: "#EFF6FF",
+                  p: 1.5,
+                  borderRadius: 2,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Typography sx={{ fontSize: "1.5rem" }}>🔒</Typography>
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
+
+        <Card
+          elevation={0}
+          sx={{
+            bgcolor: "#FFFFFF",
+            border: "1px solid #E2E8F0",
+            borderRadius: 2.5,
+            transition: "all 0.2s ease",
+            "&:hover": {
+              borderColor: "#F59E0B",
+              boxShadow: "0 4px 12px rgba(245, 158, 11, 0.08)",
+            },
+          }}
+        >
+          <CardContent sx={{ p: 3 }}>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+              }}
+            >
+              <Box>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: "#64748B",
+                    fontWeight: 600,
+                    mb: 1,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                    fontSize: "0.75rem",
+                  }}
+                >
+                  Bảo Trì
+                </Typography>
+                <Typography
+                  variant="h3"
+                  fontWeight={700}
+                  sx={{ color: "#F59E0B" }}
+                >
+                  0
+                </Typography>
+              </Box>
+              <Box
+                sx={{
+                  bgcolor: "#FFFBEB",
+                  p: 1.5,
+                  borderRadius: 2,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Typography sx={{ fontSize: "1.5rem" }}>🔧</Typography>
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
+      </Box>
+
+      {/* Camera Table - Danh sách camera dạng bảng */}
+      <TableContainer
+        component={Paper}
+        elevation={0}
+        sx={{
+          borderRadius: 2.5,
+          border: "1px solid #E2E8F0",
+          overflow: "hidden",
+        }}
+      >
+        {(cameras?.length || 0) === 0 ? (
           // Hiển thị khi không có camera
-          <Box sx={{ gridColumn: "1 / -1", textAlign: "center", py: 8 }}>
-            <Typography variant="h6" color="text.secondary">
-              Chưa có camera nào. Nhấn "Thêm Camera mới" để bắt đầu.
+          <Box
+            sx={{
+              textAlign: "center",
+              py: 10,
+              bgcolor: "#FFFFFF",
+            }}
+          >
+            <Box sx={{ mb: 2, opacity: 0.5 }}>
+              <Typography sx={{ fontSize: "4rem" }}>📷</Typography>
+            </Box>
+            <Typography
+              variant="h6"
+              fontWeight={600}
+              sx={{
+                color: "#475569",
+                mb: 1,
+              }}
+            >
+              Chưa có camera nào
+            </Typography>
+            <Typography
+              variant="body2"
+              sx={{
+                color: "#94A3B8",
+                fontWeight: 500,
+              }}
+            >
+              Bắt đầu bằng cách thêm camera đầu tiên vào kho
             </Typography>
           </Box>
         ) : (
-          // Hiển thị danh sách camera của trang hiện tại
-          currentCameras.map((camera) => (
-            <Card
-              key={camera.id}
-              sx={{
-                blockSize: "100%",
-                display: "flex",
-                flexDirection: "column",
-              }}
-            >
-              {/* Hình ảnh camera - Hiển thị ảnh đầu tiên trong mảng media hoặc ảnh mặc định */}
-              <CardMedia
-                component="img"
-                sx={{
-                  blockSize: "250px",
-                  objectFit: "contain",
-                  backgroundColor: "#f5f5f5",
-                }}
-                image={
-                  camera.media && camera.media.length > 0
-                    ? typeof camera.media[0] === "string"
-                      ? camera.media[0]
-                      : camera.media[0].url
-                    : "https://via.placeholder.com/300x200?text=No+Image"
-                }
-                alt={`${camera.brand} ${camera.model}`}
-              />
-              <CardContent sx={{ flexGrow: 1 }}>
-                {/* Tên và trạng thái camera */}
-                <Box
+          <Table>
+            <TableHead>
+              <TableRow sx={{ bgcolor: "#F8FAFC" }}>
+                <TableCell
                   sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "flex-start",
-                    mb: 1,
+                    fontWeight: 700,
+                    color: "#475569",
+                    fontSize: "0.75rem",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                    py: 2,
                   }}
                 >
-                  <Typography variant="h6" fontWeight="bold" gutterBottom>
-                    {camera.brand} {camera.model}
-                  </Typography>
-                  <Chip
-                    label="Có sẵn"
-                    size="small"
-                    color="success"
-                    variant="outlined"
-                  />
-                </Box>
-
-                {/* Thông tin variant và serial number */}
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  Phiên bản: {camera.variant}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  Serial: {camera.serialNumber}
-                </Typography>
-
-                {/* Thông số kỹ thuật */}
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  gutterBottom
-                  sx={{ mt: 1 }}
-                >
-                  Thông số: {camera.specsJson}
-                </Typography>
-
-                {/* Rating giả định - có thể bổ sung sau */}
-                <Box
-                  sx={{ display: "flex", alignItems: "center", mb: 1, mt: 1 }}
-                >
-                  <Rating value={4.5} precision={0.1} size="small" readOnly />
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{ ml: 1 }}
-                  >
-                    (0 lượt thuê)
-                  </Typography>
-                </Box>
-
-                {/* Giá thuê */}
-                <Typography
-                  variant="h6"
-                  color="primary"
-                  fontWeight="bold"
-                  gutterBottom
-                >
-                  {formatPrice(camera.baseDailyRate)}
-                </Typography>
-
-                {/* Giá trị ước tính */}
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                  display="block"
-                >
-                  Giá trị: ₫{camera.estimatedValueVnd.toLocaleString("vi-VN")}
-                </Typography>
-
-                {/* Thông tin đặt cọc */}
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                  display="block"
-                >
-                  Đặt cọc: {(camera.depositPercent * 100).toFixed(0)}%
-                </Typography>
-
-                {/* Action buttons */}
-                <Box
+                  Camera
+                </TableCell>
+                <TableCell
                   sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    mt: 2,
+                    fontWeight: 700,
+                    color: "#475569",
+                    fontSize: "0.75rem",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                    py: 2,
                   }}
                 >
-                  <IconButton color="primary" size="small" title="Xem chi tiết">
-                    <ViewIcon />
-                  </IconButton>
-                  <IconButton color="primary" size="small" title="Chỉnh sửa">
-                    <EditIcon />
-                  </IconButton>
-                  <IconButton
-                    color="error"
-                    size="small"
-                    title="Xóa"
-                    onClick={() => handleDeleteCamera(camera.id)}
-                  >
-                    <DeleteIcon />
-                  </IconButton>
-                </Box>
-              </CardContent>
-            </Card>
-          ))
+                  Phiên Bản
+                </TableCell>
+                <TableCell
+                  sx={{
+                    fontWeight: 700,
+                    color: "#475569",
+                    fontSize: "0.75rem",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                    py: 2,
+                  }}
+                >
+                  Số Serial
+                </TableCell>
+                <TableCell
+                  sx={{
+                    fontWeight: 700,
+                    color: "#475569",
+                    fontSize: "0.75rem",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                    py: 2,
+                  }}
+                >
+                  Thông Số
+                </TableCell>
+                <TableCell
+                  sx={{
+                    fontWeight: 700,
+                    color: "#475569",
+                    fontSize: "0.75rem",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                    py: 2,
+                  }}
+                >
+                  Giá Thuê/Ngày
+                </TableCell>
+                <TableCell
+                  sx={{
+                    fontWeight: 700,
+                    color: "#475569",
+                    fontSize: "0.75rem",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                    py: 2,
+                  }}
+                >
+                  Giá Trị
+                </TableCell>
+                <TableCell
+                  sx={{
+                    fontWeight: 700,
+                    color: "#475569",
+                    fontSize: "0.75rem",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                    py: 2,
+                  }}
+                >
+                  Trạng Thái
+                </TableCell>
+                <TableCell
+                  align="center"
+                  sx={{
+                    fontWeight: 700,
+                    color: "#475569",
+                    fontSize: "0.75rem",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                    py: 2,
+                  }}
+                >
+                  Thao Tác
+                </TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {currentCameras.map((camera) => (
+                <TableRow
+                  key={camera.id}
+                  sx={{
+                    "&:hover": {
+                      bgcolor: "#F8FAFC",
+                    },
+                    transition: "background-color 0.2s ease",
+                  }}
+                >
+                  <TableCell>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                      <Avatar
+                        variant="square"
+                        src={
+                          camera.media && camera.media.length > 0
+                            ? typeof camera.media[0] === "string"
+                              ? camera.media[0]
+                              : camera.media[0].url
+                            : "https://via.placeholder.com/80?text=No+Image"
+                        }
+                        alt={`${camera.brand} ${camera.model}`}
+                        onClick={() => {
+                          const imageUrl =
+                            camera.media && camera.media.length > 0
+                              ? typeof camera.media[0] === "string"
+                                ? camera.media[0]
+                                : camera.media[0].url
+                              : "https://via.placeholder.com/80?text=No+Image";
+                          setPreviewImage(imageUrl);
+                        }}
+                        sx={{
+                          width: 90,
+                          height: 90,
+                          bgcolor: "#F8FAFC",
+                          border: "2px solid #E2E8F0",
+                          cursor: "pointer",
+                          transition: "all 0.3s ease",
+                          "& img": {
+                            objectFit: "contain",
+                          },
+                          "&:hover": {
+                            borderColor: "#FF6B35",
+                            transform: "scale(1.05)",
+                            boxShadow: "0 4px 12px rgba(255, 107, 53, 0.2)",
+                          },
+                        }}
+                      />
+                      <Box>
+                        <Typography
+                          variant="body2"
+                          fontWeight={600}
+                          sx={{ color: "#1E293B", mb: 0.25 }}
+                        >
+                          {camera.brand} {camera.model}
+                        </Typography>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 0.5,
+                          }}
+                        >
+                          <Rating
+                            value={4.5}
+                            precision={0.1}
+                            size="small"
+                            readOnly
+                            sx={{ fontSize: "0.9rem", color: "#F59E0B" }}
+                          />
+                          <Typography
+                            variant="caption"
+                            sx={{ color: "#94A3B8", fontSize: "0.7rem" }}
+                          >
+                            (0)
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </Box>
+                  </TableCell>
+                  <TableCell>
+                    <Typography
+                      variant="body2"
+                      sx={{ color: "#64748B", fontWeight: 500 }}
+                    >
+                      {camera.variant}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: "#64748B",
+                        fontFamily: "monospace",
+                        bgcolor: "#F8FAFC",
+                        px: 1,
+                        py: 0.5,
+                        borderRadius: 1,
+                        fontSize: "0.75rem",
+                      }}
+                    >
+                      {camera.serialNumber}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: "#64748B",
+                        maxWidth: 200,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {camera.specsJson}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Typography
+                      variant="body2"
+                      fontWeight={700}
+                      sx={{ color: "#FF6B35" }}
+                    >
+                      {formatPrice(camera.baseDailyRate)}
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      sx={{ color: "#94A3B8", fontSize: "0.7rem" }}
+                    >
+                      Đặt cọc: {(camera.depositPercent * 100).toFixed(0)}%
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Typography
+                      variant="body2"
+                      sx={{ color: "#64748B", fontWeight: 500 }}
+                    >
+                      ₫{camera.estimatedValueVnd.toLocaleString("vi-VN")}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Chip
+                      label="Có sẵn"
+                      size="small"
+                      sx={{
+                        bgcolor: "#ECFDF5",
+                        color: "#059669",
+                        fontWeight: 600,
+                        fontSize: "0.7rem",
+                        height: "24px",
+                        border: "1px solid #A7F3D0",
+                      }}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        gap: 0.5,
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Tooltip title="Xem chi tiết">
+                        <IconButton
+                          size="small"
+                          sx={{
+                            color: "#64748B",
+                            "&:hover": {
+                              bgcolor: "#EFF6FF",
+                              color: "#3B82F6",
+                            },
+                          }}
+                        >
+                          <ViewIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Chỉnh sửa">
+                        <IconButton
+                          size="small"
+                          sx={{
+                            color: "#64748B",
+                            "&:hover": {
+                              bgcolor: "#FFF5F0",
+                              color: "#FF6B35",
+                            },
+                          }}
+                        >
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Xóa camera">
+                        <IconButton
+                          size="small"
+                          onClick={() => handleDeleteCamera(camera.id)}
+                          sx={{
+                            color: "#64748B",
+                            "&:hover": {
+                              bgcolor: "#FEF2F2",
+                              color: "#EF4444",
+                            },
+                          }}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         )}
-      </Box>
+      </TableContainer>
 
       {/* Phân trang */}
-      {cameras.length > 0 && (
+      {(cameras?.length || 0) > 0 && (
         <Box
           sx={{
             display: "flex",
@@ -438,10 +951,30 @@ export default function CameraManagement() {
             count={totalPages}
             page={currentPage}
             onChange={handlePageChange}
-            color="primary"
             size="large"
             showFirstButton
             showLastButton
+            sx={{
+              "& .MuiPaginationItem-root": {
+                fontSize: "0.95rem",
+                fontWeight: 600,
+                color: "#64748B",
+                border: "1px solid #E2E8F0",
+                borderRadius: 1.5,
+                "&:hover": {
+                  bgcolor: "#F8FAFC",
+                  borderColor: "#CBD5E1",
+                },
+                "&.Mui-selected": {
+                  bgcolor: "#FF6B35",
+                  color: "#FFFFFF",
+                  borderColor: "#FF6B35",
+                  "&:hover": {
+                    bgcolor: "#E85D2A",
+                  },
+                },
+              },
+            }}
           />
         </Box>
       )}
@@ -452,6 +985,61 @@ export default function CameraManagement() {
         onClose={() => setOpenAddModal(false)}
         onAdd={handleAddCamera}
       />
+
+      {/* Image Preview Dialog */}
+      <Dialog
+        open={previewImage !== null}
+        onClose={() => setPreviewImage(null)}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            overflow: "hidden",
+          },
+        }}
+      >
+        <DialogContent
+          sx={{
+            p: 0,
+            bgcolor: "#1E293B",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            minHeight: "400px",
+            position: "relative",
+          }}
+        >
+          {previewImage && (
+            <>
+              <img
+                src={previewImage}
+                alt="Preview"
+                style={{
+                  maxWidth: "100%",
+                  maxHeight: "80vh",
+                  objectFit: "contain",
+                }}
+              />
+              <IconButton
+                onClick={() => setPreviewImage(null)}
+                sx={{
+                  position: "absolute",
+                  top: 16,
+                  right: 16,
+                  bgcolor: "rgba(255, 255, 255, 0.9)",
+                  color: "#1E293B",
+                  "&:hover": {
+                    bgcolor: "#FFFFFF",
+                  },
+                }}
+              >
+                <CloseIcon />
+              </IconButton>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 }

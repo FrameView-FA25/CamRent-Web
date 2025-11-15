@@ -10,8 +10,10 @@ import {
   Button,
   Alert,
   CircularProgress,
+  ToggleButtonGroup,
+  ToggleButton,
 } from "@mui/material";
-import { X, Eye, EyeOff, Camera } from "lucide-react";
+import { X, Eye, EyeOff, Camera, User, Store } from "lucide-react";
 import { authService } from "../../services/auth.service";
 
 type Props = {
@@ -36,6 +38,7 @@ const ModalRegister: React.FC<Props> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [accountType, setAccountType] = useState<"renter" | "owner">("renter");
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,15 +70,25 @@ const ModalRegister: React.FC<Props> = ({
     setLoading(true);
 
     try {
-      await authService.register({
+      const registerData = {
         email: email.trim(),
         phone: phone.trim(),
         password: password,
         fullName: fullName.trim(),
-        role: 0, // Role 0 cho Renter theo API spec
-      });
+        role: accountType === "owner" ? 0 : 0, // Role theo API spec
+      };
 
-      setSuccess("Đăng ký thành công! Vui lòng đăng nhập.");
+      if (accountType === "owner") {
+        await authService.registerOwner(registerData);
+      } else {
+        await authService.register(registerData);
+      }
+
+      setSuccess(
+        `Đăng ký ${
+          accountType === "owner" ? "Owner" : "Renter"
+        } thành công! Vui lòng đăng nhập.`
+      );
 
       // Reset form
       setFullName("");
@@ -146,6 +159,53 @@ const ModalRegister: React.FC<Props> = ({
           <Typography variant="body1" color="text.secondary">
             Tham gia CamRent để thuê thiết bị cao cấp
           </Typography>
+        </Box>
+
+        <Box sx={{ mb: 3, display: "flex", justifyContent: "center" }}>
+          <ToggleButtonGroup
+            value={accountType}
+            exclusive
+            onChange={(_, newValue) => {
+              if (newValue !== null) {
+                setAccountType(newValue);
+                setError(null);
+              }
+            }}
+            aria-label="account type"
+            sx={{
+              "& .MuiToggleButton-root": {
+                px: 3,
+                py: 1,
+                border: "2px solid #E5E7EB",
+                borderRadius: 2,
+                textTransform: "none",
+                fontWeight: 600,
+                "&.Mui-selected": {
+                  bgcolor: "#FACC15",
+                  color: "#111827",
+                  borderColor: "#FACC15",
+                  "&:hover": {
+                    bgcolor: "#EAB308",
+                  },
+                },
+                "&:not(.Mui-selected)": {
+                  color: "#6B7280",
+                  "&:hover": {
+                    bgcolor: "#F3F4F6",
+                  },
+                },
+              },
+            }}
+          >
+            <ToggleButton value="renter" aria-label="renter">
+              <User size={18} style={{ marginRight: 8 }} />
+              Người thuê
+            </ToggleButton>
+            <ToggleButton value="owner" aria-label="owner">
+              <Store size={18} style={{ marginRight: 8 }} />
+              Chủ thiết bị
+            </ToggleButton>
+          </ToggleButtonGroup>
         </Box>
 
         <Box

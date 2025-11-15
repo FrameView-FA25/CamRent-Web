@@ -12,9 +12,6 @@ import {
   CircularProgress,
   Alert,
   IconButton,
-  ImageList,
-  ImageListItem,
-  ImageListItemBar,
   Snackbar,
 } from "@mui/material";
 import {
@@ -120,34 +117,47 @@ export default function ModalAddCamera({
 
     if (validFiles.length === 0) return;
 
-    // Cập nhật formData với files mới
+    // Chỉ lấy ảnh đầu tiên
+    const firstFile = validFiles[0];
+
+    // Revoke URL cũ nếu có
+    if (imagePreviews.length > 0) {
+      imagePreviews.forEach((url) => URL.revokeObjectURL(url));
+    }
+
+    // Cập nhật formData với file mới (chỉ 1 ảnh)
     setFormData((prev) => ({
       ...prev,
-      mediaFiles: [...(prev.mediaFiles || []), ...validFiles],
+      mediaFiles: [firstFile],
     }));
 
-    // Tạo preview cho ảnh
-    const newPreviews = validFiles.map((file) => URL.createObjectURL(file));
-    setImagePreviews((prev) => [...prev, ...newPreviews]);
+    // Tạo preview cho ảnh mới
+    const newPreview = URL.createObjectURL(firstFile);
+    setImagePreviews([newPreview]);
 
     // Clear error nếu có
     if (errors.mediaFiles) {
       setErrors((prev) => ({ ...prev, mediaFiles: "" }));
     }
+
+    // Reset input value để cho phép chọn lại cùng file
+    e.target.value = "";
   };
 
   /**
    * Xóa ảnh đã chọn
    */
-  const handleRemoveImage = (index: number) => {
+  const handleRemoveImage = () => {
     setFormData((prev) => ({
       ...prev,
-      mediaFiles: prev.mediaFiles?.filter((_, i) => i !== index) || [],
+      mediaFiles: [],
     }));
 
     // Revoke object URL để giải phóng bộ nhớ
-    URL.revokeObjectURL(imagePreviews[index]);
-    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
+    if (imagePreviews.length > 0) {
+      URL.revokeObjectURL(imagePreviews[0]);
+    }
+    setImagePreviews([]);
   };
 
   /**
@@ -240,19 +250,59 @@ export default function ModalAddCamera({
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-      <DialogTitle>
+    <Dialog
+      open={open}
+      onClose={handleClose}
+      maxWidth="md"
+      fullWidth
+      PaperProps={{
+        sx: {
+          borderRadius: 3,
+          boxShadow: "0 8px 32px rgba(0, 0, 0, 0.12)",
+        },
+      }}
+    >
+      <DialogTitle
+        sx={{
+          bgcolor: "#F8FAFC",
+          borderBottom: "2px solid #E2E8F0",
+          p: 3,
+        }}
+      >
         <Box display="flex" justifyContent="space-between" alignItems="center">
-          <Typography variant="h5" fontWeight="bold">
-            Thêm Camera mới
-          </Typography>
+          <Box>
+            <Typography
+              variant="h5"
+              fontWeight={700}
+              sx={{
+                color: "#1E293B",
+                mb: 0.5,
+                letterSpacing: "-0.5px",
+              }}
+            >
+              Thêm Camera Mới
+            </Typography>
+            <Typography
+              variant="body2"
+              sx={{
+                color: "#64748B",
+                fontWeight: 500,
+              }}
+            >
+              Nhập thông tin chi tiết về camera cho thuê
+            </Typography>
+          </Box>
           <IconButton
             onClick={handleClose}
             sx={{
-              color: "text.secondary",
+              bgcolor: "#FFFFFF",
+              border: "1px solid #E2E8F0",
               "&:hover": {
-                color: "text.primary",
+                bgcolor: "#FEF2F2",
+                borderColor: "#FF6B35",
+                color: "#FF6B35",
               },
+              transition: "all 0.2s ease",
             }}
           >
             <CloseIcon />
@@ -260,10 +310,29 @@ export default function ModalAddCamera({
         </Box>
       </DialogTitle>
 
-      <DialogContent dividers>
+      <DialogContent
+        dividers
+        sx={{
+          p: 3,
+          bgcolor: "#FFFFFF",
+          borderColor: "#E2E8F0",
+        }}
+      >
         {/* Hiển thị thông báo lỗi nếu có */}
         {error && (
-          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError("")}>
+          <Alert
+            severity="error"
+            sx={{
+              mb: 3,
+              borderRadius: 2,
+              border: "1px solid #FEE2E2",
+              bgcolor: "#FEF2F2",
+              "& .MuiAlert-icon": {
+                color: "#EF4444",
+              },
+            }}
+            onClose={() => setError("")}
+          >
             {error}
           </Alert>
         )}
@@ -287,6 +356,20 @@ export default function ModalAddCamera({
               helperText={errors.brand}
               required
               placeholder="VD: Canon, Sony, Nikon..."
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: 2,
+                  "&:hover fieldset": {
+                    borderColor: "#FF6B35",
+                  },
+                  "&.Mui-focused fieldset": {
+                    borderColor: "#FF6B35",
+                  },
+                },
+                "& .MuiInputLabel-root.Mui-focused": {
+                  color: "#FF6B35",
+                },
+              }}
             />
 
             <TextField
@@ -299,6 +382,20 @@ export default function ModalAddCamera({
               helperText={errors.model}
               required
               placeholder="VD: Alpha A7 IV, EOS R5..."
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: 2,
+                  "&:hover fieldset": {
+                    borderColor: "#FF6B35",
+                  },
+                  "&.Mui-focused fieldset": {
+                    borderColor: "#FF6B35",
+                  },
+                },
+                "& .MuiInputLabel-root.Mui-focused": {
+                  color: "#FF6B35",
+                },
+              }}
             />
           </Box>
 
@@ -320,6 +417,20 @@ export default function ModalAddCamera({
               helperText={errors.variant}
               required
               placeholder="VD: Body Only, Kit 24-70mm..."
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: 2,
+                  "&:hover fieldset": {
+                    borderColor: "#FF6B35",
+                  },
+                  "&.Mui-focused fieldset": {
+                    borderColor: "#FF6B35",
+                  },
+                },
+                "& .MuiInputLabel-root.Mui-focused": {
+                  color: "#FF6B35",
+                },
+              }}
             />
             <TextField
               fullWidth
@@ -331,6 +442,20 @@ export default function ModalAddCamera({
               helperText={errors.serialNumber}
               required
               placeholder="VD: SN20251110A7IV001"
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: 2,
+                  "&:hover fieldset": {
+                    borderColor: "#FF6B35",
+                  },
+                  "&.Mui-focused fieldset": {
+                    borderColor: "#FF6B35",
+                  },
+                },
+                "& .MuiInputLabel-root.Mui-focused": {
+                  color: "#FF6B35",
+                },
+              }}
             />
           </Box>
 
@@ -353,6 +478,20 @@ export default function ModalAddCamera({
               ),
             }}
             placeholder="48000000"
+            sx={{
+              "& .MuiOutlinedInput-root": {
+                borderRadius: 2,
+                "&:hover fieldset": {
+                  borderColor: "#FF6B35",
+                },
+                "&.Mui-focused fieldset": {
+                  borderColor: "#FF6B35",
+                },
+              },
+              "& .MuiInputLabel-root.Mui-focused": {
+                color: "#FF6B35",
+              },
+            }}
           />
 
           {/* Thông số kỹ thuật */}
@@ -365,11 +504,33 @@ export default function ModalAddCamera({
             multiline
             rows={3}
             placeholder="VD: Full-frame 33MP, 4K 60fps, 5-axis IBIS..."
+            sx={{
+              "& .MuiOutlinedInput-root": {
+                borderRadius: 2,
+                "&:hover fieldset": {
+                  borderColor: "#FF6B35",
+                },
+                "&.Mui-focused fieldset": {
+                  borderColor: "#FF6B35",
+                },
+              },
+              "& .MuiInputLabel-root.Mui-focused": {
+                color: "#FF6B35",
+              },
+            }}
           />
 
           {/* Upload ảnh */}
           <Box>
-            <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+            <Typography
+              variant="subtitle1"
+              fontWeight={700}
+              gutterBottom
+              sx={{
+                color: "#1E293B",
+                mb: 2,
+              }}
+            >
               Hình ảnh camera
             </Typography>
 
@@ -377,13 +538,25 @@ export default function ModalAddCamera({
               component="label"
               variant="outlined"
               startIcon={<CloudUploadIcon />}
-              sx={{ mb: 2 }}
+              sx={{
+                mb: 2,
+                borderColor: "#E2E8F0",
+                color: "#64748B",
+                fontWeight: 600,
+                borderRadius: 2,
+                px: 3,
+                textTransform: "none",
+                "&:hover": {
+                  borderColor: "#FF6B35",
+                  bgcolor: "#FFF5F0",
+                  color: "#FF6B35",
+                },
+              }}
             >
               Chọn ảnh
               <input
                 type="file"
                 hidden
-                multiple
                 accept="image/*"
                 onChange={handleFileChange}
               />
@@ -391,49 +564,91 @@ export default function ModalAddCamera({
 
             {/* Hiển thị preview ảnh */}
             {imagePreviews.length > 0 && (
-              <ImageList
-                sx={{ inlineSize: "100%", maxBlockSize: 300 }}
-                cols={3}
-                rowHeight={164}
+              <Box
+                sx={{
+                  position: "relative",
+                  border: "1px solid #E2E8F0",
+                  borderRadius: 2,
+                  p: 2,
+                  bgcolor: "#F8FAFC",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  minHeight: "300px",
+                }}
               >
-                {imagePreviews.map((preview, index) => (
-                  <ImageListItem key={index}>
-                    <img
-                      src={preview}
-                      alt={`Preview ${index + 1}`}
-                      loading="lazy"
-                      style={{ blockSize: "164px", objectFit: "cover" }}
-                    />
-                    <ImageListItemBar
-                      actionIcon={
-                        <IconButton
-                          sx={{ color: "rgba(255, 255, 255, 0.8)" }}
-                          onClick={() => handleRemoveImage(index)}
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      }
-                    />
-                  </ImageListItem>
-                ))}
-              </ImageList>
+                <img
+                  src={imagePreviews[0]}
+                  alt="Preview"
+                  style={{
+                    maxWidth: "100%",
+                    maxHeight: "300px",
+                    objectFit: "contain",
+                  }}
+                />
+                <IconButton
+                  onClick={handleRemoveImage}
+                  sx={{
+                    position: "absolute",
+                    top: 8,
+                    right: 8,
+                    bgcolor: "rgba(0, 0, 0, 0.6)",
+                    color: "#FFFFFF",
+                    "&:hover": {
+                      bgcolor: "#FF6B35",
+                    },
+                  }}
+                >
+                  <DeleteIcon />
+                </IconButton>
+              </Box>
             )}
 
             {imagePreviews.length === 0 && (
-              <Typography variant="body2" color="text.secondary">
-                Chưa có ảnh nào được chọn
-              </Typography>
+              <Box
+                sx={{
+                  border: "2px dashed #E2E8F0",
+                  borderRadius: 2,
+                  p: 4,
+                  textAlign: "center",
+                  bgcolor: "#F8FAFC",
+                }}
+              >
+                <Typography variant="body2" sx={{ color: "#94A3B8" }}>
+                  Chưa có ảnh nào được chọn
+                </Typography>
+              </Box>
             )}
           </Box>
         </Box>
       </DialogContent>
 
-      <DialogActions sx={{ p: 2.5 }}>
+      <DialogActions
+        sx={{
+          p: 3,
+          bgcolor: "#F8FAFC",
+          borderTop: "1px solid #E2E8F0",
+          gap: 2,
+        }}
+      >
         <Button
           onClick={handleClose}
           variant="outlined"
           size="large"
           disabled={loading}
+          sx={{
+            borderColor: "#CBD5E1",
+            color: "#64748B",
+            fontWeight: 600,
+            px: 4,
+            py: 1.25,
+            borderRadius: 2,
+            textTransform: "none",
+            "&:hover": {
+              borderColor: "#94A3B8",
+              bgcolor: "#F1F5F9",
+            },
+          }}
         >
           Hủy
         </Button>
@@ -442,8 +657,30 @@ export default function ModalAddCamera({
           variant="contained"
           size="large"
           disabled={loading}
+          sx={{
+            bgcolor: "#FF6B35",
+            color: "#FFFFFF",
+            fontWeight: 600,
+            px: 4,
+            py: 1.25,
+            borderRadius: 2,
+            boxShadow: "0 2px 8px rgba(255, 107, 53, 0.25)",
+            textTransform: "none",
+            "&:hover": {
+              bgcolor: "#E85D2A",
+              boxShadow: "0 4px 12px rgba(255, 107, 53, 0.35)",
+            },
+            "&:disabled": {
+              bgcolor: "#FCA58C",
+              color: "#FFFFFF",
+            },
+          }}
         >
-          {loading ? <CircularProgress size={24} /> : "Thêm Camera"}
+          {loading ? (
+            <CircularProgress size={24} sx={{ color: "#FFFFFF" }} />
+          ) : (
+            "Thêm Camera"
+          )}
         </Button>
       </DialogActions>
 
