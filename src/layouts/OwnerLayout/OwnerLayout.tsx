@@ -19,12 +19,13 @@ import {
   Home as HomeIcon,
   People as PeopleIcon,
   ShoppingCart as OrdersIcon,
-  Settings as SettingsIcon,
   ExitToApp as LogoutIcon,
   Person as PersonIcon,
 } from "@mui/icons-material";
 import { useAuth } from "../../hooks/useAuth";
 import { colors } from "../../theme/colors";
+import { CameraProvider } from "../../context/CameraContext";
+
 const DRAWER_WIDTH = 280;
 
 const menuItems = [
@@ -36,7 +37,6 @@ const menuItems = [
   },
   { text: "Orders", icon: <OrdersIcon />, path: "/owner/orders" },
   { text: "Profile", icon: <PersonIcon />, path: "/owner/profile" },
-  { text: "Settings", icon: <SettingsIcon />, path: "/owner/settings" },
 ];
 
 const OwnerLayout: React.FC = () => {
@@ -128,9 +128,14 @@ const OwnerLayout: React.FC = () => {
                     color: isActive ? "#f7f7f7ff" : "#6B7280",
                     bgcolor: isActive ? colors.primary.light : "transparent",
                     "&:hover": {
-                      bgcolor: isActive
-                        ? colors.primary.light
-                        : colors.primary.light,
+                      bgcolor: colors.primary.light,
+                      color: "#FFFFFF",
+                      "& .MuiListItemIcon-root": {
+                        color: "#FFFFFF",
+                      },
+                      "& .MuiListItemText-primary": {
+                        color: "#FFFFFF",
+                      },
                     },
                     transition: "all 0.2s ease",
                   }}
@@ -219,7 +224,14 @@ const OwnerLayout: React.FC = () => {
             px: 2,
             color: "#EF4444",
             "&:hover": {
-              bgcolor: "#FEF2F2",
+              bgcolor: "#EF4444",
+              color: "#FFFFFF",
+              "& .MuiListItemIcon-root": {
+                color: "#FFFFFF",
+              },
+              "& .MuiListItemText-primary": {
+                color: "#FFFFFF",
+              },
             },
           }}
         >
@@ -239,84 +251,86 @@ const OwnerLayout: React.FC = () => {
   );
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#F9FAFB" }}>
-      {/* Mobile Menu Button - Chỉ hiển thị trên mobile */}
-      <IconButton
-        onClick={handleDrawerToggle}
-        sx={{
-          display: { xs: "block", md: "none" },
-          position: "fixed",
-          top: 16,
-          left: 16,
-          zIndex: 1300,
-          bgcolor: "#FFFFFF",
-          boxShadow: "0 1px 3px 0 rgb(0 0 0 / 0.1)",
-          "&:hover": {
-            bgcolor: "#F3F4F6",
-          },
-        }}
-      >
-        <MenuIcon />
-      </IconButton>
-
-      {/* Sidebar Drawer */}
-      <Box
-        component="nav"
-        sx={{ width: { md: DRAWER_WIDTH }, flexShrink: { md: 0 } }}
-      >
-        {/* Mobile drawer */}
-        <Drawer
-          variant="temporary"
-          open={mobileOpen}
-          onClose={handleDrawerToggle}
-          ModalProps={{
-            keepMounted: true,
-          }}
+    <CameraProvider>
+      <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#F9FAFB" }}>
+        {/* Mobile Menu Button - Chỉ hiển thị trên mobile */}
+        <IconButton
+          onClick={handleDrawerToggle}
           sx={{
             display: { xs: "block", md: "none" },
-            "& .MuiDrawer-paper": {
-              boxSizing: "border-box",
-              width: DRAWER_WIDTH,
-              border: "none",
-              overflow: "hidden", // Loại bỏ scroll
+            position: "fixed",
+            top: 16,
+            left: 16,
+            zIndex: 1300,
+            bgcolor: "#FFFFFF",
+            boxShadow: "0 1px 3px 0 rgb(0 0 0 / 0.1)",
+            "&:hover": {
+              bgcolor: "#F3F4F6",
             },
           }}
         >
-          {drawer}
-        </Drawer>
+          <MenuIcon />
+        </IconButton>
 
-        {/* Desktop drawer */}
-        <Drawer
-          variant="permanent"
+        {/* Sidebar Drawer */}
+        <Box
+          component="nav"
+          sx={{ width: { md: DRAWER_WIDTH }, flexShrink: { md: 0 } }}
+        >
+          {/* Mobile drawer */}
+          <Drawer
+            variant="temporary"
+            open={mobileOpen}
+            onClose={handleDrawerToggle}
+            ModalProps={{
+              keepMounted: true,
+            }}
+            sx={{
+              display: { xs: "block", md: "none" },
+              "& .MuiDrawer-paper": {
+                boxSizing: "border-box",
+                width: DRAWER_WIDTH,
+                border: "none",
+                overflow: "hidden", // Loại bỏ scroll
+              },
+            }}
+          >
+            {drawer}
+          </Drawer>
+
+          {/* Desktop drawer */}
+          <Drawer
+            variant="permanent"
+            sx={{
+              display: { xs: "none", md: "block" },
+              "& .MuiDrawer-paper": {
+                boxSizing: "border-box",
+                width: DRAWER_WIDTH,
+                border: "none",
+                overflow: "hidden", // Loại bỏ scroll
+              },
+            }}
+            open
+          >
+            {drawer}
+          </Drawer>
+        </Box>
+
+        {/* Main content */}
+        <Box
+          component="main"
           sx={{
-            display: { xs: "none", md: "block" },
-            "& .MuiDrawer-paper": {
-              boxSizing: "border-box",
-              width: DRAWER_WIDTH,
-              border: "none",
-              overflow: "hidden", // Loại bỏ scroll
-            },
+            flexGrow: 1,
+            width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
+            minHeight: "100vh",
+            bgcolor: "#F9FAFB",
           }}
-          open
         >
-          {drawer}
-        </Drawer>
+          <Toolbar sx={{ display: { xs: "block", md: "none" } }} />
+          <Outlet />
+        </Box>
       </Box>
-
-      {/* Main content */}
-      <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
-          minHeight: "100vh",
-          bgcolor: "#F9FAFB",
-        }}
-      >
-        <Toolbar sx={{ display: { xs: "block", md: "none" } }} />
-        <Outlet />
-      </Box>
-    </Box>
+    </CameraProvider>
   );
 };
 
