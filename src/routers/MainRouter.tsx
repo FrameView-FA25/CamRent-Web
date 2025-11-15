@@ -38,6 +38,7 @@ import RenterLayout from "../layouts/RenterLayout/RenterLayout";
 import RenterDashboard from "@/pages/Renter/Dashboard";
 import OrderPage from "@/pages/Renter/OrderPage";
 import OrderDetailPage from "@/pages/Renter/OrderDetailPage";
+import ProductManagementPage from "@/pages/Manager/ProductManagement";
 const routes: RouteObject[] = [
   {
     path: "/",
@@ -172,6 +173,10 @@ const routes: RouteObject[] = [
       {
         path: "devices",
         element: <DeviceManagement />,
+      },
+      {
+        path: "products",
+        element: <ProductManagementPage />,
       },
       {
         path: "profile",

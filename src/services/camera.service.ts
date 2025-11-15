@@ -1,5 +1,5 @@
 // API Base URL
-const API_BASE_URL = "https://camrent-backend.up.railway.app/api";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://camrent-backend.up.railway.app';
 
 // Interface định nghĩa cấu trúc media/hình ảnh của camera
 export interface CameraMedia {

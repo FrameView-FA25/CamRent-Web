@@ -25,7 +25,7 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import type { Accessory } from "../services/camera.service";
 import { colors } from "../theme/colors";
-import type { Camera } from "../types/product.type";
+import type { Camera } from "../types/product.types";
 import { useCameras, useAccessories } from "../hooks/useProducts";
 
 const formatCurrency = (amount: number): string => {

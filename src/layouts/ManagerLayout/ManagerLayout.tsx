@@ -33,6 +33,11 @@ const menuItems = [
   { text: "Staff Management", icon: <PeopleIcon />, path: "/manager/staff" },
   { text: "Booking", icon: <ProductsIcon />, path: "/manager/booking" },
   { text: "Orders", icon: <OrdersIcon />, path: "/manager/orders" },
+  {
+    text: "Product Management",
+    icon: <ProductsIcon />,
+    path: "/manager/products",
+  },
   { text: "Profile", icon: <PersonIcon />, path: "/manager/profile" },
   { text: "Settings", icon: <SettingsIcon />, path: "/manager/settings" },
 ];
