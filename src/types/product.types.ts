@@ -11,7 +11,7 @@ export interface Camera {
   depositPercent: number;
   depositCapMinVnd: number;
   depositCapMaxVnd: number;
-  media: string[];
+  media: MediaItem[];
   specsJson: string | null;
   categories: string[];
 }
@@ -20,4 +20,17 @@ export interface CameraResponse {
   pageSize: number;
   total: number;
   items: Camera[];
+}
+export interface CameraFilters {
+  page: number;
+  pageSize: number;
+  sortBy?: string;
+  sortDir?: 'asc' | 'desc';
+  brand?: string;
+  model?: string;
+  branchName?: string;
+}
+export interface MediaItem {
+  url: string;
+  type?: string;
 }

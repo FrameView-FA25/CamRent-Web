@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { cameraService } from '../services/camera.service';
-import type { Camera, CameraResponse } from '../types/product.type';
+import type { Camera, CameraResponse } from '../types/product.types';
 import type { Accessory } from '../services/camera.service';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
