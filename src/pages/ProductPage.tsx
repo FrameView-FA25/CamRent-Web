@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
@@ -23,35 +23,10 @@ import FilterListIcon from "@mui/icons-material/FilterList";
 import CameraAltOutlinedIcon from "@mui/icons-material/CameraAltOutlined";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
-import { cameraService } from "../services/camera.service";
 import type { Accessory } from "../services/camera.service";
 import { colors } from "../theme/colors";
-interface Camera {
-  id: string;
-  brand: string;
-  model: string;
-  variant: string | null;
-  serialNumber: string | null;
-  branchName: string;
-  bookingItemType: number;
-  baseDailyRate: number;
-  estimatedValueVnd: number;
-  depositPercent: number;
-  depositCapMinVnd: number;
-  depositCapMaxVnd: number;
-  media: string[];
-  specsJson: string | null;
-  categories: string[];
-}
-
-interface CameraResponse {
-  page: number;
-  pageSize: number;
-  total: number;
-  items: Camera[];
-}
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+import type { Camera } from "../types/product.type";
+import { useCameras, useAccessories } from "../hooks/useProducts";
 
 const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat("vi-VN", {
@@ -285,72 +260,26 @@ const ProductCard: React.FC<{ camera: Camera | Accessory }> = ({ camera }) => {
 const ProductPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
-  const [cameras, setCameras] = useState<Camera[]>([]);
-  const [accessories, setAccessories] = useState<Accessory[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [totalCameras, setTotalCameras] = useState(0);
-  const [totalAccessories, setTotalAccessories] = useState(0);
-  const [currentTab, setCurrentTab] = useState(0); // 0: Cameras, 1: Accessories
+  const [currentTab, setCurrentTab] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(20);
 
-  // Fetch cameras
-  useEffect(() => {
-    const fetchCameras = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch(`${API_BASE_URL}/Cameras`, {
-          method: "GET",
-          headers: {
-            accept: "application/json",
-          },
-        });
+  const {
+    cameras,
+    loading: camerasLoading,
+    error: camerasError,
+    total: totalCameras,
+  } = useCameras();
 
-        if (!response.ok) {
-          throw new Error("Failed to fetch cameras");
-        }
+  const {
+    accessories,
+    loading: accessoriesLoading,
+    error: accessoriesError,
+    total: totalAccessories,
+  } = useAccessories(currentTab === 1, currentPage, pageSize, searchQuery);
 
-        const data: CameraResponse = await response.json();
-        setCameras(data.items || []);
-        setTotalCameras(data.total || 0);
-        setError(null);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "An error occurred");
-        console.error("Error fetching cameras:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCameras();
-  }, []);
-
-  // Fetch accessories
-  useEffect(() => {
-    const fetchAccessories = async () => {
-      try {
-        setLoading(true);
-        const data = await cameraService.getAccessories(
-          currentPage,
-          pageSize,
-          searchQuery
-        );
-        setAccessories(data.items || []);
-        setTotalAccessories(data.total || 0);
-        setError(null);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "An error occurred");
-        console.error("Error fetching accessories:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (currentTab === 1) {
-      fetchAccessories();
-    }
-  }, [currentTab, currentPage, searchQuery, pageSize]);
+  const loading = currentTab === 0 ? camerasLoading : accessoriesLoading;
+  const error = currentTab === 0 ? camerasError : accessoriesError;
 
   const categories = useMemo(() => {
     const items = currentTab === 0 ? cameras : accessories;
@@ -510,7 +439,9 @@ const ProductPage: React.FC = () => {
                     fontWeight: selected ? 700 : 500,
                     borderRadius: 999,
                     px: 1,
-                    "&:hover": { bgcolor: selected ? amber[500] : grey[100] },
+                    "&:hover": {
+                      bgcolor: selected ? colors.primary.main : grey[100],
+                    },
                     border: selected ? "none" : `1px solid ${grey[200]}`,
                   }}
                 />
