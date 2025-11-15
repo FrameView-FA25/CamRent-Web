@@ -127,4 +127,36 @@ export const authService = {
     const text = await response.text();
     return { success: true, message: text };
   },
+
+  async registerOwner(data: RegisterRequest): Promise<RegisterResponse> {
+    const response = await fetch(`${API_BASE_URL}/Auths/OwnerRegister`, {
+      method: "POST",
+      headers: {
+        accept: "*/*",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      let errorMessage = `Đăng ký Owner thất bại với mã lỗi ${response.status}`;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorMessage;
+      } catch {
+        const errorText = await response.text().catch(() => "");
+        if (errorText) errorMessage = errorText;
+      }
+      throw new Error(errorMessage);
+    }
+
+    const contentType = response.headers.get("content-type");
+
+    if (contentType?.includes("application/json")) {
+      return await response.json();
+    }
+
+    const text = await response.text();
+    return { success: true, message: text };
+  },
 };
