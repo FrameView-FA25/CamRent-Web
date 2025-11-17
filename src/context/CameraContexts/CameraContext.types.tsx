@@ -1,7 +1,7 @@
 // Import các dependencies từ React
 import { createContext } from "react";
 import type { Dispatch, SetStateAction } from "react";
-import type { Camera } from "../services/camera.service";
+import type { Camera } from "../../services/camera.service";
 
 /**
  * Interface định nghĩa cấu trúc dữ liệu của CameraContext

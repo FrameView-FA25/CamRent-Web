@@ -17,9 +17,13 @@ export interface Verification {
   name: string;
   phoneNumber: string;
   inspectionDate: string;
-  notes?: string;
+  status: "pending" | "approved" | "rejected" | "completed" | "cancelled";
+  staffId: string | null;
+  staffName: string | null;
   branchId: string;
+  branchName: string;
+  address: string;
+  notes: string;
   createdAt?: string;
   updatedAt?: string;
-  status?: "pending" | "approved" | "rejected";
 }
