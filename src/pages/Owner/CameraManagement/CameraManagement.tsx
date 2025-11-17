@@ -29,7 +29,7 @@ import {
   Close as CloseIcon,
 } from "@mui/icons-material";
 import ModalAddCamera from "../../../components/Modal/ModalAddCamera";
-import { useCameraContext } from "../../../context/useCameraContext";
+import { useCameraContext } from "../../../context/CameraContexts/useCameraContext";
 
 export default function CameraManagement() {
   // Sử dụng context thay vì state local

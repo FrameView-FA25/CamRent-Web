@@ -4,8 +4,8 @@ import { CameraContext } from "./CameraContext.types";
 import type { ReactNode, Dispatch, SetStateAction } from "react";
 
 // Import service để gọi API camera
-import { cameraService } from "../services/camera.service";
-import type { Camera } from "../services/camera.service";
+import { cameraService } from "../../services/camera.service";
+import type { Camera } from "../../services/camera.service";
 
 /**
  * Interface định nghĩa kiểu dữ liệu của CameraContext
