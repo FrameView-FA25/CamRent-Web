@@ -36,8 +36,13 @@ const formatCurrency = (amount: number): string => {
 };
 
 // Component ProductCard có thể hiển thị cả Camera và Accessory
+// Component ProductCard có thể hiển thị cả Camera và Accessory
 const ProductCard: React.FC<{ camera: Camera | Accessory }> = ({ camera }) => {
   const navigate = useNavigate();
+
+  // mock tạm thông tin owner & verified (sau này thay bằng data từ API)
+  const ownerName = "Studio Ánh Sáng";
+  const isVerified = true; // hoặc false để test UI
 
   // Xử lý media cho cả Camera và Accessory
   const getMediaUrl = () => {
@@ -67,15 +72,23 @@ const ProductCard: React.FC<{ camera: Camera | Accessory }> = ({ camera }) => {
         height: "100%",
         display: "flex",
         flexDirection: "column",
-        borderRadius: 2,
+        borderRadius: 3,
         overflow: "hidden",
-        transition: "box-shadow .3s",
-        "&:hover": { boxShadow: 6 },
+        position: "relative",
         bgcolor: "white",
+        transition: "all 0.25s ease",
+        cursor: "pointer",
+        "&:hover": {
+          transform: "translateY(-4px)",
+          boxShadow: 6,
+        },
       }}
+      onClick={() => navigate(`/products/${camera.id}`)}
     >
+      {/* Ảnh + badge */}
       <Box sx={{ position: "relative", bgcolor: grey[100] }}>
-        <Box sx={{ pt: "100%" }} />
+        <Box sx={{ pt: "70%" }} />{" "}
+        {/* tỉ lệ Ảnh 7:10 trông giống thẻ sản phẩm */}
         <Box
           sx={{
             position: "absolute",
@@ -94,24 +107,43 @@ const ProductCard: React.FC<{ camera: Camera | Accessory }> = ({ camera }) => {
                 width: "100%",
                 height: "100%",
                 objectFit: "cover",
+                display: "block",
               }}
             />
           ) : (
             <CameraAltOutlinedIcon sx={{ fontSize: 64 }} />
           )}
         </Box>
+        {/* Badge Verified / Chờ verify */}
+        <Chip
+          label={isVerified ? "Verified" : "Chờ verify"}
+          size="small"
+          sx={{
+            position: "absolute",
+            top: 12,
+            left: 12,
+            borderRadius: 999,
+            fontSize: 11,
+            fontWeight: 600,
+            bgcolor: isVerified
+              ? "rgba(46, 125, 50, 0.95)"
+              : "rgba(97,97,97,0.9)",
+            color: "white",
+          }}
+        />
+        {/* Badge trạng thái Available giữ nguyên nhưng style lại nhẹ hơn */}
         <Box
           sx={{
             position: "absolute",
-            top: 16,
-            right: 16,
-            bgcolor: colors.primary.main,
-            color: "black",
+            top: 12,
+            right: 12,
+            bgcolor: "rgba(255,255,255,0.9)",
             px: 1.5,
-            py: 0.75,
+            py: 0.5,
             borderRadius: 999,
-            fontWeight: 700,
-            fontSize: 14,
+            fontWeight: 600,
+            fontSize: 12,
+            border: `1px solid ${grey[200]}`,
           }}
         >
           Available
@@ -127,34 +159,50 @@ const ProductCard: React.FC<{ camera: Camera | Accessory }> = ({ camera }) => {
         }}
       >
         <Box sx={{ flexGrow: 1 }}>
+          {/* Brand + model */}
           <Typography variant="body2" sx={{ color: grey[600], mb: 0.5 }}>
             {camera.brand}
           </Typography>
           <Typography
             variant="h6"
-            sx={{ fontWeight: 700, color: grey[900], mb: 0.5 }}
+            sx={{ fontWeight: 700, color: grey[900], mb: 0.5, fontSize: 16 }}
+            noWrap
           >
             {camera.model}
             {camera.variant && (
               <Chip
                 label={camera.variant}
                 size="small"
-                sx={{ ml: 1, height: 20, fontSize: 11 }}
+                sx={{
+                  ml: 1,
+                  height: 20,
+                  fontSize: 11,
+                  borderRadius: 999,
+                }}
               />
             )}
           </Typography>
 
-          {camera.serialNumber && (
-            <Typography
-              variant="caption"
-              sx={{ color: grey[500], mb: 1.5, display: "block" }}
-            >
-              SN: {camera.serialNumber}
-            </Typography>
-          )}
-
+          <Typography
+            variant="caption"
+            sx={{
+              color: grey[500],
+              mb: 1,
+              display: "block",
+              // nếu không có serial thì ẩn chữ nhưng vẫn giữ khoảng trống
+              visibility: camera.serialNumber ? "visible" : "hidden",
+            }}
+          >
+            SN: {camera.serialNumber || "Không có"}
+          </Typography>
+          {/* Branch / location */}
           <Box
-            sx={{ display: "flex", alignItems: "flex-start", mb: 2, gap: 0.5 }}
+            sx={{
+              display: "flex",
+              alignItems: "flex-start",
+              mb: 1,
+              gap: 0.5,
+            }}
           >
             <LocationOnIcon sx={{ fontSize: 16, color: grey[500], mt: 0.25 }} />
             <Box>
@@ -167,6 +215,21 @@ const ProductCard: React.FC<{ camera: Camera | Accessory }> = ({ camera }) => {
             </Box>
           </Box>
 
+          {/* Owner */}
+          <Box sx={{ mb: 1 }}>
+            <Typography variant="caption" sx={{ color: grey[500], mr: 0.5 }}>
+              Owner:
+            </Typography>
+            <Typography
+              variant="body2"
+              component="span"
+              sx={{ fontWeight: 600, color: grey[800] }}
+            >
+              {ownerName}
+            </Typography>
+          </Box>
+
+          {/* Box giá thuê + đặt cọc */}
           <Box
             sx={{
               bgcolor: amber[50],
@@ -181,7 +244,11 @@ const ProductCard: React.FC<{ camera: Camera | Accessory }> = ({ camera }) => {
             }}
           >
             <Box
-              sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                mb: 0.5,
+              }}
             >
               <Typography variant="caption" sx={{ color: grey[600] }}>
                 Giá thuê/ngày:
@@ -215,12 +282,16 @@ const ProductCard: React.FC<{ camera: Camera | Accessory }> = ({ camera }) => {
           </Box>
         </Box>
 
+        {/* Action buttons */}
         <Stack spacing={1.5}>
           <Button
             fullWidth
             variant="outlined"
             startIcon={<VisibilityIcon />}
-            onClick={() => navigate(`/products/${camera.id}`)}
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/products/${camera.id}`);
+            }}
             sx={{
               borderColor: grey[300],
               color: grey[800],
@@ -239,6 +310,10 @@ const ProductCard: React.FC<{ camera: Camera | Accessory }> = ({ camera }) => {
           <Button
             fullWidth
             variant="contained"
+            onClick={(e) => {
+              e.stopPropagation();
+              // sau này handle flow "Thuê ngay"
+            }}
             sx={{
               bgcolor: "black",
               color: "white",
