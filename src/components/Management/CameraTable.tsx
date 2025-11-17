@@ -119,13 +119,13 @@ export const CameraTable: React.FC<CameraTableProps> = ({
                 <Typography
                   variant="body2"
                   fontWeight={600}
-                  color={colors.primary.main}
+                  color={colors.neutral[900]}
                 >
                   {formatCurrency(camera.baseDailyRate)}
                 </Typography>
               </TableCell>
               <TableCell>
-                <Typography variant="body2">
+                <Typography variant="body2" fontWeight={600}>
                   {formatCurrency(camera.estimatedValueVnd)}
                 </Typography>
               </TableCell>
@@ -148,8 +148,8 @@ export const CameraTable: React.FC<CameraTableProps> = ({
                     size="small"
                     onClick={() => onView(camera)}
                     sx={{
-                      color: colors.accent.blue,
-                      "&:hover": { bgcolor: colors.accent.blueLight },
+                      color: colors.neutral[900],
+                      "&:hover": { bgcolor: colors.primary.lighter },
                     }}
                   >
                     <ViewIcon fontSize="small" />
@@ -158,7 +158,7 @@ export const CameraTable: React.FC<CameraTableProps> = ({
                     size="small"
                     onClick={() => onEdit(camera)}
                     sx={{
-                      color: colors.primary.main,
+                      color: colors.neutral[900],
                       "&:hover": { bgcolor: colors.primary.lighter },
                     }}
                   >

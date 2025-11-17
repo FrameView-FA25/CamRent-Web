@@ -75,7 +75,7 @@ const ProductManagementPage: React.FC = () => {
           sx={{ mb: 4 }}
         >
           <Box>
-            <Typography variant="h4" fontWeight={800} sx={{ mb: 0.5 }}>
+            <Typography variant="h4" fontWeight={700} sx={{ mb: 0.5 }}>
               Quản lý Sản phẩm
             </Typography>
             <Typography variant="body2" color="text.secondary">
@@ -117,7 +117,7 @@ const ProductManagementPage: React.FC = () => {
                 color: colors.text.primary,
               },
               "& .Mui-selected": {
-                color: colors.primary.main,
+                color: colors.text.primary,
               },
               "& .MuiTabs-indicator": {
                 bgcolor: colors.primary.main,
