@@ -25,6 +25,7 @@ import DeviceManagement from "../pages/Admin/DeviceManagement/DeviceManagement";
 import AdminSettings from "../pages/Admin/Settings/AdminSettings";
 import AdminProfile from "../pages/Admin/Profile/AdminProfile";
 import OwnerProfile from "../pages/Owner/Profile/OwnerProfile";
+import VerificationManagement from "../pages/Owner/VerificationManagement/VerificationManagement";
 import ManagerLayout from "../layouts/ManagerLayout/ManagerLayout";
 import DashboardManager from "@/pages/Manager/Dashboard";
 import BookingManagement from "@/pages/Manager/Booking";
@@ -113,6 +114,10 @@ const routes: RouteObject[] = [
       {
         path: "profile",
         element: <OwnerProfile />,
+      },
+      {
+        path: "verifications",
+        element: <VerificationManagement />,
       },
     ],
   },

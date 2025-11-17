@@ -21,6 +21,7 @@ import {
   ShoppingCart as OrdersIcon,
   ExitToApp as LogoutIcon,
   Person as PersonIcon,
+  VerifiedUser as VerifiedUserIcon,
 } from "@mui/icons-material";
 import { useAuth } from "../../hooks/useAuth";
 import { colors } from "../../theme/colors";
@@ -36,6 +37,11 @@ const menuItems = [
     path: "/owner/cameras",
   },
   { text: "Orders", icon: <OrdersIcon />, path: "/owner/orders" },
+  {
+    text: "Verification Management",
+    icon: <VerifiedUserIcon />,
+    path: "/owner/verifications",
+  },
   { text: "Profile", icon: <PersonIcon />, path: "/owner/profile" },
 ];
 
@@ -153,6 +159,7 @@ const OwnerLayout: React.FC = () => {
                     primaryTypographyProps={{
                       fontWeight: isActive ? 600 : 500,
                       fontSize: "0.9375rem",
+                      whiteSpace: "nowrap",
                     }}
                   />
                 </ListItemButton>
