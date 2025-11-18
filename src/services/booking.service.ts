@@ -11,6 +11,7 @@ const getAuthHeaders = () => {
   const accessToken = localStorage.getItem("accessToken");
   return {
     "Content-Type": "application/json",
+    Accept: "application/json",
     Authorization: `Bearer ${accessToken}`,
   };
 };
@@ -223,7 +224,9 @@ export const fetchStaffBookings = async (): Promise<{
 
     const response = await fetch(`${API_BASE_URL}/Bookings/staffbookings`, {
       method: "GET",
-      headers: getAuthHeaders(),
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
     });
 
     if (response.status === 401) {
@@ -231,11 +234,29 @@ export const fetchStaffBookings = async (): Promise<{
       throw new Error("Unauthorized. Please login again.");
     }
 
+    // Xử lý trường hợp không có data (404 hoặc 204)
+    if (response.status === 404 || response.status === 204) {
+      console.info("Không có booking nào được gán");
+      return { bookings: [], error: null };
+    }
+
     if (!response.ok) {
-      throw new Error("Failed to fetch staff bookings");
+      const errorText = await response.text();
+      console.error(`HTTP Error ${response.status}:`, errorText);
+      return {
+        bookings: [],
+        error: `Failed to fetch bookings: ${response.status}`,
+      };
     }
 
     const data = await response.json();
+
+    // Kiểm tra nếu data rỗng
+    if (!data || (Array.isArray(data) && data.length === 0)) {
+      console.info("Danh sách booking trống");
+      return { bookings: [], error: null };
+    }
+
     const bookingsArray = Array.isArray(data) ? data : [data];
 
     // Fetch details for all items in all bookings

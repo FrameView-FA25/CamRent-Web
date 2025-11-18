@@ -141,7 +141,7 @@ const MyAssignments: React.FC = () => {
 
   // Render mini chart
   const renderMiniChart = (data: number[], color: string) => {
-    const max = Math.max(...data);
+    const max = Math.max(...data, 1); // Đảm bảo max >= 1 để tránh chia cho 0
     const points = data
       .map((value, index) => {
         const x = (index / (data.length - 1)) * 100;
