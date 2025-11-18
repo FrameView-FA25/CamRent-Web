@@ -65,6 +65,8 @@ export interface Accessory {
   media: string[];
   specsJson: string | null;
   categories: string[];
+  isConfirmed: boolean;
+  isAvailable: boolean;
 }
 
 // Interface cho response API Accessories với phân trang
