@@ -77,6 +77,11 @@ export const verificationService = {
       }
     );
 
+    // Nếu không tìm thấy (404), trả về mảng rỗng thay vì throw error
+    if (response.status === 404) {
+      return [];
+    }
+
     if (!response.ok) {
       let errorMessage = `Lấy danh sách yêu cầu xác minh thất bại với mã lỗi ${response.status}`;
       try {

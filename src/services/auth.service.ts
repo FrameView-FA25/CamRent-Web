@@ -103,7 +103,10 @@ export const authService = {
         accept: "*/*",
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        ...data,
+        role: "Renter",
+      }),
     });
 
     if (!response.ok) {
@@ -135,7 +138,10 @@ export const authService = {
         accept: "*/*",
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        ...data,
+        role: "Owner",
+      }),
     });
 
     if (!response.ok) {
