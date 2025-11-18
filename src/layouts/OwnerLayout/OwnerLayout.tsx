@@ -17,11 +17,12 @@ import {
 import {
   Menu as MenuIcon,
   Home as HomeIcon,
-  People as PeopleIcon,
   ShoppingCart as OrdersIcon,
   ExitToApp as LogoutIcon,
   Person as PersonIcon,
   VerifiedUser as VerifiedUserIcon,
+  CameraAlt as CameraIcon,
+  Backpack as AccessoryIcon,
 } from "@mui/icons-material";
 import { useAuth } from "../../hooks/useAuth";
 import { colors } from "../../theme/colors";
@@ -34,8 +35,13 @@ const menuItems = [
   { text: "Dashboard", icon: <HomeIcon />, path: "/owner/dashboard" },
   {
     text: "Camera Management",
-    icon: <PeopleIcon />,
+    icon: <CameraIcon />,
     path: "/owner/cameras",
+  },
+  {
+    text: "Accessory Management",
+    icon: <AccessoryIcon />,
+    path: "/owner/accessories",
   },
   { text: "Orders", icon: <OrdersIcon />, path: "/owner/orders" },
   {
