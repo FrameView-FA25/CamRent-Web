@@ -25,6 +25,7 @@ import VerifiedIcon from "@mui/icons-material/Verified";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import PersonIcon from "@mui/icons-material/Person";
 import type { Camera } from "../types/product.types";
+import { toast } from "react-toastify";
 const ACCENT = amber[400];
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -43,6 +44,46 @@ const ProductDetailPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState(0);
 
+  // ...existing code...
+
+  const handleAddToCart = async () => {
+    try {
+      const token = localStorage.getItem("accessToken");
+
+      if (!token) {
+        toast.error("Please login to add items to cart");
+        navigate("/login");
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/Bookings/AddToCart`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          id: id, // ID của product
+          type: 1, // 1: Camera, 2: Accessory
+          quantity: 1,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to add to cart");
+      }
+
+      toast.success("Added to cart successfully!", {
+        position: "top-right",
+        autoClose: 2000,
+      });
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+      toast.error("Failed to add to cart");
+    }
+  };
+
+  // ...existing code...
   useEffect(() => {
     const fetchDetail = async () => {
       try {
@@ -274,6 +315,7 @@ const ProductDetailPage: React.FC = () => {
                   variant="outlined"
                   startIcon={<FavoriteBorderIcon />}
                   sx={{ borderRadius: 2 }}
+                  onClick={handleAddToCart}
                 >
                   Add To Cart
                 </Button>
