@@ -9,7 +9,7 @@ import {
   Divider,
   Checkbox,
   Chip,
-  Alert,
+  Skeleton,
 } from "@mui/material";
 import {
   ShoppingCart,
@@ -20,37 +20,30 @@ import {
   Camera,
   Package,
   Calendar,
-  AlertCircle,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { colors } from "../../theme/colors";
 import { toast } from "react-toastify";
 
 interface CartItem {
-  id: string;
-  productId: string;
-  productName: string;
-  category: string;
-  type: number; // 1: Camera, 2: Accessory
+  itemId: string;
+  itemName: string;
+  itemType: string; // "Camera" or "Accessory"
   quantity: number;
   unitPrice: number;
-  depositAmount: number;
-  image: string;
-  isAvailable: boolean;
 }
 
-// interface CartResponse {
-//   items: CartItem[];
-//   totalItems: number;
-//   subtotal: number;
-//   totalDeposit: number;
-// }
+interface CartResponse {
+  id: string;
+  items: CartItem[];
+  totalPrice: number;
+}
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 const CartPage: React.FC = () => {
   const navigate = useNavigate();
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [cartData, setCartData] = useState<CartResponse | null>(null);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
@@ -65,10 +58,9 @@ const CartPage: React.FC = () => {
       setLoading(true);
       const token = localStorage.getItem("accessToken");
 
-      const response = await fetch(`${API_BASE_URL}/Bookings/GetCart`, {
+      const response = await fetch(`${API_BASE_URL}/Bookings/GetCard`, {
         method: "GET",
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
       });
@@ -78,15 +70,12 @@ const CartPage: React.FC = () => {
       }
 
       const data = await response.json();
+      console.log("Cart data:", data);
 
-      // Parse response data
-      if (data.isSuccess && data.data) {
-        setCartItems(data.data.items || []);
-        // Auto select all available items
-        const availableIds = (data.data.items || [])
-          .filter((item: CartItem) => item.isAvailable)
-          .map((item: CartItem) => item.id);
-        setSelectedItems(availableIds);
+      setCartData(data);
+      // Auto select all items
+      if (data.items) {
+        setSelectedItems(data.items.map((item: CartItem) => item.itemId));
       }
     } catch (error) {
       console.error("Error fetching cart:", error);
@@ -102,7 +91,7 @@ const CartPage: React.FC = () => {
     try {
       setUpdating(true);
       const token = localStorage.getItem("accessToken");
-      const item = cartItems.find((i) => i.id === itemId);
+      const item = cartData?.items.find((i) => i.itemId === itemId);
 
       if (!item) return;
 
@@ -113,8 +102,8 @@ const CartPage: React.FC = () => {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          id: item.productId,
-          type: item.type,
+          id: itemId,
+          type: item.itemType === "Camera" ? 1 : 2,
           quantity: newQuantity,
         }),
       });
@@ -123,13 +112,8 @@ const CartPage: React.FC = () => {
         throw new Error("Failed to update quantity");
       }
 
-      // Update local state
-      setCartItems((prev) =>
-        prev.map((item) =>
-          item.id === itemId ? { ...item, quantity: newQuantity } : item
-        )
-      );
-
+      // Refresh cart
+      await fetchCart();
       toast.success("Cart updated successfully");
     } catch (error) {
       console.error("Error updating quantity:", error);
@@ -149,7 +133,6 @@ const CartPage: React.FC = () => {
         {
           method: "DELETE",
           headers: {
-            "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
         }
@@ -159,7 +142,8 @@ const CartPage: React.FC = () => {
         throw new Error("Failed to remove item");
       }
 
-      setCartItems((prev) => prev.filter((item) => item.id !== itemId));
+      // Refresh cart
+      await fetchCart();
       setSelectedItems((prev) => prev.filter((id) => id !== itemId));
       toast.success("Item removed from cart");
     } catch (error) {
@@ -179,14 +163,12 @@ const CartPage: React.FC = () => {
   };
 
   const handleSelectAll = () => {
-    const availableIds = cartItems
-      .filter((item) => item.isAvailable)
-      .map((item) => item.id);
+    if (!cartData?.items) return;
 
-    if (selectedItems.length === availableIds.length) {
+    if (selectedItems.length === cartData.items.length) {
       setSelectedItems([]);
     } else {
-      setSelectedItems(availableIds);
+      setSelectedItems(cartData.items.map((item) => item.itemId));
     }
   };
 
@@ -198,15 +180,10 @@ const CartPage: React.FC = () => {
   };
 
   const calculateSubtotal = () => {
-    return cartItems
-      .filter((item) => selectedItems.includes(item.id))
+    if (!cartData?.items) return 0;
+    return cartData.items
+      .filter((item) => selectedItems.includes(item.itemId))
       .reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
-  };
-
-  const calculateTotalDeposit = () => {
-    return cartItems
-      .filter((item) => selectedItems.includes(item.id))
-      .reduce((sum, item) => sum + item.depositAmount * item.quantity, 0);
   };
 
   const handleCheckout = () => {
@@ -218,7 +195,10 @@ const CartPage: React.FC = () => {
     // Navigate to checkout with selected items
     navigate("/renter/checkout", {
       state: {
-        items: cartItems.filter((item) => selectedItems.includes(item.id)),
+        items: cartData?.items.filter((item) =>
+          selectedItems.includes(item.itemId)
+        ),
+        cartId: cartData?.id,
       },
     });
   };
@@ -229,11 +209,35 @@ const CartPage: React.FC = () => {
         sx={{ bgcolor: colors.background.default, minHeight: "100vh", py: 4 }}
       >
         <Container maxWidth="xl">
-          <Typography variant="h4">Loading cart...</Typography>
+          <Skeleton
+            variant="rectangular"
+            height={60}
+            sx={{ mb: 3, borderRadius: 2 }}
+          />
+          <Box
+            sx={{
+              display: "flex",
+              gap: 3,
+              flexDirection: { xs: "column", lg: "row" },
+            }}
+          >
+            <Skeleton
+              variant="rectangular"
+              height={400}
+              sx={{ flex: 1, borderRadius: 3 }}
+            />
+            <Skeleton
+              variant="rectangular"
+              height={400}
+              sx={{ width: 400, borderRadius: 3 }}
+            />
+          </Box>
         </Container>
       </Box>
     );
   }
+
+  const cartItems = cartData?.items || [];
 
   return (
     <Box sx={{ bgcolor: colors.background.default, minHeight: "100vh", py: 4 }}>
@@ -332,9 +336,8 @@ const CartPage: React.FC = () => {
                 >
                   <Checkbox
                     checked={
-                      selectedItems.length ===
-                        cartItems.filter((item) => item.isAvailable).length &&
-                      cartItems.filter((item) => item.isAvailable).length > 0
+                      selectedItems.length === cartItems.length &&
+                      cartItems.length > 0
                     }
                     onChange={handleSelectAll}
                     sx={{
@@ -348,8 +351,7 @@ const CartPage: React.FC = () => {
                     variant="body2"
                     sx={{ fontWeight: 600, color: colors.text.primary }}
                   >
-                    Select All (
-                    {cartItems.filter((item) => item.isAvailable).length} items)
+                    Select All ({cartItems.length} items)
                   </Typography>
                 </Box>
 
@@ -357,20 +359,17 @@ const CartPage: React.FC = () => {
                 <Box sx={{ p: 2 }}>
                   {cartItems.map((item) => (
                     <Box
-                      key={item.id}
+                      key={item.itemId}
                       sx={{
                         p: 2,
                         mb: 2,
-                        bgcolor: item.isAvailable
-                          ? colors.background.paper
-                          : colors.neutral[50],
+                        bgcolor: colors.background.paper,
                         borderRadius: 2,
                         border: `1px solid ${
-                          selectedItems.includes(item.id)
+                          selectedItems.includes(item.itemId)
                             ? colors.primary.main
                             : colors.border.light
                         }`,
-                        opacity: item.isAvailable ? 1 : 0.6,
                       }}
                     >
                       <Box
@@ -382,9 +381,8 @@ const CartPage: React.FC = () => {
                       >
                         {/* Checkbox */}
                         <Checkbox
-                          checked={selectedItems.includes(item.id)}
-                          onChange={() => handleSelectItem(item.id)}
-                          disabled={!item.isAvailable}
+                          checked={selectedItems.includes(item.itemId)}
+                          onChange={() => handleSelectItem(item.itemId)}
                           sx={{
                             color: colors.primary.main,
                             "&.Mui-checked": {
@@ -406,7 +404,7 @@ const CartPage: React.FC = () => {
                             flexShrink: 0,
                           }}
                         >
-                          {item.type === 1 ? (
+                          {item.itemType === "Camera" ? (
                             <Camera size={40} color={colors.neutral[400]} />
                           ) : (
                             <Package size={40} color={colors.neutral[400]} />
@@ -432,10 +430,10 @@ const CartPage: React.FC = () => {
                                   mb: 0.5,
                                 }}
                               >
-                                {item.productName}
+                                {item.itemName}
                               </Typography>
                               <Chip
-                                label={item.category}
+                                label={item.itemType}
                                 size="small"
                                 sx={{
                                   bgcolor: colors.primary.lighter,
@@ -448,7 +446,7 @@ const CartPage: React.FC = () => {
 
                             <IconButton
                               size="small"
-                              onClick={() => handleRemoveItem(item.id)}
+                              onClick={() => handleRemoveItem(item.itemId)}
                               disabled={updating}
                               sx={{
                                 color: colors.status.error,
@@ -461,16 +459,6 @@ const CartPage: React.FC = () => {
                             </IconButton>
                           </Box>
 
-                          {!item.isAvailable && (
-                            <Alert
-                              severity="warning"
-                              icon={<AlertCircle size={16} />}
-                              sx={{ mb: 1 }}
-                            >
-                              This item is currently unavailable
-                            </Alert>
-                          )}
-
                           <Box
                             sx={{
                               display: "flex",
@@ -478,6 +466,7 @@ const CartPage: React.FC = () => {
                               alignItems: "center",
                               flexWrap: "wrap",
                               gap: 2,
+                              mt: 2,
                             }}
                           >
                             {/* Quantity */}
@@ -492,7 +481,7 @@ const CartPage: React.FC = () => {
                                 size="small"
                                 onClick={() =>
                                   handleUpdateQuantity(
-                                    item.id,
+                                    item.itemId,
                                     item.quantity - 1
                                   )
                                 }
@@ -510,6 +499,8 @@ const CartPage: React.FC = () => {
                                   px: 2,
                                   fontWeight: 600,
                                   color: colors.text.primary,
+                                  minWidth: 40,
+                                  textAlign: "center",
                                 }}
                               >
                                 {item.quantity}
@@ -519,7 +510,7 @@ const CartPage: React.FC = () => {
                                 size="small"
                                 onClick={() =>
                                   handleUpdateQuantity(
-                                    item.id,
+                                    item.itemId,
                                     item.quantity + 1
                                   )
                                 }
@@ -548,7 +539,7 @@ const CartPage: React.FC = () => {
                                 variant="caption"
                                 sx={{ color: colors.text.secondary }}
                               >
-                                Deposit: {formatCurrency(item.depositAmount)}
+                                {formatCurrency(item.unitPrice)} / day
                               </Typography>
                             </Box>
                           </Box>
@@ -608,27 +599,6 @@ const CartPage: React.FC = () => {
                     </Typography>
                   </Box>
 
-                  <Box
-                    sx={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                    }}
-                  >
-                    <Typography
-                      variant="body2"
-                      sx={{ color: colors.text.secondary }}
-                    >
-                      Total Deposit
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      sx={{ fontWeight: 600, color: colors.text.primary }}
-                    >
-                      {formatCurrency(calculateTotalDeposit())}
-                    </Typography>
-                  </Box>
-
                   <Divider />
 
                   <Box
@@ -651,9 +621,7 @@ const CartPage: React.FC = () => {
                       variant="h5"
                       sx={{ fontWeight: 700, color: colors.primary.main }}
                     >
-                      {formatCurrency(
-                        calculateSubtotal() + calculateTotalDeposit()
-                      )}
+                      {formatCurrency(calculateSubtotal())}
                     </Typography>
                   </Box>
                 </Box>
@@ -696,7 +664,7 @@ const CartPage: React.FC = () => {
                       bgcolor: colors.primary.lighter,
                     },
                   }}
-                  onClick={() => navigate("/renter/products")}
+                  onClick={() => navigate("/products")}
                 >
                   Continue Shopping
                 </Button>

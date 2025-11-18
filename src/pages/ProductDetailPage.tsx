@@ -56,27 +56,29 @@ const ProductDetailPage: React.FC = () => {
         return;
       }
 
+      const formData = new FormData();
+      formData.append("Id", id || "");
+      formData.append("Type", "1"); // 1: Camera, 2: Accessory
+      formData.append("Quantity", "1");
+
       const response = await fetch(`${API_BASE_URL}/Bookings/AddToCart`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          id: id, // ID của product
-          type: 1, // 1: Camera, 2: Accessory
-          quantity: 1,
-        }),
+        body: formData,
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to add to cart");
+      // ✅ Chỉ check status, không parse response body
+      if (response.ok) {
+        toast.success("Đã thêm vào giỏ hàng!", {
+          position: "top-right",
+          autoClose: 2000,
+        });
+      } else {
+        // Lỗi từ server
+        throw new Error(`HTTP ${response.status}`);
       }
-
-      toast.success("Added to cart successfully!", {
-        position: "top-right",
-        autoClose: 2000,
-      });
     } catch (error) {
       console.error("Error adding to cart:", error);
       toast.error("Failed to add to cart");
