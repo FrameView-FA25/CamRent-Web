@@ -1,3 +1,4 @@
+
 export interface Camera {
   id: string;
   brand: string;
@@ -5,6 +6,10 @@ export interface Camera {
   variant: string | null;
   serialNumber: string | null;
   branchName: string;
+  branchAddress: string | null;
+
+    itemType: number;
+
   bookingItemType: number;
   baseDailyRate: number;
   estimatedValueVnd: number;
@@ -14,6 +19,18 @@ export interface Camera {
   media: MediaItem[];
   specsJson: string | null;
   categories: string[];
+  isConfirmed: boolean;
+  isAvailable: boolean;
+  ownerUserId: string;
+  ownerName: string | null;
+
+  
+}
+export interface Media {
+  url: string;
+  contentType: string;
+  sizeBytes: number;
+  label: string | null;
 }
 export interface CameraResponse {
   page: number;

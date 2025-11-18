@@ -23,6 +23,8 @@ import FilterListIcon from "@mui/icons-material/FilterList";
 import CameraAltOutlinedIcon from "@mui/icons-material/CameraAltOutlined";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
+import VerifiedIcon from "@mui/icons-material/Verified";
+import CancelIcon from "@mui/icons-material/Cancel";
 import type { Accessory } from "../services/camera.service";
 import { colors } from "../theme/colors";
 import type { Camera } from "../types/product.types";
@@ -36,13 +38,15 @@ const formatCurrency = (amount: number): string => {
 };
 
 // Component ProductCard có thể hiển thị cả Camera và Accessory
-// Component ProductCard có thể hiển thị cả Camera và Accessory
 const ProductCard: React.FC<{ camera: Camera | Accessory }> = ({ camera }) => {
   const navigate = useNavigate();
 
-  // mock tạm thông tin owner & verified (sau này thay bằng data từ API)
+  // Lấy giá trị isConfirmed và isAvailable từ API
+  const isVerified = camera.isConfirmed ?? false;
+  const isAvailable = camera.isAvailable ?? false;
+
+  // mock tạm thông tin owner (sau này thay bằng data từ API)
   const ownerName = "Studio Ánh Sáng";
-  const isVerified = true; // hoặc false để test UI
 
   // Xử lý media cho cả Camera và Accessory
   const getMediaUrl = () => {
@@ -85,10 +89,9 @@ const ProductCard: React.FC<{ camera: Camera | Accessory }> = ({ camera }) => {
       }}
       onClick={() => navigate(`/products/${camera.id}`)}
     >
-      {/* Ảnh + badge */}
+      {/* Ảnh + badges */}
       <Box sx={{ position: "relative", bgcolor: grey[100] }}>
-        <Box sx={{ pt: "70%" }} />{" "}
-        {/* tỉ lệ Ảnh 7:10 trông giống thẻ sản phẩm */}
+        <Box sx={{ pt: "70%" }} />
         <Box
           sx={{
             position: "absolute",
@@ -114,9 +117,17 @@ const ProductCard: React.FC<{ camera: Camera | Accessory }> = ({ camera }) => {
             <CameraAltOutlinedIcon sx={{ fontSize: 64 }} />
           )}
         </Box>
-        {/* Badge Verified / Chờ verify */}
+
+        {/* Badge Verified / Unverified */}
         <Chip
-          label={isVerified ? "Verified" : "Chờ verify"}
+          icon={
+            isVerified ? (
+              <VerifiedIcon sx={{ fontSize: 14 }} />
+            ) : (
+              <CancelIcon sx={{ fontSize: 14 }} />
+            )
+          }
+          label={isVerified ? "Verified" : "Unverified"}
           size="small"
           sx={{
             position: "absolute",
@@ -127,27 +138,35 @@ const ProductCard: React.FC<{ camera: Camera | Accessory }> = ({ camera }) => {
             fontWeight: 600,
             bgcolor: isVerified
               ? "rgba(46, 125, 50, 0.95)"
-              : "rgba(97,97,97,0.9)",
+              : "rgba(211, 47, 47, 0.95)",
             color: "white",
+            "& .MuiChip-icon": {
+              color: "white",
+              ml: 0.5,
+            },
           }}
         />
-        {/* Badge trạng thái Available giữ nguyên nhưng style lại nhẹ hơn */}
-        <Box
+
+        {/* Badge Available / Unavailable */}
+        <Chip
+          label={isAvailable ? "Available" : "Unavailable"}
+          size="small"
           sx={{
             position: "absolute",
             top: 12,
             right: 12,
-            bgcolor: "rgba(255,255,255,0.9)",
+            bgcolor: isAvailable
+              ? "rgba(255,255,255,0.95)"
+              : "rgba(158,158,158,0.95)",
+            color: isAvailable ? grey[800] : "white",
             px: 1.5,
             py: 0.5,
             borderRadius: 999,
             fontWeight: 600,
             fontSize: 12,
-            border: `1px solid ${grey[200]}`,
+            border: isAvailable ? `1px solid ${grey[200]}` : "none",
           }}
-        >
-          Available
-        </Box>
+        />
       </Box>
 
       <CardContent
@@ -189,12 +208,12 @@ const ProductCard: React.FC<{ camera: Camera | Accessory }> = ({ camera }) => {
               color: grey[500],
               mb: 1,
               display: "block",
-              // nếu không có serial thì ẩn chữ nhưng vẫn giữ khoảng trống
               visibility: camera.serialNumber ? "visible" : "hidden",
             }}
           >
             SN: {camera.serialNumber || "Không có"}
           </Typography>
+
           {/* Branch / location */}
           <Box
             sx={{
@@ -310,21 +329,28 @@ const ProductCard: React.FC<{ camera: Camera | Accessory }> = ({ camera }) => {
           <Button
             fullWidth
             variant="contained"
+            disabled={!isAvailable}
             onClick={(e) => {
               e.stopPropagation();
               // sau này handle flow "Thuê ngay"
             }}
             sx={{
-              bgcolor: "black",
+              bgcolor: isAvailable ? "black" : grey[400],
               color: "white",
               textTransform: "none",
               fontWeight: 700,
               borderRadius: 2,
               py: 1,
-              "&:hover": { bgcolor: grey[800] },
+              "&:hover": {
+                bgcolor: isAvailable ? grey[800] : grey[400],
+              },
+              "&:disabled": {
+                bgcolor: grey[400],
+                color: grey[200],
+              },
             }}
           >
-            Thuê ngay
+            {isAvailable ? "Thuê ngay" : "Không có sẵn"}
           </Button>
         </Stack>
       </CardContent>
