@@ -16,6 +16,7 @@ import NewsPage from "../pages/NewsPage";
 import NotFoundPage from "../pages/NotFoundPage";
 import DashboardOwner from "../pages/Owner/Dashboard/Dashboard";
 import CameraManagement from "../pages/Owner/CameraManagement/CameraManagement";
+import AccessoryManagement from "../pages/Owner/AccessoryManagement/AccessoryManagement";
 import OrderManagement from "../pages/Owner/OrderManagement/OrderManagement";
 import UserManagement from "../pages/Owner/UserManagement/UserManagement";
 import DashboardAdmin from "../pages/Admin/Dashboard/Dashboard";
@@ -103,6 +104,10 @@ const routes: RouteObject[] = [
       {
         path: "cameras",
         element: <CameraManagement />,
+      },
+      {
+        path: "accessories",
+        element: <AccessoryManagement />,
       },
       {
         path: "orders",
