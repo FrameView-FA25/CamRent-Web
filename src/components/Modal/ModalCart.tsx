@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from "react";
 import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
   Box,
-  Container,
   Typography,
-  Paper,
-  Button,
   IconButton,
+  Button,
   Divider,
-  Checkbox,
   Chip,
-  Skeleton,
+  CircularProgress,
+  Paper,
 } from "@mui/material";
 import {
+  X,
   ShoppingCart,
   Trash2,
   Plus,
@@ -28,8 +30,7 @@ import { toast } from "react-toastify";
 interface CartItem {
   itemId: string;
   itemName: string;
-  itemType: string; // "Camera" or "Accessory"
-  quantity: number;
+  itemType: string;
   unitPrice: number;
 }
 
@@ -39,19 +40,31 @@ interface CartResponse {
   totalPrice: number;
 }
 
+interface CartItemWithQuantity extends CartItem {
+  quantity: number;
+}
+
+interface CartModalProps {
+  open: boolean;
+  onClose: () => void;
+}
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-const CartPage: React.FC = () => {
+const CartModal: React.FC<CartModalProps> = ({ open, onClose }) => {
   const navigate = useNavigate();
   const [cartData, setCartData] = useState<CartResponse | null>(null);
-  const [selectedItems, setSelectedItems] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [itemQuantities, setItemQuantities] = useState<Record<string, number>>(
+    {}
+  );
+  const [loading, setLoading] = useState(false);
   const [updating, setUpdating] = useState(false);
 
-  // Fetch cart items
   useEffect(() => {
-    fetchCart();
-  }, []);
+    if (open) {
+      fetchCart();
+    }
+  }, [open]);
 
   const fetchCart = async () => {
     try {
@@ -70,12 +83,14 @@ const CartPage: React.FC = () => {
       }
 
       const data = await response.json();
-      console.log("Cart data:", data);
-
       setCartData(data);
-      // Auto select all items
+
       if (data.items) {
-        setSelectedItems(data.items.map((item: CartItem) => item.itemId));
+        const quantities: Record<string, number> = {};
+        data.items.forEach((item: CartItem) => {
+          quantities[item.itemId] = 1;
+        });
+        setItemQuantities(quantities);
       }
     } catch (error) {
       console.error("Error fetching cart:", error);
@@ -85,42 +100,12 @@ const CartPage: React.FC = () => {
     }
   };
 
-  const handleUpdateQuantity = async (itemId: string, newQuantity: number) => {
+  const handleUpdateQuantity = (itemId: string, newQuantity: number) => {
     if (newQuantity < 1) return;
-
-    try {
-      setUpdating(true);
-      const token = localStorage.getItem("accessToken");
-      const item = cartData?.items.find((i) => i.itemId === itemId);
-
-      if (!item) return;
-
-      const response = await fetch(`${API_BASE_URL}/Bookings/AddToCart`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          id: itemId,
-          type: item.itemType === "Camera" ? 1 : 2,
-          quantity: newQuantity,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to update quantity");
-      }
-
-      // Refresh cart
-      await fetchCart();
-      toast.success("Cart updated successfully");
-    } catch (error) {
-      console.error("Error updating quantity:", error);
-      toast.error("Failed to update cart");
-    } finally {
-      setUpdating(false);
-    }
+    setItemQuantities((prev) => ({
+      ...prev,
+      [itemId]: newQuantity,
+    }));
   };
 
   const handleRemoveItem = async (itemId: string) => {
@@ -142,33 +127,26 @@ const CartPage: React.FC = () => {
         throw new Error("Failed to remove item");
       }
 
-      // Refresh cart
-      await fetchCart();
-      setSelectedItems((prev) => prev.filter((id) => id !== itemId));
+      setCartData((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          items: prev.items.filter((item) => item.itemId !== itemId),
+        };
+      });
+
+      setItemQuantities((prev) => {
+        const newQuantities = { ...prev };
+        delete newQuantities[itemId];
+        return newQuantities;
+      });
+
       toast.success("Item removed from cart");
     } catch (error) {
       console.error("Error removing item:", error);
       toast.error("Failed to remove item");
     } finally {
       setUpdating(false);
-    }
-  };
-
-  const handleSelectItem = (itemId: string) => {
-    setSelectedItems((prev) =>
-      prev.includes(itemId)
-        ? prev.filter((id) => id !== itemId)
-        : [...prev, itemId]
-    );
-  };
-
-  const handleSelectAll = () => {
-    if (!cartData?.items) return;
-
-    if (selectedItems.length === cartData.items.length) {
-      setSelectedItems([]);
-    } else {
-      setSelectedItems(cartData.items.map((item) => item.itemId));
     }
   };
 
@@ -179,101 +157,90 @@ const CartPage: React.FC = () => {
     }).format(amount);
   };
 
-  const calculateSubtotal = () => {
+  // ✅ Calculate total for ALL items (no selection needed)
+  const calculateTotal = () => {
     if (!cartData?.items) return 0;
-    return cartData.items
-      .filter((item) => selectedItems.includes(item.itemId))
-      .reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
+    return cartData.items.reduce((sum, item) => {
+      const quantity = itemQuantities[item.itemId] || 1;
+      return sum + item.unitPrice * quantity;
+    }, 0);
   };
 
   const handleCheckout = () => {
-    if (selectedItems.length === 0) {
-      toast.warning("Please select items to checkout");
+    if (!cartData?.items || cartData.items.length === 0) {
+      toast.warning("Your cart is empty");
       return;
     }
 
-    // Navigate to checkout with selected items
-    navigate("/renter/checkout", {
+    // ✅ All items go to checkout
+    const itemsWithQuantities: CartItemWithQuantity[] = cartData.items.map(
+      (item) => ({
+        ...item,
+        quantity: itemQuantities[item.itemId] || 1,
+      })
+    );
+
+    onClose();
+    navigate("/checkout", {
       state: {
-        items: cartData?.items.filter((item) =>
-          selectedItems.includes(item.itemId)
-        ),
+        items: itemsWithQuantities,
         cartId: cartData?.id,
       },
     });
   };
 
-  if (loading) {
-    return (
-      <Box
-        sx={{ bgcolor: colors.background.default, minHeight: "100vh", py: 4 }}
-      >
-        <Container maxWidth="xl">
-          <Skeleton
-            variant="rectangular"
-            height={60}
-            sx={{ mb: 3, borderRadius: 2 }}
-          />
-          <Box
-            sx={{
-              display: "flex",
-              gap: 3,
-              flexDirection: { xs: "column", lg: "row" },
-            }}
-          >
-            <Skeleton
-              variant="rectangular"
-              height={400}
-              sx={{ flex: 1, borderRadius: 3 }}
-            />
-            <Skeleton
-              variant="rectangular"
-              height={400}
-              sx={{ width: 400, borderRadius: 3 }}
-            />
-          </Box>
-        </Container>
-      </Box>
-    );
-  }
-
   const cartItems = cartData?.items || [];
 
   return (
-    <Box sx={{ bgcolor: colors.background.default, minHeight: "100vh", py: 4 }}>
-      <Container maxWidth="xl">
-        {/* Header */}
-        <Box sx={{ mb: 4 }}>
-          <Typography
-            variant="h3"
-            sx={{
-              fontWeight: 700,
-              color: colors.text.primary,
-              mb: 1,
-              display: "flex",
-              alignItems: "center",
-              gap: 2,
-            }}
-          >
-            <ShoppingCart size={32} />
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="lg"
+      fullWidth
+      PaperProps={{
+        sx: {
+          borderRadius: 3,
+          maxHeight: "90vh",
+        },
+      }}
+    >
+      {/* Header */}
+      <DialogTitle
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          borderBottom: `1px solid ${colors.border.light}`,
+          pb: 2,
+        }}
+      >
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+          <ShoppingCart size={24} color={colors.primary.main} />
+          <Typography variant="h6" sx={{ fontWeight: 700 }}>
             Shopping Cart
           </Typography>
-          <Typography variant="body1" sx={{ color: colors.text.secondary }}>
-            {cartItems.length} items in your cart
-          </Typography>
-        </Box>
-
-        {cartItems.length === 0 ? (
-          // Empty Cart
-          <Paper
-            elevation={0}
+          <Chip
+            label={`${cartItems.length} items`}
+            size="small"
             sx={{
-              p: 8,
-              borderRadius: 3,
-              border: `1px solid ${colors.border.light}`,
-              textAlign: "center",
+              bgcolor: colors.primary.lighter,
+              color: colors.primary.main,
+              fontWeight: 600,
             }}
-          >
+          />
+        </Box>
+        <IconButton onClick={onClose} size="small">
+          <X size={20} />
+        </IconButton>
+      </DialogTitle>
+
+      <DialogContent sx={{ p: 3 }}>
+        {loading ? (
+          <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
+            <CircularProgress sx={{ color: colors.primary.main }} />
+          </Box>
+        ) : cartItems.length === 0 ? (
+          <Box sx={{ textAlign: "center", py: 8 }}>
             <ShoppingCart size={64} color={colors.neutral[300]} />
             <Typography
               variant="h6"
@@ -299,98 +266,62 @@ const CartPage: React.FC = () => {
                   bgcolor: colors.primary.dark,
                 },
               }}
-              onClick={() => navigate("/products")}
+              onClick={() => {
+                onClose();
+                navigate("/products");
+              }}
             >
               Browse Products
             </Button>
-          </Paper>
+          </Box>
         ) : (
-          // Cart Items
-          <Box
-            sx={{
-              display: "flex",
-              gap: 3,
-              flexDirection: { xs: "column", lg: "row" },
-            }}
-          >
+          <Box sx={{ display: "flex", gap: 3 }}>
             {/* Left - Items List */}
             <Box sx={{ flex: 1 }}>
-              <Paper
-                elevation={0}
+              {/* Items List */}
+              <Box
                 sx={{
-                  borderRadius: 3,
-                  border: `1px solid ${colors.border.light}`,
-                  overflow: "hidden",
+                  maxHeight: "550px",
+                  overflowY: "auto",
+                  pr: 1,
+                  "&::-webkit-scrollbar": {
+                    width: "6px",
+                  },
+                  "&::-webkit-scrollbar-track": {
+                    bgcolor: colors.neutral[100],
+                    borderRadius: 3,
+                  },
+                  "&::-webkit-scrollbar-thumb": {
+                    bgcolor: colors.neutral[300],
+                    borderRadius: 3,
+                    "&:hover": {
+                      bgcolor: colors.neutral[400],
+                    },
+                  },
                 }}
               >
-                {/* Select All Header */}
-                <Box
-                  sx={{
-                    p: 2,
-                    bgcolor: colors.neutral[50],
-                    borderBottom: `1px solid ${colors.border.light}`,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 2,
-                  }}
-                >
-                  <Checkbox
-                    checked={
-                      selectedItems.length === cartItems.length &&
-                      cartItems.length > 0
-                    }
-                    onChange={handleSelectAll}
-                    sx={{
-                      color: colors.primary.main,
-                      "&.Mui-checked": {
-                        color: colors.primary.main,
-                      },
-                    }}
-                  />
-                  <Typography
-                    variant="body2"
-                    sx={{ fontWeight: 600, color: colors.text.primary }}
-                  >
-                    Select All ({cartItems.length} items)
-                  </Typography>
-                </Box>
+                {cartItems.map((item) => {
+                  const quantity = itemQuantities[item.itemId] || 1;
 
-                {/* Items */}
-                <Box sx={{ p: 2 }}>
-                  {cartItems.map((item) => (
+                  return (
                     <Box
                       key={item.itemId}
                       sx={{
-                        p: 2,
+                        p: 2.5,
                         mb: 2,
                         bgcolor: colors.background.paper,
                         borderRadius: 2,
-                        border: `1px solid ${
-                          selectedItems.includes(item.itemId)
-                            ? colors.primary.main
-                            : colors.border.light
-                        }`,
+                        border: `1px solid ${colors.border.light}`,
+                        transition: "all 0.2s ease",
+                        "&:hover": {
+                          boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                          borderColor: colors.primary.main,
+                        },
                       }}
                     >
                       <Box
-                        sx={{
-                          display: "flex",
-                          gap: 2,
-                          alignItems: "start",
-                        }}
+                        sx={{ display: "flex", gap: 2.5, alignItems: "start" }}
                       >
-                        {/* Checkbox */}
-                        <Checkbox
-                          checked={selectedItems.includes(item.itemId)}
-                          onChange={() => handleSelectItem(item.itemId)}
-                          sx={{
-                            color: colors.primary.main,
-                            "&.Mui-checked": {
-                              color: colors.primary.main,
-                            },
-                          }}
-                        />
-
                         {/* Product Image */}
                         <Box
                           sx={{
@@ -440,6 +371,7 @@ const CartPage: React.FC = () => {
                                   color: colors.primary.main,
                                   fontWeight: 600,
                                   fontSize: "0.75rem",
+                                  height: 24,
                                 }}
                               />
                             </Box>
@@ -464,12 +396,10 @@ const CartPage: React.FC = () => {
                               display: "flex",
                               justifyContent: "space-between",
                               alignItems: "center",
-                              flexWrap: "wrap",
-                              gap: 2,
                               mt: 2,
                             }}
                           >
-                            {/* Quantity */}
+                            {/* Quantity Controls */}
                             <Box
                               sx={{
                                 display: "flex",
@@ -482,13 +412,15 @@ const CartPage: React.FC = () => {
                                 onClick={() =>
                                   handleUpdateQuantity(
                                     item.itemId,
-                                    item.quantity - 1
+                                    quantity - 1
                                   )
                                 }
-                                disabled={item.quantity <= 1 || updating}
+                                disabled={quantity <= 1}
                                 sx={{
                                   border: `1px solid ${colors.border.light}`,
                                   borderRadius: 1,
+                                  width: 32,
+                                  height: 32,
                                 }}
                               >
                                 <Minus size={16} />
@@ -498,12 +430,12 @@ const CartPage: React.FC = () => {
                                 sx={{
                                   px: 2,
                                   fontWeight: 600,
-                                  color: colors.text.primary,
+                                  fontSize: "1rem",
                                   minWidth: 40,
                                   textAlign: "center",
                                 }}
                               >
-                                {item.quantity}
+                                {quantity}
                               </Typography>
 
                               <IconButton
@@ -511,13 +443,14 @@ const CartPage: React.FC = () => {
                                 onClick={() =>
                                   handleUpdateQuantity(
                                     item.itemId,
-                                    item.quantity + 1
+                                    quantity + 1
                                   )
                                 }
-                                disabled={updating}
                                 sx={{
                                   border: `1px solid ${colors.border.light}`,
                                   borderRadius: 1,
+                                  width: 32,
+                                  height: 32,
                                 }}
                               >
                                 <Plus size={16} />
@@ -533,7 +466,7 @@ const CartPage: React.FC = () => {
                                   color: colors.primary.main,
                                 }}
                               >
-                                {formatCurrency(item.unitPrice * item.quantity)}
+                                {formatCurrency(item.unitPrice * quantity)}
                               </Typography>
                               <Typography
                                 variant="caption"
@@ -546,27 +479,24 @@ const CartPage: React.FC = () => {
                         </Box>
                       </Box>
                     </Box>
-                  ))}
-                </Box>
-              </Paper>
+                  );
+                })}
+              </Box>
             </Box>
 
-            {/* Right - Order Summary */}
-            <Box sx={{ width: { xs: "100%", lg: "400px" }, flexShrink: 0 }}>
+            {/* Right - Checkout Summary */}
+            <Box sx={{ width: 360, flexShrink: 0 }}>
               <Paper
                 elevation={0}
                 sx={{
                   p: 3,
-                  borderRadius: 3,
+                  borderRadius: 2,
                   border: `1px solid ${colors.border.light}`,
                   position: "sticky",
-                  top: 20,
+                  top: 0,
                 }}
               >
-                <Typography
-                  variant="h6"
-                  sx={{ fontWeight: 700, color: colors.text.primary, mb: 3 }}
-                >
+                <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
                   Order Summary
                 </Typography>
 
@@ -579,23 +509,16 @@ const CartPage: React.FC = () => {
                   }}
                 >
                   <Box
-                    sx={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                    }}
+                    sx={{ display: "flex", justifyContent: "space-between" }}
                   >
                     <Typography
                       variant="body2"
                       sx={{ color: colors.text.secondary }}
                     >
-                      Subtotal ({selectedItems.length} items)
+                      Subtotal ({cartItems.length} items)
                     </Typography>
-                    <Typography
-                      variant="body2"
-                      sx={{ fontWeight: 600, color: colors.text.primary }}
-                    >
-                      {formatCurrency(calculateSubtotal())}
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      {formatCurrency(calculateTotal())}
                     </Typography>
                   </Box>
 
@@ -611,17 +534,14 @@ const CartPage: React.FC = () => {
                       borderRadius: 2,
                     }}
                   >
-                    <Typography
-                      variant="body1"
-                      sx={{ fontWeight: 700, color: colors.text.primary }}
-                    >
+                    <Typography variant="body1" sx={{ fontWeight: 700 }}>
                       Total
                     </Typography>
                     <Typography
                       variant="h5"
                       sx={{ fontWeight: 700, color: colors.primary.main }}
                     >
-                      {formatCurrency(calculateSubtotal())}
+                      {formatCurrency(calculateTotal())}
                     </Typography>
                   </Box>
                 </Box>
@@ -630,7 +550,7 @@ const CartPage: React.FC = () => {
                   fullWidth
                   variant="contained"
                   endIcon={<ArrowRight size={20} />}
-                  disabled={selectedItems.length === 0}
+                  disabled={cartItems.length === 0}
                   sx={{
                     bgcolor: colors.primary.main,
                     color: "white",
@@ -664,43 +584,56 @@ const CartPage: React.FC = () => {
                       bgcolor: colors.primary.lighter,
                     },
                   }}
-                  onClick={() => navigate("/products")}
+                  onClick={() => {
+                    onClose();
+                    navigate("/products");
+                  }}
                 >
                   Continue Shopping
                 </Button>
 
-                {/* Info */}
                 <Box
                   sx={{
                     mt: 3,
                     p: 2,
                     bgcolor: colors.status.infoLight,
                     borderRadius: 2,
+                    display: "flex",
+                    gap: 1.5,
+                    alignItems: "start",
                   }}
                 >
-                  <Box sx={{ display: "flex", gap: 1.5, mb: 1 }}>
-                    <Calendar size={20} color={colors.status.info} />
+                  <Calendar
+                    size={20}
+                    color={colors.status.info}
+                    style={{ flexShrink: 0 }}
+                  />
+                  <Box>
                     <Typography
                       variant="body2"
-                      sx={{ fontWeight: 600, color: colors.text.primary }}
+                      sx={{
+                        fontWeight: 600,
+                        color: colors.text.primary,
+                        mb: 0.5,
+                      }}
                     >
                       Rental Period
                     </Typography>
+                    <Typography
+                      variant="caption"
+                      sx={{ color: colors.text.secondary }}
+                    >
+                      You can select rental dates during checkout
+                    </Typography>
                   </Box>
-                  <Typography
-                    variant="caption"
-                    sx={{ color: colors.text.secondary }}
-                  >
-                    You can select rental dates during checkout
-                  </Typography>
                 </Box>
               </Paper>
             </Box>
           </Box>
         )}
-      </Container>
-    </Box>
+      </DialogContent>
+    </Dialog>
   );
 };
 
-export default CartPage;
+export default CartModal;
