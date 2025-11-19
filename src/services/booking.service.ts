@@ -131,7 +131,7 @@ export const fetchStaffList = async (): Promise<{
     }
 
     const response = await fetch(
-      `https://camrent-backend.up.railway.app/memberships`,
+      `${API_BASE_URL}/Branchs/Memberships`,
       {
         method: "GET",
         headers: {

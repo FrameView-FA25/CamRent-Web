@@ -18,7 +18,7 @@ export interface CreateVerificationRequest {
 export interface CreateVerificationResponse {
   success: boolean;
   message?: string;
-  data?: any;
+  data?: [];
 }
 
 export interface Verification {
@@ -35,6 +35,14 @@ export interface Verification {
   notes: string;
   // Danh sách item đi kèm với yêu cầu (camera / accessory)
   items?: VerificationItem[];
+  inspections: [];
+
   createdAt?: string;
   updatedAt?: string;
+  
+}
+export interface VerificationItem {
+  itemId: string;
+  itemName: string;
+  itemType: number; // 1: Camera, 2: Accessory
 }
