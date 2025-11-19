@@ -78,7 +78,7 @@ const InspectionDialog: React.FC<InspectionDialogProps> = ({
       Booking: defaultValues?.verifyId || "",
       InspectionTypeId: defaultValues?.verifyId || "",
       ItemType: defaultValues?.ItemType || "Camera",
-      Type: defaultValues?.Type || "Booking",
+      Type: defaultValues?.Type || "Verification",
       Section: defaultValues?.Section || "",
       Label: defaultValues?.Label || "",
       Value: defaultValues?.Value || "",

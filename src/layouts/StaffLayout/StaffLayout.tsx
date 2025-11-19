@@ -31,12 +31,12 @@ const DRAWER_WIDTH = 280;
 const menuItems = [
   { text: "Trang chủ", icon: <HomeIcon />, path: "/staff/dashboard" },
   {
-    text: "Phân công của tôi",
+    text: "Kiểm tra đơn hàng",
     icon: <PeopleIcon />,
     path: "/staff/my-assignments",
   },
   {
-    text: "Quản lí kiểm tra",
+    text: "Kiểm tra xác minh",
     icon: <VerifiedUserIcon />,
     path: "/staff/verifications",
   },
