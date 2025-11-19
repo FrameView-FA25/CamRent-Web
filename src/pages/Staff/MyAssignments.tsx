@@ -42,7 +42,7 @@ import {
 } from "../../utils/booking.utils";
 import { getItemName } from "../../helpers/booking.helper";
 import { useNavigate } from "react-router-dom";
-import ModalInspection from "../../components/Modal/ModalInspection";
+import InspectionDialog from "../../components/Modal/InspectionDialog";
 
 const MyAssignments: React.FC = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -709,11 +709,15 @@ const MyAssignments: React.FC = () => {
 
       {/* Inspection Modal */}
       {selectedBookingId && (
-        <ModalInspection
+        <InspectionDialog
           open={inspectionModalOpen}
           onClose={handleCloseInspection}
-          bookingId={selectedBookingId}
-          onSuccess={handleInspectionSuccess}
+          onSubmit={handleInspectionSuccess}
+          defaultValues={{
+            ItemId: selectedBookingId,
+            ItemType: "Camera",
+            Type: "Booking",
+          }}
         />
       )}
     </Box>
