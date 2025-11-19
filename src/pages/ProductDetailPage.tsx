@@ -57,17 +57,19 @@ const ProductDetailPage: React.FC = () => {
         return;
       }
 
-      const formData = new FormData();
-      formData.append("Id", id || "");
-      formData.append("Type", "1"); // 1: Camera, 2: Accessory
-      formData.append("Quantity", "1");
+      const requestData = {
+        Id: id || "",
+        Type: 1, // 1: Camera, 2: Accessory
+        Quantity: 1,
+      };
 
       const response = await fetch(`${API_BASE_URL}/Bookings/AddToCart`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
-        body: formData,
+        body: JSON.stringify(requestData),
       });
 
       // ✅ Chỉ check status, không parse response body
