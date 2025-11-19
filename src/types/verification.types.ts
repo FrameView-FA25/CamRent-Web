@@ -26,7 +26,7 @@ export interface Verification {
   name: string;
   phoneNumber: string;
   inspectionDate: string;
-  status: "pending" | "approved" | "rejected" | "completed" | "cancelled";
+  status: "Pending" | "approved" | "rejected" | "completed" | "cancelled";
   staffId: string | null;
   staffName: string | null;
   branchId: string;
