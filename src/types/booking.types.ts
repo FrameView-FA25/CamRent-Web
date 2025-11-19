@@ -77,6 +77,7 @@ export interface Staff {
   fullName: string;
   phone: string;
   email: string;
+  role: string;
 }
 export interface CreateDeliveryRequest {
   bookingId: string;

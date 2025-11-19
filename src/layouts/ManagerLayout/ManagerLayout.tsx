@@ -32,7 +32,7 @@ const menuItems = [
   { text: "Dashboard", icon: <HomeIcon />, path: "/manager/dashboard" },
   { text: "Staff Management", icon: <PeopleIcon />, path: "/manager/staff" },
   { text: "Booking", icon: <ProductsIcon />, path: "/manager/booking" },
-  { text: "Orders", icon: <OrdersIcon />, path: "/manager/orders" },
+  { text: "Orders", icon: <OrdersIcon />, path: "/manager/verifications" },
   {
     text: "Product Management",
     icon: <ProductsIcon />,
