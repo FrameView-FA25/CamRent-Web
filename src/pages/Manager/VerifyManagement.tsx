@@ -23,6 +23,10 @@ import {
   Select,
   FormControl,
   InputLabel,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemIcon,
 } from "@mui/material";
 import {
   Search,
@@ -36,6 +40,8 @@ import {
   FileText,
   AlertCircle,
   UserPlus,
+  Camera,
+  Package,
 } from "lucide-react";
 // import { useNavigate } from "react-router-dom";
 import { colors } from "../../theme/colors";
@@ -102,13 +108,11 @@ const VerifyManagement: React.FC = () => {
   const filterVerifications = () => {
     let filtered = [...verifications];
 
-    // Filter by tab
     const tabs = ["all", "pending", "in-progress", "approved", "rejected"];
     if (activeTab > 0) {
       filtered = filtered.filter((v) => v.status === tabs[activeTab]);
     }
 
-    // Filter by search
     if (searchQuery) {
       filtered = filtered.filter(
         (v) =>
@@ -209,6 +213,10 @@ const VerifyManagement: React.FC = () => {
       },
     };
     return statusMap[status];
+  };
+
+  const getItemTypeLabel = (itemType: number) => {
+    return itemType === 1 ? "Camera" : "Accessory";
   };
 
   const formatDateTime = (dateString: string) => {
@@ -659,6 +667,115 @@ const VerifyManagement: React.FC = () => {
                       </Box>
                     </Box>
 
+                    {/* Items List */}
+                    {verification.items && verification.items.length > 0 && (
+                      <Box
+                        sx={{
+                          mt: 2,
+                          p: 2,
+                          bgcolor: colors.background.paper,
+                          borderRadius: 2,
+                          border: `1px solid ${colors.border.light}`,
+                        }}
+                      >
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            color: colors.text.secondary,
+                            display: "block",
+                            mb: 1.5,
+                            fontWeight: 600,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.5px",
+                          }}
+                        >
+                          Requested Items ({verification.items.length})
+                        </Typography>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 1,
+                          }}
+                        >
+                          {verification.items.map((item) => (
+                            <Box
+                              key={item.itemId}
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 1.5,
+                                p: 1.5,
+                                bgcolor: colors.neutral[50],
+                                borderRadius: 1.5,
+                              }}
+                            >
+                              <Box
+                                sx={{
+                                  width: 36,
+                                  height: 36,
+                                  borderRadius: 1,
+                                  bgcolor:
+                                    item.itemType === 1
+                                      ? colors.primary.lighter
+                                      : colors.accent.blueLight,
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  flexShrink: 0,
+                                }}
+                              >
+                                {item.itemType === 1 ? (
+                                  <Camera
+                                    size={18}
+                                    color={colors.primary.main}
+                                  />
+                                ) : (
+                                  <Package
+                                    size={18}
+                                    color={colors.accent.blue}
+                                  />
+                                )}
+                              </Box>
+                              <Box sx={{ flex: 1, minWidth: 0 }}>
+                                <Typography
+                                  variant="body2"
+                                  sx={{
+                                    fontWeight: 600,
+                                    color: colors.text.primary,
+                                  }}
+                                >
+                                  {item.itemName}
+                                </Typography>
+                                <Typography
+                                  variant="caption"
+                                  sx={{ color: colors.text.secondary }}
+                                >
+                                  {getItemTypeLabel(item.itemType)}
+                                </Typography>
+                              </Box>
+                              <Chip
+                                label={getItemTypeLabel(item.itemType)}
+                                size="small"
+                                sx={{
+                                  bgcolor:
+                                    item.itemType === 1
+                                      ? colors.primary.lighter
+                                      : colors.accent.blueLight,
+                                  color:
+                                    item.itemType === 1
+                                      ? colors.primary.main
+                                      : colors.accent.blue,
+                                  fontWeight: 600,
+                                  fontSize: "0.7rem",
+                                }}
+                              />
+                            </Box>
+                          ))}
+                        </Box>
+                      </Box>
+                    )}
+
                     {/* Address */}
                     {verification.address && (
                       <Box
@@ -909,6 +1026,65 @@ const VerifyManagement: React.FC = () => {
                       {selectedVerification.address}
                     </Typography>
                   </Box>
+
+                  {/* Items in Dialog */}
+                  {selectedVerification.items &&
+                    selectedVerification.items.length > 0 && (
+                      <>
+                        <Divider />
+                        <Box>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: colors.text.secondary,
+                              display: "block",
+                              mb: 1.5,
+                            }}
+                          >
+                            Requested Items ({selectedVerification.items.length}
+                            )
+                          </Typography>
+                          <List dense sx={{ p: 0 }}>
+                            {selectedVerification.items.map((item) => (
+                              <ListItem
+                                key={item.itemId}
+                                sx={{
+                                  bgcolor: colors.neutral[50],
+                                  borderRadius: 1,
+                                  mb: 1,
+                                  "&:last-child": { mb: 0 },
+                                }}
+                              >
+                                <ListItemIcon sx={{ minWidth: 40 }}>
+                                  {item.itemType === 1 ? (
+                                    <Camera
+                                      size={20}
+                                      color={colors.primary.main}
+                                    />
+                                  ) : (
+                                    <Package
+                                      size={20}
+                                      color={colors.accent.blue}
+                                    />
+                                  )}
+                                </ListItemIcon>
+                                <ListItemText
+                                  primary={item.itemName}
+                                  secondary={getItemTypeLabel(item.itemType)}
+                                  primaryTypographyProps={{
+                                    fontWeight: 600,
+                                    fontSize: "0.9rem",
+                                  }}
+                                  secondaryTypographyProps={{
+                                    fontSize: "0.75rem",
+                                  }}
+                                />
+                              </ListItem>
+                            ))}
+                          </List>
+                        </Box>
+                      </>
+                    )}
 
                   {selectedVerification.notes && (
                     <>

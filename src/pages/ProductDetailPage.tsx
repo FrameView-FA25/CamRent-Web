@@ -26,6 +26,7 @@ import LocationOnIcon from "@mui/icons-material/LocationOn";
 import PersonIcon from "@mui/icons-material/Person";
 import type { Camera } from "../types/product.types";
 import { toast } from "react-toastify";
+import { colors } from "../theme/colors";
 const ACCENT = amber[400];
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -300,8 +301,8 @@ const ProductDetailPage: React.FC = () => {
                 fullWidth
                 variant="contained"
                 sx={{
-                  bgcolor: ACCENT,
-                  color: "black",
+                  bgcolor: colors.primary.main,
+                  color: colors.background.default,
                   fontWeight: 700,
                   py: 1.5,
                   borderRadius: 2,
