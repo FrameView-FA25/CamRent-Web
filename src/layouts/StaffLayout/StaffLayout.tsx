@@ -33,7 +33,7 @@ const menuItems = [
   {
     text: "Kiểm tra đơn hàng",
     icon: <PeopleIcon />,
-    path: "/staff/my-assignments",
+    path: "/staff/check-booking",
   },
   {
     text: "Kiểm tra xác minh",

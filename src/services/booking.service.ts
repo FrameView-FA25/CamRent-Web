@@ -130,16 +130,13 @@ export const fetchStaffList = async (): Promise<{
       };
     }
 
-    const response = await fetch(
-      `${API_BASE_URL}/Branchs/Memberships`,
-      {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
+    const response = await fetch(`${API_BASE_URL}/Branchs/Memberships`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
 
     if (!response.ok) {
       if (response.status === 401) {

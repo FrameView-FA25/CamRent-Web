@@ -21,6 +21,7 @@ export interface BookingItem {
   id?: string;
   bookingId?: string;
   cameraId?: string;
+  itemType?: string;
   accessoryId?: string;
   comboId?: string; // ID của combo
   productId?: string; // Thêm productId
@@ -31,6 +32,7 @@ export interface BookingItem {
   accessory?: Accessory;
   combo?: Combo; // Thông tin combo
   product?: Product; // Thêm product
+  itemName?: string; // Tên hiển thị của mục đặt phòng
 }
 
 export interface Renter {

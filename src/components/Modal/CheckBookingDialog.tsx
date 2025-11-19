@@ -10,7 +10,7 @@ import {
 } from "@mui/material";
 
 import type { VerificationItem } from "../../types/verification.types";
-type InspectionDefaultValues = {
+type CheckBookingDefaultValues = {
   verifyId?: string;
   items?: VerificationItem[];
   ItemId?: string;
@@ -23,14 +23,14 @@ type InspectionDefaultValues = {
   Notes?: string;
 };
 
-export interface InspectionDialogProps {
+export interface CheckBookingDialogProps {
   open: boolean;
   onClose: () => void;
   onSubmit: (data: Record<string, unknown>) => void;
-  defaultValues?: Partial<InspectionDefaultValues>;
+  defaultValues?: Partial<CheckBookingDefaultValues>;
 }
 
-const InspectionDialog: React.FC<InspectionDialogProps> = ({
+const CheckBookingDialog: React.FC<CheckBookingDialogProps> = ({
   open,
   onClose,
   onSubmit,
@@ -44,7 +44,7 @@ const InspectionDialog: React.FC<InspectionDialogProps> = ({
     ItemId: string;
     ItemType: string;
     Type: string;
-    Booking: string;
+    // Đã loại bỏ trường Booking
     InspectionTypeId: string;
     Section: string;
     Label: string;
@@ -56,9 +56,9 @@ const InspectionDialog: React.FC<InspectionDialogProps> = ({
   };
   const [form, setForm] = React.useState<FormState>({
     ItemId: "",
-    ItemType: defaultValues?.ItemType || "Camera",
+    ItemType: defaultValues?.ItemType || "",
     Type: defaultValues?.Type || "Booking",
-    Booking: verifyId,
+    // Đã loại bỏ trường Booking
     InspectionTypeId: verifyId,
     Section: defaultValues?.Section || "",
     Label: defaultValues?.Label || "",
@@ -70,25 +70,26 @@ const InspectionDialog: React.FC<InspectionDialogProps> = ({
   });
 
   React.useEffect(() => {
-    setForm((f) => ({
-      ...f,
-      ItemId: "",
-      Booking: defaultValues?.verifyId || "",
-      InspectionTypeId: defaultValues?.verifyId || "",
-      ItemType: defaultValues?.ItemType || "Camera",
-      Type: defaultValues?.Type || "Verification",
-      Section: defaultValues?.Section || "",
-      Label: defaultValues?.Label || "",
-      Value: defaultValues?.Value || "",
-      // Đã loại bỏ trường Passed
-      Notes: defaultValues?.Notes || "",
-      files: undefined,
-      images: undefined,
-    }));
-  }, [defaultValues]);
+    if (open) {
+      setForm({
+        ItemId: defaultValues?.ItemId || "",
+        InspectionTypeId: defaultValues?.verifyId || "",
+        ItemType: defaultValues?.ItemType || "",
+        Type: defaultValues?.Type || "Booking",
+        Section: defaultValues?.Section || "",
+        Label: defaultValues?.Label || "",
+        Value: defaultValues?.Value || "",
+        Notes: defaultValues?.Notes || "",
+        files: undefined,
+        images: undefined,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked, files } = e.target;
+    console.log("Change:", name, value);
     setForm((f: FormState) => {
       if (type === "file" && files && name === "images") {
         // Cộng dồn các ảnh đã chọn trước đó
@@ -108,7 +109,8 @@ const InspectionDialog: React.FC<InspectionDialogProps> = ({
       }
       // Nếu chọn thiết bị thì tự động fill ItemType
       if (name === "ItemId") {
-        const selectedItem = items.find((it) => it.itemId === value);
+        // value luôn là string, itemId có thể là string hoặc number
+        const selectedItem = items.find((it) => String(it.itemId) === value);
         return {
           ...f,
           ItemId: value,
@@ -148,6 +150,12 @@ const InspectionDialog: React.FC<InspectionDialogProps> = ({
     // Loại bỏ các trường không cần thiết khi gửi lên
     const submitData = { ...form };
     delete submitData.files;
+
+    // Convert FileList to array for images (nếu cần upload)
+    if (form.images) {
+      // Nếu backend cần images là File[], giữ lại dòng này, nếu không thì chỉ xóa trường images
+      // submitData.images = Array.from(form.images);
+    }
     delete submitData.images;
     onSubmit(submitData);
   };
@@ -183,14 +191,14 @@ const InspectionDialog: React.FC<InspectionDialogProps> = ({
           select
           label="Thiết bị"
           name="ItemId"
-          value={form.ItemId}
+          value={form.ItemId || ""}
           onChange={handleChange}
           fullWidth
           sx={{ mb: 2 }}
         >
           <MenuItem value="">-- Chọn thiết bị --</MenuItem>
           {items.map((it) => (
-            <MenuItem key={it.itemId} value={it.itemId}>
+            <MenuItem key={String(it.itemId)} value={String(it.itemId)}>
               {it.itemName}
             </MenuItem>
           ))}
@@ -322,4 +330,4 @@ const InspectionDialog: React.FC<InspectionDialogProps> = ({
   );
 };
 
-export default InspectionDialog;
+export default CheckBookingDialog;

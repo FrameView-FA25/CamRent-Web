@@ -38,13 +38,13 @@ import {
   formatCurrency,
   formatDate,
   getStatusInfo,
-  getBookingType,
 } from "../../utils/booking.utils";
 import { getItemName } from "../../helpers/booking.helper";
 import { useNavigate } from "react-router-dom";
-import InspectionDialog from "../../components/Modal/InspectionDialog";
+import CheckBookingDialog from "../../components/Modal/CheckBookingDialog";
+import { createInspection } from "../../services/inspection.service";
 
-const MyAssignments: React.FC = () => {
+const CheckBookings: React.FC = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -100,8 +100,27 @@ const MyAssignments: React.FC = () => {
     setSelectedBookingId(null);
   };
 
-  const handleInspectionSuccess = () => {
-    loadAssignments();
+  const handleInspectionSuccess = async (data: any) => {
+    try {
+      // Tạo FormData từ dữ liệu form
+      const formData = new FormData();
+      Object.entries(data).forEach(([key, value]) => {
+        if (key === "images" && Array.isArray(value)) {
+          value.forEach((file) => formData.append("files", file));
+        } else if (value !== undefined && value !== null) {
+          formData.append(key, value as string);
+        }
+      });
+      // Gọi API tạo inspection
+      const res = await createInspection(formData);
+      if (res?.success === false)
+        throw new Error(res.message || "Tạo kiểm tra thất bại");
+      await loadAssignments();
+      setInspectionModalOpen(false);
+    } catch (err: any) {
+      console.error("Lỗi tạo kiểm tra:", err);
+      setError(err.message || "Có lỗi xảy ra khi tạo kiểm tra");
+    }
   };
 
   const filteredBookings = useMemo(() => {
@@ -110,7 +129,9 @@ const MyAssignments: React.FC = () => {
         booking.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
         booking.renterId.toLowerCase().includes(searchQuery.toLowerCase()) ||
         booking.items.some((item) =>
-          getItemName(item).toLowerCase().includes(searchQuery.toLowerCase())
+          (item.itemName || getItemName(item))
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase())
         );
 
       const matchesTab =
@@ -445,15 +466,7 @@ const MyAssignments: React.FC = () => {
                       fontWeight: 700,
                       color: "#1F2937",
                       fontSize: "0.875rem",
-                    }}
-                  >
-                    Loại thuê
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      fontWeight: 700,
-                      color: "#1F2937",
-                      fontSize: "0.875rem",
+                      textAlign: "center",
                     }}
                   >
                     Thiết bị
@@ -490,6 +503,7 @@ const MyAssignments: React.FC = () => {
                       fontWeight: 700,
                       color: "#1F2937",
                       fontSize: "0.875rem",
+                      textAlign: "center",
                     }}
                   >
                     Hành động
@@ -541,32 +555,13 @@ const MyAssignments: React.FC = () => {
                         <TableCell>
                           <Typography
                             sx={{
-                              fontWeight: 600,
-                              color: "#000000ff",
+                              maxWidth: 200,
                               fontSize: "0.9375rem",
+                              wordBreak: "break-word",
                             }}
                           >
-                            {booking.id.slice(0, 8)}...
+                            {booking.id}
                           </Typography>
-                          <Typography
-                            variant="caption"
-                            sx={{ color: "#9CA3AF" }}
-                          >
-                            {formatDate(booking.pickupAt)}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Chip
-                            label={getBookingType(booking.type)}
-                            size="small"
-                            sx={{
-                              bgcolor: "#FFF7ED",
-                              color: "#F97316",
-                              fontWeight: 600,
-                              fontSize: "0.75rem",
-                              borderRadius: 1.5,
-                            }}
-                          />
                         </TableCell>
                         <TableCell>
                           {booking.items.map((item, idx) => (
@@ -579,14 +574,16 @@ const MyAssignments: React.FC = () => {
                                   fontSize: "0.875rem",
                                 }}
                               >
-                                {getItemName(item)}
+                                {item.itemName || getItemName(item)}
                               </Typography>
-                              <Typography
-                                variant="caption"
-                                sx={{ color: "#6B7280" }}
-                              >
-                                SL: {item.quantity}
-                              </Typography>
+                              {item.quantity && (
+                                <Typography
+                                  variant="caption"
+                                  sx={{ color: "#6B7280" }}
+                                >
+                                  SL: {item.quantity}
+                                </Typography>
+                              )}
                             </Box>
                           ))}
                         </TableCell>
@@ -628,7 +625,13 @@ const MyAssignments: React.FC = () => {
                           />
                         </TableCell>
                         <TableCell>
-                          <Box sx={{ display: "flex", gap: 1 }}>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              gap: 1,
+                              justifyContent: "center",
+                            }}
+                          >
                             <Button
                               variant="outlined"
                               size="small"
@@ -639,6 +642,13 @@ const MyAssignments: React.FC = () => {
                                 color: "#F97316",
                                 textTransform: "none",
                                 fontWeight: 600,
+                                borderRadius: 2.5,
+                                minWidth: 0,
+                                px: 1.2,
+                                py: 0.5,
+                                fontSize: "0.85rem",
+                                lineHeight: 1.2,
+                                "& .MuiButton-startIcon": { mr: 0.5 },
                                 "&:hover": {
                                   bgcolor: "#FFF7ED",
                                   borderColor: "#F97316",
@@ -653,11 +663,26 @@ const MyAssignments: React.FC = () => {
                               startIcon={<PlaylistAddCheck fontSize="small" />}
                               onClick={() => handleOpenInspection(booking.id)}
                               sx={{
-                                bgcolor: "#0284C7",
+                                bgcolor:
+                                  booking.status === 3 ? "#10b981" : "#F97316",
+                                color: "#fff",
                                 textTransform: "none",
                                 fontWeight: 600,
+                                borderRadius: 2.5,
+                                minWidth: 0,
+                                px: 1.2,
+                                py: 0.5,
+                                fontSize: "0.85rem",
+                                lineHeight: 1.2,
+                                boxShadow: "none",
+                                "& .MuiButton-startIcon": { mr: 0.5 },
                                 "&:hover": {
-                                  bgcolor: "#0369A1",
+                                  bgcolor:
+                                    booking.status === 3
+                                      ? "#059669"
+                                      : "#fb923c",
+                                  color: "#fff",
+                                  boxShadow: "0 2px 8px 0 #F9731633",
                                 },
                               }}
                             >
@@ -709,12 +734,26 @@ const MyAssignments: React.FC = () => {
 
       {/* Inspection Modal */}
       {selectedBookingId && (
-        <InspectionDialog
+        <CheckBookingDialog
           open={inspectionModalOpen}
           onClose={handleCloseInspection}
           onSubmit={handleInspectionSuccess}
           defaultValues={{
-            ItemId: selectedBookingId,
+            verifyId: selectedBookingId,
+            items: (
+              bookings.find((b) => b.id === selectedBookingId)?.items || []
+            ).map((it) => ({
+              itemId: it.id || "",
+              itemName: it.itemName || "",
+              itemType:
+                it.itemType === "Camera"
+                  ? 1
+                  : it.itemType === "Accessory"
+                  ? 2
+                  : it.itemType === "Combo"
+                  ? 3
+                  : 0,
+            })),
             ItemType: "Camera",
             Type: "Booking",
           }}
@@ -724,4 +763,4 @@ const MyAssignments: React.FC = () => {
   );
 };
 
-export default MyAssignments;
+export default CheckBookings;

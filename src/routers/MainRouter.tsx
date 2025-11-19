@@ -31,7 +31,7 @@ import ManagerLayout from "../layouts/ManagerLayout/ManagerLayout";
 import DashboardManager from "@/pages/Manager/Dashboard";
 import BookingManagement from "@/pages/Manager/Booking";
 import StaffLayout from "../layouts/StaffLayout/StaffLayout";
-import MyAssignments from "../pages/Staff/MyAssignments";
+import CheckBooking from "../pages/Staff/CheckBooking";
 import ManagerProfile from "../pages/Manager/ManagerProfile";
 import StaffManagement from "../pages/Manager/StaffManagement";
 import EquipmentCheck from "../pages/Staff/EquipmentCheck";
@@ -222,8 +222,8 @@ const routes: RouteObject[] = [
         element: <DashboardManager />,
       },
       {
-        path: "my-assignments",
-        element: <MyAssignments />,
+        path: "check-booking",
+        element: <CheckBooking />,
       },
       {
         path: "verifications",
