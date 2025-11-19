@@ -6,31 +6,36 @@ export const formatCurrency = (amount: number): string => {
 };
 
 export const formatDate = (dateString: string): string => {
-  return new Date(dateString).toLocaleDateString("vi-VN");
+  const date = new Date(dateString);
+  return date.toLocaleDateString("vi-VN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 };
 
 export const getStatusInfo = (statusText: string) => {
-  switch (statusText) {
-    case "Bản nháp":
-      return { label: "Bản nháp", color: "warning" as const };
-    case "Đã xác nhận":
-      return { label: "Đã xác nhận", color: "success" as const };
-    case "Chờ duyệt":
-      return { label: "Chờ duyệt", color: "info" as const };
-    default:
-      return { label: statusText || "Không xác định", color: "default" as const };
-  }
+  const statusMap: Record<
+    string,
+    { label: string; color: "warning" | "info" | "primary" | "success" | "error" | "default" }
+  > = {
+    "Chờ xác nhận": { label: "Chờ xác nhận", color: "warning" },
+    "Đã xác nhận": { label: "Đã xác nhận", color: "info" },
+    "Đang thuê": { label: "Đang thuê", color: "primary" },
+    "Hoàn thành": { label: "Hoàn thành", color: "success" },
+    "Đã hủy": { label: "Đã hủy", color: "error" },
+    "Giỏ hàng": { label: "Giỏ hàng", color: "default" },
+  };
+
+  return statusMap[statusText] || { label: statusText, color: "default" as const };
 };
 
-export const getBookingType = (type: number): string => {
-  switch (type) {
-    case 0:
-      return "Camera";
-    case 1:
-      return "Phụ kiện";
-    case 2:
-      return "Combo";
-    default:
-      return "Khác";
-  }
+export const getBookingType = (type: string): string => {
+  const typeMap: Record<string, string> = {
+    Rental: "Thuê",
+    Purchase: "Mua",
+  };
+  return typeMap[type] || type;
 };
