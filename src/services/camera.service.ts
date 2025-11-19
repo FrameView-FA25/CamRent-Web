@@ -1,5 +1,6 @@
 // API Base URL
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://camrent-backend.up.railway.app';
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "https://camrent-backend.up.railway.app";
 
 // Interface định nghĩa cấu trúc media/hình ảnh của camera
 export interface CameraMedia {
@@ -152,40 +153,44 @@ export const cameraService = {
     model: string;
     variant: string;
     serialNumber: string;
+    baseDailyRate?: number;
     estimatedValueVnd: number;
     specsJson: string;
     mediaFiles?: File[];
   }): Promise<Camera | null> {
     try {
       const token = localStorage.getItem("accessToken");
-
       if (!token) {
         throw new Error(
           "Không tìm thấy token xác thực. Vui lòng đăng nhập lại."
         );
       }
-
       // Tạo FormData để gửi cả file và dữ liệu
       const formData = new FormData();
-
       // Thêm các trường dữ liệu text
       formData.append("Brand", cameraData.brand);
       formData.append("Model", cameraData.model);
       formData.append("Variant", cameraData.variant);
       formData.append("SerialNumber", cameraData.serialNumber);
+      // Nếu frontend không cung cấp BaseDailyRate thì không append (backend có thể dùng default)
+      if (
+        typeof cameraData.baseDailyRate === "number" &&
+        !isNaN(cameraData.baseDailyRate)
+      ) {
+        formData.append("BaseDailyRate", cameraData.baseDailyRate.toString());
+      }
       formData.append(
         "EstimatedValueVnd",
         cameraData.estimatedValueVnd.toString()
       );
       formData.append("SpecsJson", cameraData.specsJson);
-
       // Thêm các file ảnh nếu có
       if (cameraData.mediaFiles && cameraData.mediaFiles.length > 0) {
-        cameraData.mediaFiles.forEach((file) => {
+        // Only send up to 4 files to match frontend limit
+        cameraData.mediaFiles.slice(0, 4).forEach((file) => {
           formData.append("MediaFiles", file);
         });
       }
-
       const response = await fetch(`${API_BASE_URL}/Cameras`, {
         method: "POST",
         headers: {
@@ -195,7 +200,6 @@ export const cameraService = {
         },
         body: formData,
       });
-
       if (!response.ok) {
         // Thử parse error message từ response
         let errorMessage = `Tạo camera thất bại với status ${response.status}`;
@@ -211,7 +215,6 @@ export const cameraService = {
         }
         throw new Error(errorMessage);
       }
-
       // Kiểm tra xem response có body không
       const contentType = response.headers.get("content-type");
       if (contentType && contentType.includes("application/json")) {

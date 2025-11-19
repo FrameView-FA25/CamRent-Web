@@ -49,8 +49,9 @@ export default function CameraManagement() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8; // Số lượng camera hiển thị mỗi trang (cố định)
 
-  // State cho preview ảnh
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  // State cho gallery preview: danh sách ảnh và index hiện tại (null = đóng)
+  const [previewImages, setPreviewImages] = useState<string[]>([]);
+  const [previewIndex, setPreviewIndex] = useState<number | null>(null);
 
   /**
    * useEffect: Gọi API lấy danh sách camera khi component được mount
@@ -670,42 +671,45 @@ export default function CameraManagement() {
                 >
                   <TableCell>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                      <Avatar
-                        variant="square"
-                        src={
-                          camera.media && camera.media.length > 0
-                            ? typeof camera.media[0] === "string"
-                              ? camera.media[0]
-                              : camera.media[0].url
-                            : "https://via.placeholder.com/80?text=No+Image"
-                        }
-                        alt={`${camera.brand} ${camera.model}`}
-                        onClick={() => {
-                          const imageUrl =
-                            camera.media && camera.media.length > 0
-                              ? typeof camera.media[0] === "string"
-                                ? camera.media[0]
-                                : camera.media[0].url
-                              : "https://via.placeholder.com/80?text=No+Image";
-                          setPreviewImage(imageUrl);
-                        }}
-                        sx={{
-                          width: 90,
-                          height: 90,
-                          bgcolor: "#F8FAFC",
-                          border: "2px solid #E2E8F0",
-                          cursor: "pointer",
-                          transition: "all 0.3s ease",
-                          "& img": {
-                            objectFit: "contain",
-                          },
-                          "&:hover": {
-                            borderColor: "#FF6B35",
-                            transform: "scale(1.05)",
-                            boxShadow: "0 4px 12px rgba(255, 107, 53, 0.2)",
-                          },
-                        }}
-                      />
+                      <Box sx={{ display: "flex", gap: 1 }}>
+                        {(() => {
+                          const mediaUrls = Array.isArray(camera.media)
+                            ? camera.media.map((m: any) =>
+                                typeof m === "string" ? m : (m && m.url) || ""
+                              )
+                            : [];
+                          const first =
+                            mediaUrls.find(Boolean) ||
+                            "https://via.placeholder.com/80?text=No+Image";
+                          return (
+                            <Box
+                              component="img"
+                              src={first}
+                              alt={`${camera.brand} ${camera.model}`}
+                              onClick={() => {
+                                setPreviewImages(mediaUrls.filter(Boolean));
+                                setPreviewIndex(0);
+                              }}
+                              sx={{
+                                width: 90,
+                                height: 90,
+                                objectFit: "contain",
+                                bgcolor: "#F8FAFC",
+                                border: "2px solid #E2E8F0",
+                                cursor: "pointer",
+                                transition: "all 0.3s ease",
+                                borderRadius: 1,
+                                "&:hover": {
+                                  borderColor: "#FF6B35",
+                                  transform: "scale(1.02)",
+                                  boxShadow:
+                                    "0 4px 12px rgba(255, 107, 53, 0.12)",
+                                },
+                              }}
+                            />
+                          );
+                        })()}
+                      </Box>
                       <Box>
                         <Typography
                           variant="body2"
@@ -767,7 +771,7 @@ export default function CameraManagement() {
                       variant="body2"
                       sx={{
                         color: "#64748B",
-                        maxWidth: 200,
+                        maxWidth: 120,
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
@@ -896,8 +900,11 @@ export default function CameraManagement() {
 
       {/* Image Preview Dialog */}
       <Dialog
-        open={previewImage !== null}
-        onClose={() => setPreviewImage(null)}
+        open={previewIndex !== null}
+        onClose={() => {
+          setPreviewIndex(null);
+          setPreviewImages([]);
+        }}
         maxWidth="md"
         fullWidth
         PaperProps={{
@@ -918,32 +925,86 @@ export default function CameraManagement() {
             position: "relative",
           }}
         >
-          {previewImage && (
+          {previewIndex !== null && previewImages.length > 0 && (
             <>
+              <Box sx={{ position: "absolute", left: 8 }}>
+                <IconButton
+                  onClick={() => {
+                    if (previewIndex === null) return;
+                    const prev =
+                      (previewIndex - 1 + previewImages.length) %
+                      previewImages.length;
+                    setPreviewIndex(prev);
+                  }}
+                  sx={{ bgcolor: "rgba(255,255,255,0.85)" }}
+                >
+                  <Typography sx={{ fontSize: 20 }}>{"‹"}</Typography>
+                </IconButton>
+              </Box>
+
               <img
-                src={previewImage}
-                alt="Preview"
+                src={previewImages[previewIndex]}
+                alt={`Preview ${previewIndex + 1}`}
                 style={{
                   maxWidth: "100%",
                   maxHeight: "80vh",
                   objectFit: "contain",
                 }}
               />
+
+              <Box sx={{ position: "absolute", right: 8 }}>
+                <IconButton
+                  onClick={() => {
+                    if (previewIndex === null) return;
+                    const next = (previewIndex + 1) % previewImages.length;
+                    setPreviewIndex(next);
+                  }}
+                  sx={{ bgcolor: "rgba(255,255,255,0.85)" }}
+                >
+                  <Typography sx={{ fontSize: 20 }}>{"›"}</Typography>
+                </IconButton>
+              </Box>
+
               <IconButton
-                onClick={() => setPreviewImage(null)}
+                onClick={() => {
+                  setPreviewIndex(null);
+                  setPreviewImages([]);
+                }}
                 sx={{
                   position: "absolute",
                   top: 16,
-                  right: 16,
+                  right: 56,
                   bgcolor: "rgba(255, 255, 255, 0.9)",
                   color: "#1E293B",
-                  "&:hover": {
-                    bgcolor: "#FFFFFF",
-                  },
+                  "&:hover": { bgcolor: "#FFFFFF" },
                 }}
               >
                 <CloseIcon />
               </IconButton>
+
+              <Box
+                sx={{
+                  position: "absolute",
+                  bottom: 12,
+                  display: "flex",
+                  gap: 1,
+                }}
+              >
+                {previewImages.map((_, i) => (
+                  <Box
+                    key={i}
+                    sx={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: "50%",
+                      bgcolor:
+                        i === previewIndex
+                          ? "#FFFFFF"
+                          : "rgba(255,255,255,0.4)",
+                    }}
+                  />
+                ))}
+              </Box>
             </>
           )}
         </DialogContent>

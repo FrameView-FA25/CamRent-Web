@@ -74,17 +74,59 @@ export const CameraTable: React.FC<CameraTableProps> = ({
               }}
             >
               <TableCell>
-                <Avatar
-                  variant="rounded"
-                  src={camera.media[0]?.url}
-                  sx={{
-                    width: 56,
-                    height: 56,
-                    bgcolor: colors.neutral[200],
-                  }}
-                >
-                  📷
-                </Avatar>
+                <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                  {Array.isArray(camera.media) && camera.media.length > 0 ? (
+                    camera.media.slice(0, 3).map((m, idx) => {
+                      const url =
+                        typeof m === "string" ? m : m && (m.url || "");
+                      return url ? (
+                        <Box
+                          key={`${camera.id}-${idx}`}
+                          component="img"
+                          src={url}
+                          alt={`${camera.brand} ${camera.model} ${idx + 1}`}
+                          sx={{
+                            width: 56,
+                            height: 56,
+                            objectFit: "cover",
+                            borderRadius: 1,
+                            border: `1px solid ${colors.neutral[200]}`,
+                            bgcolor: colors.neutral[100],
+                          }}
+                        />
+                      ) : (
+                        <Box
+                          key={`${camera.id}-${idx}`}
+                          sx={{
+                            width: 56,
+                            height: 56,
+                            borderRadius: 1,
+                            bgcolor: colors.neutral[200],
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          📷
+                        </Box>
+                      );
+                    })
+                  ) : (
+                    <Box
+                      sx={{
+                        width: 56,
+                        height: 56,
+                        borderRadius: 1,
+                        bgcolor: colors.neutral[200],
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      📷
+                    </Box>
+                  )}
+                </Box>
               </TableCell>
               <TableCell>
                 <Typography variant="body2" fontWeight={600}>
