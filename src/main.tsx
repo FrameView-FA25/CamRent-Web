@@ -6,9 +6,12 @@ import { ToastContainer } from "react-toastify";
 import { router } from "./routers/MainRouter";
 import "./styles/global.css";
 import "react-toastify/dist/ReactToastify.css";
+import { CartProvider } from "./context/CartContext";
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <RouterProvider router={router} />
-    <ToastContainer />
+    <CartProvider>
+      <RouterProvider router={router} />
+      <ToastContainer />
+    </CartProvider>
   </StrictMode>
 );
