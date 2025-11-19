@@ -176,7 +176,7 @@ const CheckoutPage: React.FC = () => {
       const token = localStorage.getItem("accessToken");
 
       const bookingData = {
-        pickupLocation: {
+        location: {
           country,
           province,
           district,
@@ -184,6 +184,8 @@ const CheckoutPage: React.FC = () => {
         pickupAt: pickupAt.toISOString(),
         returnAt: returnAt.toISOString(),
       };
+
+      console.log("Sending booking data:", bookingData);
 
       const response = await fetch(`${API_BASE_URL}/Bookings`, {
         method: "POST",
@@ -194,23 +196,53 @@ const CheckoutPage: React.FC = () => {
         body: JSON.stringify(bookingData),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to create booking");
+      console.log("Response status:", response.status);
+      console.log("Response headers:", response.headers);
+
+      // ✅ Check if response has content
+      const contentType = response.headers.get("content-type");
+      let result = null;
+
+      if (contentType && contentType.includes("application/json")) {
+        // Response is JSON
+        const text = await response.text();
+        console.log("Response text:", text);
+
+        if (text) {
+          try {
+            result = JSON.parse(text);
+          } catch (parseError) {
+            console.error("JSON parse error:", parseError);
+            throw new Error("Invalid JSON response from server");
+          }
+        }
+      } else {
+        // Response is not JSON (might be empty or plain text)
+        const text = await response.text();
+        console.log("Non-JSON response:", text);
       }
 
-      const result = await response.json();
-      console.log("Booking created:", result);
+      // ✅ Check response status after reading body
+      if (!response.ok) {
+        throw new Error(result?.message || `Server error: ${response.status}`);
+      }
+
+      console.log("Booking created successfully:", result);
 
       toast.success("Booking created successfully!");
 
-      // Navigate to payment or booking details
-      navigate("/renter/orders");
+      // Navigate to orders page
+      setTimeout(() => {
+        navigate("/renter/orders");
+      }, 1500);
     } catch (error: unknown) {
       console.error("Error creating booking:", error);
-      toast.error(
-        error instanceof Error ? error.message : "Failed to create booking"
-      );
+
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to create booking. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
