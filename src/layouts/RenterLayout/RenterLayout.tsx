@@ -18,7 +18,6 @@ import {
   Menu as MenuIcon,
   Home as HomeIcon,
   Camera as CameraIcon,
-  ShoppingCart as CartIcon,
   Receipt as OrdersIcon,
   Person as PersonIcon,
   Settings as SettingsIcon,
@@ -39,7 +38,6 @@ const menuItems = [
     icon: <FavoriteIcon />,
     path: "/renter/favorites",
   },
-  { text: "Giỏ Hàng", icon: <CartIcon />, path: "/renter/cart" },
   { text: "Thông Tin Cá Nhân", icon: <PersonIcon />, path: "/renter/profile" },
   { text: "Cài Đặt", icon: <SettingsIcon />, path: "/renter/settings" },
 ];

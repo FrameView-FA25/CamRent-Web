@@ -3,16 +3,21 @@ import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import CameraLoginModal from "../components/Modal/ModalLogin";
 import CameraRegisterModal from "@/components/Modal/ModalRegister";
 import { useAuth } from "@/hooks/useAuth";
-import { Button, Menu, MenuItem } from "@mui/material";
-import { User, LogOut } from "lucide-react";
+import { Button, Menu, MenuItem, IconButton, Badge, Box } from "@mui/material";
+import { User, LogOut, ShoppingCart } from "lucide-react";
 import { getDefaultRouteByRole } from "@/utils/roleUtils";
 import { colors } from "../theme/colors";
+import CartModal from "../components/Modal/ModalCart";
+import { useCart } from "../hooks/useCart";
+
 const MainLayout: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { isAuthenticated, user, logout, refreshAuth } = useAuth();
+  const { cartCount, refreshCart } = useCart();
   const [loginOpen, setLoginOpen] = useState(false);
   const [registerOpen, setRegisterOpen] = useState(false);
+  const [cartModalOpen, setCartModalOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
   const isActive = (path: string) => location.pathname === path;
@@ -28,19 +33,12 @@ const MainLayout: React.FC = () => {
   };
 
   const handleLoginSuccess = () => {
-    // Đóng modal login
     setLoginOpen(false);
-
-    // Refresh auth state
     refreshAuth();
 
-    // Đợi một chút để auth state update
     setTimeout(() => {
-      // Lấy role từ localStorage
       const role = localStorage.getItem("role");
-
       if (role) {
-        // Lấy route mặc định dựa trên role
         const defaultRoute = getDefaultRouteByRole(role);
         console.log("Navigating to:", defaultRoute);
         navigate(defaultRoute);
@@ -75,12 +73,25 @@ const MainLayout: React.FC = () => {
       navigate("/owner/dashboard");
     }
   };
+
+  const handleCartOpen = () => {
+    setCartModalOpen(true);
+  };
+
+  const handleCartClose = () => {
+    setCartModalOpen(false);
+    refreshCart();
+  };
+
+  const role = localStorage.getItem("role");
+  const isRenter = role === "Renter";
+
   return (
     <div className="app-shell">
       <header className="app-header flex items-center justify-between px-6 py-3 shadow-sm bg-white">
         {/* Logo */}
         <Link to="/" className="brand flex items-center gap-2">
-          <img src="/logo.png" alt="CamRent Logo" width="60" height="60" />
+          <img src="/logo.png" alt="CamRent Logo" width="65" height="65" />
           <span className="font-bold text-lg text-gray-800">CamRent</span>
         </Link>
 
@@ -148,9 +159,47 @@ const MainLayout: React.FC = () => {
           </Link>
         </nav>
 
-        {/* Login button hoặc User menu - góc phải đối xứng logo */}
+        {/* Right Side - Cart (for RENTER) + User Menu */}
         {isAuthenticated && user ? (
-          <>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1.5,
+            }}
+          >
+            {/* ✅ Cart Icon - Chỉ hiển thị cho RENTER */}
+            {isRenter && (
+              <IconButton
+                onClick={handleCartOpen}
+                sx={{
+                  color: colors.text.primary,
+                  padding: 1,
+                  "&:hover": {
+                    bgcolor: colors.primary.lighter,
+                  },
+                }}
+              >
+                <Badge
+                  badgeContent={cartCount}
+                  color="error"
+                  sx={{
+                    "& .MuiBadge-badge": {
+                      bgcolor: colors.primary.main,
+                      color: "white",
+                      fontWeight: 700,
+                      fontSize: "0.75rem",
+                      minWidth: 20,
+                      height: 20,
+                    },
+                  }}
+                >
+                  <ShoppingCart size={24} />
+                </Badge>
+              </IconButton>
+            )}
+
+            {/* User Menu Button */}
             <Button
               onClick={handleMenuOpen}
               variant="outlined"
@@ -164,15 +213,19 @@ const MainLayout: React.FC = () => {
                 display: "flex",
                 alignItems: "center",
                 gap: 1,
+                textTransform: "none",
+                height: 40,
                 "&:hover": {
                   borderColor: colors.primary.light,
-                  bgcolor: colors.primary.main,
+                  bgcolor: colors.primary.lighter,
                 },
               }}
             >
               <User size={18} />
               <span>{user.fullName}</span>
             </Button>
+
+            {/* User Dropdown Menu */}
             <Menu
               anchorEl={anchorEl}
               open={Boolean(anchorEl)}
@@ -185,18 +238,38 @@ const MainLayout: React.FC = () => {
                 vertical: "top",
                 horizontal: "right",
               }}
+              PaperProps={{
+                sx: {
+                  mt: 1,
+                  minWidth: 180,
+                  borderRadius: 2,
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                },
+              }}
             >
               <MenuItem onClick={handleProfile}>
                 <User size={16} style={{ marginRight: 8 }} />
                 Profile
               </MenuItem>
+              {isRenter && (
+                <MenuItem
+                  onClick={() => {
+                    handleMenuClose();
+                    navigate("/renter/orders");
+                  }}
+                >
+                  <ShoppingCart size={16} style={{ marginRight: 8 }} />
+                  My Orders
+                </MenuItem>
+              )}
               <MenuItem onClick={handleLogout}>
                 <LogOut size={16} style={{ marginRight: 8 }} />
                 Logout
               </MenuItem>
             </Menu>
-          </>
+          </Box>
         ) : (
+          // Login Button for guests
           <Button
             onClick={() => setLoginOpen(true)}
             variant="contained"
@@ -237,12 +310,16 @@ const MainLayout: React.FC = () => {
         onLoginSuccess={handleLoginSuccess}
         onSwitchToRegister={handleSwitchToRegister}
       />
+
       {/* Modal Register */}
       <CameraRegisterModal
         open={registerOpen}
         onClose={() => setRegisterOpen(false)}
         onSwitchToLogin={handleSwitchToLogin}
       />
+
+      {/* ✅ Cart Modal - Chỉ render nếu là RENTER */}
+      {isRenter && <CartModal open={cartModalOpen} onClose={handleCartClose} />}
     </div>
   );
 };

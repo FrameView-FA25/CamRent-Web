@@ -42,8 +42,8 @@ import RenterDashboard from "@/pages/Renter/Dashboard";
 import OrderPage from "@/pages/Renter/OrderPage";
 import OrderDetailPage from "@/pages/Renter/OrderDetailPage";
 import ProductManagementPage from "@/pages/Manager/ProductManagement";
-import CartPage from "@/pages/Renter/CartPage";
 import VerifyManagement from "@/pages/Manager/VerifyManagement";
+import CheckoutPage from "@/pages/Renter/CheckoutPage";
 const routes: RouteObject[] = [
   {
     path: "/",
@@ -84,6 +84,10 @@ const routes: RouteObject[] = [
       {
         path: "news",
         element: <NewsPage />,
+      },
+      {
+        path: "checkout",
+        element: <CheckoutPage />,
       },
       {
         path: "*",
@@ -263,10 +267,7 @@ const routes: RouteObject[] = [
         path: "my-orders/:orderId",
         element: <OrderDetailPage />,
       },
-      {
-        path: "cart",
-        element: <CartPage />,
-      },
+
       // ...other routes
     ],
   },
