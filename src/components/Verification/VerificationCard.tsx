@@ -32,7 +32,7 @@ const VerificationCard: React.FC<VerificationCardProps> = ({
 }) => {
   const getStatusInfo = (status: Verification["status"]) => {
     const statusMap = {
-      pending: {
+      Pending: {
         label: "Pending",
         color: colors.status.warning,
         bgColor: colors.status.warningLight,

@@ -8,7 +8,7 @@ import { User, LogOut, ShoppingCart } from "lucide-react";
 import { getDefaultRouteByRole } from "@/utils/roleUtils";
 import { colors } from "../theme/colors";
 import CartModal from "../components/Modal/ModalCart";
-import { useCartContext } from "../context/CartContext/useCartContext";
+import { useCartContext } from "../context/CartContext";
 
 const MainLayout: React.FC = () => {
   const location = useLocation();
@@ -249,13 +249,13 @@ const MainLayout: React.FC = () => {
             >
               <MenuItem onClick={handleProfile}>
                 <User size={16} style={{ marginRight: 8 }} />
-                Profile
+                Dashboard
               </MenuItem>
               {isRenter && (
                 <MenuItem
                   onClick={() => {
                     handleMenuClose();
-                    navigate("/renter/orders");
+                    navigate("/renter/my-orders");
                   }}
                 >
                   <ShoppingCart size={16} style={{ marginRight: 8 }} />
