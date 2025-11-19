@@ -15,10 +15,15 @@ import {
   TextField,
   InputAdornment,
   IconButton,
-  Button,
   Tooltip,
 } from "@mui/material";
-import { Assignment, Search, Refresh, AddTask } from "@mui/icons-material";
+import {
+  Assignment,
+  Search,
+  Refresh,
+  AddTask,
+  Visibility,
+} from "@mui/icons-material";
 import { createInspection } from "../../services/inspection.service";
 import InspectionDialog from "../../components/Modal/InspectionDialog";
 import { verificationService } from "../../services/verification.service";
@@ -39,7 +44,7 @@ const getStatusColor = (status: string) => {
   }
 };
 
-const Verifications: React.FC = () => {
+const Inspections: React.FC = () => {
   const [data, setData] = useState<Verification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -285,22 +290,35 @@ const Verifications: React.FC = () => {
                         />
                       </TableCell>
                       <TableCell>
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          onClick={() => alert(JSON.stringify(row, null, 2))}
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 1,
+                          }}
                         >
-                          XEM
-                        </Button>
-                        <Tooltip title="Tạo kiểm tra">
-                          <IconButton
-                            color="primary"
-                            onClick={() => openInspectionDialog(row)}
-                            sx={{ ml: 1 }}
-                          >
-                            <AddTask />
-                          </IconButton>
-                        </Tooltip>
+                          <Tooltip title="Xem chi tiết">
+                            <IconButton
+                              color="primary"
+                              onClick={() =>
+                                alert(JSON.stringify(row, null, 2))
+                              }
+                              size="small"
+                            >
+                              <Visibility />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Tạo kiểm tra">
+                            <IconButton
+                              color="primary"
+                              onClick={() => openInspectionDialog(row)}
+                              size="small"
+                            >
+                              <AddTask />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
                       </TableCell>
                     </TableRow>
                   ))
@@ -329,4 +347,4 @@ const Verifications: React.FC = () => {
   );
 };
 
-export default Verifications;
+export default Inspections;

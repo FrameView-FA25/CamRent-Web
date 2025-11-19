@@ -36,7 +36,7 @@ import ManagerProfile from "../pages/Manager/ManagerProfile";
 import StaffManagement from "../pages/Manager/StaffManagement";
 import EquipmentCheck from "../pages/Staff/EquipmentCheck";
 import BookingDetail from "../pages/Staff/BookingDetail";
-import Verifications from "../pages/Staff/Verifications";
+import Verifications from "../pages/Staff/Inspections";
 import RenterLayout from "../layouts/RenterLayout/RenterLayout";
 import RenterDashboard from "@/pages/Renter/Dashboard";
 import OrderPage from "@/pages/Renter/OrderPage";

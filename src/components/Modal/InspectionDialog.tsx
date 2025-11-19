@@ -42,7 +42,21 @@ const InspectionDialog: React.FC<InspectionDialogProps> = ({
   const verifyId = defaultValues?.verifyId || "";
   // Danh sách thiết bị từ verify
   const items: VerificationItem[] = defaultValues?.items || [];
-  const [form, setForm] = React.useState({
+  type FormState = {
+    ItemId: string;
+    ItemType: string;
+    Type: string;
+    Booking: string;
+    InspectionTypeId: string;
+    Section: string;
+    Label: string;
+    Value: string;
+    Passed: boolean;
+    Notes: string;
+    files: FileList | undefined;
+    images: FileList | undefined;
+  };
+  const [form, setForm] = React.useState<FormState>({
     ItemId: "",
     ItemType: defaultValues?.ItemType || "Camera",
     Type: defaultValues?.Type || "Booking",
@@ -53,8 +67,8 @@ const InspectionDialog: React.FC<InspectionDialogProps> = ({
     Value: defaultValues?.Value || "",
     Passed: defaultValues?.Passed ?? true,
     Notes: defaultValues?.Notes || "",
-    files: undefined as FileList | undefined,
-    images: undefined as FileList | undefined,
+    files: undefined,
+    images: undefined,
   });
 
   React.useEffect(() => {
@@ -70,12 +84,14 @@ const InspectionDialog: React.FC<InspectionDialogProps> = ({
       Value: defaultValues?.Value || "",
       Passed: defaultValues?.Passed ?? true,
       Notes: defaultValues?.Notes || "",
+      files: undefined,
+      images: undefined,
     }));
   }, [defaultValues]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked, files } = e.target;
-    setForm((f) => {
+    setForm((f: FormState) => {
       if (type === "file" && files && name === "images") {
         // Cộng dồn các ảnh đã chọn trước đó
         const oldFiles = f.images ? Array.from(f.images) : [];
@@ -91,6 +107,15 @@ const InspectionDialog: React.FC<InspectionDialogProps> = ({
         const dataTransfer = new DataTransfer();
         allFiles.forEach((file) => dataTransfer.items.add(file));
         return { ...f, images: dataTransfer.files };
+      }
+      // Nếu chọn thiết bị thì tự động fill ItemType
+      if (name === "ItemId") {
+        const selectedItem = items.find((it) => it.itemId === value);
+        return {
+          ...f,
+          ItemId: value,
+          ItemType: selectedItem ? String(selectedItem.itemType) : "",
+        };
       }
       return {
         ...f,
@@ -173,17 +198,17 @@ const InspectionDialog: React.FC<InspectionDialogProps> = ({
           ))}
         </TextField>
         <TextField
-          select
           label="Loại thiết bị"
           name="ItemType"
           value={form.ItemType}
-          onChange={handleChange}
           fullWidth
           sx={{ mb: 2 }}
-        >
-          <MenuItem value="Camera">Camera</MenuItem>
-          <MenuItem value="Accessory">Accessory</MenuItem>
-        </TextField>
+          InputProps={{ readOnly: true }}
+          inputProps={{
+            style: { backgroundColor: "#f3f4f6", cursor: "not-allowed" },
+          }}
+          disabled
+        />
         <TextField
           select
           label="Type"

@@ -19,7 +19,6 @@ import {
   Home as HomeIcon,
   People as PeopleIcon,
   Inventory as ProductsIcon,
-  ShoppingCart as OrdersIcon,
   Settings as SettingsIcon,
   ExitToApp as LogoutIcon,
   Person as PersonIcon,
@@ -30,25 +29,25 @@ import { colors } from "../../theme/colors";
 const DRAWER_WIDTH = 280;
 
 const menuItems = [
-  { text: "Dashboard", icon: <HomeIcon />, path: "/staff/dashboard" },
+  { text: "Trang chủ", icon: <HomeIcon />, path: "/staff/dashboard" },
   {
-    text: "My Assignment",
+    text: "Phân công của tôi",
     icon: <PeopleIcon />,
     path: "/staff/my-assignments",
   },
   {
-    text: "Verifications",
+    text: "Quản lí kiểm tra",
     icon: <VerifiedUserIcon />,
     path: "/staff/verifications",
   },
   {
-    text: "Equipment Check",
+    text: "Kiểm tra thiết bị",
     icon: <ProductsIcon />,
     path: "/staff/equipment-check",
   },
-  { text: "Orders", icon: <OrdersIcon />, path: "/staff/orders" },
-  { text: "Profile", icon: <PersonIcon />, path: "/staff/profile" },
-  { text: "Settings", icon: <SettingsIcon />, path: "/staff/settings" },
+  // { text: "Đơn hàng", icon: <OrdersIcon />, path: "/staff/orders" }, // Removed as requested
+  { text: "Hồ sơ", icon: <PersonIcon />, path: "/staff/profile" },
+  { text: "Cài đặt", icon: <SettingsIcon />, path: "/staff/settings" },
 ];
 
 const StaffLayout: React.FC = () => {
@@ -107,7 +106,7 @@ const StaffLayout: React.FC = () => {
             letterSpacing: "-0.02em",
           }}
         >
-          Staff Panel
+          Bảng điều khiển nhân viên
         </Typography>
       </Box>
 
@@ -195,7 +194,7 @@ const StaffLayout: React.FC = () => {
                 lineHeight: 1.3,
               }}
             >
-              {user?.fullName || "Owner"}
+              {user?.fullName || "Nhân viên"}
             </Typography>
             <Typography
               sx={{
@@ -204,7 +203,7 @@ const StaffLayout: React.FC = () => {
                 lineHeight: 1.3,
               }}
             >
-              {user?.roles?.join(", ") || "User Role"}
+              {user?.roles?.join(", ") || "Vai trò người dùng"}
             </Typography>
           </Box>
         </Stack>
@@ -226,7 +225,7 @@ const StaffLayout: React.FC = () => {
             <LogoutIcon />
           </ListItemIcon>
           <ListItemText
-            primary="Logout"
+            primary="Đăng xuất"
             primaryTypographyProps={{
               fontWeight: 500,
               fontSize: "0.9375rem",
