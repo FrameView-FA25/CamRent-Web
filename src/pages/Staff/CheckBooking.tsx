@@ -43,6 +43,7 @@ import { getItemName } from "../../helpers/booking.helper";
 import { useNavigate } from "react-router-dom";
 import CheckBookingDialog from "../../components/Modal/CheckBookingDialog";
 import { createInspection } from "../../services/inspection.service";
+import { toast } from "react-toastify";
 
 const CheckBookings: React.FC = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -115,11 +116,30 @@ const CheckBookings: React.FC = () => {
       const res = await createInspection(formData);
       if (res?.success === false)
         throw new Error(res.message || "Tạo kiểm tra thất bại");
+
+      toast.success("Tạo kiểm tra thiết bị thành công!", {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+
       await loadAssignments();
       setInspectionModalOpen(false);
     } catch (err: any) {
       console.error("Lỗi tạo kiểm tra:", err);
-      setError(err.message || "Có lỗi xảy ra khi tạo kiểm tra");
+      const errorMessage = err.message || "Có lỗi xảy ra khi tạo kiểm tra";
+      setError(errorMessage);
+      toast.error(errorMessage, {
+        position: "top-right",
+        autoClose: 4000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
     }
   };
 
@@ -136,10 +156,10 @@ const CheckBookings: React.FC = () => {
 
       const matchesTab =
         selectedTab === 0 ||
-        (selectedTab === 1 && booking.status === 0) ||
-        (selectedTab === 2 && booking.status === 1) ||
-        (selectedTab === 3 && booking.status === 2) ||
-        (selectedTab === 4 && booking.status === 3);
+        (selectedTab === 1 && booking.status === "0") ||
+        (selectedTab === 2 && booking.status === "1") ||
+        (selectedTab === 3 && booking.status === "2") ||
+        (selectedTab === 4 && booking.status === "3");
 
       return matchesSearch && matchesTab;
     });
@@ -200,30 +220,30 @@ const CheckBookings: React.FC = () => {
     },
     {
       title: "Chờ xác nhận",
-      value: bookings.filter((b) => b.status === 0).length.toString(),
+      value: bookings.filter((b) => b.status === "0").length.toString(),
       icon: <HourglassEmpty sx={{ fontSize: 24 }} />,
-      chart: generateChartData(bookings.filter((b) => b.status === 0).length),
+      chart: generateChartData(bookings.filter((b) => b.status === "0").length),
       color: "#F97316",
     },
     {
       title: "Đã xác nhận",
-      value: bookings.filter((b) => b.status === 1).length.toString(),
+      value: bookings.filter((b) => b.status === "1").length.toString(),
       icon: <CheckCircleOutline sx={{ fontSize: 24 }} />,
-      chart: generateChartData(bookings.filter((b) => b.status === 1).length),
+      chart: generateChartData(bookings.filter((b) => b.status === "1").length),
       color: "#1D4ED8",
     },
     {
       title: "Đang giao",
-      value: bookings.filter((b) => b.status === 2).length.toString(),
+      value: bookings.filter((b) => b.status === "2").length.toString(),
       icon: <LocalShipping sx={{ fontSize: 24 }} />,
-      chart: generateChartData(bookings.filter((b) => b.status === 2).length),
+      chart: generateChartData(bookings.filter((b) => b.status === "2").length),
       color: "#4F46E5",
     },
     {
       title: "Hoàn thành",
-      value: bookings.filter((b) => b.status === 3).length.toString(),
+      value: bookings.filter((b) => b.status === "3").length.toString(),
       icon: <TaskAlt sx={{ fontSize: 24 }} />,
-      chart: generateChartData(bookings.filter((b) => b.status === 3).length),
+      chart: generateChartData(bookings.filter((b) => b.status === "3").length),
       color: "#059669",
     },
   ];
@@ -424,22 +444,22 @@ const CheckBookings: React.FC = () => {
             <Tab label={`Tất cả (${bookings.length})`} />
             <Tab
               label={`Chờ xác nhận (${
-                bookings.filter((b) => b.status === 0).length
+                bookings.filter((b) => b.status === "0").length
               })`}
             />
             <Tab
               label={`Đã xác nhận (${
-                bookings.filter((b) => b.status === 1).length
+                bookings.filter((b) => b.status === "1").length
               })`}
             />
             <Tab
               label={`Đang giao (${
-                bookings.filter((b) => b.status === 2).length
+                bookings.filter((b) => b.status === "2").length
               })`}
             />
             <Tab
               label={`Hoàn thành (${
-                bookings.filter((b) => b.status === 3).length
+                bookings.filter((b) => b.status === "3").length
               })`}
             />
           </Tabs>
@@ -664,7 +684,9 @@ const CheckBookings: React.FC = () => {
                               onClick={() => handleOpenInspection(booking.id)}
                               sx={{
                                 bgcolor:
-                                  booking.status === 3 ? "#10b981" : "#F97316",
+                                  booking.status === "3"
+                                    ? "#10b981"
+                                    : "#F97316",
                                 color: "#fff",
                                 textTransform: "none",
                                 fontWeight: 600,
@@ -678,7 +700,7 @@ const CheckBookings: React.FC = () => {
                                 "& .MuiButton-startIcon": { mr: 0.5 },
                                 "&:hover": {
                                   bgcolor:
-                                    booking.status === 3
+                                    booking.status === "3"
                                       ? "#059669"
                                       : "#fb923c",
                                   color: "#fff",
@@ -742,19 +764,20 @@ const CheckBookings: React.FC = () => {
             verifyId: selectedBookingId,
             items: (
               bookings.find((b) => b.id === selectedBookingId)?.items || []
-            ).map((it) => ({
-              itemId: it.id || "",
-              itemName: it.itemName || "",
-              itemType:
-                it.itemType === "Camera"
-                  ? 1
-                  : it.itemType === "Accessory"
-                  ? 2
-                  : it.itemType === "Combo"
-                  ? 3
-                  : 0,
-            })),
-            ItemType: "Camera",
+            ).map((it) => {
+              // Chuyển itemType từ string sang number
+              let itemTypeNum = 0;
+              if (it.itemType === "Camera") itemTypeNum = 1;
+              else if (it.itemType === "Accessory") itemTypeNum = 2;
+              else if (it.itemType === "Combo") itemTypeNum = 3;
+
+              return {
+                itemId: it.itemId || "",
+                itemName: it.itemName || "",
+                itemType: itemTypeNum,
+              };
+            }),
+            ItemType: "",
             Type: "Booking",
           }}
         />
