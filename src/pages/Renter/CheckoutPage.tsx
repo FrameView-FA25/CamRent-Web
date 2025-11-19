@@ -196,9 +196,6 @@ const CheckoutPage: React.FC = () => {
         body: JSON.stringify(bookingData),
       });
 
-      console.log("Response status:", response.status);
-      console.log("Response headers:", response.headers);
-
       // ✅ Check if response has content
       const contentType = response.headers.get("content-type");
       let result = null;

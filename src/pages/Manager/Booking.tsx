@@ -53,7 +53,10 @@ import "react-toastify/dist/ReactToastify.css";
 
 // Imports from separated files
 import type { Booking, Staff } from "../../types/booking.types";
-import { fetchBookings, fetchStaffList } from "../../services/booking.service";
+import {
+  fetchBranchBookings,
+  fetchStaffList,
+} from "../../services/booking.service";
 import {
   formatCurrency,
   formatDate,
@@ -88,7 +91,7 @@ const BookingManagement: React.FC = () => {
   const loadBookings = async () => {
     setLoading(true);
     const { bookings: fetchedBookings, error: fetchError } =
-      await fetchBookings();
+      await fetchBranchBookings();
 
     if (fetchError) {
       setError(fetchError);
@@ -181,25 +184,42 @@ const BookingManagement: React.FC = () => {
     navigate(`/manager/contracts/create?bookingId=${selectedBooking?.id}`);
     setContractDialogOpen(false);
   };
-
+  const getStatusNumber = (statusText: string): number => {
+    const statusMap: Record<string, number> = {
+      "Chờ xác nhận": 0,
+      "Đã xác nhận": 1,
+      "Đang thuê": 2,
+      "Hoàn thành": 3,
+      "Đã hủy": 4,
+    };
+    return statusMap[statusText] ?? -1;
+  };
   const filteredBookings = bookings.filter((booking) => {
     if (booking.statusText === "Giỏ hàng") {
       return false;
     }
+
     const matchesSearch =
       booking.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       booking.renterId.toLowerCase().includes(searchQuery.toLowerCase()) ||
       booking.items.some((item) =>
-        getItemName(item).toLowerCase().includes(searchQuery.toLowerCase())
-      );
+        item.itemName.toLowerCase().includes(searchQuery.toLowerCase())
+      ) ||
+      booking.location.province
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase()) ||
+      booking.location.district
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
 
+    const bookingStatusNumber = getStatusNumber(booking.statusText);
     const matchesTab =
       selectedTab === 0 ||
-      (selectedTab === 1 && booking.status === 0) ||
-      (selectedTab === 2 && booking.status === 1) ||
-      (selectedTab === 3 && booking.status === 2) ||
-      (selectedTab === 4 && booking.status === 3) ||
-      (selectedTab === 5 && booking.status === 4);
+      (selectedTab === 1 && bookingStatusNumber === 0) ||
+      (selectedTab === 2 && bookingStatusNumber === 1) ||
+      (selectedTab === 3 && bookingStatusNumber === 2) ||
+      (selectedTab === 4 && bookingStatusNumber === 3) ||
+      (selectedTab === 5 && bookingStatusNumber === 4);
 
     return matchesSearch && matchesTab;
   });
@@ -365,7 +385,7 @@ const BookingManagement: React.FC = () => {
                 variant="h4"
                 sx={{ fontWeight: 700, color: "#1F2937", mb: 0.5 }}
               >
-                {bookings.filter((b) => b.status === 0).length}
+                {bookings.filter((b) => b.statusText === "Chờ xác nhận").length}
               </Typography>
               <Typography variant="body2" sx={{ color: "#6B7280" }}>
                 Chờ xác nhận
@@ -408,7 +428,7 @@ const BookingManagement: React.FC = () => {
                 variant="h4"
                 sx={{ fontWeight: 700, color: "#1F2937", mb: 0.5 }}
               >
-                {bookings.filter((b) => b.status === 1).length}
+                {bookings.filter((b) => b.statusText === "Đã xác nhận").length}
               </Typography>
               <Typography variant="body2" sx={{ color: "#6B7280" }}>
                 Đã xác nhận
@@ -451,7 +471,7 @@ const BookingManagement: React.FC = () => {
                 variant="h4"
                 sx={{ fontWeight: 700, color: "#1F2937", mb: 0.5 }}
               >
-                {bookings.filter((b) => b.status === 2).length}
+                {bookings.filter((b) => b.statusText === "Đang thuê").length}
               </Typography>
               <Typography variant="body2" sx={{ color: "#6B7280" }}>
                 Đang thuê
@@ -494,7 +514,7 @@ const BookingManagement: React.FC = () => {
                 variant="h4"
                 sx={{ fontWeight: 700, color: "#1F2937", mb: 0.5 }}
               >
-                {bookings.filter((b) => b.status === 3).length}
+                {bookings.filter((b) => b.statusText === "Hoàn thành").length}
               </Typography>
               <Typography variant="body2" sx={{ color: "#6B7280" }}>
                 Hoàn thành
@@ -537,7 +557,7 @@ const BookingManagement: React.FC = () => {
                 variant="h4"
                 sx={{ fontWeight: 700, color: "#1F2937", mb: 0.5 }}
               >
-                {bookings.filter((b) => b.status === 4).length}
+                {bookings.filter((b) => b.statusText === "Đã hủy").length}
               </Typography>
               <Typography variant="body2" sx={{ color: "#6B7280" }}>
                 Đã hủy
@@ -664,27 +684,27 @@ const BookingManagement: React.FC = () => {
             <Tab label={`Tất cả (${bookings.length})`} />
             <Tab
               label={`Chờ xác nhận (${
-                bookings.filter((b) => b.status === 0).length
+                bookings.filter((b) => b.statusText === "Chờ xác nhận").length
               })`}
             />
             <Tab
               label={`Đã xác nhận (${
-                bookings.filter((b) => b.status === 1).length
+                bookings.filter((b) => b.statusText === "Đã xác nhận").length
               })`}
             />
             <Tab
               label={`Đang thuê (${
-                bookings.filter((b) => b.status === 2).length
+                bookings.filter((b) => b.statusText === "Đang thuê").length
               })`}
             />
             <Tab
               label={`Hoàn thành (${
-                bookings.filter((b) => b.status === 3).length
+                bookings.filter((b) => b.statusText === "Hoàn thành").length
               })`}
             />
             <Tab
               label={`Đã hủy (${
-                bookings.filter((b) => b.status === 4).length
+                bookings.filter((b) => b.statusText === "Đã hủy").length
               })`}
             />
           </Tabs>
