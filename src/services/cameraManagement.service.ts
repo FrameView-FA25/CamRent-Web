@@ -42,6 +42,44 @@ export const cameraManagementService = {
     return await response.json();
   },
 
+  // ✅ NEW: Get cameras by branch (for branch manager)
+  getCamerasByBranch: async (): Promise<Camera[]> => {
+    const token = getAuthToken();
+    
+    if (!token) {
+      throw new Error('Authentication required. Please login.');
+    }
+
+    const response = await fetch(`${API_BASE_URL}/Cameras/my-branch`, {
+      method: 'GET',
+      headers: {
+        'accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('API Error:', response.status, errorText);
+      
+      if (response.status === 401) {
+        throw new Error('Unauthorized. Please login again.');
+      }
+      if (response.status === 403) {
+        throw new Error('You do not have permission to view branch cameras.');
+      }
+      if (response.status === 404) {
+        // Branch không có camera nào
+        return [];
+      }
+      
+      throw new Error(`Failed to fetch branch cameras: ${response.status}`);
+    }
+
+    const data: Camera[] = await response.json();
+    return data;
+  },
+
   // Get camera by ID
   getCameraById: async (id: string): Promise<Camera> => {
     const token = getAuthToken();

@@ -8,7 +8,7 @@ export interface Camera {
   branchName: string;
   branchAddress: string | null;
 
-    itemType: number;
+  itemType: number;
 
   bookingItemType: number;
   baseDailyRate: number;
