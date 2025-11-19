@@ -46,7 +46,7 @@ const ProductCard: React.FC<{ camera: Camera | Accessory }> = ({ camera }) => {
   const isAvailable = camera.isAvailable ?? false;
 
   // mock tạm thông tin owner (sau này thay bằng data từ API)
-  const ownerName = "Studio Ánh Sáng";
+  const ownerName = camera.branchName || camera.ownerName;
 
   // Xử lý media cho cả Camera và Accessory
   const getMediaUrl = () => {
@@ -229,7 +229,7 @@ const ProductCard: React.FC<{ camera: Camera | Accessory }> = ({ camera }) => {
                 variant="body2"
                 sx={{ fontWeight: 600, color: grey[800] }}
               >
-                {camera.branchName}
+                {camera.branchAddress}
               </Typography>
             </Box>
           </Box>

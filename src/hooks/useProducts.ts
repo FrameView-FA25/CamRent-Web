@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { cameraService } from '../services/camera.service';
-import type { Camera, CameraResponse } from '../types/product.types';
+import type { Camera } from '../types/product.types';
 import type { Accessory } from '../services/camera.service';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -26,9 +26,10 @@ export const useCameras = () => {
           throw new Error("Failed to fetch cameras");
         }
 
-        const data: CameraResponse = await response.json();
-        setCameras(data.items || []);
-        setTotal(data.total || 0);
+        const data: Camera[] = await response.json();
+        
+        setCameras(data || []);
+        setTotal(data.length || 0);
         setError(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : "An error occurred");

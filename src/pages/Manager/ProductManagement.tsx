@@ -1,47 +1,45 @@
-import React, { useMemo, useState } from "react";
+import React from "react";
 import {
   Box,
   Container,
   Typography,
-  Button,
   Stack,
   CircularProgress,
   Alert,
   Pagination,
-  Tabs,
-  Tab,
+  Paper,
+  Button,
 } from "@mui/material";
-import { Add as AddIcon, CameraAlt as CameraIcon } from "@mui/icons-material";
+import { CameraAlt as CameraIcon } from "@mui/icons-material";
 import { useCameraManagement } from "../../hooks/useCameraManagement";
 import { CameraTable } from "../../components/Management/CameraTable";
 import { CameraFilters } from "../../components/Management/CameraFilters";
+import { useProductFilters } from "../../hooks/useProductFilters";
+import ProductStats from "../../components/ProductManagement/ProductStats";
+import ProductSearchBar from "../../components/ProductManagement/ProductSearchBar";
+import ProductEmptyState from "../../components/ProductManagement/ProductEmptyState";
+import ProductNoResults from "../../components/ProductManagement/ProductNoResults";
 import type { Camera } from "../../types/product.types";
 import { colors } from "../../theme/colors";
 
 const ProductManagementPage: React.FC = () => {
-  const [currentTab, setCurrentTab] = useState(0);
-
-  // TODO: Get manager's branch from auth context
-  const managerBranchName = "Demo Branch"; // Placeholder
+  const { cameras, loading, error, total, refreshCameras } =
+    useCameraManagement();
 
   const {
-    cameras,
-    loading,
-    error,
-    total,
-    filters,
-    updateFilters,
-    // refreshCameras,
-  } = useCameraManagement(managerBranchName);
-
-  // Extract unique brands for filter
-  const brands = useMemo(() => {
-    const uniqueBrands = new Set(cameras.map((c) => c.brand));
-    return Array.from(uniqueBrands).sort();
-  }, [cameras]);
-
-  // Calculate total pages
-  const totalPages = Math.ceil(total / filters.pageSize);
+    searchQuery,
+    brands,
+    currentPage,
+    pageSize,
+    filteredAndSortedCameras,
+    paginatedCameras,
+    totalPages,
+    handleSearchChange,
+    handleBrandChange,
+    handleSortChange,
+    setCurrentPage,
+    resetFilters,
+  } = useProductFilters(cameras);
 
   const handleView = (camera: Camera) => {
     console.log("View camera:", camera);
@@ -67,84 +65,58 @@ const ProductManagementPage: React.FC = () => {
     <Box sx={{ minHeight: "100vh", bgcolor: colors.background.default, py: 4 }}>
       <Container maxWidth="xl">
         {/* Header */}
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          justifyContent="space-between"
-          alignItems={{ xs: "flex-start", sm: "center" }}
-          spacing={2}
-          sx={{ mb: 4 }}
-        >
-          <Box>
-            <Typography variant="h4" fontWeight={700} sx={{ mb: 0.5 }}>
-              Quản lý Sản phẩm
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Chi nhánh: <strong>{managerBranchName}</strong> • Tổng: {total}{" "}
-              camera
-            </Typography>
-          </Box>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleAddNew}
+        <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2 }}>
+          <Box
             sx={{
-              bgcolor: colors.primary.main,
-              color: "white",
-              fontWeight: 600,
-              textTransform: "none",
-              px: 3,
-              py: 1.25,
+              width: 48,
+              height: 48,
               borderRadius: 2,
-              "&:hover": {
-                bgcolor: colors.primary.dark,
-              },
+              bgcolor: colors.primary.main,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "white",
             }}
           >
-            Thêm Camera Mới
-          </Button>
+            <CameraIcon sx={{ fontSize: 28 }} />
+          </Box>
+          <Typography
+            variant="h4"
+            sx={{
+              fontWeight: 700,
+              color: colors.text.primary,
+            }}
+          >
+            Quản lý sản phẩm
+          </Typography>
         </Stack>
 
-        {/* Tabs */}
-        <Box sx={{ mb: 3, borderBottom: 1, borderColor: "divider" }}>
-          <Tabs
-            value={currentTab}
-            onChange={(_, newValue) => setCurrentTab(newValue)}
-            sx={{
-              "& .MuiTab-root": {
-                textTransform: "none",
-                fontWeight: 600,
-                fontSize: 16,
-                color: colors.text.primary,
-              },
-              "& .Mui-selected": {
-                color: colors.text.primary,
-              },
-              "& .MuiTabs-indicator": {
-                bgcolor: colors.primary.main,
-                height: 3,
-              },
-            }}
-          >
-            <Tab
-              icon={<CameraIcon />}
-              iconPosition="start"
-              label={`Cameras (${total})`}
-            />
-            <Tab label="Phụ kiện (Sắp có)" />
-          </Tabs>
-        </Box>
+        <Typography
+          variant="body2"
+          sx={{ color: colors.text.secondary, mb: 4, fontSize: 15 }}
+        >
+          Danh sách sản phẩm chi nhánh
+        </Typography>
+
+        {/* Stats */}
+        <ProductStats cameras={cameras} total={total} />
+
+        {/* Search Bar */}
+        <ProductSearchBar
+          searchQuery={searchQuery}
+          onSearchChange={handleSearchChange}
+          onRefresh={refreshCameras}
+        />
 
         {/* Filters */}
-        <CameraFilters
-          onSearchChange={(value) => updateFilters({ model: value, page: 1 })}
-          onBrandChange={(value) =>
-            updateFilters({ brand: value || undefined, page: 1 })
-          }
-          onSortChange={(sortBy, sortDir) =>
-            updateFilters({ sortBy, sortDir, page: 1 })
-          }
-          brands={brands}
-        />
+        <Box sx={{ mb: 3 }}>
+          <CameraFilters
+            onSearchChange={handleSearchChange}
+            onBrandChange={handleBrandChange}
+            onSortChange={handleSortChange}
+            brands={brands}
+          />
+        </Box>
 
         {/* Loading State */}
         {loading && (
@@ -155,68 +127,99 @@ const ProductManagementPage: React.FC = () => {
 
         {/* Error State */}
         {error && (
-          <Alert severity="error" sx={{ mb: 3 }}>
+          <Alert
+            severity="error"
+            sx={{ mb: 3, borderRadius: 2 }}
+            action={
+              <Button color="inherit" size="small" onClick={refreshCameras}>
+                Thử lại
+              </Button>
+            }
+          >
             {error}
           </Alert>
         )}
 
-        {/* Table */}
+        {/* Content */}
         {!loading && !error && (
           <>
-            <CameraTable
-              cameras={cameras}
-              onView={handleView}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-            />
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
-                <Pagination
-                  count={totalPages}
-                  page={filters.page}
-                  onChange={(_, page) => updateFilters({ page })}
-                  color="primary"
-                  size="large"
+            {cameras.length === 0 ? (
+              <ProductEmptyState onAddNew={handleAddNew} />
+            ) : filteredAndSortedCameras.length === 0 ? (
+              <ProductNoResults onReset={resetFilters} />
+            ) : (
+              <>
+                <Paper
+                  elevation={0}
                   sx={{
-                    "& .MuiPaginationItem-root": {
-                      borderRadius: 2,
-                      fontWeight: 600,
-                    },
-                    "& .Mui-selected": {
-                      bgcolor: `${colors.primary.main} !important`,
-                      color: "white",
-                    },
+                    borderRadius: 2,
+                    border: `1px solid ${colors.border.light}`,
+                    overflow: "hidden",
+                    mb: 3,
                   }}
-                />
-              </Box>
+                >
+                  <CameraTable
+                    cameras={paginatedCameras}
+                    onView={handleView}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                  />
+                </Paper>
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <Stack
+                    direction="row"
+                    justifyContent="space-between"
+                    alignItems="center"
+                    sx={{ mt: 3 }}
+                  >
+                    <Typography
+                      variant="body2"
+                      sx={{ color: colors.text.secondary }}
+                    >
+                      Số hàng mỗi trang: {pageSize}
+                    </Typography>
+                    <Stack direction="row" spacing={2} alignItems="center">
+                      <Typography
+                        variant="body2"
+                        sx={{ color: colors.text.secondary }}
+                      >
+                        {(currentPage - 1) * pageSize + 1}-
+                        {Math.min(currentPage * pageSize, total)} của {total}
+                      </Typography>
+                      <Pagination
+                        count={totalPages}
+                        page={currentPage}
+                        onChange={(_, page) => setCurrentPage(page)}
+                        color="primary"
+                        size="medium"
+                        showFirstButton
+                        showLastButton
+                        sx={{
+                          "& .MuiPaginationItem-root": {
+                            borderRadius: 1,
+                            fontWeight: 600,
+                            color: colors.text.secondary,
+                            "&:hover": {
+                              bgcolor: colors.background.default,
+                            },
+                          },
+                          "& .Mui-selected": {
+                            bgcolor: `${colors.primary.main} !important`,
+                            color: "white",
+                            "&:hover": {
+                              bgcolor: `${colors.primary.dark} !important`,
+                            },
+                          },
+                        }}
+                      />
+                    </Stack>
+                  </Stack>
+                )}
+              </>
             )}
           </>
-        )}
-
-        {/* Empty State */}
-        {!loading && !error && cameras.length === 0 && (
-          <Box sx={{ textAlign: "center", py: 8 }}>
-            <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
-              Chưa có camera nào
-            </Typography>
-            <Button
-              variant="outlined"
-              startIcon={<AddIcon />}
-              onClick={handleAddNew}
-              sx={{
-                borderColor: colors.primary.main,
-                color: colors.primary.main,
-                "&:hover": {
-                  borderColor: colors.primary.dark,
-                  bgcolor: colors.primary.lighter,
-                },
-              }}
-            >
-              Thêm Camera Đầu Tiên
-            </Button>
-          </Box>
         )}
       </Container>
     </Box>

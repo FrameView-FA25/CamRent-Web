@@ -123,6 +123,7 @@ const ManagerLayout: React.FC = () => {
                       bgcolor: isActive
                         ? colors.primary.light
                         : colors.primary.light,
+                      color: "#ffffff",
                     },
                     transition: "all 0.2s ease",
                   }}

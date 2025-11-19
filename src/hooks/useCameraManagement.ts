@@ -1,42 +1,34 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { Camera, CameraResponse, CameraFilters } from '../types/product.types';
-import { cameraManagementService } from '../services/cameraManagement.service.ts';
+import type { Camera } from '../types/product.types';
+import { cameraManagementService } from '../services/cameraManagement.service';
 
-export const useCameraManagement = (managerBranchName: string) => {
+export const useCameraManagement = () => {
   const [cameras, setCameras] = useState<Camera[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [total, setTotal] = useState(0);
-  const [filters, setFilters] = useState<CameraFilters>({
-    page: 1,
-    pageSize: 20,
-    sortBy: 'createdAt',
-    sortDir: 'desc',
-    branchName: managerBranchName,
-  });
 
   const fetchCameras = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const response: CameraResponse = await cameraManagementService.getCameras(filters);
-      setCameras(response.items);
-      setTotal(response.total);
+      // ✅ Gọi API mới: /api/Cameras/my-branch
+      const data = await cameraManagementService.getCamerasByBranch();
+      setCameras(data);
+      setTotal(data.length);
     } catch (err) {
-      setError('Không thể tải danh sách camera. Vui lòng thử lại.');
+      setError(err instanceof Error ? err.message : 'Không thể tải danh sách camera. Vui lòng thử lại.');
       console.error('Error fetching cameras:', err);
+      setCameras([]);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, []); // ✅ Không cần dependencies vì API tự động lấy theo branch của user
 
   useEffect(() => {
     fetchCameras();
   }, [fetchCameras]);
-
-  const updateFilters = (newFilters: Partial<CameraFilters>) => {
-    setFilters(prev => ({ ...prev, ...newFilters }));
-  };
 
   const refreshCameras = () => {
     fetchCameras();
@@ -47,8 +39,6 @@ export const useCameraManagement = (managerBranchName: string) => {
     loading,
     error,
     total,
-    filters,
-    updateFilters,
     refreshCameras,
   };
 };

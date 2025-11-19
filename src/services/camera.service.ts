@@ -56,6 +56,7 @@ export interface Accessory {
   variant: string | null;
   serialNumber: string | null;
   branchName: string;
+  branchAddress: string | null;
   bookingItemType: number;
   baseDailyRate: number;
   platformFeePercent: number;
@@ -63,6 +64,7 @@ export interface Accessory {
   depositPercent: number;
   depositCapMinVnd: number;
   depositCapMaxVnd: number;
+  ownerName: string | null;
   media: string[];
   specsJson: string | null;
   categories: string[];
