@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useContext } from "react";
 import {
   Box,
   Typography,
@@ -15,7 +15,13 @@ import {
   IconButton,
 } from "@mui/material";
 import { Add as AddIcon, Close as CloseIcon } from "@mui/icons-material";
-import type { CreateVerificationRequest } from "../../services/verification.service";
+import type {
+  CreateVerificationRequest,
+  VerificationItem,
+} from "../../types/verification.types";
+import { cameraService } from "../../services/camera.service";
+import { accessoryService } from "../../services/accessory.service";
+import { CameraContext } from "../../context/CameraContexts/CameraContext.types";
 import type { Branch } from "../../types/branch.types";
 
 interface ModalVerificationProps {
@@ -39,18 +45,138 @@ export default function ModalVerification({
     inspectionDate: "",
     notes: "",
     branchId: "",
+    items: [{ itemId: "", itemName: "", itemType: 1 }],
   });
+  const [cameraOptions, setCameraOptions] = useState<any[]>([]);
+  const [accessoryOptions, setAccessoryOptions] = useState<any[]>([]);
+  const [cameraLoading, setCameraLoading] = useState(false);
+  const [accessoryLoading, setAccessoryLoading] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [accessoryError, setAccessoryError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{
     type: "success" | "error";
     text: string;
   } | null>(null);
 
+  // Try to read camera context if available (safe: useContext returns undefined if provider not present)
+  const cameraCtx = useContext(CameraContext);
+
   const handleInputChange = (
     field: keyof CreateVerificationRequest,
     value: string
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  useEffect(() => {
+    // load camera & accessory lists when modal opens
+    if (!open) return;
+    (async () => {
+      // If camera context already has cameras, use them to avoid extra fetch
+      if (
+        cameraCtx &&
+        Array.isArray(cameraCtx.cameras) &&
+        cameraCtx.cameras.length > 0
+      ) {
+        setCameraOptions(cameraCtx.cameras);
+      }
+      setCameraLoading(true);
+      setAccessoryLoading(true);
+      setCameraError(null);
+      setAccessoryError(null);
+      try {
+        const cams = await cameraService.getCamerasByOwner(1, 200);
+        console.log("camera fetch result:", cams);
+        // Accept multiple possible shapes from API
+        if (cams && (cams as any).items && Array.isArray((cams as any).items)) {
+          setCameraOptions((cams as any).items);
+        } else if (Array.isArray(cams)) {
+          setCameraOptions(cams as any);
+        } else if (
+          (cams as any).cameras &&
+          Array.isArray((cams as any).cameras)
+        ) {
+          setCameraOptions((cams as any).cameras);
+        } else if ((cams as any).data && Array.isArray((cams as any).data)) {
+          setCameraOptions((cams as any).data);
+        } else {
+          // fallback: try to extract any array in object
+          const arr = Object.values(cams || {}).find((v) => Array.isArray(v));
+          setCameraOptions(Array.isArray(arr) ? (arr as any) : []);
+        }
+      } catch (err: any) {
+        console.error("Lỗi tải camera:", err);
+        setCameraOptions([]);
+        setCameraError(err?.message || "Không thể tải danh sách camera");
+      } finally {
+        setCameraLoading(false);
+      }
+
+      try {
+        // Use accessoryService owner endpoint (requires token) to get owner's accessories
+        const acc = await accessoryService.getAccessoriesByOwnerId();
+        console.log("accessory fetch result:", acc);
+        if (acc && Array.isArray(acc)) {
+          setAccessoryOptions(acc as any[]);
+        } else if (
+          acc &&
+          (acc as any).items &&
+          Array.isArray((acc as any).items)
+        ) {
+          setAccessoryOptions((acc as any).items);
+        } else if ((acc as any).data && Array.isArray((acc as any).data)) {
+          setAccessoryOptions((acc as any).data);
+        } else {
+          const arr = Object.values(acc || {}).find((v) => Array.isArray(v));
+          setAccessoryOptions(Array.isArray(arr) ? (arr as any) : []);
+        }
+      } catch (err: any) {
+        console.error("Lỗi tải accessory:", err);
+        setAccessoryOptions([]);
+        setAccessoryError(err?.message || "Không thể tải danh sách phụ kiện");
+      } finally {
+        setAccessoryLoading(false);
+      }
+    })();
+  }, [open]);
+
+  const handleAddItem = () => {
+    setFormData((prev) => ({
+      ...prev,
+      items: [
+        ...(prev.items || []),
+        { itemId: "", itemName: "", itemType: 1 } as VerificationItem,
+      ],
+    }));
+  };
+
+  const handleRemoveItem = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      items: prev.items.filter((_, i) => i !== index),
+    }));
+  };
+
+  const handleItemChange = (
+    index: number,
+    field: keyof VerificationItem,
+    value: string | number
+  ) => {
+    setFormData((prev) => {
+      const newItems = [...(prev.items || [])];
+      const item = {
+        ...(newItems[index] || { itemId: "", itemName: "", itemType: 1 }),
+      } as any;
+      item[field] = value;
+      // if user changed itemType, clear itemId/name
+      if (field === "itemType") {
+        item.itemId = "";
+        item.itemName = "";
+      }
+      newItems[index] = item;
+      return { ...prev, items: newItems };
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -73,10 +199,21 @@ export default function ModalVerification({
         throw new Error("Vui lòng chọn chi nhánh");
       }
 
+      // Validate items
+      if (!formData.items || formData.items.length === 0) {
+        throw new Error("Vui lòng thêm ít nhất một thiết bị");
+      }
+      for (const it of formData.items) {
+        if (!it.itemId) {
+          throw new Error("Vui lòng chọn tên cho tất cả thiết bị");
+        }
+      }
+
       // Chuyển đổi inspectionDate sang định dạng ISO 8601
       const submitData: CreateVerificationRequest = {
         ...formData,
         inspectionDate: new Date(formData.inspectionDate).toISOString(),
+        items: formData.items || [],
       };
 
       await onSubmit(submitData);
@@ -110,6 +247,7 @@ export default function ModalVerification({
       inspectionDate: "",
       notes: "",
       branchId: "",
+      items: [],
     });
     setMessage(null);
     setIsLoading(false);
@@ -346,6 +484,136 @@ export default function ModalVerification({
                 },
               }}
             />
+
+            {/* Items: multiple */}
+            <Box>
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  mb: 1,
+                }}
+              >
+                <Typography sx={{ fontWeight: 700 }}>
+                  Danh sách thiết bị
+                </Typography>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={handleAddItem}
+                  startIcon={<AddIcon />}
+                >
+                  Thêm
+                </Button>
+              </Box>
+
+              {(formData.items || []).map((it, idx) => (
+                <Stack key={idx} direction="row" spacing={1} sx={{ mb: 1 }}>
+                  <TextField
+                    select
+                    size="small"
+                    label="Loại"
+                    value={it.itemType}
+                    onChange={(e) =>
+                      handleItemChange(idx, "itemType", Number(e.target.value))
+                    }
+                    sx={{ minWidth: 140 }}
+                  >
+                    <MenuItem value={1}>Camera</MenuItem>
+                    <MenuItem value={2}>Phụ kiện</MenuItem>
+                  </TextField>
+
+                  <TextField
+                    select
+                    size="small"
+                    label="Chọn tên"
+                    value={it.itemId || ""}
+                    onChange={(e) => {
+                      const selectedId = e.target.value;
+                      if (it.itemType === 1) {
+                        const selected = cameraOptions.find(
+                          (c) => c.id === selectedId
+                        );
+                        handleItemChange(idx, "itemId", selectedId);
+                        handleItemChange(
+                          idx,
+                          "itemName",
+                          selected ? `${selected.brand} ${selected.model}` : ""
+                        );
+                      } else {
+                        const selected = accessoryOptions.find(
+                          (a) => a.id === selectedId
+                        );
+                        handleItemChange(idx, "itemId", selectedId);
+                        handleItemChange(
+                          idx,
+                          "itemName",
+                          selected ? `${selected.brand} ${selected.model}` : ""
+                        );
+                      }
+                    }}
+                    sx={{ flex: 1 }}
+                    SelectProps={{
+                      MenuProps: {
+                        PaperProps: {
+                          style: { maxHeight: 48 * 5 + 8 }, // show ~5 items, with small padding
+                        },
+                      },
+                    }}
+                    helperText={
+                      it.itemType === 1
+                        ? cameraLoading
+                          ? "Đang tải camera..."
+                          : cameraError
+                          ? cameraError
+                          : cameraOptions.length === 0
+                          ? "Không có camera"
+                          : ""
+                        : accessoryLoading
+                        ? "Đang tải phụ kiện..."
+                        : accessoryError
+                        ? accessoryError
+                        : accessoryOptions.length === 0
+                        ? "Không có phụ kiện"
+                        : ""
+                    }
+                  >
+                    {it.itemType === 1
+                      ? cameraOptions.length > 0
+                        ? cameraOptions.map((c) => (
+                            <MenuItem key={c.id} value={c.id}>
+                              {c.brand} {c.model}
+                            </MenuItem>
+                          ))
+                        : [
+                            <MenuItem key="no-camera" value="" disabled>
+                              Không có camera
+                            </MenuItem>,
+                          ]
+                      : accessoryOptions.length > 0
+                      ? accessoryOptions.map((a) => (
+                          <MenuItem key={a.id} value={a.id}>
+                            {a.brand} {a.model}
+                          </MenuItem>
+                        ))
+                      : [
+                          <MenuItem key="no-acc" value="" disabled>
+                            Không có phụ kiện
+                          </MenuItem>,
+                        ]}
+                  </TextField>
+
+                  <Button
+                    size="small"
+                    color="error"
+                    onClick={() => handleRemoveItem(idx)}
+                  >
+                    Xóa
+                  </Button>
+                </Stack>
+              ))}
+            </Box>
           </Stack>
         </DialogContent>
         <DialogActions

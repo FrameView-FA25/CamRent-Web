@@ -23,6 +23,7 @@ import {
   Settings as SettingsIcon,
   ExitToApp as LogoutIcon,
   Person as PersonIcon,
+  VerifiedUser as VerifiedUserIcon,
 } from "@mui/icons-material";
 import { useAuth } from "../../hooks/useAuth";
 import { colors } from "../../theme/colors";
@@ -34,6 +35,11 @@ const menuItems = [
     text: "My Assignment",
     icon: <PeopleIcon />,
     path: "/staff/my-assignments",
+  },
+  {
+    text: "Verifications",
+    icon: <VerifiedUserIcon />,
+    path: "/staff/verifications",
   },
   {
     text: "Equipment Check",

@@ -35,7 +35,7 @@ export interface CameraFormData {
   serialNumber: string; // Số serial
   estimatedValueVnd: number; // Giá trị ước tính
   specsJson: string; // Thông số kỹ thuật
-  mediaFiles?: File[]; // Danh sách file ảnh upload
+  mediaFiles?: File[]; // Danh sách file ảnh upload (nhiều ảnh)
 }
 
 export default function ModalAddCamera({
@@ -43,6 +43,7 @@ export default function ModalAddCamera({
   onClose,
   onAdd,
 }: ModalAddCameraProps) {
+  const MAX_IMAGES = 4; // Giới hạn số ảnh tối đa
   // State quản lý form data
   const [formData, setFormData] = useState<CameraFormData>({
     brand: "",
@@ -54,7 +55,7 @@ export default function ModalAddCamera({
     mediaFiles: [],
   });
 
-  // State quản lý preview ảnh
+  // State quản lý preview nhiều ảnh
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
 
   // State quản lý loading, lỗi và thành công
@@ -103,9 +104,7 @@ export default function ModalAddCamera({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-
     const newFiles = Array.from(files);
-
     // Kiểm tra loại file
     const validFiles = newFiles.filter((file) => {
       const isImage = file.type.startsWith("image/");
@@ -114,32 +113,26 @@ export default function ModalAddCamera({
       }
       return isImage;
     });
-
     if (validFiles.length === 0) return;
-
-    // Chỉ lấy ảnh đầu tiên
-    const firstFile = validFiles[0];
-
-    // Revoke URL cũ nếu có
-    if (imagePreviews.length > 0) {
-      imagePreviews.forEach((url) => URL.revokeObjectURL(url));
+    // Cộng dồn file mới vào file cũ (nếu có) nhưng giới hạn tối đa MAX_IMAGES
+    const oldFiles = formData.mediaFiles || [];
+    const uniqueNew = validFiles.filter(
+      (f) => !oldFiles.some((of) => of.name === f.name && of.size === f.size)
+    );
+    const spaceLeft = Math.max(0, MAX_IMAGES - oldFiles.length);
+    const toAdd = uniqueNew.slice(0, spaceLeft);
+    const mergedFiles = [...oldFiles, ...toAdd];
+    if (uniqueNew.length > toAdd.length) {
+      setError(`Chỉ được chọn tối đa ${MAX_IMAGES} ảnh`);
     }
-
-    // Cập nhật formData với file mới (chỉ 1 ảnh)
-    setFormData((prev) => ({
-      ...prev,
-      mediaFiles: [firstFile],
-    }));
-
-    // Tạo preview cho ảnh mới
-    const newPreview = URL.createObjectURL(firstFile);
-    setImagePreviews([newPreview]);
-
+    setFormData((prev) => ({ ...prev, mediaFiles: mergedFiles }));
+    // Cập nhật previews (chỉ thêm số ảnh hợp lệ còn lại)
+    const newPreviews = toAdd.map((file) => URL.createObjectURL(file));
+    setImagePreviews((prev) => [...prev, ...newPreviews]);
     // Clear error nếu có
     if (errors.mediaFiles) {
       setErrors((prev) => ({ ...prev, mediaFiles: "" }));
     }
-
     // Reset input value để cho phép chọn lại cùng file
     e.target.value = "";
   };
@@ -147,17 +140,20 @@ export default function ModalAddCamera({
   /**
    * Xóa ảnh đã chọn
    */
-  const handleRemoveImage = () => {
-    setFormData((prev) => ({
-      ...prev,
-      mediaFiles: [],
-    }));
-
-    // Revoke object URL để giải phóng bộ nhớ
-    if (imagePreviews.length > 0) {
-      URL.revokeObjectURL(imagePreviews[0]);
-    }
-    setImagePreviews([]);
+  // Xóa 1 ảnh theo index
+  const handleRemoveImage = (idx: number) => {
+    setFormData((prev) => {
+      const newFiles = prev.mediaFiles
+        ? prev.mediaFiles.filter((_, i) => i !== idx)
+        : [];
+      return { ...prev, mediaFiles: newFiles };
+    });
+    // Revoke object URL cho ảnh bị xóa
+    setImagePreviews((prev) => {
+      const urlToRevoke = prev[idx];
+      if (urlToRevoke) URL.revokeObjectURL(urlToRevoke);
+      return prev.filter((_, i) => i !== idx);
+    });
   };
 
   /**
@@ -201,7 +197,12 @@ export default function ModalAddCamera({
 
     try {
       // Gọi API tạo camera
-      await cameraService.createCamera(formData);
+      // ensure we only send up to MAX_IMAGES files
+      const payload = {
+        ...formData,
+        mediaFiles: (formData.mediaFiles || []).slice(0, MAX_IMAGES),
+      };
+      await cameraService.createCamera(payload as any);
 
       // Hiển thị toast thông báo thành công
       setSuccess("Thêm camera thành công!");
@@ -552,55 +553,77 @@ export default function ModalAddCamera({
                   color: "#FF6B35",
                 },
               }}
+              disabled={(formData.mediaFiles || []).length >= MAX_IMAGES}
             >
-              Chọn ảnh
+              {(formData.mediaFiles || []).length >= MAX_IMAGES
+                ? `Đã chọn tối đa ${MAX_IMAGES} ảnh`
+                : "Chọn ảnh"}
               <input
                 type="file"
                 hidden
                 accept="image/*"
+                multiple
                 onChange={handleFileChange}
               />
             </Button>
+
+            <Typography variant="caption" sx={{ color: "#64748B", ml: 1 }}>
+              {imagePreviews.length || 0}/{MAX_IMAGES} ảnh
+            </Typography>
 
             {/* Hiển thị preview ảnh */}
             {imagePreviews.length > 0 && (
               <Box
                 sx={{
-                  position: "relative",
-                  border: "1px solid #E2E8F0",
-                  borderRadius: 2,
-                  p: 2,
-                  bgcolor: "#F8FAFC",
                   display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  minHeight: "300px",
+                  flexWrap: "wrap",
+                  gap: 2,
                 }}
               >
-                <img
-                  src={imagePreviews[0]}
-                  alt="Preview"
-                  style={{
-                    maxWidth: "100%",
-                    maxHeight: "300px",
-                    objectFit: "contain",
-                  }}
-                />
-                <IconButton
-                  onClick={handleRemoveImage}
-                  sx={{
-                    position: "absolute",
-                    top: 8,
-                    right: 8,
-                    bgcolor: "rgba(0, 0, 0, 0.6)",
-                    color: "#FFFFFF",
-                    "&:hover": {
-                      bgcolor: "#FF6B35",
-                    },
-                  }}
-                >
-                  <DeleteIcon />
-                </IconButton>
+                {imagePreviews.map((url, idx) => (
+                  <Box
+                    key={url}
+                    sx={{
+                      position: "relative",
+                      border: "1px solid #E2E8F0",
+                      borderRadius: 2,
+                      p: 1,
+                      bgcolor: "#F8FAFC",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      minWidth: 120,
+                      minHeight: 120,
+                      maxWidth: 180,
+                      maxHeight: 180,
+                    }}
+                  >
+                    <img
+                      src={url}
+                      alt={`Preview ${idx + 1}`}
+                      style={{
+                        maxWidth: "100%",
+                        maxHeight: "160px",
+                        objectFit: "contain",
+                      }}
+                    />
+                    <IconButton
+                      onClick={() => handleRemoveImage(idx)}
+                      sx={{
+                        position: "absolute",
+                        top: 4,
+                        right: 4,
+                        bgcolor: "rgba(0, 0, 0, 0.6)",
+                        color: "#FFFFFF",
+                        "&:hover": {
+                          bgcolor: "#FF6B35",
+                        },
+                      }}
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </Box>
+                ))}
               </Box>
             )}
 

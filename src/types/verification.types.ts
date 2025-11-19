@@ -1,9 +1,18 @@
+export interface VerificationItem {
+  itemId: string;
+  itemName: string;
+  // 1 = camera, 2 = accessory
+  itemType: number;
+}
+
 export interface CreateVerificationRequest {
   name: string;
   phoneNumber: string;
   inspectionDate: string; // ISO 8601 format
   notes?: string;
   branchId: string;
+  // Cho phép gửi nhiều item
+  items: VerificationItem[];
 }
 
 export interface CreateVerificationResponse {
@@ -24,6 +33,8 @@ export interface Verification {
   branchName: string;
   address: string;
   notes: string;
+  // Danh sách item đi kèm với yêu cầu (camera / accessory)
+  items?: VerificationItem[];
   createdAt?: string;
   updatedAt?: string;
 }
