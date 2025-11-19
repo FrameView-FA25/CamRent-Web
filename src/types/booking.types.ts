@@ -18,21 +18,26 @@ export interface Combo {
 }
 
 export interface BookingItem {
-  id?: string;
-  bookingId?: string;
-  cameraId?: string;
-  itemType?: string;
-  accessoryId?: string;
-  comboId?: string; // ID của combo
-  productId?: string; // Thêm productId
-  quantity: number;
+  itemId: string;
+  itemName: string;
+  itemType: "Camera" | "Accessory" | "Combo" | "Product"; 
   unitPrice: number;
+  quantity: number;
   depositAmount: number;
+
+  // ID mapping
+  cameraId?: string;
+  accessoryId?: string;
+  comboId?: string;
+  productId?: string;
+
+  // Data mapping
   camera?: Camera;
   accessory?: Accessory;
-  combo?: Combo; // Thông tin combo
-  product?: Product; // Thêm product
-  itemName?: string; // Tên hiển thị của mục đặt phòng
+  combo?: Combo;
+  product?: Product;
+}
+
 }
 
 export interface Renter {
@@ -52,33 +57,45 @@ export interface Renter {
 
 export interface Booking {
   id: string;
+  type: string;
   renterId: string;
-  type: number;
+  renter: Renter | null;
+  staffId?: string;
+  staff?: Staff | null;
   pickupAt: string;
   returnAt: string;
-  deliveryAddress: string;
-  status: number;
+  location: Location;
+  branchId?: string;
+  branch?: Branch | null;
+  status: string;
   statusText: string;
+  snapshotBaseDailyRate: number;
+  snapshotDepositPercent: number;
+  snapshotPlatformFeePercent: number;
   snapshotRentalTotal: number;
   snapshotDepositAmount: number;
-  snapshotTransportFee: number;
-  snapshotPlatformFeePercent?: number; // Phần trăm phí nền tảng
-  snapshotDepositPercent?: number; // Phần trăm tiền cọc
+  items: BookingItem[];
+  inspections?: Inspection[];
   createdAt: string;
   updatedAt: string;
-  renter?: Renter; // Optional renter details
-  items: BookingItem[];
 }
-
+export interface Branch {
+  id: string;
+  name: string;
+  address: string;
+  phoneNumber: string;
+  email: string;
+}
 export interface BookingStatusInfo {
   label: string;
   color: "warning" | "info" | "success" | "default" | "error";
 }
 export interface Staff {
   userId: string;
-  fullName: string;
-  phone: string;
   email: string;
+  fullName: string;
+  phoneNumber?: string;
+  avatar?: string;
   role: string;
 }
 export interface CreateDeliveryRequest {
@@ -147,4 +164,10 @@ export interface CreateInspectionRequest {
   branchId: string;
   notes: string;
   items: InspectionItem[];
+  inspectorId: string;
+}
+export interface Location {
+  country: string;
+  province: string;
+  district: string;
 }

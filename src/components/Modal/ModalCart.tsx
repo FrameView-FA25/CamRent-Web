@@ -26,7 +26,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { colors } from "../../theme/colors";
 import { toast } from "react-toastify";
-
+import { useCartContext } from "../../context/CartContext/useCartContext";
 interface CartItem {
   itemId: string;
   itemName: string;
@@ -53,6 +53,8 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 const CartModal: React.FC<CartModalProps> = ({ open, onClose }) => {
   const navigate = useNavigate();
+  const { refreshCart: refreshCartCount } = useCartContext();
+
   const [cartData, setCartData] = useState<CartResponse | null>(null);
   const [itemQuantities, setItemQuantities] = useState<Record<string, number>>(
     {}
@@ -108,25 +110,30 @@ const CartModal: React.FC<CartModalProps> = ({ open, onClose }) => {
     }));
   };
 
-  const handleRemoveItem = async (itemId: string) => {
+  const handleRemoveItem = async (itemId: string, itemType: string) => {
     try {
       setUpdating(true);
       const token = localStorage.getItem("accessToken");
 
-      const response = await fetch(
-        `${API_BASE_URL}/Bookings/RemoveFromCart/${itemId}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await fetch(`${API_BASE_URL}/Bookings/RemoveFromCart`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          id: itemId,
+          type: itemType,
+        }),
+      });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Remove item error:", errorText);
         throw new Error("Failed to remove item");
       }
 
+      // ✅ Remove item from local state
       setCartData((prev) => {
         if (!prev) return prev;
         return {
@@ -135,16 +142,21 @@ const CartModal: React.FC<CartModalProps> = ({ open, onClose }) => {
         };
       });
 
+      // ✅ Remove quantity tracking
       setItemQuantities((prev) => {
         const newQuantities = { ...prev };
         delete newQuantities[itemId];
         return newQuantities;
       });
 
-      toast.success("Item removed from cart");
+      toast.success("Đã xoá sản phẩm khỏi giỏ hàng");
+
+      // ✅ Refresh cart to get updated data
+      await fetchCart();
+      await refreshCartCount();
     } catch (error) {
       console.error("Error removing item:", error);
-      toast.error("Failed to remove item");
+      toast.error("Failed to remove item from cart");
     } finally {
       setUpdating(false);
     }
@@ -378,7 +390,9 @@ const CartModal: React.FC<CartModalProps> = ({ open, onClose }) => {
 
                             <IconButton
                               size="small"
-                              onClick={() => handleRemoveItem(item.itemId)}
+                              onClick={() =>
+                                handleRemoveItem(item.itemId, item.itemType)
+                              }
                               disabled={updating}
                               sx={{
                                 color: colors.status.error,

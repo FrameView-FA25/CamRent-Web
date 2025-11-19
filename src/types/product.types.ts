@@ -23,8 +23,8 @@ export interface Camera {
   isAvailable: boolean;
   ownerUserId: string;
   ownerName: string | null;
-
-  
+  platformFeePercent: number;
+  location: string | null;
 }
 export interface Media {
   url: string;

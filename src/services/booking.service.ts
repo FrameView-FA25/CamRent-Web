@@ -116,6 +116,66 @@ export const fetchBookings = async (): Promise<{
   }
 };
 
+// ✅ NEW: Fetch Branch Bookings
+export const fetchBranchBookings = async (): Promise<{
+  bookings: Booking[];
+  error: string | null;
+}> => {
+  try {
+    const accessToken = localStorage.getItem("accessToken");
+
+    if (!accessToken) {
+      throw new Error("No access token found. Please login again.");
+    }
+
+    const response = await fetch(`${API_BASE_URL}/Bookings/branchbookings`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    if (response.status === 401) {
+      localStorage.removeItem("accessToken");
+      throw new Error("Unauthorized. Please login again.");
+    }
+
+    if (response.status === 404 || response.status === 204) {
+      console.info("No branch bookings found");
+      return { bookings: [], error: null };
+    }
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`HTTP Error ${response.status}:`, errorText);
+      throw new Error(`Failed to fetch branch bookings: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    if (!data || (Array.isArray(data) && data.length === 0)) {
+      console.info("Branch bookings list is empty");
+      return { bookings: [], error: null };
+    }
+
+    const bookingsArray = Array.isArray(data) ? data : [data];
+
+    // ✅ Filter out cart items
+    const validBookings = bookingsArray.filter(
+      (booking) => booking.statusText !== "Giỏ hàng"
+    );
+
+    // ✅ No need to fetch item details - API already provides itemName & itemType
+    return { bookings: validBookings, error: null };
+  } catch (err) {
+    const errorMessage =
+      err instanceof Error ? err.message : "An error occurred";
+    console.error("Error fetching branch bookings:", err);
+    return { bookings: [], error: errorMessage };
+  }
+};
+
 export const fetchStaffList = async (): Promise<{
   staff: Staff[];
   error: string | null;
@@ -208,6 +268,7 @@ export const createDelivery = async (
     };
   }
 };
+
 export const fetchStaffBookings = async (): Promise<{
   bookings: Booking[];
   error: string | null;
@@ -279,92 +340,98 @@ export const fetchBookingById = async (
   bookingId: string
 ): Promise<{ booking: Booking | null; error: string | null }> => {
   try {
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    const accessToken = localStorage.getItem("accessToken");
 
-    const mockBooking: Booking = {
-      id: bookingId,
-      renterId: "renter-123",
-      type: 0,
-      pickupAt: new Date().toISOString(),
-      returnAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-      deliveryAddress: "123 Nguyễn Huệ, Quận 1, TP.HCM",
-      status: 1,
-      statusText: "Confirmed",
-      snapshotRentalTotal: 5000000,
-      snapshotDepositAmount: 2000000,
-      snapshotTransportFee: 100000,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      renter: {
-        id: "renter-123",
-        fullName: "Nguyễn Văn A",
-        email: "nguyenvana@email.com",
-        phoneNumber: "0912345678",
-        address: "123 Nguyễn Huệ, Quận 1, TP.HCM",
-        dateOfBirth: "1990-01-01",
-        gender: 1,
-        avatar: "",
-        emailConfirmed: true,
-        phoneNumberConfirmed: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+    if (!accessToken) {
+      throw new Error("No access token found. Please login again.");
+    }
+
+    const response = await fetch(`${API_BASE_URL}/Bookings/${bookingId}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
       },
-      items: [
-        {
-          cameraId: "item-1",
-          productId: "product-1",
-          quantity: 1,
-          unitPrice: 3000000,
-          depositAmount: 1000000,
-          product: {
-            id: "product-1",
-            name: "Canon EOS R5",
-            category: "Camera",
-            brand: "Canon",
-            model: "EOS R5",
-            price: 3000000,
-            depositAmount: 1000000,
-            rating: 4.8,
-            reviewCount: 156,
-            categoryId: "cat-1",
-            description: "Máy ảnh chuyên nghiệp",
-            specifications: "42MP, 8K Video",
-            status: 1,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          },
-        },
-        {
-          cameraId: "item-2",
-          productId: "product-2",
-          quantity: 1,
-          unitPrice: 2000000,
-          depositAmount: 1000000,
-          product: {
-            id: "product-2",
-            name: "Lens RF 24-70mm f/2.8",
-            category: "Lens",
-            brand: "Canon",
-            model: "RF 24-70mm",
-            price: 2000000,
-            depositAmount: 1000000,
-            rating: 4.9,
-            reviewCount: 89,
-            categoryId: "cat-2",
-            description: "Ống kính zoom đa năng",
-            specifications: "24-70mm, f/2.8",
-            status: 1,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          },
-        },
-      ],
+    });
+
+    if (response.status === 401) {
+      localStorage.removeItem("accessToken");
+      throw new Error("Unauthorized. Please login again.");
+    }
+
+    if (response.status === 404) {
+      return { booking: null, error: "Booking not found" };
+    }
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`HTTP Error ${response.status}:`, errorText);
+      throw new Error(`Failed to fetch booking: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    // ✅ Transform API response to match Booking interface
+    const booking: Booking = {
+      id: data.id,
+      type: data.type || "Rental",
+      renterId: data.renterId,
+      renter: data.renter,
+      staffId: data.staffId,
+      staff: data.staff,
+      pickupAt: data.pickupAt,
+      returnAt: data.returnAt,
+      location: data.location,
+      branchId: data.branchId,
+      branch: data.branch,
+      status: data.status,
+      statusText: data.status, // API trả về status là string
+      snapshotBaseDailyRate: data.snapshotBaseDailyRate,
+      snapshotDepositPercent: data.snapshotDepositPercent,
+      snapshotPlatformFeePercent: data.snapshotPlatformFeePercent,
+      snapshotRentalTotal: data.snapshotRentalTotal,
+      snapshotDepositAmount: data.snapshotDepositAmount,
+      createdAt: data.createdAt,
+      updatedAt: data.updatedAt,
+      items: data.items.map((item: item) => ({
+        id: item.id,
+        bookingId: item.bookingId,
+        cameraId: item.cameraId,
+        camera: item.camera,
+        accessoryId: item.accessoryId,
+        accessory: item.accessory,
+        comboId: item.comboId,
+        combo: item.combo,
+        unitPrice: item.unitPrice,
+        depositAmount: item.depositAmount,
+        // ✅ Add itemName and itemType for consistency
+        itemId: item.cameraId || item.accessoryId || item.comboId || "",
+        itemName: item.camera
+          ? `${item.camera.brand} ${item.camera.model}${item.camera.variant ? ` ${item.camera.variant}` : ""}`
+          : item.accessory
+          ? `${item.accessory.brand} ${item.accessory.model}`
+          : item.combo
+          ? item.combo.name
+          : "Unknown Item",
+        itemType: item.camera
+          ? "Camera"
+          : item.accessory
+          ? "Accessory"
+          : item.combo
+          ? "Combo"
+          : "Unknown",
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt,
+      })),
+      inspections: data.inspections || [],
     };
 
-    return { booking: mockBooking, error: null };
+    return { booking, error: null };
   } catch (error: unknown) {
     console.error("Error fetching booking by ID:", error);
-    return { booking: null, error: "Không thể tải thông tin đơn hàng" };
+    const errorMessage =
+      error instanceof Error ? error.message : "Không thể tải thông tin đơn hàng";
+    return { booking: null, error: errorMessage };
   }
 };
 
