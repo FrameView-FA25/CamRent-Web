@@ -42,6 +42,7 @@ import OrderPage from "@/pages/Renter/OrderPage";
 import OrderDetailPage from "@/pages/Renter/OrderDetailPage";
 import ProductManagementPage from "@/pages/Manager/ProductManagement";
 import CartPage from "@/pages/Renter/CartPage";
+import VerifyManagement from "@/pages/Manager/VerifyManagement";
 const routes: RouteObject[] = [
   {
     path: "/",
@@ -188,6 +189,10 @@ const routes: RouteObject[] = [
       {
         path: "products",
         element: <ProductManagementPage />,
+      },
+      {
+        path: "verifications",
+        element: <VerifyManagement />,
       },
       {
         path: "profile",
