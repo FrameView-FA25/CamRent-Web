@@ -1,11 +1,14 @@
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
+import { CartContext } from "./CartContext";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-export const useCart = () => {
+export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [cartCount, setCartCount] = useState(0);
 
-  const fetchCartCount = useCallback(async () => {
+  const refreshCart = useCallback(async () => {
     try {
       const token = localStorage.getItem("accessToken");
       if (!token) {
@@ -33,8 +36,12 @@ export const useCart = () => {
   }, []);
 
   useEffect(() => {
-    fetchCartCount();
-  }, [fetchCartCount]);
+    refreshCart();
+  }, [refreshCart]);
 
-  return { cartCount, refreshCart: fetchCartCount };
+  return (
+    <CartContext.Provider value={{ cartCount, refreshCart }}>
+      {children}
+    </CartContext.Provider>
+  );
 };

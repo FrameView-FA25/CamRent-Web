@@ -16,7 +16,6 @@ import {
   TableCell,
   TableRow,
 } from "@mui/material";
-
 import { amber, grey } from "@mui/material/colors";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
@@ -27,6 +26,8 @@ import PersonIcon from "@mui/icons-material/Person";
 import type { Camera } from "../types/product.types";
 import { toast } from "react-toastify";
 import { colors } from "../theme/colors";
+import { useCartContext } from "../context/CartContext";
+
 const ACCENT = amber[400];
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -37,31 +38,59 @@ const formatVnd = (value: number) =>
   }).format(value);
 
 const ProductDetailPage: React.FC = () => {
-  const { id } = useParams();
+  const { refreshCart } = useCartContext();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
   const [camera, setCamera] = useState<Camera | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState(0);
+  const [addingToCart, setAddingToCart] = useState(false);
 
-  // ...existing code...
+  useEffect(() => {
+    const fetchDetail = async () => {
+      if (!id) {
+        setError("No product ID provided");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const res = await fetch(`${API_BASE_URL}/Cameras/${id}`);
+
+        if (!res.ok) {
+          throw new Error(`Failed to fetch camera details: ${res.status}`);
+        }
+
+        const data = await res.json();
+        setCamera(data);
+        setError(null);
+      } catch (err) {
+        console.error("Error fetching camera:", err);
+        setError((err as Error).message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDetail();
+  }, [id]);
 
   const handleAddToCart = async () => {
+    if (!camera) return;
+
     try {
       const token = localStorage.getItem("accessToken");
 
       if (!token) {
-        toast.error("Please login to add items to cart");
+        toast.warning("Please login to add items to cart");
         navigate("/login");
         return;
       }
 
-      const requestData = {
-        Id: id || "",
-        Type: 1, // 1: Camera, 2: Accessory
-        Quantity: 1,
-      };
+      setAddingToCart(true);
 
       const response = await fetch(`${API_BASE_URL}/Bookings/AddToCart`, {
         method: "POST",
@@ -69,43 +98,36 @@ const ProductDetailPage: React.FC = () => {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(requestData),
+        body: JSON.stringify({
+          id: camera.id,
+          type: "Camera",
+        }),
       });
 
-      // ✅ Chỉ check status, không parse response body
-      if (response.ok) {
-        toast.success("Đã thêm vào giỏ hàng!", {
-          position: "top-right",
-          autoClose: 2000,
-        });
-      } else {
-        // Lỗi từ server
-        throw new Error(`HTTP ${response.status}`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Add to cart error:", errorText);
+        throw new Error(`Failed to add to cart: ${response.status}`);
       }
+
+      // ✅ Success
+      toast.success("Added to cart successfully!", {
+        position: "top-right",
+        autoClose: 2000,
+      });
+
+      // ✅ Refresh cart count immediately
+      await refreshCart();
     } catch (error) {
       console.error("Error adding to cart:", error);
-      toast.error("Failed to add to cart");
+      toast.error("Failed to add to cart. Please try again.");
+    } finally {
+      setAddingToCart(false);
     }
   };
 
-  // ...existing code...
-  useEffect(() => {
-    const fetchDetail = async () => {
-      try {
-        const res = await fetch(`${API_BASE_URL}/Cameras/${id}`);
-        if (!res.ok) throw new Error("Failed to fetch camera details");
-        const data = await res.json();
-        setCamera(data);
-      } catch (err) {
-        setError((err as Error).message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchDetail();
-  }, [id]);
-
-  if (loading)
+  // Loading state
+  if (loading) {
     return (
       <Box
         sx={{
@@ -119,8 +141,10 @@ const ProductDetailPage: React.FC = () => {
         <CircularProgress size={60} sx={{ color: ACCENT }} />
       </Box>
     );
+  }
 
-  if (error || !camera)
+  // Error state
+  if (error || !camera) {
     return (
       <Container sx={{ py: 10 }}>
         <Alert severity="error" sx={{ mb: 2 }}>
@@ -130,13 +154,18 @@ const ProductDetailPage: React.FC = () => {
           variant="contained"
           onClick={() => navigate("/products")}
           startIcon={<ArrowBackIcon />}
+          sx={{
+            bgcolor: ACCENT,
+            "&:hover": { bgcolor: amber[500] },
+          }}
         >
-          Back
+          Back to Products
         </Button>
       </Container>
     );
+  }
 
-  // Specs parsing
+  // Parse specifications
   let specs: Record<string, string> | null = null;
   try {
     specs = camera.specsJson ? JSON.parse(camera.specsJson) : null;
@@ -144,11 +173,12 @@ const ProductDetailPage: React.FC = () => {
     specs = null;
   }
 
+  // Gallery images
   const gallery = camera.media?.length
     ? camera.media.map((m) => m.url)
     : ["https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=800"];
 
-  // Deposit calculation
+  // Calculate deposit
   const calculated = (camera.estimatedValueVnd * camera.depositPercent) / 100;
   const minCap = camera.depositCapMinVnd ?? 0;
   const maxCap = camera.depositCapMaxVnd ?? calculated;
@@ -156,7 +186,7 @@ const ProductDetailPage: React.FC = () => {
 
   return (
     <Box sx={{ bgcolor: grey[50], minHeight: "100vh" }}>
-      {/* Top Back Button */}
+      {/* Top Navigation Bar */}
       <Box sx={{ bgcolor: "white", borderBottom: `1px solid ${grey[200]}` }}>
         <Container sx={{ py: 2 }}>
           <Button
@@ -166,6 +196,9 @@ const ProductDetailPage: React.FC = () => {
               color: grey[700],
               textTransform: "none",
               fontWeight: 600,
+              "&:hover": {
+                bgcolor: grey[100],
+              },
             }}
           >
             Back to Products
@@ -181,8 +214,9 @@ const ProductDetailPage: React.FC = () => {
             gap: 5,
           }}
         >
-          {/* IMAGE GALLERY */}
+          {/* LEFT: IMAGE GALLERY */}
           <Box sx={{ flex: 1 }}>
+            {/* Main Image */}
             <Box
               sx={{
                 bgcolor: "white",
@@ -195,10 +229,15 @@ const ProductDetailPage: React.FC = () => {
             >
               <img
                 src={gallery[selectedImage]}
-                style={{ width: "100%", height: 480, objectFit: "cover" }}
+                alt={`${camera.brand} ${camera.model}`}
+                style={{
+                  width: "100%",
+                  height: 480,
+                  objectFit: "cover",
+                }}
               />
 
-              {/* Availability */}
+              {/* Availability Badge */}
               <Chip
                 label={camera.isAvailable ? "Available" : "Unavailable"}
                 sx={{
@@ -207,12 +246,13 @@ const ProductDetailPage: React.FC = () => {
                   right: 16,
                   bgcolor: camera.isAvailable ? "#b6ffb0" : "#ffc4c4",
                   fontWeight: 700,
+                  fontSize: "0.875rem",
                 }}
               />
             </Box>
 
-            {/* Thumbnails */}
-            <Stack direction="row" spacing={2}>
+            {/* Thumbnail Gallery */}
+            <Stack direction="row" spacing={2} sx={{ overflowX: "auto" }}>
               {gallery.map((img, i) => (
                 <Box
                   key={i}
@@ -224,13 +264,18 @@ const ProductDetailPage: React.FC = () => {
                     borderRadius: 2,
                     border:
                       selectedImage === i
-                        ? `2px solid ${ACCENT}`
+                        ? `3px solid ${ACCENT}`
                         : `2px solid ${grey[300]}`,
                     overflow: "hidden",
+                    transition: "all 0.2s ease",
+                    "&:hover": {
+                      borderColor: ACCENT,
+                    },
                   }}
                 >
                   <img
                     src={img}
+                    alt={`Thumbnail ${i + 1}`}
                     style={{
                       width: "100%",
                       height: "100%",
@@ -242,21 +287,45 @@ const ProductDetailPage: React.FC = () => {
             </Stack>
           </Box>
 
-          {/* INFO PANEL */}
+          {/* RIGHT: INFO PANEL */}
           <Box sx={{ flex: 1 }}>
-            <Box sx={{ bgcolor: "white", p: 4, borderRadius: 3, boxShadow: 2 }}>
-              {/* Title */}
+            <Box
+              sx={{
+                bgcolor: "white",
+                p: 4,
+                borderRadius: 3,
+                boxShadow: 2,
+              }}
+            >
+              {/* Product Title */}
               <Typography variant="h4" fontWeight={700} mb={1}>
                 {camera.brand} {camera.model}
               </Typography>
 
               {camera.variant && (
-                <Typography variant="h6" color="text.secondary" mb={2}>
+                <Typography
+                  variant="h6"
+                  color="text.secondary"
+                  fontWeight={500}
+                  mb={2}
+                >
                   {camera.variant}
                 </Typography>
               )}
 
-              {/* Owner */}
+              {/* Serial Number */}
+              {camera.serialNumber && (
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  mb={3}
+                  sx={{ fontFamily: "monospace" }}
+                >
+                  SN: {camera.serialNumber}
+                </Typography>
+              )}
+
+              {/* Owner Info */}
               <Stack direction="row" spacing={2} alignItems="center" mb={3}>
                 <PersonIcon sx={{ color: ACCENT }} />
                 <Typography fontWeight={600}>
@@ -265,74 +334,147 @@ const ProductDetailPage: React.FC = () => {
                 {camera.isConfirmed && (
                   <Chip
                     size="small"
-                    icon={<VerifiedIcon />}
-                    label="Verified Owner"
-                    sx={{ bgcolor: "#dfffe0" }}
+                    icon={<VerifiedIcon sx={{ fontSize: 16 }} />}
+                    label="Verified"
+                    sx={{
+                      bgcolor: "#dfffe0",
+                      color: "#2e7d32",
+                      fontWeight: 600,
+                    }}
                   />
                 )}
               </Stack>
 
-              {/* Price */}
-              <Typography variant="h4" fontWeight={700} mb={1}>
+              {/* Pricing */}
+              <Typography variant="h4" fontWeight={700} color={ACCENT} mb={1}>
                 {formatVnd(camera.baseDailyRate)}
               </Typography>
-              <Typography color="text.secondary" mb={3}>
-                / day — Estimated value {formatVnd(camera.estimatedValueVnd)}
+              <Typography color="text.secondary" mb={1}>
+                per day
+              </Typography>
+              <Typography variant="body2" color="text.secondary" mb={3}>
+                Estimated value: {formatVnd(camera.estimatedValueVnd)}
               </Typography>
 
               {/* Location */}
-              <Stack direction="row" spacing={1} mb={3}>
+              <Stack direction="row" spacing={1} alignItems="center" mb={3}>
                 <LocationOnIcon sx={{ color: ACCENT }} />
-                <Typography>
-                  {camera.branchName || "No branch"} —{" "}
-                  {camera.branchAddress || "Address not available"}
-                </Typography>
+                <Box>
+                  <Typography fontWeight={600}>
+                    {camera.branchName || "No branch assigned"}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {camera.branchAddress || "Address not available"}
+                  </Typography>
+                </Box>
               </Stack>
 
-              {/* Deposit */}
               <Divider sx={{ my: 3 }} />
-              <Typography fontWeight={700} mb={1}>
+
+              {/* Security Deposit */}
+              <Typography variant="h6" fontWeight={700} mb={1}>
                 Security Deposit
               </Typography>
-              <Typography>{formatVnd(deposit)}</Typography>
+              <Typography
+                variant="h5"
+                fontWeight={600}
+                color={grey[800]}
+                mb={1}
+              >
+                {formatVnd(deposit)}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" mb={3}>
+                {camera.depositPercent}% of estimated value
+                {camera.depositCapMinVnd &&
+                  ` (min: ${formatVnd(camera.depositCapMinVnd)})`}
+                {camera.depositCapMaxVnd &&
+                  ` (max: ${formatVnd(camera.depositCapMaxVnd)})`}
+              </Typography>
 
               <Divider sx={{ my: 3 }} />
 
-              {/* Buttons */}
+              {/* Action Buttons */}
               <Button
                 fullWidth
                 variant="contained"
+                disabled={!camera.isAvailable}
                 sx={{
                   bgcolor: colors.primary.main,
-                  color: colors.background.default,
+                  color: "white",
                   fontWeight: 700,
                   py: 1.5,
                   borderRadius: 2,
                   mb: 2,
+                  textTransform: "none",
+                  fontSize: "1rem",
+                  "&:hover": {
+                    bgcolor: colors.primary.dark,
+                  },
+                  "&:disabled": {
+                    bgcolor: grey[300],
+                    color: grey[600],
+                  },
                 }}
               >
-                Rent Now
+                {camera.isAvailable ? "Rent Now" : "Currently Unavailable"}
               </Button>
 
               <Stack direction="row" spacing={1}>
                 <Button
                   fullWidth
                   variant="outlined"
-                  startIcon={<FavoriteBorderIcon />}
-                  sx={{ borderRadius: 2 }}
+                  startIcon={
+                    addingToCart ? (
+                      <CircularProgress size={16} />
+                    ) : (
+                      <FavoriteBorderIcon />
+                    )
+                  }
                   onClick={handleAddToCart}
+                  sx={{
+                    borderRadius: 2,
+                    borderColor: colors.primary.main,
+                    color: colors.primary.main,
+                    textTransform: "none",
+                    fontWeight: 600,
+                    "&:hover": {
+                      borderColor: colors.primary.dark,
+                      bgcolor: colors.primary.lighter,
+                    },
+                    "&:disabled": {
+                      borderColor: grey[300],
+                      color: grey[400],
+                    },
+                  }}
                 >
-                  Add To Cart
+                  {addingToCart ? "Adding..." : "Add To Cart"}
                 </Button>
-                <IconButton sx={{ border: `1px solid ${grey[300]}` }}>
+
+                <IconButton
+                  sx={{
+                    border: `1px solid ${grey[300]}`,
+                    borderRadius: 2,
+                    "&:hover": {
+                      borderColor: ACCENT,
+                      bgcolor: amber[50],
+                    },
+                  }}
+                >
                   <ShareIcon />
                 </IconButton>
               </Stack>
+
+              {/* Platform Fee Notice */}
+              {camera.platformFeePercent > 0 && (
+                <Alert severity="info" sx={{ mt: 3, borderRadius: 2 }}>
+                  Platform fee: {(camera.platformFeePercent * 100).toFixed(1)}%
+                </Alert>
+              )}
             </Box>
           </Box>
         </Box>
 
-        {/* SPECS */}
+        {/* SPECIFICATIONS SECTION */}
         <Box
           sx={{
             mt: 6,
@@ -343,27 +485,73 @@ const ProductDetailPage: React.FC = () => {
           }}
         >
           <Typography variant="h5" fontWeight={700} mb={3}>
-            Specifications
+            Technical Specifications
           </Typography>
 
           {specs ? (
             <Table>
               <TableBody>
                 {Object.entries(specs).map(([key, value]) => (
-                  <TableRow key={key}>
-                    <TableCell sx={{ fontWeight: 600, width: 200 }}>
+                  <TableRow
+                    key={key}
+                    sx={{
+                      "&:hover": {
+                        bgcolor: grey[50],
+                      },
+                    }}
+                  >
+                    <TableCell
+                      sx={{
+                        fontWeight: 600,
+                        width: 200,
+                        color: grey[700],
+                        textTransform: "capitalize",
+                      }}
+                    >
                       {key}
                     </TableCell>
-                    <TableCell>{String(value)}</TableCell>
+                    <TableCell sx={{ color: grey[800] }}>
+                      {String(value)}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           ) : (
-            <Typography color="text.secondary">
-              No specifications available.
-            </Typography>
+            <Alert severity="warning" sx={{ borderRadius: 2 }}>
+              No specifications available for this product.
+            </Alert>
           )}
+        </Box>
+
+        {/* ADDITIONAL INFO */}
+        <Box
+          sx={{
+            mt: 3,
+            p: 3,
+            bgcolor: "white",
+            borderRadius: 3,
+            boxShadow: 1,
+          }}
+        >
+          <Typography variant="h6" fontWeight={700} mb={2}>
+            Rental Information
+          </Typography>
+          <Stack spacing={1}>
+            <Typography variant="body2" color="text.secondary">
+              📍 Location: {camera.location || "Platform"}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              ✅ Status:{" "}
+              {camera.isConfirmed ? "Verified" : "Pending verification"}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              🔒 Security deposit required upon rental
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              ⏰ Daily rental rate applies
+            </Typography>
+          </Stack>
         </Box>
       </Container>
     </Box>
