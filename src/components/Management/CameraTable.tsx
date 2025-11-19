@@ -11,7 +11,6 @@ import {
   Chip,
   Box,
   Typography,
-  Avatar,
 } from "@mui/material";
 import {
   Edit as EditIcon,

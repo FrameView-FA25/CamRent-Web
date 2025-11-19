@@ -16,8 +16,11 @@ import {
   InputAdornment,
   IconButton,
   Button,
+  Tooltip,
 } from "@mui/material";
-import { Assignment, Search, Refresh } from "@mui/icons-material";
+import { Assignment, Search, Refresh, AddTask } from "@mui/icons-material";
+import { createInspection } from "../../services/inspection.service";
+import InspectionDialog from "../../components/Modal/InspectionDialog";
 import { verificationService } from "../../services/verification.service";
 import type { Verification } from "../../types/verification.types";
 
@@ -78,6 +81,38 @@ const Verifications: React.FC = () => {
     });
   }, [data, query]);
 
+  // State cho dialog tạo inspection
+  const [openDialog, setOpenDialog] = useState(false);
+  const [dialogRow, setDialogRow] = useState<Verification | null>(null);
+
+  // Mở dialog với row tương ứng
+  const openInspectionDialog = (row: Verification) => {
+    setDialogRow(row);
+    setOpenDialog(true);
+  };
+
+  // Xử lý submit tạo inspection
+  const handleSubmitInspection = async (form: Record<string, unknown>) => {
+    try {
+      const formData = new FormData();
+      Object.entries(form).forEach(([key, value]) => {
+        if (key === "files" && value instanceof FileList) {
+          Array.from(value).forEach((file) => formData.append("files", file));
+        } else {
+          formData.append(key, value != null ? String(value) : "");
+        }
+      });
+      await createInspection(formData);
+      alert("Tạo inspection thành công!");
+      setOpenDialog(false);
+    } catch (err) {
+      const message =
+        err && typeof err === "object" && "message" in err
+          ? (err as { message?: unknown }).message
+          : err;
+      alert("Lỗi tạo inspection: " + (message || "Không xác định"));
+    }
+  };
   return (
     <Box sx={{ bgcolor: "#F5F5F5", minHeight: "100vh", p: 3 }}>
       <Container maxWidth="xl">
@@ -257,6 +292,15 @@ const Verifications: React.FC = () => {
                         >
                           XEM
                         </Button>
+                        <Tooltip title="Tạo kiểm tra">
+                          <IconButton
+                            color="primary"
+                            onClick={() => openInspectionDialog(row)}
+                            sx={{ ml: 1 }}
+                          >
+                            <AddTask />
+                          </IconButton>
+                        </Tooltip>
                       </TableCell>
                     </TableRow>
                   ))
@@ -266,6 +310,21 @@ const Verifications: React.FC = () => {
           </TableContainer>
         </Paper>
       </Container>
+      <InspectionDialog
+        open={openDialog}
+        onClose={() => setOpenDialog(false)}
+        onSubmit={handleSubmitInspection}
+        defaultValues={
+          dialogRow
+            ? {
+                verifyId: dialogRow.id,
+                items: dialogRow.items || [],
+                ItemType: undefined,
+                Notes: dialogRow.notes || "",
+              }
+            : {}
+        }
+      />
     </Box>
   );
 };

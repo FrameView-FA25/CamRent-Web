@@ -17,7 +17,6 @@ import {
   TableHead,
   TableRow,
   Paper,
-  Avatar,
   IconButton,
   Tooltip,
   Dialog,
