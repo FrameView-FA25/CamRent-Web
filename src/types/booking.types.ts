@@ -20,23 +20,24 @@ export interface Combo {
 export interface BookingItem {
   itemId: string;
   itemName: string;
-  itemType: string; // "Camera" | "Accessory"
+  itemType: "Camera" | "Accessory" | "Combo" | "Product"; 
   unitPrice: number;
-  quantity?: number; // Optional vì API không trả về
+  quantity: number;
+  depositAmount: number;
+
+  // ID mapping
   cameraId?: string;
   accessoryId?: string;
-  camera?: {
-    id: string;
-    brand: string;
-    model: string;
-    variant?: string;
-  };
-  accessory?: {
-    id: string;
-    brand: string;
-    model: string;
-    variant?: string;
-  };
+  comboId?: string;
+  productId?: string;
+
+  // Data mapping
+  camera?: Camera;
+  accessory?: Accessory;
+  combo?: Combo;
+  product?: Product;
+}
+
 }
 
 export interface Renter {

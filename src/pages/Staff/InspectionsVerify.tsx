@@ -15,7 +15,7 @@ import {
   TextField,
   InputAdornment,
   IconButton,
-  Tooltip,
+  Button,
 } from "@mui/material";
 import {
   Assignment,
@@ -30,9 +30,9 @@ import { verificationService } from "../../services/verification.service";
 import type { Verification } from "../../types/verification.types";
 
 const getStatusColor = (status: string) => {
-  switch (status) {
+  switch (status.toLowerCase()) {
     case "pending":
-      return "warning";
+      return "info";
     case "approved":
       return "success";
     case "rejected":
@@ -293,31 +293,62 @@ const Inspections: React.FC = () => {
                         <Box
                           sx={{
                             display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
                             gap: 1,
+                            justifyContent: "center",
                           }}
                         >
-                          <Tooltip title="Xem chi tiết">
-                            <IconButton
-                              color="primary"
-                              onClick={() =>
-                                alert(JSON.stringify(row, null, 2))
-                              }
-                              size="small"
-                            >
-                              <Visibility />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Tạo kiểm tra">
-                            <IconButton
-                              color="primary"
-                              onClick={() => openInspectionDialog(row)}
-                              size="small"
-                            >
-                              <AddTask />
-                            </IconButton>
-                          </Tooltip>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            startIcon={<Visibility fontSize="small" />}
+                            onClick={() => alert(JSON.stringify(row, null, 2))}
+                            sx={{
+                              borderColor: "#F97316",
+                              color: "#F97316",
+                              textTransform: "none",
+                              fontWeight: 600,
+                              borderRadius: 2.5,
+                              minWidth: 0,
+                              px: 1.2,
+                              py: 0.5,
+                              fontSize: "0.85rem",
+                              lineHeight: 1.2,
+                              "& .MuiButton-startIcon": { mr: 0.5 },
+                              "&:hover": {
+                                bgcolor: "#FFF7ED",
+                                borderColor: "#F97316",
+                              },
+                            }}
+                          >
+                            Xem
+                          </Button>
+                          <Button
+                            variant="contained"
+                            size="small"
+                            startIcon={<AddTask fontSize="small" />}
+                            onClick={() => openInspectionDialog(row)}
+                            sx={{
+                              bgcolor: "#F97316",
+                              color: "#fff",
+                              textTransform: "none",
+                              fontWeight: 600,
+                              borderRadius: 2.5,
+                              minWidth: 0,
+                              px: 1.2,
+                              py: 0.5,
+                              fontSize: "0.85rem",
+                              lineHeight: 1.2,
+                              boxShadow: "none",
+                              "& .MuiButton-startIcon": { mr: 0.5 },
+                              "&:hover": {
+                                bgcolor: "#fb923c",
+                                color: "#fff",
+                                boxShadow: "0 2px 8px 0 #F9731633",
+                              },
+                            }}
+                          >
+                            Kiểm tra
+                          </Button>
                         </Box>
                       </TableCell>
                     </TableRow>
@@ -337,8 +368,12 @@ const Inspections: React.FC = () => {
             ? {
                 verifyId: dialogRow.id,
                 items: dialogRow.items || [],
-                ItemType: undefined,
+                ItemType:
+                  dialogRow.items && dialogRow.items[0]?.itemType
+                    ? String(dialogRow.items[0].itemType)
+                    : undefined,
                 Notes: dialogRow.notes || "",
+                Type: "Verification",
               }
             : {}
         }
