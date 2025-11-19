@@ -111,10 +111,23 @@ const CheckBookingDialog: React.FC<CheckBookingDialogProps> = ({
       if (name === "ItemId") {
         // value luôn là string, itemId có thể là string hoặc number
         const selectedItem = items.find((it) => String(it.itemId) === value);
+        // Chuyển số thành tên loại thiết bị
+        const getItemTypeName = (type: number) => {
+          switch (type) {
+            case 1:
+              return "Camera";
+            case 2:
+              return "Accessory";
+            case 3:
+              return "Combo";
+            default:
+              return "";
+          }
+        };
         return {
           ...f,
           ItemId: value,
-          ItemType: selectedItem ? String(selectedItem.itemType) : "",
+          ItemType: selectedItem ? getItemTypeName(selectedItem.itemType) : "",
         };
       }
       return {
@@ -147,16 +160,34 @@ const CheckBookingDialog: React.FC<CheckBookingDialogProps> = ({
       alert("Vui lòng chọn Type!");
       return;
     }
+    // Chuyển tên loại thiết bị thành số trước khi gửi
+    const getItemTypeNumber = (typeName: string): number => {
+      switch (typeName) {
+        case "Camera":
+          return 1;
+        case "Accessory":
+          return 2;
+        case "Combo":
+          return 3;
+        default:
+          return 0;
+      }
+    };
+
     // Loại bỏ các trường không cần thiết khi gửi lên
-    const submitData = { ...form };
+    const submitData: any = { ...form };
     delete submitData.files;
+
+    // Chuyển ItemType từ tên sang số
+    submitData.ItemType = getItemTypeNumber(form.ItemType);
 
     // Convert FileList to array for images (nếu cần upload)
     if (form.images) {
-      // Nếu backend cần images là File[], giữ lại dòng này, nếu không thì chỉ xóa trường images
-      // submitData.images = Array.from(form.images);
+      submitData.images = Array.from(form.images);
+    } else {
+      delete submitData.images;
     }
-    delete submitData.images;
+
     onSubmit(submitData);
   };
 

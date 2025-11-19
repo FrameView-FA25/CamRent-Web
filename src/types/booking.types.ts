@@ -38,8 +38,6 @@ export interface BookingItem {
   product?: Product;
 }
 
-}
-
 export interface Renter {
   id: string;
   fullName: string;
