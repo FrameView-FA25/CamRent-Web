@@ -131,11 +131,54 @@ export const cameraService = {
         );
       }
 
-      // Parse dữ liệu JSON từ response (có cấu trúc phân trang)
-      const responseData: CamerasResponse = await response.json();
+      // Parse dữ liệu JSON từ response (có thể là array hoặc object phân trang)
+      const responseData = await response.json();
 
-      // Trả về toàn bộ response data bao gồm items và thông tin phân trang
-      return responseData;
+      // Trường hợp backend trả về object chuẩn với trường items
+      if (
+        responseData &&
+        typeof responseData === "object" &&
+        Array.isArray(responseData.items)
+      ) {
+        return responseData as CamerasResponse;
+      }
+
+      // Trường hợp backend trả về object với trường cameras
+      if (
+        responseData &&
+        typeof responseData === "object" &&
+        Array.isArray(responseData.cameras)
+      ) {
+        return {
+          page,
+          pageSize,
+          total:
+            typeof responseData.total === "number"
+              ? responseData.total
+              : responseData.cameras.length,
+          items: responseData.cameras,
+        };
+      }
+
+      // Trường hợp backend trả về array trực tiếp
+      if (Array.isArray(responseData)) {
+        return {
+          page,
+          pageSize,
+          total: responseData.length,
+          items: responseData,
+        };
+      }
+
+      console.warn("Unexpected camera response structure:", responseData);
+
+      // Fallback: trả về object rỗng để tránh crash UI
+      return {
+        page,
+        pageSize,
+        total: 0,
+        items: [],
+      };
     } catch (error) {
       // Log lỗi ra console để debug
       console.error("Lỗi khi lấy danh sách camera:", error);

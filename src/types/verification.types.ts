@@ -1,8 +1,9 @@
+export type VerificationItemType = "1" | "2" | "Camera" | "Accessory";
+
 export interface VerificationItem {
   itemId: string;
   itemName: string;
-  // "1" | "Camera" = camera, "2" | "Accessory" = accessory
-  itemType: string;
+  itemType: VerificationItemType;
 }
 
 export interface CreateVerificationRequest {
@@ -51,10 +52,4 @@ export interface Verification {
 
   createdAt?: string;
   updatedAt?: string;
-  
-}
-export interface VerificationItem {
-  itemId: string;
-  itemName: string;
-  itemType: string; // "1" | "Camera": Camera, "2" | "Accessory": Accessory
 }
