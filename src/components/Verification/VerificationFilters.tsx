@@ -19,7 +19,7 @@ interface VerificationFiltersProps {
 
 const tabs = [
   { label: "All", value: "all" },
-  { label: "Pending", value: "pending" },
+  { label: "Pending", value: "Pending" },
   { label: "In Progress", value: "in-progress" },
   { label: "Approved", value: "approved" },
   { label: "Rejected", value: "rejected" },
@@ -45,7 +45,7 @@ const VerificationFilters: React.FC<VerificationFiltersProps> = ({
       >
         <TextField
           fullWidth
-          placeholder="Search by name, phone number, or branch..."
+          placeholder="Tìm kiếm bằng tên, đơn hàng, số điện thoại, ...."
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           InputProps={{

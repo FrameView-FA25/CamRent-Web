@@ -13,29 +13,31 @@ const VerificationStats: React.FC<VerificationStatsProps> = ({
 }) => {
   const stats = [
     {
-      label: "Total Requests",
+      label: "Tổng yêu cầu",
       value: verifications.length,
       icon: <FileText size={32} />,
       color: colors.primary.main,
       bgColor: "#E3F2FD",
     },
     {
-      label: "Pending",
-      value: verifications.filter((v) => v.status === "Pending" || v.status.toLowerCase() === "pending").length,
+      label: "Đang chờ",
+      value: verifications.filter(
+        (v) => v.status === "Pending" || v.status.toLowerCase() === "pending"
+      ).length,
       icon: <Clock size={32} />,
       color: "#FF9800",
       bgColor: "#FFF3E0",
     },
     {
-      label: "Approved",
-      value: verifications.filter((v) => v.status === "approved").length,
+      label: "Đã xác nhận",
+      value: verifications.filter((v) => v.status === "Assigned").length,
       icon: <Clock size={32} />,
       color: "#4CAF50",
       bgColor: "#E8F5E9",
     },
     {
-      label: "Rejected",
-      value: verifications.filter((v) => v.status === "rejected").length,
+      label: "Đã từ chối",
+      value: verifications.filter((v) => v.status === "Rejected").length,
       icon: <Clock size={32} />,
       color: "#F44336",
       bgColor: "#FFEBEE",

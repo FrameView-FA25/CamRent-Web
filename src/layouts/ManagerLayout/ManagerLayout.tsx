@@ -29,17 +29,25 @@ import { colors } from "../../theme/colors";
 const DRAWER_WIDTH = 280;
 
 const menuItems = [
-  { text: "Dashboard", icon: <HomeIcon />, path: "/manager/dashboard" },
-  { text: "Staff Management", icon: <PeopleIcon />, path: "/manager/staff" },
-  { text: "Booking", icon: <ProductsIcon />, path: "/manager/booking" },
-  { text: "Orders", icon: <OrdersIcon />, path: "/manager/verifications" },
+  { text: "Thống kê", icon: <HomeIcon />, path: "/manager/dashboard" },
+  { text: "Quản lý nhân viên", icon: <PeopleIcon />, path: "/manager/staff" },
   {
-    text: "Product Management",
+    text: "Quản lý đơn thuê",
+    icon: <ProductsIcon />,
+    path: "/manager/booking",
+  },
+  {
+    text: "Quản lý yêu cầu xác minh",
+    icon: <OrdersIcon />,
+    path: "/manager/verifications",
+  },
+  {
+    text: "Quản lý sản phẩm",
     icon: <ProductsIcon />,
     path: "/manager/products",
   },
-  { text: "Profile", icon: <PersonIcon />, path: "/manager/profile" },
-  { text: "Settings", icon: <SettingsIcon />, path: "/manager/settings" },
+  { text: "Hồ sơ", icon: <PersonIcon />, path: "/manager/profile" },
+  { text: "Cài đặt", icon: <SettingsIcon />, path: "/manager/settings" },
 ];
 
 const ManagerLayout: React.FC = () => {
@@ -99,7 +107,7 @@ const ManagerLayout: React.FC = () => {
           }}
           onClick={() => navigate("/")}
         >
-          Manager Panel
+          Manager
         </Typography>
       </Box>
 
