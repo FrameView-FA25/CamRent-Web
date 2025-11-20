@@ -28,15 +28,13 @@ import {
   Delete as DeleteIcon,
   Close as CloseIcon,
 } from "@mui/icons-material";
-import ModalAddAccessory from "../../../components/Modal/ModalAddAccessory";
+import ModalAddAccessory from "../../../components/Modal/Owner/ModalAddAccessory";
 import { accessoryService } from "../../../services/accessory.service";
-import type { Accessory } from "../../../types/accessory.types";
+import { useAccessoryContext } from "../../../context/AccessoryContext/useAccessoryContext";
 
 export default function AccessoryManagement() {
-  // State quản lý danh sách phụ kiện
-  const [accessories, setAccessories] = useState<Accessory[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string>("");
+  const { accessories, loading, error, fetchAccessories } =
+    useAccessoryContext();
 
   // State quản lý modal thêm phụ kiện
   const [openAddModal, setOpenAddModal] = useState(false);
@@ -51,30 +49,13 @@ export default function AccessoryManagement() {
   /**
    * Hàm tải danh sách phụ kiện từ API
    */
-  const fetchAccessories = async () => {
-    try {
-      setLoading(true);
-      setError("");
-      const data = await accessoryService.getAccessoriesByOwnerId();
-      setAccessories(data);
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error
-          ? err.message
-          : "Có lỗi xảy ra khi tải danh sách phụ kiện";
-      setError(errorMessage);
-      console.error("Lỗi khi tải phụ kiện:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   /**
    * useEffect: Gọi API lấy danh sách phụ kiện khi component được mount
    */
   useEffect(() => {
     fetchAccessories();
-  }, []);
+  }, [fetchAccessories]);
 
   /**
    * Hàm xử lý khi thêm phụ kiện mới thành công
@@ -88,20 +69,7 @@ export default function AccessoryManagement() {
    * Hàm xử lý xóa phụ kiện
    */
   const handleDeleteAccessory = async (accessoryId: string) => {
-    if (!window.confirm("Bạn có chắc chắn muốn xóa phụ kiện này?")) {
-      return;
-    }
-
-    try {
-      await accessoryService.deleteAccessory(accessoryId);
-      // Tải lại danh sách sau khi xóa
-      fetchAccessories();
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Có lỗi xảy ra khi xóa phụ kiện";
-      setError(errorMessage);
-      console.error("Lỗi khi xóa phụ kiện:", err);
-    }
+    await accessoryService.deleteAccessory(accessoryId);
   };
 
   /**

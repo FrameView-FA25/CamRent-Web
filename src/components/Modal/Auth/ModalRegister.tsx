@@ -14,7 +14,7 @@ import {
   ToggleButton,
 } from "@mui/material";
 import { X, Eye, EyeOff, Camera, User, Store } from "lucide-react";
-import { authService } from "../../services/auth.service";
+import { authService } from "../../../services/auth.service";
 
 type Props = {
   open: boolean;

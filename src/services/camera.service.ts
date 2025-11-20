@@ -284,7 +284,7 @@ export const cameraService = {
    */
   async updateCamera(
     cameraId: string,
-    cameraData: Partial<Camera>
+    cameraData: Partial<Camera> & { mediaFiles?: File[] }
   ): Promise<Camera> {
     try {
       const token = localStorage.getItem("accessToken");
@@ -295,14 +295,48 @@ export const cameraService = {
         );
       }
 
+      const formData = new FormData();
+
+      const appendIfDefined = (key: string, value: unknown) => {
+        if (value === undefined || value === null) {
+          return;
+        }
+        if (typeof value === "number" && Number.isNaN(value)) {
+          return;
+        }
+        formData.append(key, String(value));
+      };
+
+      appendIfDefined("Brand", cameraData.brand);
+      appendIfDefined("Model", cameraData.model);
+      appendIfDefined("Variant", cameraData.variant);
+      appendIfDefined("SerialNumber", cameraData.serialNumber);
+      appendIfDefined("BaseDailyRate", cameraData.baseDailyRate);
+      appendIfDefined("EstimatedValueVnd", cameraData.estimatedValueVnd);
+      appendIfDefined("DepositPercent", cameraData.depositPercent);
+      appendIfDefined("DepositCapMinVnd", cameraData.depositCapMinVnd);
+      appendIfDefined("DepositCapMaxVnd", cameraData.depositCapMaxVnd);
+      appendIfDefined("SpecsJson", cameraData.specsJson);
+
+      if (
+        cameraData.mediaFiles &&
+        Array.isArray(cameraData.mediaFiles) &&
+        cameraData.mediaFiles.length > 0
+      ) {
+        cameraData.mediaFiles.forEach((file) => {
+          if (file instanceof File) {
+            formData.append("MediaFiles", file);
+          }
+        });
+      }
+
       const response = await fetch(`${API_BASE_URL}/Cameras/${cameraId}`, {
         method: "PUT",
         headers: {
           accept: "*/*",
-          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(cameraData),
+        body: formData,
       });
 
       if (!response.ok) {
@@ -313,8 +347,17 @@ export const cameraService = {
         );
       }
 
-      const data: Camera = await response.json();
-      return data;
+      const contentType = response.headers.get("content-type") || "";
+
+      if (contentType.includes("application/json")) {
+        const data: Camera = await response.json();
+        return data;
+      }
+
+      return {
+        ...(cameraData as Camera),
+        id: cameraId,
+      };
     } catch (error) {
       console.error("Lỗi khi cập nhật camera:", error);
       throw error;

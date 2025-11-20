@@ -19,7 +19,7 @@ import {
   CloudUpload as CloudUploadIcon,
   Delete as DeleteIcon,
 } from "@mui/icons-material";
-import { cameraService } from "../../services/camera.service";
+import { cameraService } from "../../../services/camera.service";
 
 interface ModalAddCameraProps {
   open: boolean;

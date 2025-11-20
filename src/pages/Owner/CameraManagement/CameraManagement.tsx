@@ -26,9 +26,12 @@ import {
   Add as AddIcon,
   Delete as DeleteIcon,
   Close as CloseIcon,
+  Edit as EditIcon,
 } from "@mui/icons-material";
-import ModalAddCamera from "../../../components/Modal/ModalAddCamera";
+import ModalAddCamera from "../../../components/Modal/Owner/ModalAddCamera";
+import ModalEditCamera from "../../../components/Modal/Owner/ModalEditCamera";
 import { useCameraContext } from "../../../context/CameraContexts/useCameraContext";
+import type { Camera, CameraMedia } from "../../../services/camera.service";
 
 export default function CameraManagement() {
   // Sử dụng context thay vì state local
@@ -43,6 +46,8 @@ export default function CameraManagement() {
 
   // State quản lý modal thêm camera
   const [openAddModal, setOpenAddModal] = useState(false);
+  const [openEditModal, setOpenEditModal] = useState(false);
+  const [selectedCamera, setSelectedCamera] = useState<Camera | null>(null);
 
   // State phân trang
   const [currentPage, setCurrentPage] = useState(1);
@@ -83,6 +88,21 @@ export default function CameraManagement() {
     }
   };
 
+  const handleOpenEdit = (camera: Camera) => {
+    setSelectedCamera(camera);
+    setOpenEditModal(true);
+  };
+
+  const handleCloseEdit = () => {
+    setSelectedCamera(null);
+    setOpenEditModal(false);
+  };
+
+  const handleUpdatedCamera = () => {
+    refreshCameras();
+    handleCloseEdit();
+  };
+
   /**
    * Tính toán phân trang
    */
@@ -94,7 +114,7 @@ export default function CameraManagement() {
   /**
    * Xử lý thay đổi trang
    */
-  const handlePageChange = (_: React.ChangeEvent<unknown>, page: number) => {
+  const handlePageChange = (_: unknown, page: number) => {
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -672,11 +692,15 @@ export default function CameraManagement() {
                     <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
                       <Box sx={{ display: "flex", gap: 1 }}>
                         {(() => {
-                          const mediaUrls = Array.isArray(camera.media)
-                            ? camera.media.map((m: any) =>
-                                typeof m === "string" ? m : (m && m.url) || ""
-                              )
-                            : [];
+                          const mediaList: Array<CameraMedia | string> =
+                            Array.isArray(camera.media)
+                              ? (camera.media as Array<CameraMedia | string>)
+                              : [];
+                          const mediaUrls = mediaList.map((mediaItem) =>
+                            typeof mediaItem === "string"
+                              ? mediaItem
+                              : mediaItem?.url || ""
+                          );
                           const first =
                             mediaUrls.find(Boolean) ||
                             "https://via.placeholder.com/80?text=No+Image";
@@ -839,6 +863,21 @@ export default function CameraManagement() {
                           <DeleteIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
+                      <Tooltip title="Chỉnh sửa camera">
+                        <IconButton
+                          size="small"
+                          onClick={() => handleOpenEdit(camera)}
+                          sx={{
+                            color: "#64748B",
+                            "&:hover": {
+                              bgcolor: "#EFF6FF",
+                              color: "#3B82F6",
+                            },
+                          }}
+                        >
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
                     </Box>
                   </TableCell>
                 </TableRow>
@@ -895,6 +934,12 @@ export default function CameraManagement() {
         open={openAddModal}
         onClose={() => setOpenAddModal(false)}
         onAdd={handleAddCamera}
+      />
+      <ModalEditCamera
+        open={openEditModal}
+        camera={selectedCamera}
+        onClose={handleCloseEdit}
+        onUpdated={handleUpdatedCamera}
       />
 
       {/* Image Preview Dialog */}

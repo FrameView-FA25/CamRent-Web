@@ -28,28 +28,29 @@ import { useAuth } from "../../hooks/useAuth";
 import { colors } from "../../theme/colors";
 import { CameraProvider } from "../../context/CameraContexts/CameraContext";
 import { VerificationProvider } from "../../context/VerifiContext/VerificationContext";
+import { AccessoryProvider } from "../../context/AccessoryContext/AccessoryContext";
 
 const DRAWER_WIDTH = 280;
 
 const menuItems = [
-  { text: "Dashboard", icon: <HomeIcon />, path: "/owner/dashboard" },
+  { text: "Bảng điều khiển", icon: <HomeIcon />, path: "/owner/dashboard" },
   {
-    text: "Camera Management",
+    text: "Quản lý camera",
     icon: <CameraIcon />,
     path: "/owner/cameras",
   },
   {
-    text: "Accessory Management",
+    text: "Quản lý phụ kiện",
     icon: <AccessoryIcon />,
     path: "/owner/accessories",
   },
-  { text: "Orders", icon: <OrdersIcon />, path: "/owner/orders" },
+  { text: "Đơn hàng", icon: <OrdersIcon />, path: "/owner/orders" },
   {
-    text: "Verification Management",
+    text: "Quản lý xác minh",
     icon: <VerifiedUserIcon />,
     path: "/owner/verifications",
   },
-  { text: "Profile", icon: <PersonIcon />, path: "/owner/profile" },
+  { text: "Hồ sơ", icon: <PersonIcon />, path: "/owner/profile" },
 ];
 
 const OwnerLayout: React.FC = () => {
@@ -111,7 +112,7 @@ const OwnerLayout: React.FC = () => {
           }}
           onClick={() => navigate("/")}
         >
-          Owner Panel
+          Bảng điều khiển chủ sở hữu
         </Typography>
       </Box>
 
@@ -215,7 +216,7 @@ const OwnerLayout: React.FC = () => {
                 lineHeight: 1.3,
               }}
             >
-              {user?.fullName || "Owner"}
+              {user?.fullName || "Chủ sở hữu"}
             </Typography>
             <Typography
               sx={{
@@ -224,7 +225,7 @@ const OwnerLayout: React.FC = () => {
                 lineHeight: 1.3,
               }}
             >
-              {user?.roles?.join(", ") || "User Role"}
+              {user?.roles?.join(", ") || "Vai trò người dùng"}
             </Typography>
           </Box>
         </Stack>
@@ -253,7 +254,7 @@ const OwnerLayout: React.FC = () => {
             <LogoutIcon />
           </ListItemIcon>
           <ListItemText
-            primary="Logout"
+            primary="Đăng xuất"
             primaryTypographyProps={{
               fontWeight: 500,
               fontSize: "0.9375rem",
@@ -267,84 +268,86 @@ const OwnerLayout: React.FC = () => {
   return (
     <VerificationProvider>
       <CameraProvider>
-        <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#F9FAFB" }}>
-          {/* Mobile Menu Button - Chỉ hiển thị trên mobile */}
-          <IconButton
-            onClick={handleDrawerToggle}
-            sx={{
-              display: { xs: "block", md: "none" },
-              position: "fixed",
-              top: 16,
-              left: 16,
-              zIndex: 1300,
-              bgcolor: "#FFFFFF",
-              boxShadow: "0 1px 3px 0 rgb(0 0 0 / 0.1)",
-              "&:hover": {
-                bgcolor: "#F3F4F6",
-              },
-            }}
-          >
-            <MenuIcon />
-          </IconButton>
-
-          {/* Sidebar Drawer */}
-          <Box
-            component="nav"
-            sx={{ width: { md: DRAWER_WIDTH }, flexShrink: { md: 0 } }}
-          >
-            {/* Mobile drawer */}
-            <Drawer
-              variant="temporary"
-              open={mobileOpen}
-              onClose={handleDrawerToggle}
-              ModalProps={{
-                keepMounted: true,
-              }}
+        <AccessoryProvider>
+          <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#F9FAFB" }}>
+            {/* Mobile Menu Button - Chỉ hiển thị trên mobile */}
+            <IconButton
+              onClick={handleDrawerToggle}
               sx={{
                 display: { xs: "block", md: "none" },
-                "& .MuiDrawer-paper": {
-                  boxSizing: "border-box",
-                  width: DRAWER_WIDTH,
-                  border: "none",
-                  overflow: "hidden", // Loại bỏ scroll
+                position: "fixed",
+                top: 16,
+                left: 16,
+                zIndex: 1300,
+                bgcolor: "#FFFFFF",
+                boxShadow: "0 1px 3px 0 rgb(0 0 0 / 0.1)",
+                "&:hover": {
+                  bgcolor: "#F3F4F6",
                 },
               }}
             >
-              {drawer}
-            </Drawer>
+              <MenuIcon />
+            </IconButton>
 
-            {/* Desktop drawer */}
-            <Drawer
-              variant="permanent"
+            {/* Sidebar Drawer */}
+            <Box
+              component="nav"
+              sx={{ width: { md: DRAWER_WIDTH }, flexShrink: { md: 0 } }}
+            >
+              {/* Mobile drawer */}
+              <Drawer
+                variant="temporary"
+                open={mobileOpen}
+                onClose={handleDrawerToggle}
+                ModalProps={{
+                  keepMounted: true,
+                }}
+                sx={{
+                  display: { xs: "block", md: "none" },
+                  "& .MuiDrawer-paper": {
+                    boxSizing: "border-box",
+                    width: DRAWER_WIDTH,
+                    border: "none",
+                    overflow: "hidden", // Loại bỏ scroll
+                  },
+                }}
+              >
+                {drawer}
+              </Drawer>
+
+              {/* Desktop drawer */}
+              <Drawer
+                variant="permanent"
+                sx={{
+                  display: { xs: "none", md: "block" },
+                  "& .MuiDrawer-paper": {
+                    boxSizing: "border-box",
+                    width: DRAWER_WIDTH,
+                    border: "none",
+                    overflow: "hidden", // Loại bỏ scroll
+                  },
+                }}
+                open
+              >
+                {drawer}
+              </Drawer>
+            </Box>
+
+            {/* Main content */}
+            <Box
+              component="main"
               sx={{
-                display: { xs: "none", md: "block" },
-                "& .MuiDrawer-paper": {
-                  boxSizing: "border-box",
-                  width: DRAWER_WIDTH,
-                  border: "none",
-                  overflow: "hidden", // Loại bỏ scroll
-                },
+                flexGrow: 1,
+                width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
+                minHeight: "100vh",
+                bgcolor: "#F9FAFB",
               }}
-              open
             >
-              {drawer}
-            </Drawer>
+              <Toolbar sx={{ display: { xs: "block", md: "none" } }} />
+              <Outlet />
+            </Box>
           </Box>
-
-          {/* Main content */}
-          <Box
-            component="main"
-            sx={{
-              flexGrow: 1,
-              width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
-              minHeight: "100vh",
-              bgcolor: "#F9FAFB",
-            }}
-          >
-            <Toolbar sx={{ display: { xs: "block", md: "none" } }} />
-            <Outlet />
-          </Box>
-        </Box>
+        </AccessoryProvider>
       </CameraProvider>
     </VerificationProvider>
   );

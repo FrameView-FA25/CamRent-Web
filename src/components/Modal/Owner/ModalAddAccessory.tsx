@@ -19,7 +19,7 @@ import {
   CloudUpload as CloudUploadIcon,
   Delete as DeleteIcon,
 } from "@mui/icons-material";
-import { accessoryService } from "../../services/accessory.service";
+import { accessoryService } from "../../../services/accessory.service";
 
 interface ModalAddAccessoryProps {
   open: boolean;

@@ -1,7 +1,7 @@
 ﻿import React, { useState } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import CameraLoginModal from "../components/Modal/ModalLogin";
-import CameraRegisterModal from "@/components/Modal/ModalRegister";
+import CameraLoginModal from "../components/Modal/Auth/ModalLogin";
+import CameraRegisterModal from "../components/Modal/Auth/ModalRegister";
 import { useAuth } from "@/hooks/useAuth";
 import { Button, Menu, MenuItem, IconButton, Badge, Box } from "@mui/material";
 import { User, LogOut, ShoppingCart } from "lucide-react";
