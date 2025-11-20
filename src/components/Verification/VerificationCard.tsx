@@ -72,8 +72,8 @@ const VerificationCard: React.FC<VerificationCardProps> = ({
     return statusMap[status];
   };
 
-  const getItemTypeLabel = (itemType: number) => {
-    return itemType === 1 ? "Camera" : "Accessory";
+  const getItemTypeLabel = (itemType: string) => {
+    return itemType === "1" || itemType === "Camera" ? "Camera" : "Accessory";
   };
 
   const formatDateTime = (dateString: string) => {
@@ -312,7 +312,7 @@ const VerificationCard: React.FC<VerificationCardProps> = ({
                       height: 36,
                       borderRadius: 1,
                       bgcolor:
-                        item.itemType === 1
+                        item.itemType === "1" || item.itemType === "Camera"
                           ? colors.primary.lighter
                           : colors.accent.blueLight,
                       display: "flex",
@@ -321,7 +321,7 @@ const VerificationCard: React.FC<VerificationCardProps> = ({
                       flexShrink: 0,
                     }}
                   >
-                    {item.itemType === 1 ? (
+                    {item.itemType === "1" || item.itemType === "Camera" ? (
                       <Camera size={18} color={colors.primary.main} />
                     ) : (
                       <Package size={18} color={colors.accent.blue} />
@@ -349,11 +349,11 @@ const VerificationCard: React.FC<VerificationCardProps> = ({
                     size="small"
                     sx={{
                       bgcolor:
-                        item.itemType === 1
+                        item.itemType === "1" || item.itemType === "Camera"
                           ? colors.primary.lighter
                           : colors.accent.blueLight,
                       color:
-                        item.itemType === 1
+                        item.itemType === "1" || item.itemType === "Camera"
                           ? colors.primary.main
                           : colors.accent.blue,
                       fontWeight: 600,

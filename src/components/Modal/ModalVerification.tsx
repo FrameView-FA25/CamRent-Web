@@ -45,7 +45,7 @@ export default function ModalVerification({
     inspectionDate: "",
     notes: "",
     branchId: "",
-    items: [{ itemId: "", itemName: "", itemType: 1 }],
+    items: [{ itemId: "", itemName: "", itemType: "1" }],
   });
   const [cameraOptions, setCameraOptions] = useState<any[]>([]);
   const [accessoryOptions, setAccessoryOptions] = useState<any[]>([]);
@@ -146,7 +146,7 @@ export default function ModalVerification({
       ...prev,
       items: [
         ...(prev.items || []),
-        { itemId: "", itemName: "", itemType: 1 } as VerificationItem,
+        { itemId: "", itemName: "", itemType: "1" } as VerificationItem,
       ],
     }));
   };
@@ -531,7 +531,7 @@ export default function ModalVerification({
                     value={it.itemId || ""}
                     onChange={(e) => {
                       const selectedId = e.target.value;
-                      if (it.itemType === 1) {
+                      if (it.itemType === "1" || it.itemType === "Camera") {
                         const selected = cameraOptions.find(
                           (c) => c.id === selectedId
                         );
@@ -562,7 +562,7 @@ export default function ModalVerification({
                       },
                     }}
                     helperText={
-                      it.itemType === 1
+                      it.itemType === "1" || it.itemType === "Camera"
                         ? cameraLoading
                           ? "Đang tải camera..."
                           : cameraError
@@ -579,7 +579,7 @@ export default function ModalVerification({
                         : ""
                     }
                   >
-                    {it.itemType === 1
+                    {it.itemType === "1" || it.itemType === "Camera"
                       ? cameraOptions.length > 0
                         ? cameraOptions.map((c) => (
                             <MenuItem key={c.id} value={c.id}>

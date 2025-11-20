@@ -21,7 +21,7 @@ const VerificationStats: React.FC<VerificationStatsProps> = ({
     },
     {
       label: "Pending",
-      value: verifications.filter((v) => v.status === "pending").length,
+      value: verifications.filter((v) => v.status === "Pending" || v.status.toLowerCase() === "pending").length,
       icon: <Clock size={32} />,
       color: "#FF9800",
       bgColor: "#FFF3E0",

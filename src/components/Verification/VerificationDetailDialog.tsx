@@ -40,8 +40,8 @@ const VerificationDetailDialog: React.FC<VerificationDetailDialogProps> = ({
     });
   };
 
-  const getItemTypeLabel = (itemType: number) => {
-    return itemType === 1 ? "Camera" : "Accessory";
+  const getItemTypeLabel = (itemType: string) => {
+    return itemType === "1" || itemType === "Camera" ? "Camera" : "Accessory";
   };
 
   return (
@@ -163,7 +163,7 @@ const VerificationDetailDialog: React.FC<VerificationDetailDialogProps> = ({
                         }}
                       >
                         <ListItemIcon sx={{ minWidth: 40 }}>
-                          {item.itemType === 1 ? (
+                          {item.itemType === "1" || item.itemType === "Camera" ? (
                             <Camera size={20} color={colors.primary.main} />
                           ) : (
                             <Package size={20} color={colors.accent.blue} />

@@ -30,7 +30,9 @@ import { verificationService } from "../../../services/verification.service";
 import type { CreateVerificationRequest } from "../../../services/verification.service";
 import type { Branch } from "../../../types/branch.types";
 import ModalVerification from "../../../components/Modal/ModalVerification";
+import VerificationDetailModal from "../../../components/Modal/VerificationDetailModal";
 import { useVerificationContext } from "../../../context/VerifiContext/useVerificationContext";
+import type { Verification } from "../../../types/verification.types";
 
 export default function VerificationManagement() {
   // Sử dụng context thay vì state local
@@ -45,6 +47,9 @@ export default function VerificationManagement() {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [isLoadingBranches, setIsLoadingBranches] = useState(false);
   const [openModal, setOpenModal] = useState(false);
+  const [openDetailModal, setOpenDetailModal] = useState(false);
+  const [selectedVerification, setSelectedVerification] =
+    useState<Verification | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10; // Số lượng verification hiển thị mỗi trang
   const [message, setMessage] = useState<{
@@ -81,6 +86,16 @@ export default function VerificationManagement() {
   const handleCloseModal = () => {
     setOpenModal(false);
     setMessage(null);
+  };
+
+  const handleOpenDetailModal = (verification: Verification) => {
+    setSelectedVerification(verification);
+    setOpenDetailModal(true);
+  };
+
+  const handleCloseDetailModal = () => {
+    setOpenDetailModal(false);
+    setSelectedVerification(null);
   };
 
   const handleCreateVerification = async (data: CreateVerificationRequest) => {
@@ -383,7 +398,7 @@ export default function VerificationManagement() {
                   fontWeight={700}
                   sx={{ color: "#3B82F6" }}
                 >
-                  {verifications.filter((v) => v.status === "pending").length}
+                  {verifications.filter((v) => v.status === "Pending" || v.status.toLowerCase() === "pending").length}
                 </Typography>
               </Box>
               <Box
@@ -786,6 +801,7 @@ export default function VerificationManagement() {
                       <Tooltip title="Xem chi tiết" arrow>
                         <IconButton
                           size="small"
+                          onClick={() => handleOpenDetailModal(verification)}
                           sx={{
                             color: "#64748B",
                             "&:hover": {
@@ -845,13 +861,20 @@ export default function VerificationManagement() {
         </Box>
       )}
 
-      {/* Modal tầo yêu cầu xác minh */}
+      {/* Modal tạo yêu cầu xác minh */}
       <ModalVerification
         open={openModal}
         onClose={handleCloseModal}
         onSubmit={handleCreateVerification}
         branches={branches}
         isLoadingBranches={isLoadingBranches}
+      />
+
+      {/* Modal chi tiết yêu cầu xác minh */}
+      <VerificationDetailModal
+        open={openDetailModal}
+        onClose={handleCloseDetailModal}
+        verification={selectedVerification}
       />
     </Box>
   );

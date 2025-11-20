@@ -393,7 +393,7 @@ export const fetchBookingById = async (
       snapshotDepositAmount: data.snapshotDepositAmount,
       createdAt: data.createdAt,
       updatedAt: data.updatedAt,
-      items: data.items.map((item: item) => ({
+      items: data.items.map((item: any) => ({
         id: item.id,
         bookingId: item.bookingId,
         cameraId: item.cameraId,
@@ -407,7 +407,9 @@ export const fetchBookingById = async (
         // ✅ Add itemName and itemType for consistency
         itemId: item.cameraId || item.accessoryId || item.comboId || "",
         itemName: item.camera
-          ? `${item.camera.brand} ${item.camera.model}${item.camera.variant ? ` ${item.camera.variant}` : ""}`
+          ? `${item.camera.brand} ${item.camera.model}${
+              item.camera.variant ? ` ${item.camera.variant}` : ""
+            }`
           : item.accessory
           ? `${item.accessory.brand} ${item.accessory.model}`
           : item.combo
@@ -430,7 +432,9 @@ export const fetchBookingById = async (
   } catch (error: unknown) {
     console.error("Error fetching booking by ID:", error);
     const errorMessage =
-      error instanceof Error ? error.message : "Không thể tải thông tin đơn hàng";
+      error instanceof Error
+        ? error.message
+        : "Không thể tải thông tin đơn hàng";
     return { booking: null, error: errorMessage };
   }
 };
