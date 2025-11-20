@@ -44,6 +44,7 @@ import OrderDetailPage from "@/pages/Renter/OrderDetailPage";
 import ProductManagementPage from "@/pages/Manager/ProductManagement";
 import VerifyManagement from "@/pages/Manager/VerifyManagement";
 import CheckoutPage from "@/pages/Renter/CheckoutPage";
+import { ChatPage } from "@/pages/Renter/ChatPage";
 const routes: RouteObject[] = [
   {
     path: "/",
@@ -266,6 +267,10 @@ const routes: RouteObject[] = [
       {
         path: "my-orders/:orderId",
         element: <OrderDetailPage />,
+      },
+      {
+        path: "chat",
+        element: <ChatPage />,
       },
 
       // ...other routes
