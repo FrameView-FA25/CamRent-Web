@@ -85,14 +85,14 @@ const VerifyManagement: React.FC = () => {
         {/* Header */}
         <Box sx={{ mb: 4 }}>
           <Typography
-            variant="h3"
+            variant="h4"
             sx={{
-              fontWeight: 700,
+              fontWeight: 600,
               color: colors.text.primary,
               mb: 1,
             }}
           >
-            Verification Management
+            Quản lý yêu cầu xác minh
           </Typography>
           <Typography variant="body1" sx={{ color: colors.text.secondary }}>
             Manage and track verification requests
