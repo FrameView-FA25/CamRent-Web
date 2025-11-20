@@ -4,6 +4,7 @@ import { verificationService } from "../services/verification.service";
 import { fetchStaffList } from "../services/booking.service";
 import type { Verification } from "../types/verification.types";
 import type { Staff } from "../types/booking.types";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 export const useVerifications = () => {
   const [verifications, setVerifications] = useState<Verification[]>([]);
@@ -86,6 +87,42 @@ export const useVerifications = () => {
       return false;
     }
   };
+  const updateStatus = async (
+    verificationId: string,
+    status: string,
+    note: string
+  ): Promise<boolean> => {
+    try {
+      const token = localStorage.getItem("accessToken");
+
+      const response = await fetch(
+        `${API_BASE_URL}/Verifications/${verificationId}/update-status?note=${encodeURIComponent(
+          note
+        )}&status=${status}`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Update status error:", errorText);
+        throw new Error("Failed to update status");
+      }
+
+      toast.success("Status updated successfully");
+      await fetchVerifications(); // Refresh list
+      return true;
+    } catch (error) {
+      console.error("Error updating status:", error);
+      toast.error("Failed to update status");
+      return false;
+    }
+  };
 
   return {
     verifications,
@@ -97,6 +134,7 @@ export const useVerifications = () => {
     loading,
     staffList,
     assignStaff,
-    refetch: fetchVerifications,
+     updateStatus, // ✅ Export updateStatus
+    refreshVerifications: fetchVerifications,
   };
 };

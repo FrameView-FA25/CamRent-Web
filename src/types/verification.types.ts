@@ -39,7 +39,13 @@ export interface Verification {
   name: string;
   phoneNumber: string;
   inspectionDate: string;
-  status: "Pending" | "approved" | "rejected" | "completed" | "cancelled";
+  status:
+  | "Pending"
+  | "Assigned"
+  | "Approved"
+  | "Rejected"
+  | "Completed"
+  | "Cancelled";
   staffId: string | null;
   staffName: string | null;
   branchId: string;

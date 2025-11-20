@@ -38,31 +38,31 @@ const VerificationCard: React.FC<VerificationCardProps> = ({
         bgColor: colors.status.warningLight,
         icon: <Clock size={16} />,
       },
-      "in-progress": {
-        label: "In Progress",
+      Assigned: {
+        label: "Assigned",
         color: colors.accent.blue,
         bgColor: colors.accent.blueLight,
         icon: <Clock size={16} />,
       },
-      approved: {
+      Approved: {
         label: "Approved",
         color: colors.status.success,
         bgColor: colors.status.successLight,
         icon: <Clock size={16} />,
       },
-      rejected: {
+      Rejected: {
         label: "Rejected",
         color: colors.status.error,
         bgColor: colors.status.errorLight,
         icon: <Clock size={16} />,
       },
-      completed: {
+      Completed: {
         label: "Completed",
         color: colors.status.success,
         bgColor: colors.status.successLight,
         icon: <Clock size={16} />,
       },
-      cancelled: {
+      Cancelled: {
         label: "Cancelled",
         color: colors.status.error,
         bgColor: colors.status.errorLight,
