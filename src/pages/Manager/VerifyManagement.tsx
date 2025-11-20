@@ -8,7 +8,7 @@ import {
   Menu,
   MenuItem,
 } from "@mui/material";
-import { Eye, UserPlus, FileText } from "lucide-react";
+import { Eye, UserPlus, FileText, Edit } from "lucide-react";
 import { colors } from "../../theme/colors";
 import { useVerifications } from "../../hooks/useVerifications";
 import VerificationStats from "../../components/Verification/VerificationStats";
@@ -16,6 +16,7 @@ import VerificationFilters from "../../components/Verification/VerificationFilte
 import VerificationCard from "../../components/Verification/VerificationCard";
 import AssignStaffDialog from "../../components/Verification/AssignStaffDialog";
 import VerificationDetailDialog from "../../components/Verification/VerificationDetailDialog";
+import UpdateStatusDialog from "../../components/Verification/UpdateStatusDialog";
 import type { Verification } from "../../types/verification.types";
 
 const VerifyManagement: React.FC = () => {
@@ -29,6 +30,7 @@ const VerifyManagement: React.FC = () => {
     loading,
     staffList,
     assignStaff,
+    updateStatus, // ✅ Get updateStatus function
   } = useVerifications();
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -36,6 +38,7 @@ const VerifyManagement: React.FC = () => {
     useState<Verification | null>(null);
   const [openDetailDialog, setOpenDetailDialog] = useState(false);
   const [openAssignDialog, setOpenAssignDialog] = useState(false);
+  const [openUpdateDialog, setOpenUpdateDialog] = useState(false); // ✅ New state
 
   const handleMenuOpen = (
     event: React.MouseEvent<HTMLElement>,
@@ -59,9 +62,21 @@ const VerifyManagement: React.FC = () => {
     handleMenuClose();
   };
 
+  // ✅ NEW: Handle open update dialog
+  const handleOpenUpdateDialog = () => {
+    setOpenUpdateDialog(true);
+    handleMenuClose();
+  };
+
   const handleAssignStaff = async (staffId: string) => {
     if (!selectedVerification) return false;
     return await assignStaff(selectedVerification.id, staffId);
+  };
+
+  // ✅ NEW: Handle update status
+  const handleUpdateStatus = async (status: string, note: string) => {
+    if (!selectedVerification) return false;
+    return await updateStatus(selectedVerification.id, status, note);
   };
 
   return (
@@ -156,6 +171,12 @@ const VerifyManagement: React.FC = () => {
             <UserPlus size={16} style={{ marginRight: 8 }} />
             Assign Staff
           </MenuItem>
+          <MenuItem onClick={handleOpenUpdateDialog}>
+            {" "}
+            {/* ✅ Fixed */}
+            <Edit size={16} style={{ marginRight: 8 }} />
+            Update Status
+          </MenuItem>
         </Menu>
 
         {/* Dialogs */}
@@ -170,6 +191,14 @@ const VerifyManagement: React.FC = () => {
           open={openDetailDialog}
           onClose={() => setOpenDetailDialog(false)}
           verification={selectedVerification}
+        />
+
+        {/* ✅ NEW: Update Status Dialog */}
+        <UpdateStatusDialog
+          open={openUpdateDialog}
+          onClose={() => setOpenUpdateDialog(false)}
+          verification={selectedVerification}
+          onUpdate={handleUpdateStatus}
         />
       </Container>
     </Box>
