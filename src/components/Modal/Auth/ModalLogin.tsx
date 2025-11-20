@@ -13,9 +13,9 @@ import {
   CircularProgress,
 } from "@mui/material";
 import { X, Eye, EyeOff, Camera } from "lucide-react";
-import { authService } from "../../services/auth.service";
-import { colors } from "../../theme/colors";
-import { decodeToken } from "../../utils/decodeToken";
+import { authService } from "../../../services/auth.service";
+import { colors } from "../../../theme/colors";
+import { decodeToken } from "../../../utils/decodeToken";
 
 type Props = {
   open: boolean;

@@ -22,12 +22,12 @@ import {
 import type {
   CreateVerificationRequest,
   VerificationItem,
-} from "../../types/verification.types";
-import { cameraService } from "../../services/camera.service";
-import { accessoryService } from "../../services/accessory.service";
-import { CameraContext } from "../../context/CameraContexts/CameraContext.types";
-import type { Branch } from "../../types/branch.types";
-import type { Accessory } from "../../types/accessory.types";
+} from "../../../types/verification.types";
+import { cameraService } from "../../../services/camera.service";
+import { accessoryService } from "../../../services/accessory.service";
+import { CameraContext } from "../../../context/CameraContexts/CameraContext.types";
+import type { Branch } from "../../../types/branch.types";
+import type { Accessory } from "../../../types/accessory.types";
 
 interface DeviceOption {
   id: string;

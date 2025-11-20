@@ -31,7 +31,7 @@ import { branchService } from "../../../services/branch.service";
 import { verificationService } from "../../../services/verification.service";
 import type { CreateVerificationRequest } from "../../../services/verification.service";
 import type { Branch } from "../../../types/branch.types";
-import ModalVerification from "../../../components/Modal/ModalVerification";
+import ModalVerification from "../../../components/Modal/Owner/ModalVerification";
 import VerificationDetailModal from "../../../components/Modal/VerificationDetailModal";
 import { useVerificationContext } from "../../../context/VerifiContext/useVerificationContext";
 import type { Verification } from "../../../types/verification.types";
