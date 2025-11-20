@@ -19,7 +19,6 @@ import {
   Home as HomeIcon,
   People as PeopleIcon,
   Inventory as ProductsIcon,
-  Settings as SettingsIcon,
   ExitToApp as LogoutIcon,
   Person as PersonIcon,
   VerifiedUser as VerifiedUserIcon,
@@ -47,7 +46,6 @@ const menuItems = [
   },
   // { text: "Đơn hàng", icon: <OrdersIcon />, path: "/staff/orders" }, // Removed as requested
   { text: "Hồ sơ", icon: <PersonIcon />, path: "/staff/profile" },
-  { text: "Cài đặt", icon: <SettingsIcon />, path: "/staff/settings" },
 ];
 
 const StaffLayout: React.FC = () => {

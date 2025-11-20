@@ -1,8 +1,8 @@
 export interface VerificationItem {
   itemId: string;
   itemName: string;
-  // 1 = camera, 2 = accessory
-  itemType: number;
+  // "1" | "Camera" = camera, "2" | "Accessory" = accessory
+  itemType: string;
 }
 
 export interface CreateVerificationRequest {
@@ -21,6 +21,18 @@ export interface CreateVerificationResponse {
   data?: [];
 }
 
+export interface VerificationInspection {
+  id: string;
+  itemName: string;
+  itemType: string; // "Camera" | "Accessory"
+  section: string;
+  label: string;
+  value: string;
+  passed: boolean;
+  notes: string;
+  media: string[];
+}
+
 export interface Verification {
   id: string;
   name: string;
@@ -35,7 +47,7 @@ export interface Verification {
   notes: string;
   // Danh sách item đi kèm với yêu cầu (camera / accessory)
   items?: VerificationItem[];
-  inspections: [];
+  inspections?: VerificationInspection[];
 
   createdAt?: string;
   updatedAt?: string;
@@ -44,5 +56,5 @@ export interface Verification {
 export interface VerificationItem {
   itemId: string;
   itemName: string;
-  itemType: number; // 1: Camera, 2: Accessory
+  itemType: string; // "1" | "Camera": Camera, "2" | "Accessory": Accessory
 }

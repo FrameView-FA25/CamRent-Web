@@ -15,11 +15,12 @@ import {
   TableHead,
   TableRow,
   TablePagination,
-  Alert,
   CircularProgress,
   Button,
   Tab,
   Tabs,
+  Tooltip,
+  alpha,
 } from "@mui/material";
 import {
   Search,
@@ -31,6 +32,7 @@ import {
   TaskAlt,
   Visibility,
   PlaylistAddCheck,
+  Clear,
 } from "@mui/icons-material";
 import { fetchStaffBookings } from "../../services/booking.service";
 import type { Booking } from "../../types/booking.types";
@@ -172,186 +174,392 @@ const CheckBookings: React.FC = () => {
     );
   }, [filteredBookings, page, rowsPerPage]);
 
-  // Mini chart data generator
-  const generateChartData = (count: number) => {
-    return Array.from(
-      { length: 7 },
-      () => Math.floor(Math.random() * count) + count / 2
-    );
-  };
-
-  // Render mini chart
-  const renderMiniChart = (data: number[], color: string) => {
-    const max = Math.max(...data, 1); // Đảm bảo max >= 1 để tránh chia cho 0
-    const points = data
-      .map((value, index) => {
-        const x = (index / (data.length - 1)) * 100;
-        const y = 100 - (value / max) * 100;
-        return `${x},${y}`;
-      })
-      .join(" ");
-
-    return (
-      <svg
-        width="80"
-        height="40"
-        viewBox="0 0 100 100"
-        preserveAspectRatio="none"
-      >
-        <polyline
-          points={points}
-          fill="none"
-          stroke={color}
-          strokeWidth="4"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    );
-  };
-
-  const statsCards = [
-    {
-      title: "Tất cả",
-      value: bookings.length.toString(),
-      icon: <Assignment sx={{ fontSize: 24 }} />,
-      chart: generateChartData(bookings.length),
-      color: "#0284C7",
-    },
-    {
-      title: "Chờ xác nhận",
-      value: bookings.filter((b) => b.status === "0").length.toString(),
-      icon: <HourglassEmpty sx={{ fontSize: 24 }} />,
-      chart: generateChartData(bookings.filter((b) => b.status === "0").length),
-      color: "#F97316",
-    },
-    {
-      title: "Đã xác nhận",
-      value: bookings.filter((b) => b.status === "1").length.toString(),
-      icon: <CheckCircleOutline sx={{ fontSize: 24 }} />,
-      chart: generateChartData(bookings.filter((b) => b.status === "1").length),
-      color: "#1D4ED8",
-    },
-    {
-      title: "Đang giao",
-      value: bookings.filter((b) => b.status === "2").length.toString(),
-      icon: <LocalShipping sx={{ fontSize: 24 }} />,
-      chart: generateChartData(bookings.filter((b) => b.status === "2").length),
-      color: "#4F46E5",
-    },
-    {
-      title: "Hoàn thành",
-      value: bookings.filter((b) => b.status === "3").length.toString(),
-      icon: <TaskAlt sx={{ fontSize: 24 }} />,
-      chart: generateChartData(bookings.filter((b) => b.status === "3").length),
-      color: "#059669",
-    },
-  ];
+  // Statistics
+  const stats = useMemo(() => {
+    return {
+      total: bookings.length,
+      pending: bookings.filter((b) => b.status === "0").length,
+      confirmed: bookings.filter((b) => b.status === "1").length,
+      delivering: bookings.filter((b) => b.status === "2").length,
+      completed: bookings.filter((b) => b.status === "3").length,
+    };
+  }, [bookings]);
 
   return (
-    <Box sx={{ bgcolor: "#F5F5F5", minHeight: "100vh", p: 3 }}>
+    <Box
+      sx={{
+        bgcolor: "#F9FAFB",
+        minHeight: "100vh",
+        py: 4,
+        px: { xs: 2, sm: 3 },
+      }}
+    >
       <Container maxWidth="xl">
-        {/* Header */}
+        {/* Header Section */}
         <Box sx={{ mb: 4 }}>
-          <Typography
-            variant="h4"
+          <Box
             sx={{
-              fontWeight: 700,
-              color: "#1F2937",
-              mb: 1,
               display: "flex",
               alignItems: "center",
-              gap: 2,
+              justifyContent: "space-between",
+              mb: 2,
+            }}
+          >
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+              <Box
+                sx={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: 2.5,
+                  bgcolor: "#F97316",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  boxShadow: "0 4px 12px rgba(249, 115, 22, 0.25)",
+                }}
+              >
+                <Assignment sx={{ color: "white", fontSize: 32 }} />
+              </Box>
+              <Box>
+                <Typography
+                  variant="h4"
+                  sx={{
+                    fontWeight: 700,
+                    color: "#111827",
+                    mb: 0.5,
+                    fontSize: { xs: "1.75rem", sm: "2rem" },
+                  }}
+                >
+                  Công việc của tôi
+                </Typography>
+                <Typography
+                  variant="body1"
+                  sx={{ color: "#6B7280", fontSize: "0.95rem" }}
+                >
+                  Danh sách đơn thuê được phân công
+                </Typography>
+              </Box>
+            </Box>
+            <Tooltip title="Làm mới">
+              <IconButton
+                onClick={loadAssignments}
+                disabled={loading}
+                sx={{
+                  bgcolor: "white",
+                  color: "#F97316",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                  "&:hover": {
+                    bgcolor: "#FFF7ED",
+                    boxShadow: "0 4px 12px rgba(249, 115, 22, 0.15)",
+                  },
+                }}
+              >
+                {loading ? (
+                  <CircularProgress size={20} sx={{ color: "#F97316" }} />
+                ) : (
+                  <Refresh />
+                )}
+              </IconButton>
+            </Tooltip>
+          </Box>
+        </Box>
+
+        {/* Statistics Cards */}
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: {
+              xs: "repeat(2, 1fr)",
+              sm: "repeat(5, 1fr)",
+            },
+            gap: 3,
+            mb: 4,
+          }}
+        >
+          <Paper
+            elevation={0}
+            sx={{
+              borderRadius: 3,
+              bgcolor: "white",
+              border: "1px solid #E5E7EB",
+              transition: "all 0.3s ease",
+              p: 2.5,
+              "&:hover": {
+                boxShadow: "0 8px 24px rgba(0,0,0,0.1)",
+                transform: "translateY(-2px)",
+              },
             }}
           >
             <Box
               sx={{
-                width: 50,
-                height: 50,
-                borderRadius: 2,
-                bgcolor: "#F97316",
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "center",
+                justifyContent: "space-between",
               }}
             >
-              <Assignment sx={{ color: "white", fontSize: 30 }} />
-            </Box>
-            Công việc của tôi
-          </Typography>
-          <Typography variant="body1" sx={{ color: "#6B7280" }}>
-            Danh sách đơn thuê được phân công
-          </Typography>
-        </Box>
-
-        {/* Stats Cards - Giống Dashboard Manager */}
-        <Box
-          sx={{
-            display: "flex",
-            gap: 3,
-            mb: 3,
-            flexWrap: "wrap",
-          }}
-        >
-          {statsCards.map((card, index) => (
-            <Paper
-              key={index}
-              elevation={0}
-              sx={{
-                flex: {
-                  xs: "1 1 100%",
-                  sm: "1 1 calc(50% - 12px)",
-                  lg: "1 1 calc(20% - 19.2px)",
-                },
-                p: 2.5,
-                borderRadius: 3,
-                bgcolor: "white",
-                border: "1px solid #E5E7EB",
-                transition: "all 0.3s ease",
-                "&:hover": {
-                  transform: "translateY(-4px)",
-                  boxShadow: "0 8px 16px rgba(0,0,0,0.1)",
-                },
-              }}
-            >
+              <Box>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: "#6B7280",
+                    fontWeight: 500,
+                    fontSize: "0.75rem",
+                  }}
+                >
+                  Tất cả
+                </Typography>
+                <Typography
+                  variant="h5"
+                  sx={{ fontWeight: 700, color: "#111827", mt: 0.5 }}
+                >
+                  {stats.total}
+                </Typography>
+              </Box>
               <Box
                 sx={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 2,
+                  bgcolor: alpha("#3B82F6", 0.1),
                   display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-start",
-                  mb: 2,
+                  alignItems: "center",
+                  justifyContent: "center",
                 }}
               >
-                <Box>
-                  <Typography
-                    variant="body2"
-                    sx={{ color: "#6B7280", mb: 1, fontSize: "0.875rem" }}
-                  >
-                    {card.title}
-                  </Typography>
-                  <Typography
-                    variant="h5"
-                    sx={{ fontWeight: 700, color: "#1F2937" }}
-                  >
-                    {card.value}
-                  </Typography>
-                </Box>
-                {renderMiniChart(card.chart, card.color)}
+                <Assignment sx={{ color: "#3B82F6", fontSize: 24 }} />
               </Box>
-            </Paper>
-          ))}
+            </Box>
+          </Paper>
+          <Paper
+            elevation={0}
+            sx={{
+              borderRadius: 3,
+              bgcolor: "white",
+              border: "1px solid #E5E7EB",
+              transition: "all 0.3s ease",
+              p: 2.5,
+              "&:hover": {
+                boxShadow: "0 8px 24px rgba(0,0,0,0.1)",
+                transform: "translateY(-2px)",
+              },
+            }}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <Box>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: "#6B7280",
+                    fontWeight: 500,
+                    fontSize: "0.75rem",
+                  }}
+                >
+                  Chờ xác nhận
+                </Typography>
+                <Typography
+                  variant="h5"
+                  sx={{ fontWeight: 700, color: "#F59E0B", mt: 0.5 }}
+                >
+                  {stats.pending}
+                </Typography>
+              </Box>
+              <Box
+                sx={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 2,
+                  bgcolor: alpha("#F59E0B", 0.1),
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <HourglassEmpty sx={{ color: "#F59E0B", fontSize: 24 }} />
+              </Box>
+            </Box>
+          </Paper>
+          <Paper
+            elevation={0}
+            sx={{
+              borderRadius: 3,
+              bgcolor: "white",
+              border: "1px solid #E5E7EB",
+              transition: "all 0.3s ease",
+              p: 2.5,
+              "&:hover": {
+                boxShadow: "0 8px 24px rgba(0,0,0,0.1)",
+                transform: "translateY(-2px)",
+              },
+            }}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <Box>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: "#6B7280",
+                    fontWeight: 500,
+                    fontSize: "0.75rem",
+                  }}
+                >
+                  Đã xác nhận
+                </Typography>
+                <Typography
+                  variant="h5"
+                  sx={{ fontWeight: 700, color: "#10B981", mt: 0.5 }}
+                >
+                  {stats.confirmed}
+                </Typography>
+              </Box>
+              <Box
+                sx={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 2,
+                  bgcolor: alpha("#10B981", 0.1),
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <CheckCircleOutline sx={{ color: "#10B981", fontSize: 24 }} />
+              </Box>
+            </Box>
+          </Paper>
+          <Paper
+            elevation={0}
+            sx={{
+              borderRadius: 3,
+              bgcolor: "white",
+              border: "1px solid #E5E7EB",
+              transition: "all 0.3s ease",
+              p: 2.5,
+              "&:hover": {
+                boxShadow: "0 8px 24px rgba(0,0,0,0.1)",
+                transform: "translateY(-2px)",
+              },
+            }}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <Box>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: "#6B7280",
+                    fontWeight: 500,
+                    fontSize: "0.75rem",
+                  }}
+                >
+                  Đang giao
+                </Typography>
+                <Typography
+                  variant="h5"
+                  sx={{ fontWeight: 700, color: "#4F46E5", mt: 0.5 }}
+                >
+                  {stats.delivering}
+                </Typography>
+              </Box>
+              <Box
+                sx={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 2,
+                  bgcolor: alpha("#4F46E5", 0.1),
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <LocalShipping sx={{ color: "#4F46E5", fontSize: 24 }} />
+              </Box>
+            </Box>
+          </Paper>
+          <Paper
+            elevation={0}
+            sx={{
+              borderRadius: 3,
+              bgcolor: "white",
+              border: "1px solid #E5E7EB",
+              transition: "all 0.3s ease",
+              p: 2.5,
+              "&:hover": {
+                boxShadow: "0 8px 24px rgba(0,0,0,0.1)",
+                transform: "translateY(-2px)",
+              },
+            }}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <Box>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: "#6B7280",
+                    fontWeight: 500,
+                    fontSize: "0.75rem",
+                  }}
+                >
+                  Hoàn thành
+                </Typography>
+                <Typography
+                  variant="h5"
+                  sx={{ fontWeight: 700, color: "#3B82F6", mt: 0.5 }}
+                >
+                  {stats.completed}
+                </Typography>
+              </Box>
+              <Box
+                sx={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 2,
+                  bgcolor: alpha("#3B82F6", 0.1),
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <TaskAlt sx={{ color: "#3B82F6", fontSize: 24 }} />
+              </Box>
+            </Box>
+          </Paper>
         </Box>
 
         {/* Search Bar */}
         <Paper
           elevation={0}
           sx={{
-            p: 2,
+            p: 2.5,
             mb: 3,
             borderRadius: 3,
+            bgcolor: "white",
+            border: "1px solid #E5E7EB",
             display: "flex",
-            alignItems: "center",
             gap: 2,
+            alignItems: "center",
           }}
         >
           <TextField
@@ -362,54 +570,56 @@ const CheckBookings: React.FC = () => {
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <Search sx={{ color: "#F97316" }} />
+                  <Search sx={{ color: "#9CA3AF" }} />
                 </InputAdornment>
               ),
             }}
             sx={{
               "& .MuiOutlinedInput-root": {
                 borderRadius: 2,
+                bgcolor: "#F9FAFB",
+                "& fieldset": {
+                  borderColor: "#E5E7EB",
+                },
                 "&:hover fieldset": {
                   borderColor: "#F97316",
                 },
                 "&.Mui-focused fieldset": {
                   borderColor: "#F97316",
+                  borderWidth: 2,
                 },
               },
             }}
           />
-          <IconButton
-            onClick={loadAssignments}
-            disabled={loading}
-            sx={{
-              bgcolor: "#FFF7ED",
-              color: "#F97316",
-              "&:hover": {
-                bgcolor: "#FFEDD5",
-              },
-              "&:disabled": {
-                bgcolor: "#F3F4F6",
-                color: "#9CA3AF",
-              },
-            }}
-          >
-            {loading ? (
-              <CircularProgress size={24} sx={{ color: "#F97316" }} />
-            ) : (
-              <Refresh />
-            )}
-          </IconButton>
+          {searchQuery && (
+            <IconButton
+              onClick={() => setSearchQuery("")}
+              sx={{
+                color: "#6B7280",
+                "&:hover": { bgcolor: "#F3F4F6", color: "#F97316" },
+              }}
+            >
+              <Clear />
+            </IconButton>
+          )}
         </Paper>
 
-        {/* Error Alert */}
+        {/* Error */}
         {error && (
-          <Alert
-            severity="error"
-            sx={{ mb: 3, borderRadius: 2 }}
-            onClose={() => setError(null)}
+          <Paper
+            elevation={0}
+            sx={{
+              mb: 3,
+              p: 2.5,
+              borderRadius: 2,
+              bgcolor: "#FEF2F2",
+              border: "1px solid #FEE2E2",
+            }}
           >
-            {error}
-          </Alert>
+            <Typography color="error" sx={{ fontWeight: 500 }}>
+              {error}
+            </Typography>
+          </Paper>
         )}
 
         {/* Tabs */}
@@ -466,7 +676,15 @@ const CheckBookings: React.FC = () => {
         </Paper>
 
         {/* Table */}
-        <Paper elevation={0} sx={{ borderRadius: 3, overflow: "hidden" }}>
+        <Paper
+          elevation={0}
+          sx={{
+            borderRadius: 3,
+            overflow: "hidden",
+            bgcolor: "white",
+            border: "1px solid #E5E7EB",
+          }}
+        >
           <TableContainer>
             <Table>
               <TableHead>
@@ -474,9 +692,10 @@ const CheckBookings: React.FC = () => {
                   <TableCell
                     sx={{
                       fontWeight: 700,
-                      color: "#1F2937",
+                      color: "#374151",
                       fontSize: "0.875rem",
                       py: 2,
+                      borderBottom: "2px solid #E5E7EB",
                     }}
                   >
                     Mã đơn
@@ -484,9 +703,10 @@ const CheckBookings: React.FC = () => {
                   <TableCell
                     sx={{
                       fontWeight: 700,
-                      color: "#1F2937",
+                      color: "#374151",
                       fontSize: "0.875rem",
                       textAlign: "center",
+                      borderBottom: "2px solid #E5E7EB",
                     }}
                   >
                     Thiết bị
@@ -494,8 +714,9 @@ const CheckBookings: React.FC = () => {
                   <TableCell
                     sx={{
                       fontWeight: 700,
-                      color: "#1F2937",
+                      color: "#374151",
                       fontSize: "0.875rem",
+                      borderBottom: "2px solid #E5E7EB",
                     }}
                   >
                     Thời gian thuê
@@ -503,8 +724,9 @@ const CheckBookings: React.FC = () => {
                   <TableCell
                     sx={{
                       fontWeight: 700,
-                      color: "#1F2937",
+                      color: "#374151",
                       fontSize: "0.875rem",
+                      borderBottom: "2px solid #E5E7EB",
                     }}
                   >
                     Tổng tiền
@@ -512,8 +734,9 @@ const CheckBookings: React.FC = () => {
                   <TableCell
                     sx={{
                       fontWeight: 700,
-                      color: "#1F2937",
+                      color: "#374151",
                       fontSize: "0.875rem",
+                      borderBottom: "2px solid #E5E7EB",
                     }}
                   >
                     Trạng thái
@@ -521,9 +744,10 @@ const CheckBookings: React.FC = () => {
                   <TableCell
                     sx={{
                       fontWeight: 700,
-                      color: "#1F2937",
+                      color: "#374151",
                       fontSize: "0.875rem",
                       textAlign: "center",
+                      borderBottom: "2px solid #E5E7EB",
                     }}
                   >
                     Hành động
@@ -533,7 +757,7 @@ const CheckBookings: React.FC = () => {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={7} sx={{ textAlign: "center", py: 8 }}>
+                    <TableCell colSpan={6} sx={{ textAlign: "center", py: 8 }}>
                       <CircularProgress sx={{ color: "#F97316" }} />
                       <Typography
                         sx={{ mt: 2, color: "#6B7280", fontSize: "0.875rem" }}
@@ -544,11 +768,14 @@ const CheckBookings: React.FC = () => {
                   </TableRow>
                 ) : paginatedBookings.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} sx={{ textAlign: "center", py: 8 }}>
+                    <TableCell colSpan={6} sx={{ textAlign: "center", py: 8 }}>
                       <Assignment
-                        sx={{ fontSize: 60, color: "#E5E7EB", mb: 2 }}
+                        sx={{ fontSize: 64, color: "#E5E7EB", mb: 2 }}
                       />
-                      <Typography variant="h6" sx={{ color: "#6B7280", mb: 1 }}>
+                      <Typography
+                        variant="h6"
+                        sx={{ color: "#374151", mb: 1, fontWeight: 600 }}
+                      >
                         Chưa có công việc nào
                       </Typography>
                       <Typography
@@ -567,56 +794,74 @@ const CheckBookings: React.FC = () => {
                         key={booking.id}
                         sx={{
                           "&:hover": {
-                            bgcolor: "#FFF7ED",
+                            bgcolor: "#F9FAFB",
                           },
                           transition: "background-color 0.2s ease",
+                          borderBottom: "1px solid #F3F4F6",
                         }}
                       >
                         <TableCell>
                           <Typography
                             sx={{
                               maxWidth: 200,
-                              fontSize: "0.9375rem",
+                              fontSize: "0.875rem",
+                              fontWeight: 500,
+                              color: "#111827",
                               wordBreak: "break-word",
                             }}
                           >
-                            {booking.id}
+                            {booking.id.length > 20
+                              ? `${booking.id.substring(0, 20)}...`
+                              : booking.id}
                           </Typography>
                         </TableCell>
                         <TableCell>
-                          {booking.items.map((item, idx) => (
-                            <Box key={idx} sx={{ mb: 0.5 }}>
-                              <Typography
-                                variant="body2"
+                          <Box
+                            sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}
+                          >
+                            {booking.items.slice(0, 2).map((item, idx) => (
+                              <Chip
+                                key={idx}
+                                label={item.itemName || getItemName(item)}
+                                size="small"
                                 sx={{
-                                  fontWeight: 600,
-                                  color: "#1F2937",
-                                  fontSize: "0.875rem",
+                                  bgcolor: "#F3F4F6",
+                                  color: "#374151",
+                                  fontWeight: 500,
+                                  fontSize: "0.75rem",
+                                  height: 24,
                                 }}
-                              >
-                                {item.itemName || getItemName(item)}
-                              </Typography>
-                              {item.quantity && (
-                                <Typography
-                                  variant="caption"
-                                  sx={{ color: "#6B7280" }}
-                                >
-                                  SL: {item.quantity}
-                                </Typography>
-                              )}
-                            </Box>
-                          ))}
+                              />
+                            ))}
+                            {booking.items.length > 2 && (
+                              <Chip
+                                label={`+${booking.items.length - 2}`}
+                                size="small"
+                                sx={{
+                                  bgcolor: "#DBEAFE",
+                                  color: "#3B82F6",
+                                  fontWeight: 600,
+                                  fontSize: "0.75rem",
+                                  height: 24,
+                                }}
+                              />
+                            )}
+                          </Box>
                         </TableCell>
                         <TableCell>
                           <Typography
                             variant="body2"
-                            sx={{ color: "#1F2937", fontSize: "0.875rem" }}
+                            sx={{
+                              color: "#111827",
+                              fontSize: "0.875rem",
+                              fontWeight: 500,
+                            }}
                           >
                             {formatDate(booking.pickupAt)}
                           </Typography>
                           <Typography
                             variant="body2"
-                            sx={{ color: "#6B7280", fontSize: "0.875rem" }}
+                            sx={{ color: "#6B7280", fontSize: "0.8125rem" }}
                           >
                             đến {formatDate(booking.returnAt)}
                           </Typography>
@@ -625,8 +870,8 @@ const CheckBookings: React.FC = () => {
                           <Typography
                             sx={{
                               fontWeight: 700,
-                              color: "#000000ff",
-                              fontSize: "0.9375rem",
+                              color: "#111827",
+                              fontSize: "0.875rem",
                             }}
                           >
                             {formatCurrency(booking.snapshotRentalTotal)}
@@ -637,10 +882,38 @@ const CheckBookings: React.FC = () => {
                             label={statusInfo.label}
                             color={statusInfo.color}
                             size="small"
+                            icon={
+                              statusInfo.label === "Đã xác nhận" ? (
+                                <CheckCircleOutline
+                                  sx={{
+                                    fontSize: 16,
+                                    color: "#10B981 !important",
+                                  }}
+                                />
+                              ) : undefined
+                            }
                             sx={{
                               fontWeight: 600,
                               fontSize: "0.75rem",
-                              borderRadius: 1.5,
+                              borderRadius: 2,
+                              height: 28,
+                              ...(statusInfo.label === "Đã xác nhận"
+                                ? {
+                                    bgcolor: "#10B981",
+                                    color: "#FFFFFF",
+                                    boxShadow:
+                                      "0 2px 8px rgba(16, 185, 129, 0.3)",
+                                    "&:hover": {
+                                      bgcolor: "#059669",
+                                      boxShadow:
+                                        "0 4px 12px rgba(16, 185, 129, 0.4)",
+                                    },
+                                    background:
+                                      "linear-gradient(135deg, #10B981 0%, #059669 100%)",
+                                    border: "none",
+                                    transition: "all 0.3s ease",
+                                  }
+                                : {}),
                             }}
                           />
                         </TableCell>
@@ -658,20 +931,19 @@ const CheckBookings: React.FC = () => {
                               startIcon={<Visibility fontSize="small" />}
                               onClick={() => handleViewDetail(booking)}
                               sx={{
-                                borderColor: "#F97316",
-                                color: "#F97316",
+                                borderColor: "#E5E7EB",
+                                color: "#374151",
                                 textTransform: "none",
                                 fontWeight: 600,
-                                borderRadius: 2.5,
+                                borderRadius: 2,
                                 minWidth: 0,
-                                px: 1.2,
-                                py: 0.5,
-                                fontSize: "0.85rem",
-                                lineHeight: 1.2,
+                                px: 1.5,
+                                py: 0.75,
+                                fontSize: "0.8125rem",
                                 "& .MuiButton-startIcon": { mr: 0.5 },
                                 "&:hover": {
-                                  bgcolor: "#FFF7ED",
-                                  borderColor: "#F97316",
+                                  bgcolor: "#F9FAFB",
+                                  borderColor: "#D1D5DB",
                                 },
                               }}
                             >
@@ -683,28 +955,21 @@ const CheckBookings: React.FC = () => {
                               startIcon={<PlaylistAddCheck fontSize="small" />}
                               onClick={() => handleOpenInspection(booking.id)}
                               sx={{
-                                bgcolor:
-                                  booking.status === "3"
-                                    ? "#10b981"
-                                    : "#F97316",
+                                bgcolor: "#F97316",
                                 color: "#fff",
                                 textTransform: "none",
                                 fontWeight: 600,
-                                borderRadius: 2.5,
+                                borderRadius: 2,
                                 minWidth: 0,
-                                px: 1.2,
-                                py: 0.5,
-                                fontSize: "0.85rem",
-                                lineHeight: 1.2,
-                                boxShadow: "none",
+                                px: 1.5,
+                                py: 0.75,
+                                fontSize: "0.8125rem",
+                                boxShadow: "0 2px 8px rgba(249, 115, 22, 0.25)",
                                 "& .MuiButton-startIcon": { mr: 0.5 },
                                 "&:hover": {
-                                  bgcolor:
-                                    booking.status === "3"
-                                      ? "#059669"
-                                      : "#fb923c",
-                                  color: "#fff",
-                                  boxShadow: "0 2px 8px 0 #F9731633",
+                                  bgcolor: "#EA580C",
+                                  boxShadow:
+                                    "0 4px 12px rgba(249, 115, 22, 0.35)",
                                 },
                               }}
                             >
@@ -730,12 +995,16 @@ const CheckBookings: React.FC = () => {
               rowsPerPage={rowsPerPage}
               onRowsPerPageChange={handleChangeRowsPerPage}
               rowsPerPageOptions={[5, 10, 25, 50]}
-              labelRowsPerPage="Số hàng mỗi trang:"
+              labelRowsPerPage="Số dòng mỗi trang:"
               labelDisplayedRows={({ from, to, count }) =>
-                `${from}-${to} của ${count}`
+                `${from}-${to} trong tổng ${
+                  count !== -1 ? count : `nhiều hơn ${to}`
+                }`
               }
               sx={{
                 borderTop: "1px solid #E5E7EB",
+                bgcolor: "#F9FAFB",
+                px: 2,
                 "& .MuiTablePagination-select": {
                   borderRadius: 1,
                 },
@@ -748,6 +1017,11 @@ const CheckBookings: React.FC = () => {
                     color: "#9CA3AF",
                   },
                 },
+                "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
+                  {
+                    fontSize: "0.875rem",
+                    color: "#6B7280",
+                  },
               }}
             />
           )}
@@ -765,16 +1039,16 @@ const CheckBookings: React.FC = () => {
             items: (
               bookings.find((b) => b.id === selectedBookingId)?.items || []
             ).map((it) => {
-              // Chuyển itemType từ string sang number
-              let itemTypeNum = 0;
-              if (it.itemType === "Camera") itemTypeNum = 1;
-              else if (it.itemType === "Accessory") itemTypeNum = 2;
-              else if (it.itemType === "Combo") itemTypeNum = 3;
+              // Chuyển itemType từ string sang format phù hợp
+              let itemTypeStr = "1";
+              if (it.itemType === "Camera") itemTypeStr = "1";
+              else if (it.itemType === "Accessory") itemTypeStr = "2";
+              else if (it.itemType === "Combo") itemTypeStr = "3";
 
               return {
                 itemId: it.itemId || "",
                 itemName: it.itemName || "",
-                itemType: itemTypeNum,
+                itemType: itemTypeStr,
               };
             }),
             ItemType: "",

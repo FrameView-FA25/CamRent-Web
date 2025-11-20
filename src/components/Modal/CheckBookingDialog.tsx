@@ -111,18 +111,12 @@ const CheckBookingDialog: React.FC<CheckBookingDialogProps> = ({
       if (name === "ItemId") {
         // value luôn là string, itemId có thể là string hoặc number
         const selectedItem = items.find((it) => String(it.itemId) === value);
-        // Chuyển số thành tên loại thiết bị
-        const getItemTypeName = (type: number) => {
-          switch (type) {
-            case 1:
-              return "Camera";
-            case 2:
-              return "Accessory";
-            case 3:
-              return "Combo";
-            default:
-              return "";
-          }
+        // Chuyển string thành tên loại thiết bị
+        const getItemTypeName = (type: string) => {
+          if (type === "1" || type === "Camera") return "Camera";
+          if (type === "2" || type === "Accessory") return "Accessory";
+          if (type === "3" || type === "Combo") return "Combo";
+          return "";
         };
         return {
           ...f,

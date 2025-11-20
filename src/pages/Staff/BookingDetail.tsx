@@ -36,6 +36,7 @@ import {
   TaskAlt,
   AccessTime,
   Payment,
+  CheckCircleOutline,
 } from "@mui/icons-material";
 import { fetchBookingById } from "../../services/booking.service";
 import type { Booking } from "../../types/booking.types";
@@ -112,6 +113,17 @@ const BookingDetail: React.FC = () => {
     }
   };
 
+  const getStatusNumber = (statusText: string): number => {
+    const statusMap: Record<string, number> = {
+      "Chờ xác nhận": 0,
+      "Đã xác nhận": 1,
+      "Đang thuê": 2,
+      "Hoàn thành": 3,
+      "Đã hủy": 4,
+    };
+    return statusMap[statusText] ?? 0;
+  };
+
   const getActiveStep = (status: number) => {
     switch (status) {
       case 0:
@@ -175,7 +187,8 @@ const BookingDetail: React.FC = () => {
   }
 
   const statusInfo = getStatusInfo(booking.statusText);
-  const canUpdateStatus = booking.status >= 1 && booking.status < 3;
+  const statusNumber = getStatusNumber(booking.statusText);
+  const canUpdateStatus = statusNumber >= 1 && statusNumber < 3;
 
   return (
     <Box sx={{ bgcolor: "#F5F5F5", minHeight: "100vh", p: 3 }}>
@@ -211,7 +224,35 @@ const BookingDetail: React.FC = () => {
                 <Chip
                   label={statusInfo.label}
                   color={statusInfo.color}
-                  sx={{ fontWeight: 600, fontSize: "0.875rem" }}
+                  icon={
+                    statusInfo.label === "Đã xác nhận" ? (
+                      <CheckCircleOutline
+                        sx={{
+                          fontSize: 18,
+                          color: "#10B981 !important",
+                        }}
+                      />
+                    ) : undefined
+                  }
+                  sx={{
+                    fontWeight: 600,
+                    fontSize: "0.875rem",
+                    ...(statusInfo.label === "Đã xác nhận"
+                      ? {
+                          bgcolor: "#10B981",
+                          color: "#FFFFFF",
+                          boxShadow: "0 2px 8px rgba(16, 185, 129, 0.3)",
+                          "&:hover": {
+                            bgcolor: "#059669",
+                            boxShadow: "0 4px 12px rgba(16, 185, 129, 0.4)",
+                          },
+                          background:
+                            "linear-gradient(135deg, #10B981 0%, #059669 100%)",
+                          border: "none",
+                          transition: "all 0.3s ease",
+                        }
+                      : {}),
+                  }}
                 />
               </Typography>
               <Typography variant="body2" sx={{ color: "#6B7280", mt: 0.5 }}>
@@ -241,7 +282,7 @@ const BookingDetail: React.FC = () => {
 
         {/* Stepper */}
         <Paper elevation={0} sx={{ p: 4, mb: 3, borderRadius: 3 }}>
-          <Stepper activeStep={getActiveStep(booking.status)} alternativeLabel>
+          <Stepper activeStep={getActiveStep(statusNumber)} alternativeLabel>
             {steps.map((label) => (
               <Step key={label}>
                 <StepLabel
@@ -394,7 +435,7 @@ const BookingDetail: React.FC = () => {
                       variant="body1"
                       sx={{ fontWeight: 600, color: "#1F2937" }}
                     >
-                      {booking.deliveryAddress || "N/A"}
+                      {booking.location ? `${booking.location.district}, ${booking.location.province}` : "N/A"}
                     </Typography>
                   </Box>
                 </Box>
@@ -736,7 +777,7 @@ const BookingDetail: React.FC = () => {
                     variant="body1"
                     sx={{ fontWeight: 600, color: "#1F2937" }}
                   >
-                    {formatCurrency(booking.snapshotTransportFee)}
+                    {formatCurrency(0)}
                   </Typography>
                 </Box>
 
@@ -764,8 +805,7 @@ const BookingDetail: React.FC = () => {
                   >
                     {formatCurrency(
                       booking.snapshotRentalTotal +
-                        booking.snapshotDepositAmount +
-                        booking.snapshotTransportFee
+                        booking.snapshotDepositAmount
                     )}
                   </Typography>
                 </Box>

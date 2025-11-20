@@ -939,10 +939,37 @@ const BookingManagement: React.FC = () => {
                             label={statusInfo.label}
                             color={statusInfo.color}
                             size="small"
+                            icon={
+                              statusInfo.label === "Đã xác nhận" ? (
+                                <CheckCircleOutline
+                                  sx={{
+                                    fontSize: 16,
+                                    color: "#10B981 !important",
+                                  }}
+                                />
+                              ) : undefined
+                            }
                             sx={{
                               fontWeight: 600,
                               fontSize: "0.75rem",
                               borderRadius: 1.5,
+                              ...(statusInfo.label === "Đã xác nhận"
+                                ? {
+                                    bgcolor: "#10B981",
+                                    color: "#FFFFFF",
+                                    boxShadow:
+                                      "0 2px 8px rgba(16, 185, 129, 0.3)",
+                                    "&:hover": {
+                                      bgcolor: "#059669",
+                                      boxShadow:
+                                        "0 4px 12px rgba(16, 185, 129, 0.4)",
+                                    },
+                                    background:
+                                      "linear-gradient(135deg, #10B981 0%, #059669 100%)",
+                                    border: "none",
+                                    transition: "all 0.3s ease",
+                                  }
+                                : {}),
                             }}
                           />
                         </TableCell>
