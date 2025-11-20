@@ -22,6 +22,7 @@ import {
 } from "@mui/material";
 import {
   Add as AddIcon,
+  Delete as DeleteIcon,
   Edit as EditIcon,
   Refresh as RefreshIcon,
   Visibility as VisibilityIcon,
@@ -171,6 +172,15 @@ export default function VerificationManagement() {
     });
   };
 
+  const handleDeleteVerification = async (verificationId: string) => {
+    if (!window.confirm("Bạn chắc chắn muốn xoá yêu cầu này?")) return;
+    await verificationService.deleteVerification(verificationId);
+    await refreshVerifications();
+    setMessage({
+      type: "success",
+      text: "Xoá yêu cầu xác minh thành công!",
+    });
+  };
   /**
    * Tính toán phân trang
    */
@@ -870,7 +880,25 @@ export default function VerificationManagement() {
                         </Typography>
                       )}
                     </TableCell>
+
                     <TableCell align="center">
+                      <Tooltip title="Xoá" arrow>
+                        <IconButton
+                          size="small"
+                          onClick={() =>
+                            handleDeleteVerification(verification.id)
+                          }
+                          sx={{
+                            color: "#EF4444",
+                            "&:hover": {
+                              bgcolor: "#FEF2F2",
+                              color: "#B91C1C",
+                            },
+                          }}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
                       <Tooltip title="Chỉnh sửa" arrow>
                         <IconButton
                           size="small"

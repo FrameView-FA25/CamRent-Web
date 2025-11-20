@@ -178,4 +178,37 @@ export const verificationService = {
       throw new Error(errorMessage);
     }
   },
+  async deleteVerification(verificationId: string): Promise<void> {
+    const token = localStorage.getItem("accessToken");
+
+    if (!token) {
+      throw new Error("Vui lòng đăng nhập để thực hiện thao tác này");
+    }
+
+    const response = await fetch(
+      `${API_BASE_URL}/Verifications/${verificationId}`,
+      {
+        method: "DELETE",
+        headers: {
+          accept: "*/*",
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      let errorMessage = `Xóa yêu cầu xác minh thất bại với mã lỗi ${response.status}`;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorMessage;
+      } catch {
+        const errorText = await response.text().catch(() => "");
+        if (errorText) errorMessage = errorText;
+      }
+      throw new Error(errorMessage);
+    }
+  },
 };
+
+// Delete verification
