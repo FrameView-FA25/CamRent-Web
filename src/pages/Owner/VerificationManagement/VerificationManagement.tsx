@@ -22,6 +22,7 @@ import {
 } from "@mui/material";
 import {
   Add as AddIcon,
+  Edit as EditIcon,
   Refresh as RefreshIcon,
   Visibility as VisibilityIcon,
 } from "@mui/icons-material";
@@ -50,6 +51,11 @@ export default function VerificationManagement() {
   const [openDetailModal, setOpenDetailModal] = useState(false);
   const [selectedVerification, setSelectedVerification] =
     useState<Verification | null>(null);
+  const [openEditModal, setOpenEditModal] = useState(false);
+  const [editingVerification, setEditingVerification] =
+    useState<Verification | null>(null);
+  const [editFormData, setEditFormData] =
+    useState<CreateVerificationRequest | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10; // Số lượng verification hiển thị mỗi trang
   const [message, setMessage] = useState<{
@@ -102,6 +108,67 @@ export default function VerificationManagement() {
     await verificationService.createVerification(data);
     refreshVerifications(); // Refresh danh sách
     setCurrentPage(1); // Reset về trang 1
+    setMessage({
+      type: "success",
+      text: "Tạo yêu cầu xác minh thành công!",
+    });
+  };
+
+  const formatDateForInput = (dateString: string) => {
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return "";
+    return date.toISOString().slice(0, 16);
+  };
+
+  const normalizeItemType = (itemType?: string) =>
+    itemType === "2" || itemType === "Accessory" ? "Accessory" : "Camera";
+
+  const mapVerificationToFormData = (
+    verification: Verification
+  ): CreateVerificationRequest => ({
+    name: verification.name || "",
+    phoneNumber: verification.phoneNumber || "",
+    inspectionDate: formatDateForInput(verification.inspectionDate),
+    notes: verification.notes || "",
+    branchId: verification.branchId,
+    items:
+      verification.items && verification.items.length > 0
+        ? verification.items.map((item) => ({
+            itemId: item.itemId,
+            itemName: item.itemName,
+            itemType: normalizeItemType(item.itemType),
+          }))
+        : [
+            {
+              itemId: "",
+              itemName: "",
+              itemType: "Camera",
+            },
+          ],
+  });
+
+  const handleOpenEditModal = (verification: Verification) => {
+    setEditingVerification(verification);
+    setEditFormData(mapVerificationToFormData(verification));
+    setOpenEditModal(true);
+    setMessage(null);
+  };
+
+  const handleCloseEditModal = () => {
+    setOpenEditModal(false);
+    setEditingVerification(null);
+    setEditFormData(null);
+  };
+
+  const handleUpdateVerification = async (data: CreateVerificationRequest) => {
+    if (!editingVerification) return;
+    await verificationService.updateVerification(editingVerification.id, data);
+    await refreshVerifications();
+    setCurrentPage(1);
+    setMessage({
+      type: "success",
+      text: "Cập nhật yêu cầu xác minh thành công!",
+    });
   };
 
   /**
@@ -398,7 +465,13 @@ export default function VerificationManagement() {
                   fontWeight={700}
                   sx={{ color: "#3B82F6" }}
                 >
-                  {verifications.filter((v) => v.status === "Pending" || v.status.toLowerCase() === "pending").length}
+                  {
+                    verifications.filter(
+                      (v) =>
+                        v.status === "Pending" ||
+                        v.status.toLowerCase() === "pending"
+                    ).length
+                  }
                 </Typography>
               </Box>
               <Box
@@ -798,6 +871,21 @@ export default function VerificationManagement() {
                       )}
                     </TableCell>
                     <TableCell align="center">
+                      <Tooltip title="Chỉnh sửa" arrow>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleOpenEditModal(verification)}
+                          sx={{
+                            color: "#64748B",
+                            "&:hover": {
+                              bgcolor: "#F8FAFC",
+                              color: "#2563EB",
+                            },
+                          }}
+                        >
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
                       <Tooltip title="Xem chi tiết" arrow>
                         <IconButton
                           size="small"
@@ -868,6 +956,16 @@ export default function VerificationManagement() {
         onSubmit={handleCreateVerification}
         branches={branches}
         isLoadingBranches={isLoadingBranches}
+      />
+
+      <ModalVerification
+        open={openEditModal}
+        onClose={handleCloseEditModal}
+        onSubmit={handleUpdateVerification}
+        branches={branches}
+        isLoadingBranches={isLoadingBranches}
+        mode="edit"
+        initialData={editFormData}
       />
 
       {/* Modal chi tiết yêu cầu xác minh */}

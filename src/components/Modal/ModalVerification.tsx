@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext, useMemo } from "react";
 import {
   Box,
   Typography,
@@ -14,7 +14,11 @@ import {
   Stack,
   IconButton,
 } from "@mui/material";
-import { Add as AddIcon, Close as CloseIcon } from "@mui/icons-material";
+import {
+  Add as AddIcon,
+  Close as CloseIcon,
+  Save as SaveIcon,
+} from "@mui/icons-material";
 import type {
   CreateVerificationRequest,
   VerificationItem,
@@ -23,6 +27,65 @@ import { cameraService } from "../../services/camera.service";
 import { accessoryService } from "../../services/accessory.service";
 import { CameraContext } from "../../context/CameraContexts/CameraContext.types";
 import type { Branch } from "../../types/branch.types";
+import type { Accessory } from "../../types/accessory.types";
+
+interface DeviceOption {
+  id: string;
+  brand?: string;
+  model?: string;
+  name?: string;
+}
+
+interface DeviceOptionSource {
+  id: string;
+  brand?: string | null;
+  model?: string | null;
+  name?: string | null;
+}
+
+const normalizeItemType = (
+  value: string | number | undefined
+): "Camera" | "Accessory" => {
+  if (value === "2" || value === 2 || value === "Accessory") {
+    return "Accessory";
+  }
+  return "Camera";
+};
+
+const getDeviceLabel = (option?: DeviceOption) => {
+  if (!option) return "";
+  if (option.brand || option.model) {
+    return `${option.brand ?? ""} ${option.model ?? ""}`.trim();
+  }
+  return option.name ?? "";
+};
+
+const toDeviceOption = ({
+  id,
+  brand,
+  model,
+  name,
+}: DeviceOptionSource): DeviceOption => ({
+  id,
+  brand: brand ?? undefined,
+  model: model ?? undefined,
+  name: name ?? undefined,
+});
+
+const getEmptyItem = (): VerificationItem => ({
+  itemId: "",
+  itemName: "",
+  itemType: "Camera",
+});
+
+const getEmptyForm = (): CreateVerificationRequest => ({
+  name: "",
+  phoneNumber: "",
+  inspectionDate: "",
+  notes: "",
+  branchId: "",
+  items: [getEmptyItem()],
+});
 
 interface ModalVerificationProps {
   open: boolean;
@@ -30,6 +93,8 @@ interface ModalVerificationProps {
   onSubmit: (data: CreateVerificationRequest) => Promise<void>;
   branches: Branch[];
   isLoadingBranches: boolean;
+  mode?: "create" | "edit";
+  initialData?: CreateVerificationRequest | null;
 }
 
 export default function ModalVerification({
@@ -38,17 +103,16 @@ export default function ModalVerification({
   onSubmit,
   branches,
   isLoadingBranches,
+  mode = "create",
+  initialData,
 }: ModalVerificationProps) {
-  const [formData, setFormData] = useState<CreateVerificationRequest>({
-    name: "",
-    phoneNumber: "",
-    inspectionDate: "",
-    notes: "",
-    branchId: "",
-    items: [{ itemId: "", itemName: "", itemType: "1" }],
-  });
-  const [cameraOptions, setCameraOptions] = useState<any[]>([]);
-  const [accessoryOptions, setAccessoryOptions] = useState<any[]>([]);
+  const isEditMode = mode === "edit";
+
+  const [formData, setFormData] = useState<CreateVerificationRequest>(
+    getEmptyForm()
+  );
+  const [cameraOptions, setCameraOptions] = useState<DeviceOption[]>([]);
+  const [accessoryOptions, setAccessoryOptions] = useState<DeviceOption[]>([]);
   const [cameraLoading, setCameraLoading] = useState(false);
   const [accessoryLoading, setAccessoryLoading] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
@@ -62,6 +126,27 @@ export default function ModalVerification({
   // Try to read camera context if available (safe: useContext returns undefined if provider not present)
   const cameraCtx = useContext(CameraContext);
 
+  const computedInitialForm = useMemo(() => {
+    if (isEditMode && initialData) {
+      const items =
+        initialData.items && initialData.items.length > 0
+          ? initialData.items.map((item) => ({
+              ...item,
+              itemType: normalizeItemType(item.itemType),
+            }))
+          : [getEmptyItem()];
+
+      return {
+        ...getEmptyForm(),
+        ...initialData,
+        inspectionDate: initialData.inspectionDate || "",
+        items,
+      };
+    }
+
+    return getEmptyForm();
+  }, [initialData, isEditMode]);
+
   const handleInputChange = (
     field: keyof CreateVerificationRequest,
     value: string
@@ -72,82 +157,73 @@ export default function ModalVerification({
   useEffect(() => {
     // load camera & accessory lists when modal opens
     if (!open) return;
+    setFormData(computedInitialForm);
     (async () => {
       // If camera context already has cameras, use them to avoid extra fetch
-      if (
-        cameraCtx &&
-        Array.isArray(cameraCtx.cameras) &&
-        cameraCtx.cameras.length > 0
-      ) {
-        setCameraOptions(cameraCtx.cameras);
+      if (cameraCtx && Array.isArray(cameraCtx.cameras)) {
+        const contextOptions = cameraCtx.cameras.map((camera) =>
+          toDeviceOption({
+            id: camera.id,
+            brand: camera.brand,
+            model: camera.model,
+          })
+        );
+        if (contextOptions.length) setCameraOptions(contextOptions);
       }
       setCameraLoading(true);
       setAccessoryLoading(true);
       setCameraError(null);
       setAccessoryError(null);
       try {
-        const cams = await cameraService.getCamerasByOwner(1, 200);
-        console.log("camera fetch result:", cams);
-        // Accept multiple possible shapes from API
-        if (cams && (cams as any).items && Array.isArray((cams as any).items)) {
-          setCameraOptions((cams as any).items);
-        } else if (Array.isArray(cams)) {
-          setCameraOptions(cams as any);
-        } else if (
-          (cams as any).cameras &&
-          Array.isArray((cams as any).cameras)
-        ) {
-          setCameraOptions((cams as any).cameras);
-        } else if ((cams as any).data && Array.isArray((cams as any).data)) {
-          setCameraOptions((cams as any).data);
-        } else {
-          // fallback: try to extract any array in object
-          const arr = Object.values(cams || {}).find((v) => Array.isArray(v));
-          setCameraOptions(Array.isArray(arr) ? (arr as any) : []);
-        }
-      } catch (err: any) {
+        const camsResponse = await cameraService.getCamerasByOwner(1, 200);
+        const options = (camsResponse?.items ?? []).map((camera) =>
+          toDeviceOption({
+            id: camera.id,
+            brand: camera.brand,
+            model: camera.model,
+          })
+        );
+        setCameraOptions(options);
+      } catch (err) {
         console.error("Lỗi tải camera:", err);
         setCameraOptions([]);
-        setCameraError(err?.message || "Không thể tải danh sách camera");
+        setCameraError(
+          err instanceof Error ? err.message : "Không thể tải danh sách camera"
+        );
       } finally {
         setCameraLoading(false);
       }
 
       try {
         // Use accessoryService owner endpoint (requires token) to get owner's accessories
-        const acc = await accessoryService.getAccessoriesByOwnerId();
-        console.log("accessory fetch result:", acc);
-        if (acc && Array.isArray(acc)) {
-          setAccessoryOptions(acc as any[]);
-        } else if (
-          acc &&
-          (acc as any).items &&
-          Array.isArray((acc as any).items)
-        ) {
-          setAccessoryOptions((acc as any).items);
-        } else if ((acc as any).data && Array.isArray((acc as any).data)) {
-          setAccessoryOptions((acc as any).data);
-        } else {
-          const arr = Object.values(acc || {}).find((v) => Array.isArray(v));
-          setAccessoryOptions(Array.isArray(arr) ? (arr as any) : []);
-        }
-      } catch (err: any) {
+        const accessories: Accessory[] =
+          await accessoryService.getAccessoriesByOwnerId();
+        const options = accessories.map((accessory) =>
+          toDeviceOption({
+            id: accessory.id,
+            brand: accessory.brand,
+            model: accessory.model,
+          })
+        );
+        setAccessoryOptions(options);
+      } catch (err) {
         console.error("Lỗi tải accessory:", err);
         setAccessoryOptions([]);
-        setAccessoryError(err?.message || "Không thể tải danh sách phụ kiện");
+        setAccessoryError(
+          err instanceof Error
+            ? err.message
+            : "Không thể tải danh sách phụ kiện"
+        );
       } finally {
         setAccessoryLoading(false);
       }
     })();
-  }, [open]);
+  }, [open, computedInitialForm, cameraCtx]);
 
   const handleAddItem = () => {
     setFormData((prev) => ({
       ...prev,
-      items: [
-        ...(prev.items || []),
-        { itemId: "", itemName: "", itemType: "1" } as VerificationItem,
-      ],
+      items: [...(prev.items || []), getEmptyItem()],
     }));
   };
 
@@ -161,19 +237,22 @@ export default function ModalVerification({
   const handleItemChange = (
     index: number,
     field: keyof VerificationItem,
-    value: string | number
+    value: string
   ) => {
     setFormData((prev) => {
       const newItems = [...(prev.items || [])];
-      const item = {
-        ...(newItems[index] || { itemId: "", itemName: "", itemType: 1 }),
-      } as any;
-      item[field] = value;
-      // if user changed itemType, clear itemId/name
+      const item = { ...(newItems[index] || getEmptyItem()) };
+
       if (field === "itemType") {
+        item.itemType = normalizeItemType(value);
         item.itemId = "";
         item.itemName = "";
+      } else if (field === "itemId") {
+        item.itemId = value;
+      } else if (field === "itemName") {
+        item.itemName = value;
       }
+
       newItems[index] = item;
       return { ...prev, items: newItems };
     });
@@ -220,7 +299,9 @@ export default function ModalVerification({
 
       setMessage({
         type: "success",
-        text: "Tạo yêu cầu xác minh thành công!",
+        text: isEditMode
+          ? "Cập nhật yêu cầu xác minh thành công!"
+          : "Tạo yêu cầu xác minh thành công!",
       });
 
       // Reset form và đóng modal sau 1.5s
@@ -241,14 +322,7 @@ export default function ModalVerification({
   };
 
   const handleClose = () => {
-    setFormData({
-      name: "",
-      phoneNumber: "",
-      inspectionDate: "",
-      notes: "",
-      branchId: "",
-      items: [],
-    });
+    setFormData(getEmptyForm());
     setMessage(null);
     setIsLoading(false);
     onClose();
@@ -302,9 +376,13 @@ export default function ModalVerification({
                 justifyContent: "center",
               }}
             >
-              <AddIcon sx={{ fontSize: 24, color: "#FF6B35" }} />
+              {isEditMode ? (
+                <SaveIcon sx={{ fontSize: 24, color: "#FF6B35" }} />
+              ) : (
+                <AddIcon sx={{ fontSize: 24, color: "#FF6B35" }} />
+              )}
             </Box>
-            Tạo Yêu Cầu Xác Minh
+            {isEditMode ? "Cập Nhật Yêu Cầu Xác Minh" : "Tạo Yêu Cầu Xác Minh"}
           </Typography>
           <IconButton
             onClick={handleClose}
@@ -516,12 +594,12 @@ export default function ModalVerification({
                     label="Loại"
                     value={it.itemType}
                     onChange={(e) =>
-                      handleItemChange(idx, "itemType", Number(e.target.value))
+                      handleItemChange(idx, "itemType", e.target.value)
                     }
                     sx={{ minWidth: 140 }}
                   >
-                    <MenuItem value={1}>Camera</MenuItem>
-                    <MenuItem value={2}>Phụ kiện</MenuItem>
+                    <MenuItem value="Camera">Camera</MenuItem>
+                    <MenuItem value="Accessory">Phụ kiện</MenuItem>
                   </TextField>
 
                   <TextField
@@ -531,27 +609,17 @@ export default function ModalVerification({
                     value={it.itemId || ""}
                     onChange={(e) => {
                       const selectedId = e.target.value;
-                      if (it.itemType === "1" || it.itemType === "Camera") {
-                        const selected = cameraOptions.find(
-                          (c) => c.id === selectedId
-                        );
-                        handleItemChange(idx, "itemId", selectedId);
-                        handleItemChange(
-                          idx,
-                          "itemName",
-                          selected ? `${selected.brand} ${selected.model}` : ""
-                        );
-                      } else {
-                        const selected = accessoryOptions.find(
-                          (a) => a.id === selectedId
-                        );
-                        handleItemChange(idx, "itemId", selectedId);
-                        handleItemChange(
-                          idx,
-                          "itemName",
-                          selected ? `${selected.brand} ${selected.model}` : ""
-                        );
-                      }
+                      const isCamera =
+                        it.itemType === "1" || it.itemType === "Camera";
+                      const selected = (
+                        isCamera ? cameraOptions : accessoryOptions
+                      ).find((option) => option.id === selectedId);
+                      handleItemChange(idx, "itemId", selectedId);
+                      handleItemChange(
+                        idx,
+                        "itemName",
+                        getDeviceLabel(selected)
+                      );
                     }}
                     sx={{ flex: 1 }}
                     SelectProps={{
@@ -648,6 +716,8 @@ export default function ModalVerification({
             startIcon={
               isLoading ? (
                 <CircularProgress size={20} sx={{ color: "white" }} />
+              ) : isEditMode ? (
+                <SaveIcon />
               ) : (
                 <AddIcon />
               )
@@ -666,7 +736,13 @@ export default function ModalVerification({
               },
             }}
           >
-            {isLoading ? "Đang tạo..." : "Tạo yêu cầu"}
+            {isLoading
+              ? isEditMode
+                ? "Đang cập nhật..."
+                : "Đang tạo..."
+              : isEditMode
+              ? "Cập nhật yêu cầu"
+              : "Tạo yêu cầu"}
           </Button>
         </DialogActions>
       </form>

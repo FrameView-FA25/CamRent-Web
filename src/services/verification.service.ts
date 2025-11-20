@@ -56,6 +56,53 @@ export const verificationService = {
   },
 
   /**
+   * Cập nhật yêu cầu xác minh
+   * Quyền: Owner, Admin
+   */
+  async updateVerification(
+    id: string,
+    data: CreateVerificationRequest
+  ): Promise<CreateVerificationResponse> {
+    const token = localStorage.getItem("accessToken");
+
+    if (!token) {
+      throw new Error("Vui lòng đăng nhập để thực hiện thao tác này");
+    }
+
+    const response = await fetch(`${API_BASE_URL}/Verifications/${id}`, {
+      method: "PUT",
+      headers: {
+        accept: "*/*",
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      let errorMessage = `Cập nhật yêu cầu xác minh thất bại với mã lỗi ${response.status}`;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorMessage;
+      } catch {
+        const errorText = await response.text().catch(() => "");
+        if (errorText) errorMessage = errorText;
+      }
+      throw new Error(errorMessage);
+    }
+
+    const contentType = response.headers.get("content-type");
+
+    if (contentType?.includes("application/json")) {
+      const result = await response.json();
+      return { success: true, data: result };
+    }
+
+    const text = await response.text();
+    return { success: true, message: text };
+  },
+
+  /**
    * Lấy danh sách yêu cầu xác minh theo user
    * Quyền: Owner, BranchManager, Staff, Admin
    */
