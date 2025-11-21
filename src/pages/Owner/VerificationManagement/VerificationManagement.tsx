@@ -26,6 +26,11 @@ import {
   Edit as EditIcon,
   Refresh as RefreshIcon,
   Visibility as VisibilityIcon,
+  HourglassEmptyRounded,
+  CheckCircleRounded,
+  CancelRounded,
+  TaskAltRounded,
+  DoNotDisturbOnRounded,
 } from "@mui/icons-material";
 import { branchService } from "../../../services/branch.service";
 import { verificationService } from "../../../services/verification.service";
@@ -197,23 +202,6 @@ export default function VerificationManagement() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "pending":
-        return "warning";
-      case "approved":
-        return "success";
-      case "rejected":
-        return "error";
-      case "completed":
-        return "info";
-      case "cancelled":
-        return "default";
-      default:
-        return "default";
-    }
-  };
-
   const getStatusText = (status: string) => {
     switch (status) {
       case "pending":
@@ -229,6 +217,100 @@ export default function VerificationManagement() {
       default:
         return status;
     }
+  };
+
+  const statusStyles = {
+    pending: {
+      label: "Chờ xử lý",
+      bg: "#FFF4ED",
+      color: "#C8501D",
+      border: "1px solid rgba(255, 107, 53, 0.35)",
+      icon: (
+        <HourglassEmptyRounded
+          fontSize="small"
+          sx={{ color: "#FF6B35", mr: 0.5 }}
+        />
+      ),
+    },
+    approved: {
+      label: "Đã duyệt",
+      bg: "#EEF4FF",
+      color: "#1D4ED8",
+      border: "1px solid rgba(59, 130, 246, 0.3)",
+      icon: (
+        <CheckCircleRounded
+          fontSize="small"
+          sx={{ color: "#2563EB", mr: 0.5 }}
+        />
+      ),
+    },
+    rejected: {
+      label: "Từ chối",
+      bg: "#FEF2F2",
+      color: "#B91C1C",
+      border: "1px solid rgba(239, 68, 68, 0.35)",
+      icon: (
+        <CancelRounded fontSize="small" sx={{ color: "#EF4444", mr: 0.5 }} />
+      ),
+    },
+    completed: {
+      label: "Hoàn thành",
+      bg: "#F0FDF4",
+      color: "#047857",
+      border: "1px solid rgba(16, 185, 129, 0.35)",
+      icon: (
+        <TaskAltRounded fontSize="small" sx={{ color: "#059669", mr: 0.5 }} />
+      ),
+    },
+    cancelled: {
+      label: "Đã hủy",
+      bg: "#F4F4F5",
+      color: "#52525B",
+      border: "1px solid rgba(148, 163, 184, 0.35)",
+      icon: (
+        <DoNotDisturbOnRounded
+          fontSize="small"
+          sx={{ color: "#64748B", mr: 0.5 }}
+        />
+      ),
+    },
+  } as const;
+
+  const renderStatusChip = (status: string) => {
+    const key = status?.toLowerCase() as keyof typeof statusStyles;
+    const config = statusStyles[key] || {
+      label: getStatusText(status),
+      bg: "#F1F5F9",
+      color: "#0F172A",
+      border: "1px solid #CBD5F5",
+      icon: (
+        <DoNotDisturbOnRounded
+          fontSize="small"
+          sx={{ color: "#0F172A", mr: 0.5 }}
+        />
+      ),
+    };
+
+    return (
+      <Chip
+        label={config.label}
+        size="small"
+        icon={config.icon}
+        sx={{
+          bgcolor: config.bg,
+          color: config.color,
+          border: config.border,
+          borderRadius: 999,
+          fontWeight: 600,
+          fontSize: "0.75rem",
+          px: 0.5,
+          "& .MuiChip-icon": {
+            marginLeft: 0,
+          },
+        }}
+        variant="outlined"
+      />
+    );
   };
 
   const formatDate = (dateString: string) => {
@@ -840,15 +922,7 @@ export default function VerificationManagement() {
                       </Typography>
                     </TableCell>
                     <TableCell>
-                      <Chip
-                        label={getStatusText(verification.status)}
-                        color={getStatusColor(verification.status)}
-                        size="small"
-                        sx={{
-                          fontWeight: 600,
-                          fontSize: "0.75rem",
-                        }}
-                      />
+                      {renderStatusChip(verification.status)}
                     </TableCell>
                     <TableCell>
                       {verification.notes ? (
@@ -882,53 +956,78 @@ export default function VerificationManagement() {
                     </TableCell>
 
                     <TableCell align="center">
-                      <Tooltip title="Xoá" arrow>
-                        <IconButton
-                          size="small"
-                          onClick={() =>
-                            handleDeleteVerification(verification.id)
-                          }
-                          sx={{
-                            color: "#EF4444",
-                            "&:hover": {
-                              bgcolor: "#FEF2F2",
+                      <Stack
+                        direction="row"
+                        spacing={1}
+                        justifyContent="center"
+                        sx={{ minWidth: 160 }}
+                      >
+                        <Tooltip title="Xoá" arrow>
+                          <IconButton
+                            size="medium"
+                            onClick={() =>
+                              handleDeleteVerification(verification.id)
+                            }
+                            sx={{
+                              width: 42,
+                              height: 42,
+                              borderRadius: 2,
+                              border: "1px solid rgba(239, 68, 68, 0.2)",
                               color: "#B91C1C",
-                            },
-                          }}
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Chỉnh sửa" arrow>
-                        <IconButton
-                          size="small"
-                          onClick={() => handleOpenEditModal(verification)}
-                          sx={{
-                            color: "#64748B",
-                            "&:hover": {
-                              bgcolor: "#F8FAFC",
-                              color: "#2563EB",
-                            },
-                          }}
-                        >
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Xem chi tiết" arrow>
-                        <IconButton
-                          size="small"
-                          onClick={() => handleOpenDetailModal(verification)}
-                          sx={{
-                            color: "#64748B",
-                            "&:hover": {
-                              bgcolor: "#F8FAFC",
-                              color: "#FF6B35",
-                            },
-                          }}
-                        >
-                          <VisibilityIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
+                              bgcolor: "rgba(254, 226, 226, 0.6)",
+                              boxShadow: "0 4px 10px rgba(239, 68, 68, 0.15)",
+                              "&:hover": {
+                                bgcolor: "#FEE2E2",
+                                borderColor: "rgba(239, 68, 68, 0.4)",
+                              },
+                            }}
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Chỉnh sửa" arrow>
+                          <IconButton
+                            size="medium"
+                            onClick={() => handleOpenEditModal(verification)}
+                            sx={{
+                              width: 42,
+                              height: 42,
+                              borderRadius: 2,
+                              border: "1px solid rgba(37, 99, 235, 0.25)",
+                              color: "#1D4ED8",
+                              bgcolor: "rgba(219, 234, 254, 0.6)",
+                              boxShadow: "0 4px 10px rgba(59, 130, 246, 0.15)",
+                              "&:hover": {
+                                bgcolor: "#DBEAFE",
+                                borderColor: "rgba(37, 99, 235, 0.4)",
+                              },
+                            }}
+                          >
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Xem chi tiết" arrow>
+                          <IconButton
+                            size="medium"
+                            onClick={() => handleOpenDetailModal(verification)}
+                            sx={{
+                              width: 42,
+                              height: 42,
+                              borderRadius: 2,
+                              border: "1px solid rgba(255, 107, 53, 0.3)",
+                              color: "#C8501D",
+                              bgcolor: "rgba(255, 245, 240, 0.9)",
+                              boxShadow: "0 4px 10px rgba(255, 107, 53, 0.15)",
+                              "&:hover": {
+                                bgcolor: "#FFE7DD",
+                                borderColor: "rgba(255, 107, 53, 0.45)",
+                              },
+                            }}
+                          >
+                            <VisibilityIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Stack>
                     </TableCell>
                   </TableRow>
                 ))}
