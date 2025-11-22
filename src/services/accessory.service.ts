@@ -126,6 +126,109 @@ export const accessoryService = {
     return await response.json();
   },
 
+  // Update accessory
+  updateAccessory: async (
+    accessoryId: string,
+    accessoryData: Partial<Accessory> & {
+      mediaFiles?: File[];
+      removeMediaIds?: string[];
+    }
+  ): Promise<Accessory> => {
+    try {
+      const token = localStorage.getItem("accessToken");
+
+      if (!token) {
+        throw new Error(
+          "Không tìm thấy token xác thực. Vui lòng đăng nhập lại."
+        );
+      }
+
+      const formData = new FormData();
+
+      // Thêm Id vào FormData (bắt buộc theo API spec)
+      formData.append("Id", accessoryId);
+
+      const appendIfDefined = (key: string, value: unknown) => {
+        if (value === undefined || value === null) {
+          return;
+        }
+        if (typeof value === "number" && Number.isNaN(value)) {
+          return;
+        }
+        formData.append(key, String(value));
+      };
+
+      appendIfDefined("Brand", accessoryData.brand);
+      appendIfDefined("Model", accessoryData.model);
+      appendIfDefined("Variant", accessoryData.variant);
+      appendIfDefined("SerialNumber", accessoryData.serialNumber);
+      appendIfDefined("BaseDailyRate", accessoryData.baseDailyRate);
+      appendIfDefined("EstimatedValueVnd", accessoryData.estimatedValueVnd);
+      appendIfDefined("DepositPercent", accessoryData.depositPercent);
+      appendIfDefined("DepositCapMinVnd", accessoryData.depositCapMinVnd);
+      appendIfDefined("DepositCapMaxVnd", accessoryData.depositCapMaxVnd);
+      appendIfDefined("SpecsJson", accessoryData.specsJson);
+
+      // Thêm media files mới nếu có
+      if (
+        accessoryData.mediaFiles &&
+        Array.isArray(accessoryData.mediaFiles) &&
+        accessoryData.mediaFiles.length > 0
+      ) {
+        accessoryData.mediaFiles.forEach((file) => {
+          if (file instanceof File) {
+            formData.append("MediaFiles", file);
+          }
+        });
+      }
+
+      // Thêm removeMediaIds nếu có (để xóa media cũ)
+      if (
+        accessoryData.removeMediaIds &&
+        Array.isArray(accessoryData.removeMediaIds) &&
+        accessoryData.removeMediaIds.length > 0
+      ) {
+        accessoryData.removeMediaIds.forEach((mediaId) => {
+          if (mediaId) {
+            formData.append("RemoveMediaIds", mediaId);
+          }
+        });
+      }
+
+      const response = await fetch(`${API_BASE_URL}/Accessories`, {
+        method: "PUT",
+        headers: {
+          accept: "*/*",
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.message ||
+            `Cập nhật phụ kiện thất bại với status ${response.status}`
+        );
+      }
+
+      const contentType = response.headers.get("content-type") || "";
+
+      if (contentType.includes("application/json")) {
+        const data: Accessory = await response.json();
+        return data;
+      }
+
+      return {
+        ...(accessoryData as Accessory),
+        id: accessoryId,
+      };
+    } catch (error) {
+      console.error("Lỗi khi cập nhật phụ kiện:", error);
+      throw error;
+    }
+  },
+
   // Delete accessory
   deleteAccessory: async (id: string): Promise<void> => {
     const token = getAuthToken();

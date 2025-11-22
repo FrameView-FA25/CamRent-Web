@@ -14,6 +14,7 @@ export interface CameraContextType {
   fetchCameras: () => Promise<void>; // Load camera (có cache)
   refreshCameras: () => Promise<void>; // Load lại camera (bỏ qua cache)
   deleteCamera: (cameraId: string) => Promise<void>; // Xóa camera
+  updateCameraInList: (cameraId: string, updatedCamera: Camera) => void; // Cập nhật camera trong danh sách (giữ nguyên vị trí)
   setCameras: Dispatch<SetStateAction<Camera[]>>; // Cập nhật state cameras
 }
 

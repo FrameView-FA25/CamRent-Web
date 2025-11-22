@@ -42,6 +42,7 @@ export default function CameraManagement() {
     fetchCameras,
     refreshCameras,
     deleteCamera: deleteCameraFromContext,
+    updateCameraInList,
   } = useCameraContext();
 
   // State quản lý modal thêm camera
@@ -98,8 +99,16 @@ export default function CameraManagement() {
     setOpenEditModal(false);
   };
 
-  const handleUpdatedCamera = () => {
-    refreshCameras();
+  const handleUpdatedCamera = (updatedCamera?: Camera) => {
+    // Nếu có camera đã update và có đầy đủ thông tin (có id), 
+    // cập nhật vào danh sách (giữ nguyên vị trí)
+    // Nếu không có hoặc không đầy đủ, vẫn refresh toàn bộ (fallback)
+    if (updatedCamera && selectedCamera && updatedCamera.id && updatedCamera.brand && updatedCamera.model) {
+      updateCameraInList(selectedCamera.id, updatedCamera);
+    } else {
+      // Fallback: refresh toàn bộ danh sách để đảm bảo data chính xác
+      refreshCameras();
+    }
     handleCloseEdit();
   };
 

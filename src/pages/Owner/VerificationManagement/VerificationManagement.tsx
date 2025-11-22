@@ -622,7 +622,7 @@ export default function VerificationManagement() {
                   fontWeight={700}
                   sx={{ color: "#10B981" }}
                 >
-                  {verifications.filter((v) => v.status === "completed").length}
+                  {verifications.filter((v) => v.status === "Completed").length}
                 </Typography>
               </Box>
               <Box
@@ -683,7 +683,7 @@ export default function VerificationManagement() {
                 >
                   {
                     verifications.filter(
-                      (v) => v.status === "cancelled" || v.status === "rejected"
+                      (v) => v.status === "Cancelled" || v.status === "Rejected"
                     ).length
                   }
                 </Typography>

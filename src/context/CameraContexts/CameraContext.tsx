@@ -18,6 +18,7 @@ interface CameraContextType {
   fetchCameras: () => Promise<void>; // Load camera từ cache hoặc API
   refreshCameras: () => Promise<void>; // Force reload từ API
   deleteCamera: (cameraId: string) => Promise<void>; // Xóa camera
+  updateCameraInList: (cameraId: string, updatedCamera: Camera) => void; // Cập nhật camera trong danh sách (giữ nguyên vị trí)
   setCameras: Dispatch<SetStateAction<Camera[]>>; // Cập nhật state
 }
 
@@ -205,6 +206,28 @@ export const CameraProvider: React.FC<CameraProviderProps> = ({ children }) => {
     }
   }, []); // Không dependencies
 
+  /**
+   * Hàm cập nhật camera trong danh sách (giữ nguyên vị trí)
+   *
+   * Flow:
+   * 1. Tìm camera trong danh sách theo ID
+   * 2. Cập nhật camera đó với dữ liệu mới
+   * 3. Giữ nguyên thứ tự trong danh sách
+   *
+   * @param cameraId - ID camera cần cập nhật
+   * @param updatedCamera - Dữ liệu camera đã cập nhật
+   */
+  const updateCameraInList = useCallback(
+    (cameraId: string, updatedCamera: Camera) => {
+      setCameras((prevCameras) =>
+        prevCameras.map((camera) =>
+          camera.id === cameraId ? updatedCamera : camera
+        )
+      );
+    },
+    []
+  ); // Không dependencies
+
   // Tạo context value chứa tất cả state và methods
   const value: CameraContextType = {
     cameras, // Danh sách camera
@@ -213,6 +236,7 @@ export const CameraProvider: React.FC<CameraProviderProps> = ({ children }) => {
     fetchCameras, // Load camera (có cache)
     refreshCameras, // Force reload (bỏ qua cache)
     deleteCamera, // Xóa camera
+    updateCameraInList, // Cập nhật camera trong danh sách (giữ nguyên vị trí)
     setCameras, // Cập nhật state (dùng khi cần)
   };
 
