@@ -17,7 +17,6 @@ import {
   TableHead,
   TableRow,
   Paper,
-  Avatar,
   IconButton,
   Tooltip,
   Dialog,
@@ -27,24 +26,32 @@ import {
   Add as AddIcon,
   Delete as DeleteIcon,
   Close as CloseIcon,
+  Edit as EditIcon,
 } from "@mui/icons-material";
 import ModalAddAccessory from "../../../components/Modal/Owner/ModalAddAccessory";
+import ModalEditAccessory from "../../../components/Modal/Owner/ModalEditAccessory";
 import { accessoryService } from "../../../services/accessory.service";
 import { useAccessoryContext } from "../../../context/AccessoryContext/useAccessoryContext";
+import type { Accessory } from "../../../types/accessory.types";
 
 export default function AccessoryManagement() {
-  const { accessories, loading, error, fetchAccessories } =
+  const { accessories, loading, error, fetchAccessories, updateAccessoryInList, refreshAccessories } =
     useAccessoryContext();
 
   // State quản lý modal thêm phụ kiện
   const [openAddModal, setOpenAddModal] = useState(false);
 
+  // State quản lý modal edit phụ kiện
+  const [openEditModal, setOpenEditModal] = useState(false);
+  const [selectedAccessory, setSelectedAccessory] = useState<Accessory | null>(null);
+
   // State phân trang
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8; // Số lượng phụ kiện hiển thị mỗi trang
 
-  // State cho preview ảnh
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  // State cho gallery preview: danh sách ảnh và index hiện tại (null = đóng)
+  const [previewImages, setPreviewImages] = useState<string[]>([]);
+  const [previewIndex, setPreviewIndex] = useState<number | null>(null);
 
   /**
    * Hàm tải danh sách phụ kiện từ API
@@ -63,6 +70,38 @@ export default function AccessoryManagement() {
   const handleAddAccessory = () => {
     fetchAccessories();
     setCurrentPage(1);
+  };
+
+  /**
+   * Hàm mở modal edit phụ kiện
+   */
+  const handleOpenEdit = (accessory: Accessory) => {
+    setSelectedAccessory(accessory);
+    setOpenEditModal(true);
+  };
+
+  /**
+   * Hàm đóng modal edit phụ kiện
+   */
+  const handleCloseEdit = () => {
+    setSelectedAccessory(null);
+    setOpenEditModal(false);
+  };
+
+  /**
+   * Hàm xử lý sau khi cập nhật phụ kiện thành công
+   */
+  const handleUpdatedAccessory = (updatedAccessory?: Accessory) => {
+    // Nếu có phụ kiện đã update và có đầy đủ thông tin (có id), 
+    // cập nhật vào danh sách (giữ nguyên vị trí)
+    // Nếu không có hoặc không đầy đủ, vẫn refresh toàn bộ (fallback)
+    if (updatedAccessory && selectedAccessory && updatedAccessory.id && updatedAccessory.brand && updatedAccessory.model) {
+      updateAccessoryInList(selectedAccessory.id, updatedAccessory);
+    } else {
+      // Fallback: refresh toàn bộ danh sách để đảm bảo data chính xác
+      refreshAccessories();
+    }
+    handleCloseEdit();
   };
 
   /**
@@ -657,42 +696,55 @@ export default function AccessoryManagement() {
                 >
                   <TableCell>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                      <Avatar
-                        variant="square"
-                        src={
-                          accessory.media && accessory.media.length > 0
-                            ? typeof accessory.media[0] === "string"
-                              ? accessory.media[0]
-                              : accessory.media[0].url
-                            : "https://via.placeholder.com/80?text=No+Image"
-                        }
-                        alt={`${accessory.brand} ${accessory.model}`}
-                        onClick={() => {
-                          const imageUrl =
-                            accessory.media && accessory.media.length > 0
-                              ? typeof accessory.media[0] === "string"
-                                ? accessory.media[0]
-                                : accessory.media[0].url
-                              : "https://via.placeholder.com/80?text=No+Image";
-                          setPreviewImage(imageUrl);
-                        }}
-                        sx={{
-                          width: 90,
-                          height: 90,
-                          bgcolor: "#F8FAFC",
-                          border: "2px solid #E2E8F0",
-                          cursor: "pointer",
-                          transition: "all 0.3s ease",
-                          "& img": {
-                            objectFit: "contain",
-                          },
-                          "&:hover": {
-                            borderColor: "#FF6B35",
-                            transform: "scale(1.05)",
-                            boxShadow: "0 4px 12px rgba(255, 107, 53, 0.2)",
-                          },
-                        }}
-                      />
+                      <Box sx={{ display: "flex", gap: 1 }}>
+                        {(() => {
+                          const mediaList: Array<string | { url?: string; type?: string }> =
+                            Array.isArray(accessory.media)
+                              ? accessory.media
+                              : accessory.media
+                              ? [accessory.media]
+                              : [];
+                          const mediaUrls = mediaList
+                            .map((m) =>
+                              typeof m === "string" ? m : m?.url || ""
+                            )
+                            .filter(Boolean);
+                          const first =
+                            mediaUrls[0] ||
+                            "https://via.placeholder.com/80?text=No+Image";
+                          return (
+                            <Box
+                              component="img"
+                              src={first}
+                              alt={`${accessory.brand} ${accessory.model}`}
+                              onClick={() => {
+                                if (mediaUrls.length > 0) {
+                                  setPreviewImages(mediaUrls);
+                                  setPreviewIndex(0);
+                                }
+                              }}
+                              sx={{
+                                width: 90,
+                                height: 90,
+                                objectFit: "contain",
+                                bgcolor: "#F8FAFC",
+                                border: "2px solid #E2E8F0",
+                                cursor: mediaUrls.length > 0 ? "pointer" : "default",
+                                transition: "all 0.3s ease",
+                                borderRadius: 1,
+                                "&:hover": {
+                                  borderColor: mediaUrls.length > 0 ? "#FF6B35" : "#E2E8F0",
+                                  transform: mediaUrls.length > 0 ? "scale(1.02)" : "none",
+                                  boxShadow:
+                                    mediaUrls.length > 0
+                                      ? "0 4px 12px rgba(255, 107, 53, 0.12)"
+                                      : "none",
+                                },
+                              }}
+                            />
+                          );
+                        })()}
+                      </Box>
                       <Box>
                         <Typography
                           variant="body2"
@@ -808,6 +860,21 @@ export default function AccessoryManagement() {
                         justifyContent: "center",
                       }}
                     >
+                      <Tooltip title="Chỉnh sửa phụ kiện">
+                        <IconButton
+                          size="small"
+                          onClick={() => handleOpenEdit(accessory)}
+                          sx={{
+                            color: "#64748B",
+                            "&:hover": {
+                              bgcolor: "#EFF6FF",
+                              color: "#3B82F6",
+                            },
+                          }}
+                        >
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
                       <Tooltip title="Xóa phụ kiện">
                         <IconButton
                           size="small"
@@ -881,10 +948,21 @@ export default function AccessoryManagement() {
         onAdd={handleAddAccessory}
       />
 
+      {/* Edit Accessory Modal */}
+      <ModalEditAccessory
+        open={openEditModal}
+        accessory={selectedAccessory}
+        onClose={handleCloseEdit}
+        onUpdated={handleUpdatedAccessory}
+      />
+
       {/* Image Preview Dialog */}
       <Dialog
-        open={previewImage !== null}
-        onClose={() => setPreviewImage(null)}
+        open={previewIndex !== null}
+        onClose={() => {
+          setPreviewIndex(null);
+          setPreviewImages([]);
+        }}
         maxWidth="md"
         fullWidth
         PaperProps={{
@@ -905,32 +983,86 @@ export default function AccessoryManagement() {
             position: "relative",
           }}
         >
-          {previewImage && (
+          {previewIndex !== null && previewImages.length > 0 && (
             <>
+              <Box sx={{ position: "absolute", left: 8 }}>
+                <IconButton
+                  onClick={() => {
+                    if (previewIndex === null) return;
+                    const prev =
+                      (previewIndex - 1 + previewImages.length) %
+                      previewImages.length;
+                    setPreviewIndex(prev);
+                  }}
+                  sx={{ bgcolor: "rgba(255,255,255,0.85)" }}
+                >
+                  <Typography sx={{ fontSize: 20 }}>{"‹"}</Typography>
+                </IconButton>
+              </Box>
+
               <img
-                src={previewImage}
-                alt="Preview"
+                src={previewImages[previewIndex]}
+                alt={`Preview ${previewIndex + 1}`}
                 style={{
                   maxWidth: "100%",
                   maxHeight: "80vh",
                   objectFit: "contain",
                 }}
               />
+
+              <Box sx={{ position: "absolute", right: 8 }}>
+                <IconButton
+                  onClick={() => {
+                    if (previewIndex === null) return;
+                    const next = (previewIndex + 1) % previewImages.length;
+                    setPreviewIndex(next);
+                  }}
+                  sx={{ bgcolor: "rgba(255,255,255,0.85)" }}
+                >
+                  <Typography sx={{ fontSize: 20 }}>{"›"}</Typography>
+                </IconButton>
+              </Box>
+
               <IconButton
-                onClick={() => setPreviewImage(null)}
+                onClick={() => {
+                  setPreviewIndex(null);
+                  setPreviewImages([]);
+                }}
                 sx={{
                   position: "absolute",
                   top: 16,
-                  right: 16,
+                  right: 56,
                   bgcolor: "rgba(255, 255, 255, 0.9)",
                   color: "#1E293B",
-                  "&:hover": {
-                    bgcolor: "#FFFFFF",
-                  },
+                  "&:hover": { bgcolor: "#FFFFFF" },
                 }}
               >
                 <CloseIcon />
               </IconButton>
+
+              <Box
+                sx={{
+                  position: "absolute",
+                  bottom: 12,
+                  display: "flex",
+                  gap: 1,
+                }}
+              >
+                {previewImages.map((_, i) => (
+                  <Box
+                    key={i}
+                    sx={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: "50%",
+                      bgcolor:
+                        i === previewIndex
+                          ? "#FFFFFF"
+                          : "rgba(255,255,255,0.4)",
+                    }}
+                  />
+                ))}
+              </Box>
             </>
           )}
         </DialogContent>

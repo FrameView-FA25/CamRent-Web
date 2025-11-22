@@ -284,7 +284,10 @@ export const cameraService = {
    */
   async updateCamera(
     cameraId: string,
-    cameraData: Partial<Camera> & { mediaFiles?: File[] }
+    cameraData: Partial<Camera> & { 
+      mediaFiles?: File[];
+      removeMediaIds?: string[];
+    }
   ): Promise<Camera> {
     try {
       const token = localStorage.getItem("accessToken");
@@ -296,6 +299,9 @@ export const cameraService = {
       }
 
       const formData = new FormData();
+
+      // Thêm Id vào FormData (bắt buộc theo API spec)
+      formData.append("Id", cameraId);
 
       const appendIfDefined = (key: string, value: unknown) => {
         if (value === undefined || value === null) {
@@ -318,6 +324,7 @@ export const cameraService = {
       appendIfDefined("DepositCapMaxVnd", cameraData.depositCapMaxVnd);
       appendIfDefined("SpecsJson", cameraData.specsJson);
 
+      // Thêm media files mới nếu có
       if (
         cameraData.mediaFiles &&
         Array.isArray(cameraData.mediaFiles) &&
@@ -330,7 +337,20 @@ export const cameraService = {
         });
       }
 
-      const response = await fetch(`${API_BASE_URL}/Cameras/${cameraId}`, {
+      // Thêm removeMediaIds nếu có (để xóa media cũ)
+      if (
+        cameraData.removeMediaIds &&
+        Array.isArray(cameraData.removeMediaIds) &&
+        cameraData.removeMediaIds.length > 0
+      ) {
+        cameraData.removeMediaIds.forEach((mediaId) => {
+          if (mediaId) {
+            formData.append("RemoveMediaIds", mediaId);
+          }
+        });
+      }
+
+      const response = await fetch(`${API_BASE_URL}/Cameras`, {
         method: "PUT",
         headers: {
           accept: "*/*",

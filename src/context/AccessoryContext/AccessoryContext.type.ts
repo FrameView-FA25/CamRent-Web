@@ -9,6 +9,7 @@ export interface AccessoryContextType {
   fetchAccessories: () => Promise<void>;
   refreshAccessories: () => Promise<void>;
   deleteAccessory: (id: string) => Promise<void>;
+  updateAccessoryInList: (id: string, updatedAccessory: Accessory) => void;
   setAccessories: Dispatch<SetStateAction<Accessory[]>>;
 }
 

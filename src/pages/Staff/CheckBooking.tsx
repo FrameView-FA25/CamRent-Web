@@ -46,6 +46,7 @@ import { useNavigate } from "react-router-dom";
 import CheckBookingDialog from "../../components/Modal/CheckBookingDialog";
 import { createInspection } from "../../services/inspection.service";
 import { toast } from "react-toastify";
+import type { VerificationItemType } from "../../types/verification.types";
 
 const CheckBookings: React.FC = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -1038,19 +1039,20 @@ const CheckBookings: React.FC = () => {
             verifyId: selectedBookingId,
             items: (
               bookings.find((b) => b.id === selectedBookingId)?.items || []
-            ).map((it) => {
-              // Chuyển itemType từ string sang format phù hợp
-              let itemTypeStr = "1";
-              if (it.itemType === "Camera") itemTypeStr = "1";
-              else if (it.itemType === "Accessory") itemTypeStr = "2";
-              else if (it.itemType === "Combo") itemTypeStr = "3";
+            )
+              .filter((it) => it.itemType === "Camera" || it.itemType === "Accessory")
+              .map((it) => {
+                // Chuyển itemType từ string sang format phù hợp
+                let itemTypeStr: VerificationItemType = "1";
+                if (it.itemType === "Camera") itemTypeStr = "1";
+                else if (it.itemType === "Accessory") itemTypeStr = "2";
 
-              return {
-                itemId: it.itemId || "",
-                itemName: it.itemName || "",
-                itemType: itemTypeStr,
-              };
-            }),
+                return {
+                  itemId: it.itemId || "",
+                  itemName: it.itemName || "",
+                  itemType: itemTypeStr,
+                };
+              }),
             ItemType: "",
             Type: "Booking",
           }}

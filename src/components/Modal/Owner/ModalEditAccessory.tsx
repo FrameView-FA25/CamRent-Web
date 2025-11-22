@@ -20,16 +20,17 @@ import {
   CloudUpload as CloudUploadIcon,
   Delete as DeleteIcon,
 } from "@mui/icons-material";
-import { cameraService, type Camera } from "../../../services/camera.service";
+import { accessoryService } from "../../../services/accessory.service";
+import type { Accessory } from "../../../types/accessory.types";
 
-interface ModalEditCameraProps {
+interface ModalEditAccessoryProps {
   open: boolean;
-  camera: Camera | null;
+  accessory: Accessory | null;
   onClose: () => void;
-  onUpdated: (updatedCamera?: Camera) => void;
+  onUpdated: (updatedAccessory?: Accessory) => void;
 }
 
-interface CameraUpdateForm {
+interface AccessoryUpdateForm {
   brand: string;
   model: string;
   variant: string;
@@ -50,7 +51,7 @@ interface MediaItem {
 
 const MAX_IMAGES = 4;
 
-const DEFAULT_FORM: CameraUpdateForm = {
+const DEFAULT_FORM: AccessoryUpdateForm = {
   brand: "",
   model: "",
   variant: "",
@@ -80,13 +81,13 @@ const normalizePercentForApi = (value: number) => {
   return value / 100;
 };
 
-export default function ModalEditCamera({
+export default function ModalEditAccessory({
   open,
-  camera,
+  accessory,
   onClose,
   onUpdated,
-}: ModalEditCameraProps) {
-  const [formData, setFormData] = useState<CameraUpdateForm>(DEFAULT_FORM);
+}: ModalEditAccessoryProps) {
+  const [formData, setFormData] = useState<AccessoryUpdateForm>(DEFAULT_FORM);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -94,7 +95,7 @@ export default function ModalEditCamera({
   const [openSnackbar, setOpenSnackbar] = useState(false);
 
   // State quản lý media
-  const [existingMedia, setExistingMedia] = useState<MediaItem[]>([]); // Media hiện tại từ camera
+  const [existingMedia, setExistingMedia] = useState<MediaItem[]>([]); // Media hiện tại từ phụ kiện
   const [removedMediaIds, setRemovedMediaIds] = useState<string[]>([]); // ID các media đã chọn xóa
   const [newMediaFiles, setNewMediaFiles] = useState<File[]>([]); // File ảnh mới upload
   const [newMediaPreviews, setNewMediaPreviews] = useState<string[]>([]); // Preview ảnh mới
@@ -122,24 +123,24 @@ export default function ModalEditCamera({
   };
 
   useEffect(() => {
-    if (open && camera) {
+    if (open && accessory) {
       setFormData({
-        brand: camera.brand || "",
-        model: camera.model || "",
-        variant: camera.variant || "",
-        serialNumber: camera.serialNumber || "",
-        baseDailyRate: camera.baseDailyRate || 0,
-        estimatedValueVnd: camera.estimatedValueVnd || 0,
-        depositPercent: formatPercentForInput(camera.depositPercent),
-        depositCapMinVnd: camera.depositCapMinVnd || 0,
-        depositCapMaxVnd: camera.depositCapMaxVnd || 0,
-        specsJson: camera.specsJson || "",
+        brand: accessory.brand || "",
+        model: accessory.model || "",
+        variant: accessory.variant || "",
+        serialNumber: accessory.serialNumber || "",
+        baseDailyRate: accessory.baseDailyRate || 0,
+        estimatedValueVnd: accessory.estimatedValueVnd || 0,
+        depositPercent: formatPercentForInput(accessory.depositPercent),
+        depositCapMinVnd: accessory.depositCapMinVnd || 0,
+        depositCapMaxVnd: accessory.depositCapMaxVnd || 0,
+        specsJson: accessory.specsJson || "",
       });
 
       // Khởi tạo media hiện tại
       const mediaItems: MediaItem[] = [];
-      if (camera.media && Array.isArray(camera.media)) {
-        camera.media.forEach((m) => {
+      if (accessory.media && Array.isArray(accessory.media)) {
+        accessory.media.forEach((m) => {
           if (typeof m === "string") {
             mediaItems.push({
               id: getMediaId(m),
@@ -149,6 +150,7 @@ export default function ModalEditCamera({
             mediaItems.push({
               id: getMediaId(m),
               url: m.url || "",
+              type: m.type,
             });
           }
         });
@@ -178,7 +180,7 @@ export default function ModalEditCamera({
       setError("");
       setFieldErrors({});
     }
-  }, [open, camera]);
+  }, [open, accessory]);
 
   // Cleanup preview URLs khi unmount
   useEffect(() => {
@@ -208,7 +210,10 @@ export default function ModalEditCamera({
     }
   };
 
-  const handleNumberChange = (name: keyof CameraUpdateForm, value: string) => {
+  const handleNumberChange = (
+    name: keyof AccessoryUpdateForm,
+    value: string
+  ) => {
     const parsed = Number(value);
     setFormData((prev) => ({
       ...prev,
@@ -306,7 +311,7 @@ export default function ModalEditCamera({
   };
 
   const handleSubmit = async () => {
-    if (!camera) return;
+    if (!accessory) return;
     if (!validate()) return;
 
     setLoading(true);
@@ -314,7 +319,7 @@ export default function ModalEditCamera({
     setSuccess("");
 
     try {
-      const payload: Partial<Camera> & {
+      const payload: Partial<Accessory> & {
         mediaFiles?: File[];
         removeMediaIds?: string[];
       } = {
@@ -333,21 +338,21 @@ export default function ModalEditCamera({
           removedMediaIds.length > 0 ? removedMediaIds : undefined,
       };
 
-      const updatedCamera = await cameraService.updateCamera(
-        camera.id,
+      const updatedAccessory = await accessoryService.updateAccessory(
+        accessory.id,
         payload
       );
-      setSuccess("Cập nhật camera thành công!");
+      setSuccess("Cập nhật phụ kiện thành công!");
       setOpenSnackbar(true);
-      // Pass camera đã update vào callback để cập nhật vào danh sách (giữ nguyên vị trí)
-      onUpdated(updatedCamera);
+      // Pass phụ kiện đã update vào callback để cập nhật vào danh sách (giữ nguyên vị trí)
+      onUpdated(updatedAccessory);
     } catch (err) {
       const message =
         err instanceof Error
           ? err.message
-          : "Có lỗi xảy ra khi cập nhật camera";
+          : "Có lỗi xảy ra khi cập nhật phụ kiện";
       setError(message);
-      console.error("Update camera failed:", err);
+      console.error("Update accessory failed:", err);
     } finally {
       setLoading(false);
     }
@@ -361,7 +366,7 @@ export default function ModalEditCamera({
     onClose();
   };
 
-  const isReady = useMemo(() => Boolean(camera), [camera]);
+  const isReady = useMemo(() => Boolean(accessory), [accessory]);
 
   return (
     <Dialog
@@ -390,13 +395,13 @@ export default function ModalEditCamera({
               fontWeight={700}
               sx={{ color: "#1E293B", mb: 0.5, letterSpacing: "-0.5px" }}
             >
-              Cập Nhật Camera
+              Cập Nhật Phụ Kiện
             </Typography>
             <Typography
               variant="body2"
               sx={{ color: "#64748B", fontWeight: 500 }}
             >
-              Điều chỉnh thông tin chi tiết cho thiết bị của bạn
+              Điều chỉnh thông tin chi tiết cho phụ kiện của bạn
             </Typography>
           </Box>
           <IconButton
@@ -445,7 +450,7 @@ export default function ModalEditCamera({
 
         {!isReady && (
           <Typography sx={{ color: "#94A3B8" }}>
-            Vui lòng chọn camera để chỉnh sửa.
+            Vui lòng chọn phụ kiện để chỉnh sửa.
           </Typography>
         )}
 
@@ -694,7 +699,7 @@ export default function ModalEditCamera({
               onChange={handleChange}
               multiline
               rows={3}
-              placeholder="VD: Full-frame 33MP, 4K 60fps, 5-axis IBIS..."
+              placeholder="VD: Chất liệu, kích thước, trọng lượng..."
               sx={{
                 "& .MuiOutlinedInput-root": {
                   borderRadius: 2,
@@ -716,7 +721,7 @@ export default function ModalEditCamera({
                   mb: 2,
                 }}
               >
-                Hình ảnh camera
+                Hình ảnh phụ kiện
               </Typography>
 
               {/* Hiển thị media hiện tại (chưa bị xóa) */}
@@ -755,7 +760,7 @@ export default function ModalEditCamera({
                       >
                         <img
                           src={media.url}
-                          alt={`Camera ${idx + 1}`}
+                          alt={`Phụ kiện ${idx + 1}`}
                           style={{
                             maxWidth: "100%",
                             maxHeight: "160px",

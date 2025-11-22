@@ -72,6 +72,15 @@ export const AccessoryProvider: React.FC<{ children: ReactNode }> = ({
     setAccessories((prev) => prev.filter((item) => item.id !== id));
   }, []);
 
+  const updateAccessoryInList = useCallback(
+    (id: string, updatedAccessory: Accessory) => {
+      setAccessories((prev) =>
+        prev.map((item) => (item.id === id ? updatedAccessory : item))
+      );
+    },
+    []
+  );
+
   return (
     <AccessoryContext.Provider
       value={{
@@ -81,6 +90,7 @@ export const AccessoryProvider: React.FC<{ children: ReactNode }> = ({
         fetchAccessories,
         refreshAccessories,
         deleteAccessory,
+        updateAccessoryInList,
         setAccessories,
       }}
     >
