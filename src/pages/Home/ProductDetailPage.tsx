@@ -27,6 +27,8 @@ import type { Camera } from "../../types/product.types";
 import { toast } from "react-toastify";
 import { colors } from "../../theme/colors";
 import { useCartContext } from "../../context/CartContext";
+import CompareArrowsIcon from "@mui/icons-material/CompareArrows"; // ✅ Import icon
+import { useCompare } from "../../context/CompareContext/CompareContext"; // ✅ Import
 
 const ACCENT = amber[400];
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -39,6 +41,8 @@ const formatVnd = (value: number) =>
 
 const ProductDetailPage: React.FC = () => {
   const { refreshCart } = useCartContext();
+  const { compareIds, addToCompare, canAddMore } = useCompare(); // ✅ Get compare context
+
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
@@ -47,6 +51,9 @@ const ProductDetailPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState(0);
   const [addingToCart, setAddingToCart] = useState(false);
+
+  // ✅ Check if current camera is already in compare list
+  const isInCompare = id ? compareIds.includes(id) : false;
 
   useEffect(() => {
     const fetchDetail = async () => {
@@ -125,7 +132,27 @@ const ProductDetailPage: React.FC = () => {
       setAddingToCart(false);
     }
   };
+  const handleAddToCompare = () => {
+    if (!id) return;
 
+    if (isInCompare) {
+      toast.info("This camera is already in compare list");
+      return;
+    }
+
+    if (!canAddMore) {
+      toast.warning("Maximum 3 cameras can be compared");
+      return;
+    }
+
+    addToCompare(id);
+    toast.success("Added to compare list!");
+
+    // Navigate back to products page
+    setTimeout(() => {
+      navigate("/products");
+    }, 1000);
+  };
   // Loading state
   if (loading) {
     return (
@@ -189,20 +216,47 @@ const ProductDetailPage: React.FC = () => {
       {/* Top Navigation Bar */}
       <Box sx={{ bgcolor: "white", borderBottom: `1px solid ${grey[200]}` }}>
         <Container sx={{ py: 2 }}>
-          <Button
-            onClick={() => navigate("/products")}
-            startIcon={<ArrowBackIcon />}
+          <Box
             sx={{
-              color: grey[700],
-              textTransform: "none",
-              fontWeight: 600,
-              "&:hover": {
-                bgcolor: grey[100],
-              },
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
             }}
           >
-            Back to Products
-          </Button>
+            <Button
+              onClick={() => navigate("/products")}
+              startIcon={<ArrowBackIcon />}
+              sx={{
+                color: grey[700],
+                textTransform: "none",
+                fontWeight: 600,
+                "&:hover": {
+                  bgcolor: grey[100],
+                },
+              }}
+            >
+              Back to Products
+            </Button>
+
+            {/* ✅ Compare Badge */}
+            {compareIds.length > 0 && (
+              <Chip
+                label={`${compareIds.length} camera${
+                  compareIds.length > 1 ? "s" : ""
+                } in compare`}
+                color="primary"
+                size="small"
+                onClick={() => navigate("/compare")}
+                sx={{
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  "&:hover": {
+                    bgcolor: colors.primary.dark,
+                  },
+                }}
+              />
+            )}
+          </Box>
         </Container>
       </Box>
 
@@ -463,7 +517,36 @@ const ProductDetailPage: React.FC = () => {
                   <ShareIcon />
                 </IconButton>
               </Stack>
-
+              {/* ✅ Compare Button */}
+              <Button
+                fullWidth
+                variant="outlined"
+                startIcon={<CompareArrowsIcon />}
+                onClick={handleAddToCompare}
+                disabled={isInCompare || !canAddMore}
+                sx={{
+                  borderRadius: 2,
+                  borderColor: isInCompare ? grey[300] : amber[600],
+                  color: isInCompare ? grey[400] : amber[700],
+                  textTransform: "none",
+                  fontWeight: 600,
+                  py: 1.5,
+                  "&:hover": {
+                    borderColor: amber[700],
+                    bgcolor: amber[50],
+                  },
+                  "&:disabled": {
+                    borderColor: grey[300],
+                    color: grey[400],
+                  },
+                }}
+              >
+                {isInCompare
+                  ? "Already in Compare"
+                  : canAddMore
+                  ? `Compare with others (${compareIds.length}/3)`
+                  : "Maximum 3 cameras"}
+              </Button>
               {/* Platform Fee Notice */}
               {camera.platformFeePercent > 0 && (
                 <Alert severity="info" sx={{ mt: 3, borderRadius: 2 }}>
