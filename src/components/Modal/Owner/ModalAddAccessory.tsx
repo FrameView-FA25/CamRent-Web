@@ -21,6 +21,7 @@ import {
 } from "@mui/icons-material";
 import { accessoryService } from "../../../services/accessory.service";
 
+const MAX_IMAGES = 4;
 interface ModalAddAccessoryProps {
   open: boolean;
   onClose: () => void;
@@ -33,6 +34,7 @@ export interface AccessoryFormData {
   model: string; // Model phụ kiện
   variant: string; // Phiên bản
   serialNumber: string; // Số serial
+  baseDailyRate: number; // Giá thuê cơ bản/ngày
   estimatedValueVnd: number; // Giá trị ước tính
   specsJson: string; // Thông số kỹ thuật
   mediaFiles?: File[]; // Danh sách file ảnh upload
@@ -50,6 +52,7 @@ export default function ModalAddAccessory({
     variant: "",
     serialNumber: "",
     estimatedValueVnd: 0,
+    baseDailyRate: 0,
     specsJson: "",
     mediaFiles: [],
   });
@@ -117,23 +120,29 @@ export default function ModalAddAccessory({
 
     if (validFiles.length === 0) return;
 
-    // Chỉ lấy ảnh đầu tiên
-    const firstFile = validFiles[0];
+    // Kiểm tra số lượng ảnh tối đa
+    const currentCount = formData.mediaFiles?.length || 0;
+    const spaceLeft = Math.max(0, MAX_IMAGES - currentCount);
+    const toAdd = validFiles.slice(0, spaceLeft);
 
-    // Revoke URL cũ nếu có
-    if (imagePreviews.length > 0) {
-      imagePreviews.forEach((url) => URL.revokeObjectURL(url));
+    if (toAdd.length < validFiles.length) {
+      setError(
+        `Chỉ được chọn tối đa ${MAX_IMAGES} ảnh (đã có ${currentCount} ảnh)`
+      );
     }
 
-    // Cập nhật formData với file mới (chỉ 1 ảnh)
+    if (toAdd.length === 0) return;
+
+    // Cộng dồn file mới vào danh sách hiện tại
+    const mergedFiles = [...(formData.mediaFiles || []), ...toAdd];
     setFormData((prev) => ({
       ...prev,
-      mediaFiles: [firstFile],
+      mediaFiles: mergedFiles,
     }));
 
     // Tạo preview cho ảnh mới
-    const newPreview = URL.createObjectURL(firstFile);
-    setImagePreviews([newPreview]);
+    const newPreviews = toAdd.map((file) => URL.createObjectURL(file));
+    setImagePreviews((prev) => [...prev, ...newPreviews]);
 
     // Clear error nếu có
     if (errors.mediaFiles) {
@@ -147,17 +156,19 @@ export default function ModalAddAccessory({
   /**
    * Xóa ảnh đã chọn
    */
-  const handleRemoveImage = () => {
+  const handleRemoveImage = (index: number) => {
+    // Revoke object URL để giải phóng bộ nhớ
+    const urlToRevoke = imagePreviews[index];
+    if (urlToRevoke) {
+      URL.revokeObjectURL(urlToRevoke);
+    }
+
+    // Xóa file và preview tương ứng
     setFormData((prev) => ({
       ...prev,
-      mediaFiles: [],
+      mediaFiles: prev.mediaFiles?.filter((_, i) => i !== index) || [],
     }));
-
-    // Revoke object URL để giải phóng bộ nhớ
-    if (imagePreviews.length > 0) {
-      URL.revokeObjectURL(imagePreviews[0]);
-    }
-    setImagePreviews([]);
+    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
   /**
@@ -207,6 +218,7 @@ export default function ModalAddAccessory({
       apiFormData.append("Model", formData.model);
       apiFormData.append("Variant", formData.variant);
       apiFormData.append("SerialNumber", formData.serialNumber);
+      apiFormData.append("BaseDailyRate", formData.baseDailyRate.toString());
       apiFormData.append(
         "EstimatedValueVnd",
         formData.estimatedValueVnd.toString()
@@ -250,7 +262,14 @@ export default function ModalAddAccessory({
    */
   const handleClose = () => {
     // Revoke tất cả object URLs để giải phóng bộ nhớ
-    imagePreviews.forEach((url) => URL.revokeObjectURL(url));
+    imagePreviews.forEach((url) => {
+      try {
+        URL.revokeObjectURL(url);
+      } catch (e) {
+        console.error("Lỗi khi giải phóng object URL:", e);
+        // Ignore errors when revoking
+      }
+    });
 
     // Reset form về giá trị mặc định
     setFormData({
@@ -258,6 +277,7 @@ export default function ModalAddAccessory({
       model: "",
       variant: "",
       serialNumber: "",
+      baseDailyRate: 0,
       estimatedValueVnd: 0,
       specsJson: "",
       mediaFiles: [],
@@ -478,41 +498,82 @@ export default function ModalAddAccessory({
               }}
             />
           </Box>
-
-          {/* Giá trị ước tính */}
-          <TextField
-            fullWidth
-            label="Giá trị ước tính"
-            name="estimatedValueVnd"
-            type="number"
-            value={formData.estimatedValueVnd || ""}
-            onChange={(e) =>
-              handleNumberChange("estimatedValueVnd", e.target.value)
-            }
-            error={!!errors.estimatedValueVnd}
-            helperText={errors.estimatedValueVnd}
-            required
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">₫</InputAdornment>
-              ),
-            }}
-            placeholder="5000000"
+          <Box
             sx={{
-              "& .MuiOutlinedInput-root": {
-                borderRadius: 2,
-                "&:hover fieldset": {
-                  borderColor: "#FF6B35",
-                },
-                "&.Mui-focused fieldset": {
-                  borderColor: "#FF6B35",
-                },
-              },
-              "& .MuiInputLabel-root.Mui-focused": {
-                color: "#FF6B35",
-              },
+              display: "flex",
+              gap: 2,
+              flexDirection: { xs: "column", sm: "row" }, // Hiển thị ngang (row) trên màn hình lớn và dọc (column) trên điện thoại
             }}
-          />
+          >
+            {/* Giá trị ước tính */}
+            <TextField
+              fullWidth
+              label="Giá trị ước tính"
+              name="estimatedValueVnd"
+              type="number"
+              value={formData.estimatedValueVnd || ""}
+              onChange={(e) =>
+                handleNumberChange("estimatedValueVnd", e.target.value)
+              }
+              error={!!errors.estimatedValueVnd}
+              helperText={errors.estimatedValueVnd}
+              required
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">₫</InputAdornment>
+                ),
+              }}
+              placeholder="5000000"
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: 2,
+                  "&:hover fieldset": {
+                    borderColor: "#FF6B35",
+                  },
+                  "&.Mui-focused fieldset": {
+                    borderColor: "#FF6B35",
+                  },
+                },
+                "& .MuiInputLabel-root.Mui-focused": {
+                  color: "#FF6B35",
+                },
+              }}
+            />
+            {/* Giá thuê */}
+            <TextField
+              fullWidth
+              label="Giá thuê / ngày"
+              name="baseDailyRate"
+              type="number"
+              value={formData.baseDailyRate || ""}
+              onChange={(e) =>
+                handleNumberChange("baseDailyRate", e.target.value)
+              }
+              error={!!errors.baseDailyRate}
+              helperText={errors.baseDailyRate}
+              required
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">₫</InputAdornment>
+                ),
+              }}
+              placeholder="200000"
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: 2,
+                  "&:hover fieldset": {
+                    borderColor: "#FF6B35",
+                  },
+                  "&.Mui-focused fieldset": {
+                    borderColor: "#FF6B35",
+                  },
+                },
+                "& .MuiInputLabel-root.Mui-focused": {
+                  color: "#FF6B35",
+                },
+              }}
+            />
+          </Box>
 
           {/* Thông số kỹ thuật */}
           <TextField
@@ -558,6 +619,7 @@ export default function ModalAddAccessory({
               component="label"
               variant="outlined"
               startIcon={<CloudUploadIcon />}
+              disabled={(formData.mediaFiles?.length || 0) >= MAX_IMAGES}
               sx={{
                 mb: 2,
                 borderColor: "#E2E8F0",
@@ -571,56 +633,81 @@ export default function ModalAddAccessory({
                   bgcolor: "#FFF5F0",
                   color: "#FF6B35",
                 },
+                "&:disabled": {
+                  borderColor: "#CBD5E1",
+                  color: "#94A3B8",
+                },
               }}
             >
-              Chọn ảnh
+              {(formData.mediaFiles?.length || 0) >= MAX_IMAGES
+                ? `Đã chọn tối đa ${MAX_IMAGES} ảnh`
+                : "Thêm ảnh"}
               <input
                 type="file"
                 hidden
                 accept="image/*"
+                multiple
                 onChange={handleFileChange}
               />
             </Button>
+
+            <Typography variant="caption" sx={{ color: "#64748B", ml: 1 }}>
+              {imagePreviews.length || 0}/{MAX_IMAGES} ảnh
+            </Typography>
 
             {/* Hiển thị preview ảnh */}
             {imagePreviews.length > 0 && (
               <Box
                 sx={{
-                  position: "relative",
-                  border: "1px solid #E2E8F0",
-                  borderRadius: 2,
-                  p: 2,
-                  bgcolor: "#F8FAFC",
                   display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  minHeight: "300px",
+                  flexWrap: "wrap",
+                  gap: 2,
                 }}
               >
-                <img
-                  src={imagePreviews[0]}
-                  alt="Preview"
-                  style={{
-                    maxWidth: "100%",
-                    maxHeight: "300px",
-                    objectFit: "contain",
-                  }}
-                />
-                <IconButton
-                  onClick={handleRemoveImage}
-                  sx={{
-                    position: "absolute",
-                    top: 8,
-                    right: 8,
-                    bgcolor: "rgba(0, 0, 0, 0.6)",
-                    color: "#FFFFFF",
-                    "&:hover": {
-                      bgcolor: "#FF6B35",
-                    },
-                  }}
-                >
-                  <DeleteIcon />
-                </IconButton>
+                {imagePreviews.map((url, idx) => (
+                  <Box
+                    key={url}
+                    sx={{
+                      position: "relative",
+                      border: "1px solid #E2E8F0",
+                      borderRadius: 2,
+                      p: 1,
+                      bgcolor: "#F8FAFC",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      minWidth: 120,
+                      minHeight: 120,
+                      maxWidth: 180,
+                      maxHeight: 180,
+                    }}
+                  >
+                    <img
+                      src={url}
+                      alt={`Preview ${idx + 1}`}
+                      style={{
+                        maxWidth: "100%",
+                        maxHeight: "160px",
+                        objectFit: "contain",
+                      }}
+                    />
+                    <IconButton
+                      onClick={() => handleRemoveImage(idx)}
+                      sx={{
+                        position: "absolute",
+                        top: 4,
+                        right: 4,
+                        bgcolor: "rgba(0, 0, 0, 0.6)",
+                        color: "#FFFFFF",
+                        "&:hover": {
+                          bgcolor: "#FF6B35",
+                        },
+                      }}
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </Box>
+                ))}
               </Box>
             )}
 

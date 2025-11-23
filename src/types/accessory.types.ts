@@ -23,8 +23,8 @@ export interface Accessory {
 }
 
 export interface MediaItem {
-  url: string;
-  type?: string;
+  id: string;
+  url?: string;
   contentType?: string;
   sizeBytes?: number;
   label?: string | null;

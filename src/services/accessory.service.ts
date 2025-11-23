@@ -4,19 +4,32 @@ import type {
   AccessoryFilters,
 } from "../types/accessory.types";
 
+// URL cơ sở của API backend
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "https://camrent-backend.up.railway.app";
 
-// Helper function to get auth token
+/**
+ * Hàm helper để lấy token xác thực từ localStorage
+ * @returns Token xác thực hoặc null nếu không tìm thấy
+ */
 const getAuthToken = (): string | null => {
   return localStorage.getItem("accessToken");
 };
 
+/**
+ * Service quản lý các thao tác liên quan đến phụ kiện (Accessories)
+ * Bao gồm: lấy danh sách, tạo mới, cập nhật, xóa phụ kiện
+ */
 export const accessoryService = {
-  // Get all accessories with filters
+  /**
+   * Lấy danh sách tất cả phụ kiện với các bộ lọc (phân trang, sắp xếp, tìm kiếm)
+   * @param filters - Đối tượng chứa các bộ lọc: page, pageSize, sortBy, sortDir, brand, model
+   * @returns Promise chứa danh sách phụ kiện với thông tin phân trang
+   */
   getAccessories: async (
     filters: AccessoryFilters
   ): Promise<AccessoryResponse> => {
+    // Tạo query parameters từ filters
     const params = new URLSearchParams();
     params.append("page", filters.page.toString());
     params.append("pageSize", filters.pageSize.toString());
@@ -25,13 +38,16 @@ export const accessoryService = {
     if (filters.brand) params.append("brand", filters.brand);
     if (filters.model) params.append("model", filters.model);
 
+    // Lấy token xác thực và chuẩn bị headers
     const token = getAuthToken();
     const headers: HeadersInit = {};
 
+    // Thêm token vào header nếu có
     if (token) {
       headers["Authorization"] = `Bearer ${token}`;
     }
 
+    // Gọi API để lấy danh sách phụ kiện
     const response = await fetch(
       `${API_BASE_URL}/Accessories?${params.toString()}`,
       {
@@ -40,16 +56,22 @@ export const accessoryService = {
       }
     );
 
+    // Kiểm tra nếu response không thành công
     if (!response.ok) {
       const errorText = await response.text();
       console.error("API Error:", response.status, errorText);
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
+    // Trả về dữ liệu JSON
     return await response.json();
   },
 
-  // Get accessory by ID
+  /**
+   * Lấy thông tin chi tiết của một phụ kiện theo ID
+   * @param id - ID của phụ kiện cần lấy
+   * @returns Promise chứa thông tin chi tiết của phụ kiện
+   */
   getAccessoryById: async (id: string): Promise<Accessory> => {
     const token = getAuthToken();
     const headers: HeadersInit = {};
@@ -72,7 +94,11 @@ export const accessoryService = {
     return await response.json();
   },
 
-  // Get accessories by owner ID
+  /**
+   * Lấy danh sách tất cả phụ kiện của chủ sở hữu hiện tại (dựa trên token)
+   * Yêu cầu đăng nhập
+   * @returns Promise chứa danh sách phụ kiện của owner
+   */
   getAccessoriesByOwnerId: async (): Promise<Accessory[]> => {
     const token = getAuthToken();
     if (!token) {
@@ -100,7 +126,13 @@ export const accessoryService = {
     return await response.json();
   },
 
-  // Create new accessory
+  /**
+   * Tạo phụ kiện mới
+   * FormData có thể chứa: thông tin phụ kiện (brand, model, variant, ...) và file ảnh
+   * Yêu cầu đăng nhập với quyền Owner
+   * @param formData - FormData chứa thông tin phụ kiện và file ảnh
+   * @returns Promise chứa thông tin phụ kiện vừa tạo
+   */
   createAccessory: async (formData: FormData): Promise<Accessory> => {
     const token = getAuthToken();
     if (!token) {
@@ -126,12 +158,19 @@ export const accessoryService = {
     return await response.json();
   },
 
-  // Update accessory
+  /**
+   * Cập nhật thông tin phụ kiện
+   * Có thể cập nhật: thông tin cơ bản, thêm ảnh mới, xóa ảnh cũ
+   * Yêu cầu đăng nhập với quyền Owner
+   * @param accessoryId - ID của phụ kiện cần cập nhật
+   * @param accessoryData - Dữ liệu cập nhật (có thể là một phần), bao gồm mediaFiles và removeMediaIds
+   * @returns Promise chứa thông tin phụ kiện sau khi cập nhật
+   */
   updateAccessory: async (
     accessoryId: string,
     accessoryData: Partial<Accessory> & {
-      mediaFiles?: File[];
-      removeMediaIds?: string[];
+      mediaFiles?: File[]; // Danh sách file ảnh mới cần thêm
+      removeMediaIds?: string[]; // Danh sách ID của ảnh cũ cần xóa
     }
   ): Promise<Accessory> => {
     try {
@@ -143,11 +182,16 @@ export const accessoryService = {
         );
       }
 
+      // Tạo FormData để gửi dữ liệu cập nhật
       const formData = new FormData();
 
       // Thêm Id vào FormData (bắt buộc theo API spec)
       formData.append("Id", accessoryId);
 
+      /**
+       * Hàm helper để thêm field vào FormData chỉ khi giá trị được định nghĩa
+       * Bỏ qua các giá trị undefined, null, hoặc NaN
+       */
       const appendIfDefined = (key: string, value: unknown) => {
         if (value === undefined || value === null) {
           return;
@@ -158,18 +202,19 @@ export const accessoryService = {
         formData.append(key, String(value));
       };
 
-      appendIfDefined("Brand", accessoryData.brand);
-      appendIfDefined("Model", accessoryData.model);
-      appendIfDefined("Variant", accessoryData.variant);
-      appendIfDefined("SerialNumber", accessoryData.serialNumber);
-      appendIfDefined("BaseDailyRate", accessoryData.baseDailyRate);
-      appendIfDefined("EstimatedValueVnd", accessoryData.estimatedValueVnd);
-      appendIfDefined("DepositPercent", accessoryData.depositPercent);
-      appendIfDefined("DepositCapMinVnd", accessoryData.depositCapMinVnd);
-      appendIfDefined("DepositCapMaxVnd", accessoryData.depositCapMaxVnd);
-      appendIfDefined("SpecsJson", accessoryData.specsJson);
+      // Thêm các trường dữ liệu vào FormData (chỉ thêm nếu có giá trị)
+      appendIfDefined("Brand", accessoryData.brand); // Thương hiệu
+      appendIfDefined("Model", accessoryData.model); // Model
+      appendIfDefined("Variant", accessoryData.variant); // Phiên bản
+      appendIfDefined("SerialNumber", accessoryData.serialNumber); // Số serial
+      appendIfDefined("BaseDailyRate", accessoryData.baseDailyRate); // Giá thuê cơ bản/ngày
+      appendIfDefined("EstimatedValueVnd", accessoryData.estimatedValueVnd); // Giá trị ước tính (VNĐ)
+      appendIfDefined("DepositPercent", accessoryData.depositPercent); // Phần trăm đặt cọc
+      appendIfDefined("DepositCapMinVnd", accessoryData.depositCapMinVnd); // Mức đặt cọc tối thiểu (VNĐ)
+      appendIfDefined("DepositCapMaxVnd", accessoryData.depositCapMaxVnd); // Mức đặt cọc tối đa (VNĐ)
+      appendIfDefined("SpecsJson", accessoryData.specsJson); // Thông số kỹ thuật dạng JSON
 
-      // Thêm media files mới nếu có
+      // Thêm các file ảnh mới nếu có
       if (
         accessoryData.mediaFiles &&
         Array.isArray(accessoryData.mediaFiles) &&
@@ -182,7 +227,7 @@ export const accessoryService = {
         });
       }
 
-      // Thêm removeMediaIds nếu có (để xóa media cũ)
+      // Thêm danh sách ID của ảnh cũ cần xóa nếu có
       if (
         accessoryData.removeMediaIds &&
         Array.isArray(accessoryData.removeMediaIds) &&
@@ -229,7 +274,12 @@ export const accessoryService = {
     }
   },
 
-  // Delete accessory
+  /**
+   * Xóa phụ kiện theo ID
+   * Yêu cầu đăng nhập với quyền Owner
+   * @param id - ID của phụ kiện cần xóa
+   * @returns Promise<void>
+   */
   deleteAccessory: async (id: string): Promise<void> => {
     const token = getAuthToken();
     if (!token) {

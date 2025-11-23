@@ -7,9 +7,9 @@ import {
   Rating,
   Card,
 } from "@mui/material";
-import CameraModel from "../components/Modal/CameraModal";
+import CameraModel from "../../components/Modal/CameraModal";
 import { FormatQuote } from "@mui/icons-material";
-import ThreeDCarousel from "../components/ui/3d-carousel";
+import ThreeDCarousel from "../../components/ui/3d-carousel";
 
 const categories = [
   {

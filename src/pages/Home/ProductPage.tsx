@@ -25,10 +25,10 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import VerifiedIcon from "@mui/icons-material/Verified";
 import CancelIcon from "@mui/icons-material/Cancel";
-import type { Accessory } from "../services/camera.service";
-import { colors } from "../theme/colors";
-import type { Camera } from "../types/product.types";
-import { useCameras, useAccessories } from "../hooks/useProducts";
+import type { Accessory } from "../../services/camera.service";
+import { colors } from "../../theme/colors";
+import type { Camera } from "../../types/product.types";
+import { useCameras, useAccessories } from "../../hooks/useProducts";
 
 const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat("vi-VN", {

@@ -23,10 +23,10 @@ import ShareIcon from "@mui/icons-material/Share";
 import VerifiedIcon from "@mui/icons-material/Verified";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import PersonIcon from "@mui/icons-material/Person";
-import type { Camera } from "../types/product.types";
+import type { Camera } from "../../types/product.types";
 import { toast } from "react-toastify";
-import { colors } from "../theme/colors";
-import { useCartContext } from "../context/CartContext";
+import { colors } from "../../theme/colors";
+import { useCartContext } from "../../context/CartContext";
 
 const ACCENT = amber[400];
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
