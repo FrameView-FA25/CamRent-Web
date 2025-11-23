@@ -35,15 +35,23 @@ import { useAccessoryContext } from "../../../context/AccessoryContext/useAccess
 import type { Accessory } from "../../../types/accessory.types";
 
 export default function AccessoryManagement() {
-  const { accessories, loading, error, fetchAccessories, updateAccessoryInList, refreshAccessories } =
-    useAccessoryContext();
+  const {
+    accessories,
+    loading,
+    error,
+    fetchAccessories,
+    updateAccessoryInList,
+    refreshAccessories,
+  } = useAccessoryContext();
 
   // State quản lý modal thêm phụ kiện
   const [openAddModal, setOpenAddModal] = useState(false);
 
   // State quản lý modal edit phụ kiện
   const [openEditModal, setOpenEditModal] = useState(false);
-  const [selectedAccessory, setSelectedAccessory] = useState<Accessory | null>(null);
+  const [selectedAccessory, setSelectedAccessory] = useState<Accessory | null>(
+    null
+  );
 
   // State phân trang
   const [currentPage, setCurrentPage] = useState(1);
@@ -92,10 +100,16 @@ export default function AccessoryManagement() {
    * Hàm xử lý sau khi cập nhật phụ kiện thành công
    */
   const handleUpdatedAccessory = (updatedAccessory?: Accessory) => {
-    // Nếu có phụ kiện đã update và có đầy đủ thông tin (có id), 
+    // Nếu có phụ kiện đã update và có đầy đủ thông tin (có id),
     // cập nhật vào danh sách (giữ nguyên vị trí)
     // Nếu không có hoặc không đầy đủ, vẫn refresh toàn bộ (fallback)
-    if (updatedAccessory && selectedAccessory && updatedAccessory.id && updatedAccessory.brand && updatedAccessory.model) {
+    if (
+      updatedAccessory &&
+      selectedAccessory &&
+      updatedAccessory.id &&
+      updatedAccessory.brand &&
+      updatedAccessory.model
+    ) {
       updateAccessoryInList(selectedAccessory.id, updatedAccessory);
     } else {
       // Fallback: refresh toàn bộ danh sách để đảm bảo data chính xác
@@ -698,12 +712,13 @@ export default function AccessoryManagement() {
                     <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
                       <Box sx={{ display: "flex", gap: 1 }}>
                         {(() => {
-                          const mediaList: Array<string | { url?: string; type?: string }> =
-                            Array.isArray(accessory.media)
-                              ? accessory.media
-                              : accessory.media
-                              ? [accessory.media]
-                              : [];
+                          const mediaList: Array<
+                            string | { url?: string; type?: string }
+                          > = Array.isArray(accessory.media)
+                            ? accessory.media
+                            : accessory.media
+                            ? [accessory.media]
+                            : [];
                           const mediaUrls = mediaList
                             .map((m) =>
                               typeof m === "string" ? m : m?.url || ""
@@ -729,12 +744,19 @@ export default function AccessoryManagement() {
                                 objectFit: "contain",
                                 bgcolor: "#F8FAFC",
                                 border: "2px solid #E2E8F0",
-                                cursor: mediaUrls.length > 0 ? "pointer" : "default",
+                                cursor:
+                                  mediaUrls.length > 0 ? "pointer" : "default",
                                 transition: "all 0.3s ease",
                                 borderRadius: 1,
                                 "&:hover": {
-                                  borderColor: mediaUrls.length > 0 ? "#FF6B35" : "#E2E8F0",
-                                  transform: mediaUrls.length > 0 ? "scale(1.02)" : "none",
+                                  borderColor:
+                                    mediaUrls.length > 0
+                                      ? "#FF6B35"
+                                      : "#E2E8F0",
+                                  transform:
+                                    mediaUrls.length > 0
+                                      ? "scale(1.02)"
+                                      : "none",
                                   boxShadow:
                                     mediaUrls.length > 0
                                       ? "0 4px 12px rgba(255, 107, 53, 0.12)"
@@ -806,7 +828,7 @@ export default function AccessoryManagement() {
                       variant="body2"
                       sx={{
                         color: "#64748B",
-                        maxWidth: 200,
+                        maxWidth: 100,
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",

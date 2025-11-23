@@ -1,4 +1,4 @@
-// API Base URL
+// URL cơ sở của API backend
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "https://camrent-backend.up.railway.app";
 

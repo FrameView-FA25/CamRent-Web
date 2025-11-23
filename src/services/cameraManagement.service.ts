@@ -1,15 +1,29 @@
 import type { Camera, CameraResponse, CameraFilters } from '../types/product.types';
 
+// URL cơ sở của API backend
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://camrent-backend.up.railway.app';
 
-// Helper function to get auth token
+/**
+ * Hàm helper để lấy token xác thực từ localStorage
+ * @returns Token xác thực hoặc null nếu không tìm thấy
+ */
 const getAuthToken = (): string | null => {
   return localStorage.getItem('accessToken');
 };
 
+/**
+ * Service quản lý camera cho trang sản phẩm (ProductPage)
+ * Khác với camera.service.ts - service này dùng cho việc hiển thị danh sách camera công khai
+ */
 export const cameraManagementService = {
-  // Get all cameras with filters
+  /**
+   * Lấy danh sách tất cả camera với các bộ lọc (phân trang, sắp xếp, tìm kiếm)
+   * API công khai - không bắt buộc đăng nhập
+   * @param filters - Đối tượng chứa các bộ lọc: page, pageSize, sortBy, sortDir, brand, model
+   * @returns Promise chứa danh sách camera với thông tin phân trang
+   */
   getCameras: async (filters: CameraFilters): Promise<CameraResponse> => {
+    // Tạo query parameters từ filters
     const params = new URLSearchParams();
     params.append('page', filters.page.toString());
     params.append('pageSize', filters.pageSize.toString());
@@ -18,9 +32,11 @@ export const cameraManagementService = {
     if (filters.brand) params.append('brand', filters.brand);
     if (filters.model) params.append('model', filters.model);
 
+    // Lấy token xác thực và chuẩn bị headers (optional - có thể không cần đăng nhập)
     const token = getAuthToken();
     const headers: HeadersInit = {};
     
+    // Thêm token vào header nếu có (để xem thông tin chi tiết hơn)
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
@@ -42,7 +58,12 @@ export const cameraManagementService = {
     return await response.json();
   },
 
-  // ✅ NEW: Get cameras by branch (for branch manager)
+  /**
+   * Lấy danh sách camera của chi nhánh hiện tại
+   * Dành cho BranchManager - chỉ lấy các camera thuộc chi nhánh của họ
+   * Yêu cầu đăng nhập với quyền BranchManager
+   * @returns Promise chứa danh sách camera của chi nhánh
+   */
   getCamerasByBranch: async (): Promise<Camera[]> => {
     const token = getAuthToken();
     
@@ -69,7 +90,7 @@ export const cameraManagementService = {
         throw new Error('You do not have permission to view branch cameras.');
       }
       if (response.status === 404) {
-        // Branch không có camera nào
+        // Chi nhánh không có camera nào
         return [];
       }
       
@@ -80,7 +101,12 @@ export const cameraManagementService = {
     return data;
   },
 
-  // Get camera by ID
+  /**
+   * Lấy thông tin chi tiết của một camera theo ID
+   * API công khai - không bắt buộc đăng nhập
+   * @param id - ID của camera cần lấy
+   * @returns Promise chứa thông tin chi tiết của camera
+   */
   getCameraById: async (id: string): Promise<Camera> => {
     const token = getAuthToken();
     const headers: HeadersInit = {};

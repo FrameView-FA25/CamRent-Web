@@ -4,14 +4,23 @@ import type {
   Verification,
 } from "../types/verification.types";
 
+// URL cơ sở của API backend
 const API_BASE_URL = "https://camrent-backend.up.railway.app/api";
 
+// Export lại các type để sử dụng ở nơi khác
 export type { CreateVerificationRequest, CreateVerificationResponse };
 
+/**
+ * Service quản lý các thao tác liên quan đến xác minh (Verification)
+ * Bao gồm: tạo, cập nhật, xóa, gán nhân viên cho yêu cầu xác minh
+ */
 export const verificationService = {
   /**
    * Tạo một yêu cầu xác minh mới
+   * Dùng để Owner gửi yêu cầu xác minh tài khoản hoặc thiết bị
    * Quyền: Owner, Admin
+   * @param data - Dữ liệu yêu cầu xác minh
+   * @returns Promise chứa kết quả tạo verification
    */
   async createVerification(
     data: CreateVerificationRequest
@@ -56,8 +65,11 @@ export const verificationService = {
   },
 
   /**
-   * Cập nhật yêu cầu xác minh
+   * Cập nhật yêu cầu xác minh đã tồn tại
    * Quyền: Owner, Admin
+   * @param id - ID của verification cần cập nhật
+   * @param data - Dữ liệu cập nhật
+   * @returns Promise chứa kết quả cập nhật verification
    */
   async updateVerification(
     id: string,
@@ -103,8 +115,9 @@ export const verificationService = {
   },
 
   /**
-   * Lấy danh sách yêu cầu xác minh theo user
+   * Lấy danh sách yêu cầu xác minh của user hiện tại
    * Quyền: Owner, BranchManager, Staff, Admin
+   * @returns Promise chứa danh sách verification của user
    */
   async getVerificationsByUserId(): Promise<Verification[]> {
     const token = localStorage.getItem("accessToken");
@@ -124,7 +137,7 @@ export const verificationService = {
       }
     );
 
-    // Nếu không tìm thấy (404), trả về mảng rỗng thay vì throw error
+    // Nếu không tìm thấy (404), trả về mảng rỗng thay vì throw error (user chưa có verification nào)
     if (response.status === 404) {
       return [];
     }
@@ -145,8 +158,12 @@ export const verificationService = {
   },
 
   /**
-   * Gán nhân viên cho verification
+   * Gán nhân viên (Staff) để xử lý yêu cầu xác minh
+   * Dành cho BranchManager để phân công nhân viên kiểm tra và xác minh
    * Quyền: BranchManager, Admin
+   * @param verificationId - ID của verification cần gán nhân viên
+   * @param staffId - ID của nhân viên được gán
+   * @returns Promise<void>
    */
   async assignStaff(verificationId: string, staffId: string): Promise<void> {
     const token = localStorage.getItem("accessToken");
@@ -178,6 +195,12 @@ export const verificationService = {
       throw new Error(errorMessage);
     }
   },
+  /**
+   * Xóa yêu cầu xác minh
+   * Quyền: Owner, Admin
+   * @param verificationId - ID của verification cần xóa
+   * @returns Promise<void>
+   */
   async deleteVerification(verificationId: string): Promise<void> {
     const token = localStorage.getItem("accessToken");
 
@@ -211,4 +234,3 @@ export const verificationService = {
   },
 };
 
-// Delete verification

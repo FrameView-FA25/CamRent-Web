@@ -5,8 +5,14 @@ import type {
   CreateDeliveryRequest,
   CreateInspectionRequest,
 } from "../types/booking.types";
+
+// URL cơ sở của API backend
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
+/**
+ * Hàm helper để tạo headers xác thực cho các request API
+ * @returns Object chứa headers với token xác thực
+ */
 const getAuthHeaders = () => {
   const accessToken = localStorage.getItem("accessToken");
   return {
@@ -16,11 +22,17 @@ const getAuthHeaders = () => {
   };
 };
 
+/**
+ * Lấy thông tin chi tiết của item trong booking (camera hoặc phụ kiện)
+ * Hàm này sẽ fetch thông tin đầy đủ từ API nếu item chỉ có ID mà chưa có thông tin chi tiết
+ * @param item - BookingItem cần lấy thông tin chi tiết
+ * @returns Promise chứa BookingItem với thông tin đầy đủ
+ */
 export const fetchItemDetails = async (
   item: BookingItem
 ): Promise<BookingItem> => {
   try {
-    // Fetch camera details if cameraId exists
+    // Lấy thông tin chi tiết camera nếu có cameraId nhưng chưa có thông tin camera
     if (item.cameraId && !item.camera) {
       const cameraResponse = await fetch(
         `${API_BASE_URL}/Cameras/${item.cameraId}`,
@@ -41,7 +53,7 @@ export const fetchItemDetails = async (
       }
     }
 
-    // Fetch accessory details if accessoryId exists
+    // Lấy thông tin chi tiết phụ kiện nếu có accessoryId nhưng chưa có thông tin accessory
     if (item.accessoryId && !item.accessory) {
       const accessoryResponse = await fetch(
         `${API_BASE_URL}/Accessories/${item.accessoryId}`,
@@ -69,6 +81,11 @@ export const fetchItemDetails = async (
   }
 };
 
+/**
+ * Lấy danh sách tất cả booking của user hiện tại
+ * Yêu cầu đăng nhập
+ * @returns Promise chứa danh sách booking và error (nếu có)
+ */
 export const fetchBookings = async (): Promise<{
   bookings: Booking[];
   error: string | null;
@@ -80,11 +97,13 @@ export const fetchBookings = async (): Promise<{
       throw new Error("No access token found. Please login again.");
     }
 
+    // Gọi API để lấy danh sách booking
     const response = await fetch(`${API_BASE_URL}/Bookings`, {
       method: "GET",
       headers: getAuthHeaders(),
     });
 
+    // Xử lý lỗi 401 (Unauthorized) - token hết hạn
     if (response.status === 401) {
       localStorage.removeItem("accessToken");
       throw new Error("Unauthorized. Please login again.");
@@ -95,9 +114,10 @@ export const fetchBookings = async (): Promise<{
     }
 
     const data = await response.json();
+    // Đảm bảo data là array
     const bookingsArray = Array.isArray(data) ? data : [data];
 
-    // Fetch details for all items in all bookings
+    // Lấy thông tin chi tiết cho tất cả items trong tất cả bookings
     const bookingsWithDetails = await Promise.all(
       bookingsArray.map(async (booking) => {
         const itemsWithDetails = await Promise.all(
@@ -116,7 +136,12 @@ export const fetchBookings = async (): Promise<{
   }
 };
 
-// ✅ NEW: Fetch Branch Bookings
+/**
+ * Lấy danh sách booking của chi nhánh hiện tại
+ * Dành cho BranchManager - chỉ lấy các booking thuộc chi nhánh của họ
+ * Yêu cầu đăng nhập với quyền BranchManager
+ * @returns Promise chứa danh sách booking của chi nhánh và error (nếu có)
+ */
 export const fetchBranchBookings = async (): Promise<{
   bookings: Booking[];
   error: string | null;
@@ -161,12 +186,12 @@ export const fetchBranchBookings = async (): Promise<{
 
     const bookingsArray = Array.isArray(data) ? data : [data];
 
-    // ✅ Filter out cart items
+    // Lọc bỏ các booking có status "Giỏ hàng" (chưa được xác nhận)
     const validBookings = bookingsArray.filter(
       (booking) => booking.statusText !== "Giỏ hàng"
     );
 
-    // ✅ No need to fetch item details - API already provides itemName & itemType
+    // Không cần fetch item details vì API đã cung cấp itemName & itemType
     return { bookings: validBookings, error: null };
   } catch (err) {
     const errorMessage =
@@ -176,6 +201,12 @@ export const fetchBranchBookings = async (): Promise<{
   }
 };
 
+/**
+ * Lấy danh sách nhân viên (Staff) của chi nhánh hiện tại
+ * Dành cho BranchManager để xem và phân công nhân viên
+ * Yêu cầu đăng nhập với quyền BranchManager
+ * @returns Promise chứa danh sách staff và error (nếu có)
+ */
 export const fetchStaffList = async (): Promise<{
   staff: Staff[];
   error: string | null;
@@ -223,6 +254,13 @@ export const fetchStaffList = async (): Promise<{
   }
 };
 
+/**
+ * Tạo đơn giao hàng (Delivery) cho một booking
+ * Dành cho BranchManager để tạo đơn giao và phân công nhân viên giao hàng
+ * @param bookingId - ID của booking cần tạo đơn giao
+ * @param assigneeUserId - ID của nhân viên được phân công giao hàng
+ * @returns Promise chứa kết quả (success/error)
+ */
 export const createDelivery = async (
   bookingId: string,
   assigneeUserId: string
@@ -269,6 +307,12 @@ export const createDelivery = async (
   }
 };
 
+/**
+ * Lấy danh sách booking được phân công cho nhân viên hiện tại
+ * Dành cho Staff - chỉ lấy các booking mà họ được phân công xử lý
+ * Yêu cầu đăng nhập với quyền Staff
+ * @returns Promise chứa danh sách booking của staff và error (nếu có)
+ */
 export const fetchStaffBookings = async (): Promise<{
   bookings: Booking[];
   error: string | null;
@@ -292,7 +336,7 @@ export const fetchStaffBookings = async (): Promise<{
       throw new Error("Unauthorized. Please login again.");
     }
 
-    // Xử lý trường hợp không có data (404 hoặc 204)
+    // Xử lý trường hợp không có data (404 hoặc 204) - không có booking nào được gán
     if (response.status === 404 || response.status === 204) {
       console.info("Không có booking nào được gán");
       return { bookings: [], error: null };
@@ -317,7 +361,7 @@ export const fetchStaffBookings = async (): Promise<{
 
     const bookingsArray = Array.isArray(data) ? data : [data];
 
-    // Fetch details for all items in all bookings
+    // Lấy thông tin chi tiết cho tất cả items trong tất cả bookings
     const bookingsWithDetails = await Promise.all(
       bookingsArray.map(async (booking) => {
         const itemsWithDetails = await Promise.all(
@@ -336,6 +380,12 @@ export const fetchStaffBookings = async (): Promise<{
   }
 };
 
+/**
+ * Lấy thông tin chi tiết của một booking theo ID
+ * Yêu cầu đăng nhập
+ * @param bookingId - ID của booking cần lấy
+ * @returns Promise chứa thông tin booking và error (nếu có)
+ */
 export const fetchBookingById = async (
   bookingId: string
 ): Promise<{ booking: Booking | null; error: string | null }> => {
@@ -371,7 +421,7 @@ export const fetchBookingById = async (
 
     const data = await response.json();
 
-    // ✅ Transform API response to match Booking interface
+    // Chuyển đổi dữ liệu từ API để khớp với interface Booking
     const booking: Booking = {
       id: data.id,
       type: data.type || "Rental",
@@ -404,7 +454,7 @@ export const fetchBookingById = async (
         combo: item.combo,
         unitPrice: item.unitPrice,
         depositAmount: item.depositAmount,
-        // ✅ Add itemName and itemType for consistency
+        // Thêm itemName và itemType để đồng nhất với các component khác
         itemId: item.cameraId || item.accessoryId || item.comboId || "",
         itemName: item.camera
           ? `${item.camera.brand} ${item.camera.model}${
@@ -439,6 +489,12 @@ export const fetchBookingById = async (
   }
 };
 
+/**
+ * Tạo bản kiểm tra thiết bị (Inspection) cho một booking
+ * Dành cho Staff để kiểm tra tình trạng thiết bị khi nhận/trả
+ * @param inspectionData - Dữ liệu inspection: bookingId, itemId, condition, notes, images
+ * @returns Promise chứa kết quả (success/error)
+ */
 export const createInspection = async (
   inspectionData: CreateInspectionRequest
 ): Promise<{
