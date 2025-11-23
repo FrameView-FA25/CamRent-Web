@@ -18,7 +18,9 @@ import {
   TablePagination,
   Alert,
   CircularProgress,
+  Button,
 } from "@mui/material";
+import { UserPlus } from "lucide-react"; // ✅ Import icon
 import {
   Search,
   Person,
@@ -29,7 +31,9 @@ import {
 } from "@mui/icons-material";
 import { fetchStaffList } from "../../services/booking.service";
 import type { Staff } from "../../types/booking.types";
-
+import AddStaffDialog from "../../components/Modal/Manager/AddStaffDialog";
+import { toast } from "react-toastify"; // ✅ Import toast
+import { colors } from "../../theme/colors";
 const StaffManagement: React.FC = () => {
   const [staffList, setStaffList] = useState<Staff[]>([]);
   const [filteredStaff, setFilteredStaff] = useState<Staff[]>([]);
@@ -38,6 +42,7 @@ const StaffManagement: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [openAddDialog, setOpenAddDialog] = useState(false); // ✅ Add dialog state
 
   useEffect(() => {
     loadStaff();
@@ -73,7 +78,10 @@ const StaffManagement: React.FC = () => {
     }
     setLoading(false);
   };
-
+  const handleAddSuccess = () => {
+    toast.success("Thêm nhân viên thành công!");
+    loadStaff(); // Refresh staff list
+  };
   const handleChangePage = (_event: unknown, newPage: number) => {
     setPage(newPage);
   };
@@ -134,38 +142,69 @@ const StaffManagement: React.FC = () => {
     <Box sx={{ bgcolor: "#F5F5F5", minHeight: "100vh", p: 3 }}>
       <Container maxWidth="xl">
         {/* Header */}
-        <Box sx={{ mb: 4 }}>
-          <Typography
-            variant="h4"
-            sx={{
-              fontWeight: 700,
-              color: "#1F2937",
-              mb: 1,
-              display: "flex",
-              alignItems: "center",
-              gap: 2,
-            }}
-          >
-            <Box
+        <Box
+          sx={{
+            mb: 4,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: 2,
+          }}
+        >
+          <Box>
+            <Typography
+              variant="h4"
               sx={{
-                width: 50,
-                height: 50,
-                borderRadius: 2,
-                bgcolor: "#F97316",
+                fontWeight: 700,
+                color: "#1F2937",
+                mb: 1,
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "center",
+                gap: 2,
               }}
             >
-              <Person sx={{ color: "white", fontSize: 30 }} />
-            </Box>
-            Quản lý nhân viên
-          </Typography>
-          <Typography variant="body1" sx={{ color: "#6B7280" }}>
-            Danh sách nhân viên chi nhánh
-          </Typography>
-        </Box>
+              <Box
+                sx={{
+                  width: 50,
+                  height: 50,
+                  borderRadius: 2,
+                  bgcolor: "#F97316",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Person sx={{ color: "white", fontSize: 30 }} />
+              </Box>
+              Quản lý nhân viên
+            </Typography>
+            <Typography variant="body1" sx={{ color: "#6B7280" }}>
+              Danh sách nhân viên chi nhánh
+            </Typography>
+          </Box>
 
+          {/* ✅ Add Staff Button */}
+          <Button
+            variant="contained"
+            startIcon={<UserPlus size={20} />}
+            onClick={() => setOpenAddDialog(true)}
+            sx={{
+              bgcolor: colors.primary.main,
+              color: "white",
+              fontWeight: 600,
+              textTransform: "none",
+              px: 3,
+              py: 1.5,
+              borderRadius: 2,
+              "&:hover": {
+                bgcolor: colors.primary.dark,
+              },
+            }}
+          >
+            Thêm nhân viên
+          </Button>
+        </Box>
         {/* Stats Card */}
         <Box
           sx={{
@@ -647,6 +686,11 @@ const StaffManagement: React.FC = () => {
             />
           )}
         </Paper>
+        <AddStaffDialog
+          open={openAddDialog}
+          onClose={() => setOpenAddDialog(false)}
+          onSuccess={handleAddSuccess}
+        />
       </Container>
     </Box>
   );
