@@ -197,7 +197,7 @@ const BookingDetail: React.FC = () => {
         <Box sx={{ mb: 4 }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
             <IconButton
-              onClick={() => navigate("/staff/my-assignments")}
+              onClick={() => navigate("/staff/check-booking")}
               sx={{
                 bgcolor: "white",
                 border: "1px solid #E5E7EB",
@@ -435,7 +435,9 @@ const BookingDetail: React.FC = () => {
                       variant="body1"
                       sx={{ fontWeight: 600, color: "#1F2937" }}
                     >
-                      {booking.location ? `${booking.location.district}, ${booking.location.province}` : "N/A"}
+                      {booking.location
+                        ? `${booking.location.district}, ${booking.location.province}`
+                        : "N/A"}
                     </Typography>
                   </Box>
                 </Box>

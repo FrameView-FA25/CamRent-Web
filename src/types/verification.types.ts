@@ -22,6 +22,14 @@ export interface CreateVerificationResponse {
   data?: [];
 }
 
+export interface VerificationInspectionMedia {
+  id: string;
+  url: string;
+  contentType: string;
+  sizeBytes: number;
+  label: string;
+}
+
 export interface VerificationInspection {
   id: string;
   itemName: string;
@@ -29,9 +37,9 @@ export interface VerificationInspection {
   section: string;
   label: string;
   value: string;
-  passed: boolean;
+  passed: boolean | null;
   notes: string;
-  media: string[];
+  media: VerificationInspectionMedia[];
 }
 
 export interface Verification {
