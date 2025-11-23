@@ -108,11 +108,19 @@ const InspectionDialog: React.FC<InspectionDialogProps> = ({
       }
       // Nếu chọn thiết bị thì tự động fill ItemType
       if (name === "ItemId") {
-        const selectedItem = items.find((it) => it.itemId === value);
+        // value luôn là string, itemId có thể là string hoặc number
+        const selectedItem = items.find((it) => String(it.itemId) === value);
+        // Chuyển string thành tên loại thiết bị
+        const getItemTypeName = (type: string) => {
+          if (type === "1" || type === "Camera") return "Camera";
+          if (type === "2" || type === "Accessory") return "Accessory";
+          if (type === "3" || type === "Combo") return "Combo";
+          return "";
+        };
         return {
           ...f,
           ItemId: value,
-          ItemType: selectedItem ? String(selectedItem.itemType) : "",
+          ItemType: selectedItem ? getItemTypeName(selectedItem.itemType) : "",
         };
       }
       return {
@@ -145,10 +153,34 @@ const InspectionDialog: React.FC<InspectionDialogProps> = ({
       alert("Vui lòng chọn Type!");
       return;
     }
+    // Chuyển tên loại thiết bị thành số trước khi gửi
+    const getItemTypeNumber = (typeName: string): number => {
+      switch (typeName) {
+        case "Camera":
+          return 1;
+        case "Accessory":
+          return 2;
+        case "Combo":
+          return 3;
+        default:
+          return 0;
+      }
+    };
+
     // Loại bỏ các trường không cần thiết khi gửi lên
-    const submitData = { ...form };
+    const submitData: Record<string, unknown> = { ...form };
     delete submitData.files;
-    delete submitData.images;
+
+    // Chuyển ItemType từ tên sang số
+    submitData.ItemType = getItemTypeNumber(form.ItemType);
+
+    // Convert FileList to array for images (nếu cần upload)
+    if (form.images) {
+      submitData.images = Array.from(form.images);
+    } else {
+      delete submitData.images;
+    }
+
     onSubmit(submitData);
   };
 
@@ -183,14 +215,14 @@ const InspectionDialog: React.FC<InspectionDialogProps> = ({
           select
           label="Thiết bị"
           name="ItemId"
-          value={form.ItemId}
+          value={form.ItemId || ""}
           onChange={handleChange}
           fullWidth
           sx={{ mb: 2 }}
         >
           <MenuItem value="">-- Chọn thiết bị --</MenuItem>
           {items.map((it) => (
-            <MenuItem key={it.itemId} value={it.itemId}>
+            <MenuItem key={String(it.itemId)} value={String(it.itemId)}>
               {it.itemName}
             </MenuItem>
           ))}

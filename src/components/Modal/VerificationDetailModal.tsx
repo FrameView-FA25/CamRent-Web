@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -16,12 +17,14 @@ import {
   TableHead,
   TableRow,
   IconButton,
+  Modal,
 } from "@mui/material";
 import {
   Close as CloseIcon,
   CheckCircle as CheckCircleIcon,
   Cancel as CancelIcon,
   CameraAlt as CameraIcon,
+  ZoomIn as ZoomInIcon,
 } from "@mui/icons-material";
 import type { Verification } from "../../types/verification.types";
 
@@ -36,6 +39,8 @@ export default function VerificationDetailModal({
   onClose,
   verification,
 }: VerificationDetailModalProps) {
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
   if (!verification) return null;
 
   const getStatusColor = (status: string) => {
@@ -466,6 +471,15 @@ export default function VerificationDetailModal({
                             >
                               Ghi chú
                             </TableCell>
+                            <TableCell
+                              sx={{
+                                fontWeight: 700,
+                                color: "#475569",
+                                fontSize: "0.75rem",
+                              }}
+                            >
+                              Ảnh
+                            </TableCell>
                           </TableRow>
                         </TableHead>
                         <TableBody>
@@ -507,7 +521,7 @@ export default function VerificationDetailModal({
                                 </Typography>
                               </TableCell>
                               <TableCell align="center">
-                                {inspection.passed ? (
+                                {inspection.passed === true ? (
                                   <Chip
                                     icon={<CheckCircleIcon />}
                                     label="Đạt"
@@ -521,7 +535,7 @@ export default function VerificationDetailModal({
                                       },
                                     }}
                                   />
-                                ) : (
+                                ) : inspection.passed === false ? (
                                   <Chip
                                     icon={<CancelIcon />}
                                     label="Không đạt"
@@ -535,6 +549,16 @@ export default function VerificationDetailModal({
                                       },
                                     }}
                                   />
+                                ) : (
+                                  <Chip
+                                    label="Chưa đánh giá"
+                                    size="small"
+                                    sx={{
+                                      bgcolor: "#F1F5F9",
+                                      color: "#64748B",
+                                      fontWeight: 600,
+                                    }}
+                                  />
                                 )}
                               </TableCell>
                               <TableCell>
@@ -546,6 +570,80 @@ export default function VerificationDetailModal({
                                 >
                                   {inspection.notes || "-"}
                                 </Typography>
+                              </TableCell>
+                              <TableCell>
+                                {inspection.media &&
+                                inspection.media.length > 0 ? (
+                                  <Box
+                                    sx={{
+                                      display: "flex",
+                                      gap: 1,
+                                      flexWrap: "wrap",
+                                    }}
+                                  >
+                                    {inspection.media.map((mediaItem) => (
+                                      <Box
+                                        key={mediaItem.id}
+                                        sx={{
+                                          position: "relative",
+                                          cursor: "pointer",
+                                          "&:hover": {
+                                            opacity: 0.8,
+                                          },
+                                        }}
+                                        onClick={() =>
+                                          setSelectedImage(mediaItem.url)
+                                        }
+                                      >
+                                        <Box
+                                          component="img"
+                                          src={mediaItem.url}
+                                          alt={
+                                            mediaItem.label ||
+                                            "Inspection image"
+                                          }
+                                          sx={{
+                                            width: 60,
+                                            height: 60,
+                                            objectFit: "cover",
+                                            borderRadius: 1,
+                                            border: "1px solid #E2E8F0",
+                                          }}
+                                        />
+                                        <Box
+                                          sx={{
+                                            position: "absolute",
+                                            top: 4,
+                                            right: 4,
+                                            bgcolor: "rgba(0,0,0,0.5)",
+                                            borderRadius: "50%",
+                                            p: 0.5,
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                          }}
+                                        >
+                                          <ZoomInIcon
+                                            sx={{
+                                              color: "white",
+                                              fontSize: 16,
+                                            }}
+                                          />
+                                        </Box>
+                                      </Box>
+                                    ))}
+                                  </Box>
+                                ) : (
+                                  <Typography
+                                    sx={{
+                                      color: "#94A3B8",
+                                      fontSize: "0.875rem",
+                                      fontStyle: "italic",
+                                    }}
+                                  >
+                                    Không có ảnh
+                                  </Typography>
+                                )}
                               </TableCell>
                             </TableRow>
                           ))}
@@ -605,6 +703,59 @@ export default function VerificationDetailModal({
           Đóng
         </Button>
       </DialogActions>
+
+      {/* Modal xem ảnh lớn */}
+      <Modal
+        open={selectedImage !== null}
+        onClose={() => setSelectedImage(null)}
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Box
+          sx={{
+            position: "relative",
+            maxWidth: "90vw",
+            maxHeight: "90vh",
+            bgcolor: "background.paper",
+            borderRadius: 2,
+            p: 2,
+            outline: "none",
+          }}
+        >
+          <IconButton
+            onClick={() => setSelectedImage(null)}
+            sx={{
+              position: "absolute",
+              top: 8,
+              right: 8,
+              bgcolor: "rgba(0,0,0,0.5)",
+              color: "white",
+              zIndex: 1,
+              "&:hover": {
+                bgcolor: "rgba(0,0,0,0.7)",
+              },
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+          {selectedImage && (
+            <Box
+              component="img"
+              src={selectedImage}
+              alt="Inspection image"
+              sx={{
+                maxWidth: "100%",
+                maxHeight: "90vh",
+                objectFit: "contain",
+                display: "block",
+              }}
+            />
+          )}
+        </Box>
+      </Modal>
     </Dialog>
   );
 }

@@ -160,10 +160,13 @@ const Inspections: React.FC = () => {
     try {
       const formData = new FormData();
       Object.entries(form).forEach(([key, value]) => {
-        if (key === "files" && value instanceof FileList) {
+        if (key === "images" && Array.isArray(value)) {
+          // Xử lý images array từ InspectionDialog
+          value.forEach((file) => formData.append("files", file));
+        } else if (key === "files" && value instanceof FileList) {
           Array.from(value).forEach((file) => formData.append("files", file));
-        } else {
-          formData.append(key, value != null ? String(value) : "");
+        } else if (value !== undefined && value !== null) {
+          formData.append(key, String(value));
         }
       });
       await createInspection(formData);
