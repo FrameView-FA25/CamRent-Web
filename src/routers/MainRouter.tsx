@@ -45,6 +45,7 @@ import ProductManagementPage from "@/pages/Manager/ProductManagement";
 import VerifyManagement from "@/pages/Manager/VerifyManagement";
 import CheckoutPage from "@/pages/Renter/CheckoutPage";
 import { ChatPage } from "@/pages/Renter/ChatPage";
+import ComparePage from "@/pages/Home/ComparePage";
 const routes: RouteObject[] = [
   {
     path: "/",
@@ -93,6 +94,10 @@ const routes: RouteObject[] = [
       {
         path: "*",
         element: <NotFoundPage />,
+      },
+      {
+        path: "/compare",
+        element: <ComparePage />,
       },
     ],
   },

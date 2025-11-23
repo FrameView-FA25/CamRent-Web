@@ -7,11 +7,14 @@ import { router } from "./routers/MainRouter";
 import "./styles/global.css";
 import "react-toastify/dist/ReactToastify.css";
 import { CartProvider } from "./context/CartContext";
+import { CompareProvider } from "./context/CompareContext/CompareContext";
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <CartProvider>
-      <RouterProvider router={router} />
-      <ToastContainer />
+      <CompareProvider>
+        <RouterProvider router={router} />
+        <ToastContainer />
+      </CompareProvider>
     </CartProvider>
   </StrictMode>
 );
