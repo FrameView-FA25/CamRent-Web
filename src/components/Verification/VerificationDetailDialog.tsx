@@ -163,7 +163,8 @@ const VerificationDetailDialog: React.FC<VerificationDetailDialogProps> = ({
                         }}
                       >
                         <ListItemIcon sx={{ minWidth: 40 }}>
-                          {item.itemType === "1" || item.itemType === "Camera" ? (
+                          {item.itemType === "1" ||
+                          item.itemType === "Camera" ? (
                             <Camera size={20} color={colors.primary.main} />
                           ) : (
                             <Package size={20} color={colors.accent.blue} />

@@ -1040,7 +1040,9 @@ const CheckBookings: React.FC = () => {
             items: (
               bookings.find((b) => b.id === selectedBookingId)?.items || []
             )
-              .filter((it) => it.itemType === "Camera" || it.itemType === "Accessory")
+              .filter(
+                (it) => it.itemType === "Camera" || it.itemType === "Accessory"
+              )
               .map((it) => {
                 // Chuyển itemType từ string sang format phù hợp
                 let itemTypeStr: VerificationItemType = "1";
