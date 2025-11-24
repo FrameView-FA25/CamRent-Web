@@ -17,12 +17,12 @@ import {
 import {
   Menu as MenuIcon,
   Home as HomeIcon,
-  ShoppingCart as OrdersIcon,
   ExitToApp as LogoutIcon,
   Person as PersonIcon,
   VerifiedUser as VerifiedUserIcon,
   CameraAlt as CameraIcon,
   Backpack as AccessoryIcon,
+  QrCodeScanner as QrCodeIcon,
 } from "@mui/icons-material";
 import { useAuth } from "../../hooks/useAuth";
 import { colors } from "../../theme/colors";
@@ -44,11 +44,16 @@ const menuItems = [
     icon: <AccessoryIcon />,
     path: "/owner/accessories",
   },
-  { text: "Đơn hàng", icon: <OrdersIcon />, path: "/owner/orders" },
+
   {
     text: "Quản lý xác minh",
     icon: <VerifiedUserIcon />,
     path: "/owner/verifications",
+  },
+  {
+    text: "Kiểm tra thiết bị",
+    icon: <QrCodeIcon />,
+    path: "/owner/qr-inspection",
   },
   { text: "Hồ sơ", icon: <PersonIcon />, path: "/owner/profile" },
 ];

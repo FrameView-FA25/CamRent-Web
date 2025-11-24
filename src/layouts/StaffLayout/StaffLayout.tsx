@@ -18,7 +18,6 @@ import {
   Menu as MenuIcon,
   Home as HomeIcon,
   People as PeopleIcon,
-  Inventory as ProductsIcon,
   ExitToApp as LogoutIcon,
   Person as PersonIcon,
   VerifiedUser as VerifiedUserIcon,
@@ -38,11 +37,6 @@ const menuItems = [
     text: "Kiểm tra xác minh",
     icon: <VerifiedUserIcon />,
     path: "/staff/verifications",
-  },
-  {
-    text: "Kiểm tra thiết bị",
-    icon: <ProductsIcon />,
-    path: "/staff/equipment-check",
   },
   // { text: "Đơn hàng", icon: <OrdersIcon />, path: "/staff/orders" }, // Removed as requested
   { text: "Hồ sơ", icon: <PersonIcon />, path: "/staff/profile" },

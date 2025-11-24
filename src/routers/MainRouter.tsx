@@ -17,7 +17,6 @@ import NotFoundPage from "../pages/Home/NotFoundPage";
 import DashboardOwner from "../pages/Owner/Dashboard/Dashboard";
 import CameraManagement from "../pages/Owner/CameraManagement/CameraManagement";
 import AccessoryManagement from "../pages/Owner/AccessoryManagement/AccessoryManagement";
-import OrderManagement from "../pages/Owner/OrderManagement/OrderManagement";
 import UserManagement from "../pages/Owner/UserManagement/UserManagement";
 import DashboardAdmin from "../pages/Admin/Dashboard/Dashboard";
 import AccountManagement from "../pages/Admin/AccountManagement/AccountManagement";
@@ -34,7 +33,6 @@ import StaffLayout from "../layouts/StaffLayout/StaffLayout";
 import CheckBooking from "../pages/Staff/CheckBooking";
 import ManagerProfile from "../pages/Manager/ManagerProfile";
 import StaffManagement from "../pages/Manager/StaffManagement";
-import EquipmentCheck from "../pages/Staff/EquipmentCheck";
 import BookingDetail from "../pages/Staff/BookingDetail";
 import Verifications from "../pages/Staff/InspectionsVerify";
 import VerificationDetailPage from "../pages/Staff/VerificationDetailPage";
@@ -47,6 +45,7 @@ import VerifyManagement from "@/pages/Manager/VerifyManagement";
 import CheckoutPage from "@/pages/Renter/CheckoutPage";
 import { ChatPage } from "@/pages/Renter/ChatPage";
 import ComparePage from "@/pages/Home/ComparePage";
+import CameraQrHistory from "@/pages/Owner/QRScanner/CameraQrHistory";
 const routes: RouteObject[] = [
   {
     path: "/",
@@ -123,10 +122,6 @@ const routes: RouteObject[] = [
         element: <AccessoryManagement />,
       },
       {
-        path: "orders",
-        element: <OrderManagement />,
-      },
-      {
         path: "users",
         element: <UserManagement />,
       },
@@ -137,6 +132,10 @@ const routes: RouteObject[] = [
       {
         path: "verifications",
         element: <VerificationManagement />,
+      },
+      {
+        path: "qr-inspection",
+        element: <CameraQrHistory />,
       },
     ],
   },
@@ -243,10 +242,6 @@ const routes: RouteObject[] = [
       {
         path: "booking/:id",
         element: <BookingDetail />,
-      },
-      {
-        path: "equipment-check",
-        element: <EquipmentCheck />,
       },
       {
         path: "profile",

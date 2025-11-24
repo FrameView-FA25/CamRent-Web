@@ -80,6 +80,60 @@ export interface AccessoriesResponse {
   items: Accessory[];
 }
 
+export interface CameraQrHistoryMedia extends CameraMedia {
+  id?: string;
+}
+
+export interface CameraQrHistoryCamera {
+  id: string;
+  brand: string;
+  model: string;
+  variant: string | null;
+  serialNumber: string | null;
+  branchName: string | null;
+  branchAddress: string | null;
+  itemType: string | number;
+  baseDailyRate: number;
+  estimatedValueVnd: number;
+  depositPercent: number;
+  depositCapMinVnd: number | null;
+  depositCapMaxVnd: number | null;
+  specsJson: string | null;
+  isConfirmed: boolean;
+  isAvailable: boolean;
+  location?: string | null;
+  ownerUserId?: string;
+  ownerName?: string | null;
+  media: CameraQrHistoryMedia[];
+}
+
+export interface CameraQrHistoryBooking {
+  bookingId: string;
+  pickupAt: string;
+  returnAt: string;
+  status: string;
+  statusText: string;
+  renterName: string | null;
+}
+
+export interface CameraQrHistoryInspection {
+  id: string;
+  itemName: string;
+  itemType: string;
+  section: string;
+  label: string;
+  value: string;
+  passed: boolean;
+  notes: string | null;
+  media: CameraQrHistoryMedia[];
+}
+
+export interface CameraQrHistoryResponse {
+  camera: CameraQrHistoryCamera;
+  bookings: CameraQrHistoryBooking[];
+  inspections: CameraQrHistoryInspection[];
+}
+
 // Service xử lý các API liên quan đến Camera
 export const cameraService = {
   /**
@@ -477,6 +531,57 @@ export const cameraService = {
       return data;
     } catch (error) {
       console.error("Lỗi khi lấy danh sách phụ kiện:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Lấy thông tin QR history cho camera
+   */
+  async getCameraQrHistory(
+    cameraId: string
+  ): Promise<CameraQrHistoryResponse> {
+    try {
+      const token = localStorage.getItem("accessToken");
+
+      if (!token) {
+        throw new Error(
+          "Không tìm thấy token xác thực. Vui lòng đăng nhập lại."
+        );
+      }
+
+      const response = await fetch(
+        `${API_BASE_URL}/Cameras/${cameraId}/qr-history`,
+        {
+          method: "GET",
+          headers: {
+            accept: "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.message ||
+            `Không thể lấy lịch sử camera (mã ${response.status})`
+        );
+      }
+
+      const data = (await response.json()) as CameraQrHistoryResponse;
+
+      if (!data || typeof data !== "object" || !data.camera) {
+        throw new Error("Dữ liệu trả về không hợp lệ");
+      }
+
+      return {
+        camera: data.camera,
+        bookings: Array.isArray(data.bookings) ? data.bookings : [],
+        inspections: Array.isArray(data.inspections) ? data.inspections : [],
+      };
+    } catch (error) {
+      console.error("Lỗi khi lấy QR history của camera:", error);
       throw error;
     }
   },

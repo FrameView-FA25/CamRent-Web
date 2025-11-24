@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Box,
   Typography,
@@ -27,6 +28,7 @@ import {
   Delete as DeleteIcon,
   Close as CloseIcon,
   Edit as EditIcon,
+  QrCodeScanner as QrCodeScannerIcon,
 } from "@mui/icons-material";
 import ModalAddCamera from "../../../components/Modal/Owner/ModalAddCamera";
 import ModalEditCamera from "../../../components/Modal/Owner/ModalEditCamera";
@@ -35,6 +37,7 @@ import type { Camera, CameraMedia } from "../../../services/camera.service";
 
 export default function CameraManagement() {
   // Sử dụng context thay vì state local
+  const navigate = useNavigate();
   const {
     cameras,
     loading,
@@ -891,6 +894,25 @@ export default function CameraManagement() {
                           }}
                         >
                           <EditIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Kiểm tra thiết bị">
+                        <IconButton
+                          size="small"
+                          onClick={() =>
+                            navigate(
+                              `/owner/qr-inspection?cameraId=${camera.id}`
+                            )
+                          }
+                          sx={{
+                            color: "#64748B",
+                            "&:hover": {
+                              bgcolor: "#FFF7ED",
+                              color: "#EA580C",
+                            },
+                          }}
+                        >
+                          <QrCodeScannerIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
                     </Box>
