@@ -15,6 +15,9 @@ import {
   CircularProgress,
   Tabs,
   Tab,
+  IconButton,
+  Badge,
+  Tooltip,
 } from "@mui/material";
 import { amber, grey } from "@mui/material/colors";
 import SearchIcon from "@mui/icons-material/Search";
@@ -25,10 +28,15 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import VerifiedIcon from "@mui/icons-material/Verified";
 import CancelIcon from "@mui/icons-material/Cancel";
+import CompareArrowsIcon from "@mui/icons-material/CompareArrows";
+import AddIcon from "@mui/icons-material/Add";
+import RemoveIcon from "@mui/icons-material/Remove";
 import type { Accessory } from "../../services/camera.service";
 import { colors } from "../../theme/colors";
 import type { Camera } from "../../types/product.types";
 import { useCameras, useAccessories } from "../../hooks/useProducts";
+import { useCompare } from "../../context/CompareContext/CompareContext";
+import { toast } from "react-toastify";
 
 const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat("vi-VN", {
@@ -40,10 +48,15 @@ const formatCurrency = (amount: number): string => {
 // Component ProductCard có thể hiển thị cả Camera và Accessory
 const ProductCard: React.FC<{ camera: Camera | Accessory }> = ({ camera }) => {
   const navigate = useNavigate();
+  const { compareIds, addToCompare, removeFromCompare, canAddMore } =
+    useCompare();
 
   // Lấy giá trị isConfirmed và isAvailable từ API
   const isVerified = camera.isConfirmed ?? false;
   const isAvailable = camera.isAvailable ?? false;
+
+  // Check if current camera is in compare list
+  const isInCompare = compareIds.includes(camera.id);
 
   // mock tạm thông tin owner (sau này thay bằng data từ API)
   const ownerName = camera.branchName || camera.ownerName;
@@ -69,6 +82,22 @@ const ProductCard: React.FC<{ camera: Camera | Accessory }> = ({ camera }) => {
 
   const mediaUrl = getMediaUrl();
 
+  const handleToggleCompare = (e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    if (isInCompare) {
+      removeFromCompare(camera.id);
+      toast.info("Removed from compare list");
+    } else {
+      if (!canAddMore) {
+        toast.warning("Maximum 3 cameras can be compared");
+        return;
+      }
+      addToCompare(camera.id);
+      toast.success("Added to compare list!");
+    }
+  };
+
   return (
     <Card
       elevation={2}
@@ -82,6 +111,9 @@ const ProductCard: React.FC<{ camera: Camera | Accessory }> = ({ camera }) => {
         bgcolor: "white",
         transition: "all 0.25s ease",
         cursor: "pointer",
+        border: isInCompare
+          ? `2px solid ${amber[600]}`
+          : "2px solid transparent",
         "&:hover": {
           transform: "translateY(-4px)",
           boxShadow: 6,
@@ -167,6 +199,60 @@ const ProductCard: React.FC<{ camera: Camera | Accessory }> = ({ camera }) => {
             border: isAvailable ? `1px solid ${grey[200]}` : "none",
           }}
         />
+
+        {/* Compare Button */}
+        <Tooltip title={isInCompare ? "Remove from compare" : "Add to compare"}>
+          <IconButton
+            onClick={handleToggleCompare}
+            sx={{
+              position: "absolute",
+              bottom: 12,
+              right: 12,
+              bgcolor: isInCompare ? amber[600] : "rgba(255,255,255,0.95)",
+              color: isInCompare ? "white" : grey[800],
+              width: 36,
+              height: 36,
+              boxShadow: 2,
+              "&:hover": {
+                bgcolor: isInCompare ? amber[700] : "white",
+                transform: "scale(1.1)",
+              },
+              transition: "all 0.2s ease",
+              border: `1px solid ${isInCompare ? amber[700] : grey[300]}`,
+            }}
+          >
+            {isInCompare ? (
+              <RemoveIcon fontSize="small" />
+            ) : (
+              <AddIcon fontSize="small" />
+            )}
+          </IconButton>
+        </Tooltip>
+
+        {/* Compare Badge Indicator */}
+        {isInCompare && (
+          <Box
+            sx={{
+              position: "absolute",
+              bottom: 12,
+              left: 12,
+              bgcolor: amber[600],
+              color: "white",
+              px: 1.5,
+              py: 0.5,
+              borderRadius: 999,
+              fontSize: 11,
+              fontWeight: 700,
+              display: "flex",
+              alignItems: "center",
+              gap: 0.5,
+              boxShadow: 2,
+            }}
+          >
+            <CompareArrowsIcon sx={{ fontSize: 14 }} />
+            In Compare
+          </Box>
+        )}
       </Box>
 
       <CardContent
@@ -359,11 +445,14 @@ const ProductCard: React.FC<{ camera: Camera | Accessory }> = ({ camera }) => {
 };
 
 const ProductPage: React.FC = () => {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [currentTab, setCurrentTab] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(20);
+
+  const { compareIds } = useCompare();
 
   const {
     cameras,
@@ -419,9 +508,60 @@ const ProductPage: React.FC = () => {
         sx={{
           py: 10,
           background: `linear-gradient(135deg, ${grey[100]}, ${grey[200]})`,
+          position: "relative",
         }}
       >
         <Container maxWidth="lg">
+          {/* Compare Floating Badge */}
+          {compareIds.length > 0 && (
+            <Box
+              sx={{
+                position: "fixed",
+                top: 100,
+                right: 24,
+                zIndex: 1000,
+              }}
+            >
+              <Button
+                variant="contained"
+                startIcon={<CompareArrowsIcon />}
+                onClick={() => navigate("/compare")}
+                sx={{
+                  bgcolor: amber[600],
+                  color: "white",
+                  fontWeight: 700,
+                  px: 3,
+                  py: 1.5,
+                  borderRadius: 999,
+                  boxShadow: 4,
+                  textTransform: "none",
+                  fontSize: "1rem",
+                  "&:hover": {
+                    bgcolor: amber[700],
+                    transform: "scale(1.05)",
+                  },
+                  transition: "all 0.2s ease",
+                }}
+              >
+                <Badge
+                  badgeContent={compareIds.length}
+                  color="error"
+                  sx={{
+                    "& .MuiBadge-badge": {
+                      right: -8,
+                      top: -8,
+                      fontWeight: 700,
+                    },
+                  }}
+                >
+                  <Typography sx={{ fontWeight: 700, mr: 1 }}>
+                    Compare Cameras
+                  </Typography>
+                </Badge>
+              </Button>
+            </Box>
+          )}
+
           <Typography variant="h3" sx={{ fontWeight: 800, mb: 1 }}>
             Khám phá Thiết bị
           </Typography>
@@ -432,6 +572,18 @@ const ProductPage: React.FC = () => {
             {currentTab === 0
               ? `${totalCameras} camera có sẵn`
               : `${totalAccessories} phụ kiện có sẵn`}
+            {compareIds.length > 0 && (
+              <Chip
+                label={`${compareIds.length} in compare list`}
+                size="small"
+                sx={{
+                  ml: 2,
+                  bgcolor: amber[100],
+                  color: amber[800],
+                  fontWeight: 600,
+                }}
+              />
+            )}
           </Typography>
 
           {/* Tabs để chuyển đổi giữa Cameras và Accessories */}
@@ -593,6 +745,26 @@ const ProductPage: React.FC = () => {
                 Hiển thị {filteredCameras.length} /{" "}
                 {currentTab === 0 ? totalCameras : totalAccessories} sản phẩm
               </Typography>
+              {compareIds.length > 0 && (
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<CompareArrowsIcon />}
+                  onClick={() => navigate("/compare")}
+                  sx={{
+                    borderColor: amber[600],
+                    color: amber[700],
+                    textTransform: "none",
+                    fontWeight: 600,
+                    "&:hover": {
+                      borderColor: amber[700],
+                      bgcolor: amber[50],
+                    },
+                  }}
+                >
+                  View Compare ({compareIds.length})
+                </Button>
+              )}
             </Box>
             <Box
               sx={{
