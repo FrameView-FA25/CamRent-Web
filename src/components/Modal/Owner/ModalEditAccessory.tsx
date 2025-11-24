@@ -46,7 +46,7 @@ interface AccessoryUpdateForm {
 interface MediaItem {
   id?: string;
   url: string;
-  type?: string;
+  contentType?: string;
 }
 
 const MAX_IMAGES = 4;
@@ -150,7 +150,8 @@ export default function ModalEditAccessory({
             mediaItems.push({
               id: getMediaId(m),
               url: m.url || "",
-              type: m.type,
+              contentType:
+                m.contentType || (m as { type?: string }).type || undefined,
             });
           }
         });

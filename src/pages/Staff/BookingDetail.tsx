@@ -325,15 +325,18 @@ const BookingDetail: React.FC = () => {
 
         <Box
           sx={{
-            display: "flex",
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", lg: "repeat(2, minmax(0, 1fr))" },
             gap: 3,
-            flexDirection: { xs: "column", lg: "row" },
+            mb: 4,
+            "& > *": { height: "100%" },
           }}
         >
-          {/* Left Column */}
-          <Box sx={{ flex: 1 }}>
-            {/* Customer Info */}
-            <Paper elevation={0} sx={{ p: 3, mb: 3, borderRadius: 3 }}>
+          {/* Customer Info */}
+          <Paper
+            elevation={0}
+            sx={{ p: 3, borderRadius: 3, display: "flex", flexDirection: "column" }}
+          >
               <Box
                 sx={{
                   display: "flex",
@@ -455,8 +458,11 @@ const BookingDetail: React.FC = () => {
               </Stack>
             </Paper>
 
-            {/* Delivery Info */}
-            <Paper elevation={0} sx={{ p: 3, borderRadius: 3 }}>
+          {/* Delivery Info */}
+          <Paper
+            elevation={0}
+            sx={{ p: 3, borderRadius: 3, display: "flex", flexDirection: "column" }}
+          >
               <Box
                 sx={{
                   display: "flex",
@@ -560,12 +566,12 @@ const BookingDetail: React.FC = () => {
                 </Box>
               </Stack>
             </Paper>
-          </Box>
 
-          {/* Right Column */}
-          <Box sx={{ flex: 1 }}>
-            {/* Equipment List */}
-            <Paper elevation={0} sx={{ p: 3, mb: 3, borderRadius: 3 }}>
+          {/* Equipment List */}
+          <Paper
+            elevation={0}
+            sx={{ p: 3, borderRadius: 3, display: "flex", flexDirection: "column" }}
+          >
               <Box
                 sx={{
                   display: "flex",
@@ -701,8 +707,11 @@ const BookingDetail: React.FC = () => {
               </Stack>
             </Paper>
 
-            {/* Payment Summary */}
-            <Paper elevation={0} sx={{ p: 3, borderRadius: 3 }}>
+          {/* Payment Summary */}
+          <Paper
+            elevation={0}
+            sx={{ p: 3, borderRadius: 3, display: "flex", flexDirection: "column" }}
+          >
               <Box
                 sx={{
                   display: "flex",
@@ -824,7 +833,6 @@ const BookingDetail: React.FC = () => {
                 </Box>
               </Stack>
             </Paper>
-          </Box>
         </Box>
 
         {/* Inspections Section */}
