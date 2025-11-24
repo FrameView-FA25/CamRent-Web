@@ -25,13 +25,15 @@ import {
   Assignment,
   Search,
   Refresh,
-  AddTask,
   Visibility,
   PendingActions,
   CheckCircle,
-  Cancel,
   TaskAlt,
   FilterList,
+  HourglassEmpty,
+  CheckCircleOutline,
+  PlaylistAddCheck,
+  Clear,
 } from "@mui/icons-material";
 import { createInspection } from "../../services/inspection.service";
 import InspectionDialog from "../../components/Modal/InspectionDialog";
@@ -39,30 +41,35 @@ import { verificationService } from "../../services/verification.service";
 import type { Verification } from "../../types/verification.types";
 import { toast } from "react-toastify";
 
-const getStatusColor = (status: string) => {
-  switch (status.toLowerCase()) {
-    case "pending":
-      return { color: "#F59E0B", bg: "#FEF3C7", icon: PendingActions };
-    case "approved":
-      return { color: "#10B981", bg: "#D1FAE5", icon: CheckCircle };
-    case "rejected":
-      return { color: "#EF4444", bg: "#FEE2E2", icon: Cancel };
-    case "completed":
-      return { color: "#3B82F6", bg: "#DBEAFE", icon: TaskAlt };
-    default:
-      return { color: "#6B7280", bg: "#F3F4F6", icon: Assignment };
-  }
+const statusPalette = {
+  warning: { base: "#F59E0B", icon: HourglassEmpty },
+  success: { base: "#10B981", icon: TaskAlt },
+  info: { base: "#0284C7", icon: CheckCircleOutline },
+  error: { base: "#F43F5E", icon: Clear },
+  default: { base: "#6B7280", icon: Assignment },
+} as const;
+
+type StatusPaletteKey = keyof typeof statusPalette;
+
+const verificationStatusMap: Record<
+  string,
+  { label: string; palette: StatusPaletteKey }
+> = {
+  pending: { label: "Chờ xử lý", palette: "warning" },
+  approved: { label: "Đã duyệt", palette: "info" },
+  completed: { label: "Hoàn thành", palette: "success" },
+  rejected: { label: "Từ chối", palette: "error" },
+  cancelled: { label: "Đã hủy", palette: "error" },
 };
 
-const getStatusLabel = (status: string) => {
-  const statusMap: Record<string, string> = {
-    pending: "Chờ xử lý",
-    approved: "Đã duyệt",
-    rejected: "Từ chối",
-    completed: "Hoàn thành",
-    cancelled: "Đã hủy",
-  };
-  return statusMap[status.toLowerCase()] || status;
+const getVerificationStatusInfo = (status: string) => {
+  const normalized = status?.toLowerCase?.() || "default";
+  return (
+    verificationStatusMap[normalized] || {
+      label: status,
+      palette: "default",
+    }
+  );
 };
 
 const Inspections: React.FC = () => {
@@ -690,8 +697,11 @@ const Inspections: React.FC = () => {
                   </TableRow>
                 ) : (
                   paginatedData.map((row) => {
-                    const statusInfo = getStatusColor(row.status);
-                    const StatusIcon = statusInfo.icon;
+                    const statusDisplay = getVerificationStatusInfo(row.status);
+                    const palette =
+                      statusPalette[statusDisplay.palette] ||
+                      statusPalette.default;
+                    const StatusIcon = palette.icon;
                     return (
                       <TableRow
                         key={row.id}
@@ -781,16 +791,20 @@ const Inspections: React.FC = () => {
                         <TableCell>
                           <Chip
                             icon={<StatusIcon sx={{ fontSize: 16 }} />}
-                            label={getStatusLabel(row.status)}
+                            label={statusDisplay.label}
                             size="small"
                             sx={{
-                              bgcolor: statusInfo.bg,
-                              color: statusInfo.color,
+                              borderRadius: 999,
+                              px: 1.25,
+                              height: 26,
+                              bgcolor: alpha(palette.base, 0.12),
+                              color: palette.base,
+                              border: `1px solid ${alpha(palette.base, 0.25)}`,
                               fontWeight: 600,
                               fontSize: "0.75rem",
-                              height: 28,
                               "& .MuiChip-icon": {
-                                color: statusInfo.color,
+                                color: palette.base,
+                                ml: 0.25,
                               },
                             }}
                           />
@@ -799,67 +813,62 @@ const Inspections: React.FC = () => {
                           <Box
                             sx={{
                               display: "flex",
-                              gap: 1,
+                              gap: 1.25,
                               justifyContent: "center",
+                              alignItems: "center",
                             }}
                           >
                             <Tooltip title="Xem chi tiết">
-                              <Button
-                                variant="outlined"
-                                size="small"
-                                startIcon={<Visibility fontSize="small" />}
+                              <IconButton
                                 onClick={() => handleViewDetail(row)}
+                                size="small"
                                 sx={{
-                                  borderColor: "#D1D5DB",
-                                  color: "#374151",
-                                  textTransform: "none",
-                                  fontWeight: 600,
                                   borderRadius: 2,
-                                  minWidth: 0,
-                                  px: 1.5,
-                                  py: 0.75,
-                                  fontSize: "0.8125rem",
-                                  "& .MuiButton-startIcon": { mr: 0.5 },
+                                  border: "1px solid #E5E7EB",
+                                  bgcolor: "#F3F4F6",
+                                  color: "#4B5563",
                                   "&:hover": {
-                                    bgcolor: "#F9FAFB",
-                                    borderColor: "#F97316",
+                                    bgcolor: "#FFF7ED",
                                     color: "#F97316",
+                                    borderColor: "#F97316",
                                   },
                                 }}
                               >
-                                Xem
-                              </Button>
+                                <Visibility fontSize="small" />
+                              </IconButton>
                             </Tooltip>
-                            <Tooltip title="Bắt đầu kiểm tra">
+                            <Tooltip title="Tạo phiếu kiểm tra">
                               <Button
                                 variant="contained"
                                 size="small"
-                                startIcon={<AddTask fontSize="small" />}
+                                startIcon={<PlaylistAddCheck fontSize="small" />}
                                 onClick={() => openInspectionDialog(row)}
                                 disabled={
                                   row.status.toLowerCase() !== "pending"
                                 }
                                 sx={{
-                                  bgcolor: "#F97316",
-                                  color: "#fff",
+                                  borderRadius: 999,
                                   textTransform: "none",
                                   fontWeight: 600,
-                                  borderRadius: 2,
+                                  px: 1.75,
+                                  height: 34,
                                   minWidth: 0,
-                                  px: 1.5,
-                                  py: 0.75,
-                                  fontSize: "0.8125rem",
+                                  whiteSpace: "nowrap",
+                                  background:
+                                    "linear-gradient(135deg, #F97316 0%, #EA580C 100%)",
                                   boxShadow:
-                                    "0 2px 8px rgba(249, 115, 22, 0.25)",
+                                    "0 6px 16px rgba(249, 115, 22, 0.25)",
                                   "& .MuiButton-startIcon": { mr: 0.5 },
                                   "&:hover": {
-                                    bgcolor: "#EA580C",
+                                    background:
+                                      "linear-gradient(135deg, #EA580C 0%, #C2410C 100%)",
                                     boxShadow:
-                                      "0 4px 12px rgba(249, 115, 22, 0.35)",
+                                      "0 10px 20px rgba(234, 88, 12, 0.35)",
                                   },
                                   "&:disabled": {
-                                    bgcolor: "#E5E7EB",
+                                    background: "#E5E7EB",
                                     color: "#9CA3AF",
+                                    boxShadow: "none",
                                   },
                                 }}
                               >

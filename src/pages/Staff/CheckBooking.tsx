@@ -790,6 +790,21 @@ const CheckBookings: React.FC = () => {
                 ) : (
                   paginatedBookings.map((booking) => {
                     const statusInfo = getStatusInfo(booking.statusText);
+                    const statusPalette: Record<
+                      string,
+                      { base: string; icon: typeof HourglassEmpty }
+                    > = {
+                      warning: { base: "#F59E0B", icon: HourglassEmpty },
+                      info: { base: "#0284C7", icon: CheckCircleOutline },
+                      primary: { base: "#4F46E5", icon: LocalShipping },
+                      success: { base: "#10B981", icon: TaskAlt },
+                      error: { base: "#F43F5E", icon: Clear },
+                      default: { base: "#6B7280", icon: Assignment },
+                    };
+                    const palette =
+                      statusPalette[statusInfo.color] ||
+                      statusPalette.default;
+                    const StatusIcon = palette.icon;
                     return (
                       <TableRow
                         key={booking.id}
@@ -880,41 +895,22 @@ const CheckBookings: React.FC = () => {
                         </TableCell>
                         <TableCell>
                           <Chip
+                            icon={<StatusIcon sx={{ fontSize: 16 }} />}
                             label={statusInfo.label}
-                            color={statusInfo.color}
                             size="small"
-                            icon={
-                              statusInfo.label === "Đã xác nhận" ? (
-                                <CheckCircleOutline
-                                  sx={{
-                                    fontSize: 16,
-                                    color: "#10B981 !important",
-                                  }}
-                                />
-                              ) : undefined
-                            }
                             sx={{
+                              borderRadius: 999,
+                              px: 1.25,
+                              height: 26,
                               fontWeight: 600,
                               fontSize: "0.75rem",
-                              borderRadius: 2,
-                              height: 28,
-                              ...(statusInfo.label === "Đã xác nhận"
-                                ? {
-                                    bgcolor: "#10B981",
-                                    color: "#FFFFFF",
-                                    boxShadow:
-                                      "0 2px 8px rgba(16, 185, 129, 0.3)",
-                                    "&:hover": {
-                                      bgcolor: "#059669",
-                                      boxShadow:
-                                        "0 4px 12px rgba(16, 185, 129, 0.4)",
-                                    },
-                                    background:
-                                      "linear-gradient(135deg, #10B981 0%, #059669 100%)",
-                                    border: "none",
-                                    transition: "all 0.3s ease",
-                                  }
-                                : {}),
+                              bgcolor: alpha(palette.base, 0.12),
+                              color: palette.base,
+                              border: `1px solid ${alpha(palette.base, 0.25)}`,
+                              "& .MuiChip-icon": {
+                                color: palette.base,
+                                ml: 0.25,
+                              },
                             }}
                           />
                         </TableCell>
@@ -922,60 +918,61 @@ const CheckBookings: React.FC = () => {
                           <Box
                             sx={{
                               display: "flex",
-                              gap: 1,
+                              gap: 1.25,
                               justifyContent: "center",
+                              alignItems: "center",
                             }}
                           >
-                            <Button
-                              variant="outlined"
-                              size="small"
-                              startIcon={<Visibility fontSize="small" />}
-                              onClick={() => handleViewDetail(booking)}
-                              sx={{
-                                borderColor: "#E5E7EB",
-                                color: "#374151",
-                                textTransform: "none",
-                                fontWeight: 600,
-                                borderRadius: 2,
-                                minWidth: 0,
-                                px: 1.5,
-                                py: 0.75,
-                                fontSize: "0.8125rem",
-                                "& .MuiButton-startIcon": { mr: 0.5 },
-                                "&:hover": {
-                                  bgcolor: "#F9FAFB",
-                                  borderColor: "#D1D5DB",
-                                },
-                              }}
-                            >
-                              Xem
-                            </Button>
-                            <Button
-                              variant="contained"
-                              size="small"
-                              startIcon={<PlaylistAddCheck fontSize="small" />}
-                              onClick={() => handleOpenInspection(booking.id)}
-                              sx={{
-                                bgcolor: "#F97316",
-                                color: "#fff",
-                                textTransform: "none",
-                                fontWeight: 600,
-                                borderRadius: 2,
-                                minWidth: 0,
-                                px: 1.5,
-                                py: 0.75,
-                                fontSize: "0.8125rem",
-                                boxShadow: "0 2px 8px rgba(249, 115, 22, 0.25)",
-                                "& .MuiButton-startIcon": { mr: 0.5 },
-                                "&:hover": {
-                                  bgcolor: "#EA580C",
+                            <Tooltip title="Xem chi tiết">
+                              <IconButton
+                                onClick={() => handleViewDetail(booking)}
+                                size="small"
+                                sx={{
+                                  borderRadius: 2,
+                                  border: "1px solid #E5E7EB",
+                                  bgcolor: "#F3F4F6",
+                                  color: "#4B5563",
+                                  "&:hover": {
+                                    bgcolor: "#FFF7ED",
+                                    color: "#F97316",
+                                    borderColor: "#F97316",
+                                  },
+                                }}
+                              >
+                                <Visibility fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Tạo phiếu kiểm tra">
+                              <Button
+                                variant="contained"
+                                size="small"
+                                startIcon={
+                                  <PlaylistAddCheck fontSize="small" />
+                                }
+                                onClick={() => handleOpenInspection(booking.id)}
+                                sx={{
+                                  borderRadius: 999,
+                                  textTransform: "none",
+                                  fontWeight: 600,
+                                  px: 1.75,
+                                  height: 34,
+                                  minWidth: 0,
+                                  background:
+                                    "linear-gradient(135deg, #F97316 0%, #EA580C 100%)",
                                   boxShadow:
-                                    "0 4px 12px rgba(249, 115, 22, 0.35)",
-                                },
-                              }}
-                            >
-                              Kiểm tra
-                            </Button>
+                                    "0 6px 16px rgba(249, 115, 22, 0.25)",
+                                  "& .MuiButton-startIcon": { mr: 0.5 },
+                                  "&:hover": {
+                                    background:
+                                      "linear-gradient(135deg, #EA580C 0%, #C2410C 100%)",
+                                    boxShadow:
+                                      "0 10px 20px rgba(234, 88, 12, 0.35)",
+                                  },
+                                }}
+                              >
+                                Kiểm tra
+                              </Button>
+                            </Tooltip>
                           </Box>
                         </TableCell>
                       </TableRow>

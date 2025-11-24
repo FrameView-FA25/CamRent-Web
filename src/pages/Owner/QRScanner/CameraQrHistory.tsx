@@ -8,7 +8,6 @@ import {
   Chip,
   CircularProgress,
   Divider,
-  Grid,
   Paper,
   Stack,
   Table,
@@ -393,40 +392,49 @@ const CameraQrHistory = () => {
                     </Stack>
                   </Stack>
 
-                  <Grid container spacing={2} mt={2}>
-                    <Grid item xs={12} sm={6} md={3}>
+                  <Box
+                    mt={2}
+                    display="grid"
+                    gap={2}
+                    gridTemplateColumns={{
+                      xs: "repeat(1, minmax(0, 1fr))",
+                      sm: "repeat(2, minmax(0, 1fr))",
+                      md: "repeat(4, minmax(0, 1fr))",
+                    }}
+                  >
+                    <Box>
                       <Typography variant="body2" color="#94A3B8">
                         Giá thuê / ngày
                       </Typography>
                       <Typography variant="h6" fontWeight={700}>
                         {formatCurrency(camera.baseDailyRate)}
                       </Typography>
-                    </Grid>
-                    <Grid item xs={12} sm={6} md={3}>
+                    </Box>
+                    <Box>
                       <Typography variant="body2" color="#94A3B8">
                         Giá trị thiết bị
                       </Typography>
                       <Typography variant="h6" fontWeight={700}>
                         {formatCurrency(camera.estimatedValueVnd)}
                       </Typography>
-                    </Grid>
-                    <Grid item xs={12} sm={6} md={3}>
+                    </Box>
+                    <Box>
                       <Typography variant="body2" color="#94A3B8">
                         Đặt cọc
                       </Typography>
                       <Typography variant="h6" fontWeight={700}>
                         {(camera.depositPercent * 100).toFixed(0)}%
                       </Typography>
-                    </Grid>
-                    <Grid item xs={12} sm={6} md={3}>
+                    </Box>
+                    <Box>
                       <Typography variant="body2" color="#94A3B8">
                         Chủ sở hữu
                       </Typography>
                       <Typography variant="h6" fontWeight={700}>
                         {camera.ownerName || "Bạn"}
                       </Typography>
-                    </Grid>
-                  </Grid>
+                    </Box>
+                  </Box>
 
                   {specs.length > 0 && (
                     <>
