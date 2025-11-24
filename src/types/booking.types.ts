@@ -65,7 +65,7 @@ export interface Booking {
   location: Location;
   branchId?: string;
   branch?: Branch | null;
-  status: string;
+  status: string; // "PendingApproval" | "Confirmed" | "InProgress" | "Completed" | "Cancelled"
   statusText: string;
   snapshotBaseDailyRate: number;
   snapshotDepositPercent: number;
