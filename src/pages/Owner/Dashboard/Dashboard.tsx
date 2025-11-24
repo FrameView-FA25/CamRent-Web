@@ -445,7 +445,7 @@ export default function Dashboard() {
             fontSize: { xs: "1.75rem", sm: "2rem" },
           }}
         >
-          Dashboard
+          Thống kê
         </Typography>
         <Typography variant="body2" sx={{ color: "#666" }}>
           Chào mừng trở lại! Đây là tổng quan về hoạt động kinh doanh của bạn.
