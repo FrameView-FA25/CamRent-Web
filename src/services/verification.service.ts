@@ -158,6 +158,42 @@ export const verificationService = {
   },
 
   /**
+   * Lấy thông tin chi tiết của một yêu cầu xác minh theo ID
+   * Quyền: Owner, BranchManager, Staff, Admin
+   * @param id - ID của verification cần lấy
+   * @returns Promise chứa thông tin verification
+   */
+  async getVerificationById(id: string): Promise<Verification> {
+    const token = localStorage.getItem("accessToken");
+
+    if (!token) {
+      throw new Error("Vui lòng đăng nhập để thực hiện thao tác này");
+    }
+
+    const response = await fetch(`${API_BASE_URL}/Verifications/${id}`, {
+      method: "GET",
+      headers: {
+        accept: "*/*",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      let errorMessage = `Lấy thông tin yêu cầu xác minh thất bại với mã lỗi ${response.status}`;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorMessage;
+      } catch {
+        const errorText = await response.text().catch(() => "");
+        if (errorText) errorMessage = errorText;
+      }
+      throw new Error(errorMessage);
+    }
+
+    return await response.json();
+  },
+
+  /**
    * Gán nhân viên (Staff) để xử lý yêu cầu xác minh
    * Dành cho BranchManager để phân công nhân viên kiểm tra và xác minh
    * Quyền: BranchManager, Admin

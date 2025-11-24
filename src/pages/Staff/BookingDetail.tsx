@@ -21,6 +21,12 @@ import {
   Avatar,
   IconButton,
   Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
 } from "@mui/material";
 import {
   ArrowBack,
@@ -37,6 +43,10 @@ import {
   AccessTime,
   Payment,
   CheckCircleOutline,
+  CheckCircle,
+  Cancel,
+  ZoomIn,
+  Close,
 } from "@mui/icons-material";
 import { fetchBookingById } from "../../services/booking.service";
 import type { Booking } from "../../types/booking.types";
@@ -66,6 +76,7 @@ const BookingDetail: React.FC = () => {
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [notes, setNotes] = useState("");
   const [deliveryPhotos, setDeliveryPhotos] = useState<File[]>([]);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -816,6 +827,381 @@ const BookingDetail: React.FC = () => {
           </Box>
         </Box>
 
+        {/* Inspections Section */}
+        {booking.inspections && booking.inspections.length > 0 && (
+          <Paper elevation={0} sx={{ p: 3, mb: 3, borderRadius: 3 }}>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 2,
+                mb: 3,
+              }}
+            >
+              <Box
+                sx={{
+                  width: 50,
+                  height: 50,
+                  borderRadius: 2,
+                  bgcolor: "#FEF3C7",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <TaskAlt sx={{ color: "#F59E0B", fontSize: 28 }} />
+              </Box>
+              <Box>
+                <Typography
+                  variant="h6"
+                  sx={{ fontWeight: 700, color: "#1F2937" }}
+                >
+                  Kết quả kiểm tra
+                </Typography>
+                <Typography variant="body2" sx={{ color: "#6B7280" }}>
+                  {booking.inspections.length} mục kiểm tra
+                </Typography>
+              </Box>
+            </Box>
+
+            <Divider sx={{ mb: 3 }} />
+
+            {/* Group inspections by itemName */}
+            {(() => {
+              const groupedInspections = booking.inspections.reduce(
+                (acc, inspection) => {
+                  const key = `${inspection.itemName}-${inspection.itemType}`;
+                  if (!acc[key]) {
+                    acc[key] = {
+                      itemName: inspection.itemName,
+                      itemType: inspection.itemType,
+                      inspections: [],
+                    };
+                  }
+                  acc[key].inspections.push(inspection);
+                  return acc;
+                },
+                {} as Record<
+                  string,
+                  {
+                    itemName: string;
+                    itemType: string;
+                    inspections: typeof booking.inspections;
+                  }
+                >
+              );
+
+              return (
+                <Stack spacing={3}>
+                  {Object.entries(groupedInspections).map(
+                    ([key, group]) => (
+                      <Box key={key}>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 2,
+                            mb: 2,
+                            p: 2,
+                            bgcolor: "#F9FAFB",
+                            borderRadius: 2,
+                          }}
+                        >
+                          <PhotoCamera
+                            sx={{
+                              color:
+                                group.itemType === "Camera"
+                                  ? "#059669"
+                                  : "#4F46E5",
+                              fontSize: 24,
+                            }}
+                          />
+                          <Box>
+                            <Typography
+                              variant="subtitle1"
+                              sx={{ fontWeight: 700, color: "#1F2937" }}
+                            >
+                              {group.itemName}
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              sx={{ color: "#6B7280" }}
+                            >
+                              {group.itemType} • {group.inspections.length} mục
+                              kiểm tra
+                            </Typography>
+                          </Box>
+                        </Box>
+
+                        <TableContainer
+                          component={Paper}
+                          elevation={0}
+                          sx={{
+                            border: "1px solid #E5E7EB",
+                            borderRadius: 2,
+                            overflow: "hidden",
+                          }}
+                        >
+                          <Table>
+                            <TableHead>
+                              <TableRow sx={{ bgcolor: "#F9FAFB" }}>
+                                <TableCell
+                                  sx={{
+                                    fontWeight: 700,
+                                    color: "#1F2937",
+                                    fontSize: "0.875rem",
+                                  }}
+                                >
+                                  Phần
+                                </TableCell>
+                                <TableCell
+                                  sx={{
+                                    fontWeight: 700,
+                                    color: "#1F2937",
+                                    fontSize: "0.875rem",
+                                  }}
+                                >
+                                  Nhãn
+                                </TableCell>
+                                <TableCell
+                                  sx={{
+                                    fontWeight: 700,
+                                    color: "#1F2937",
+                                    fontSize: "0.875rem",
+                                  }}
+                                >
+                                  Giá trị
+                                </TableCell>
+                                <TableCell
+                                  align="center"
+                                  sx={{
+                                    fontWeight: 700,
+                                    color: "#1F2937",
+                                    fontSize: "0.875rem",
+                                  }}
+                                >
+                                  Trạng thái
+                                </TableCell>
+                                <TableCell
+                                  sx={{
+                                    fontWeight: 700,
+                                    color: "#1F2937",
+                                    fontSize: "0.875rem",
+                                  }}
+                                >
+                                  Ghi chú
+                                </TableCell>
+                                <TableCell
+                                  sx={{
+                                    fontWeight: 700,
+                                    color: "#1F2937",
+                                    fontSize: "0.875rem",
+                                  }}
+                                >
+                                  Ảnh
+                                </TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              {group.inspections.map((inspection, idx) => (
+                                <TableRow
+                                  key={inspection.id}
+                                  sx={{
+                                    bgcolor:
+                                      idx % 2 === 0 ? "#FFFFFF" : "#FAFAFA",
+                                  }}
+                                >
+                                  <TableCell>
+                                    <Typography
+                                      sx={{
+                                        color: "#1F2937",
+                                        fontSize: "0.875rem",
+                                      }}
+                                    >
+                                      {inspection.section}
+                                    </Typography>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Typography
+                                      sx={{
+                                        color: "#1F2937",
+                                        fontSize: "0.875rem",
+                                      }}
+                                    >
+                                      {inspection.label}
+                                    </Typography>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Typography
+                                      sx={{
+                                        color: "#64748B",
+                                        fontSize: "0.875rem",
+                                      }}
+                                    >
+                                      {inspection.value}
+                                    </Typography>
+                                  </TableCell>
+                                  <TableCell align="center">
+                                    {inspection.passed === true ? (
+                                      <Chip
+                                        icon={<CheckCircle />}
+                                        label="Đạt"
+                                        size="small"
+                                        sx={{
+                                          bgcolor: "#F0FDF4",
+                                          color: "#10B981",
+                                          fontWeight: 600,
+                                          "& .MuiChip-icon": {
+                                            color: "#10B981",
+                                          },
+                                        }}
+                                      />
+                                    ) : inspection.passed === false ? (
+                                      <Chip
+                                        icon={<Cancel />}
+                                        label="Không đạt"
+                                        size="small"
+                                        sx={{
+                                          bgcolor: "#FEF2F2",
+                                          color: "#EF4444",
+                                          fontWeight: 600,
+                                          "& .MuiChip-icon": {
+                                            color: "#EF4444",
+                                          },
+                                        }}
+                                      />
+                                    ) : (
+                                      <Chip
+                                        label="Chưa đánh giá"
+                                        size="small"
+                                        sx={{
+                                          bgcolor: "#F1F5F9",
+                                          color: "#64748B",
+                                          fontWeight: 600,
+                                        }}
+                                      />
+                                    )}
+                                  </TableCell>
+                                  <TableCell>
+                                    <Typography
+                                      sx={{
+                                        color: "#64748B",
+                                        fontSize: "0.875rem",
+                                      }}
+                                    >
+                                      {inspection.notes || "-"}
+                                    </Typography>
+                                  </TableCell>
+                                  <TableCell>
+                                    {inspection.media &&
+                                    inspection.media.length > 0 ? (
+                                      <Box
+                                        sx={{
+                                          display: "flex",
+                                          gap: 1,
+                                          flexWrap: "wrap",
+                                        }}
+                                      >
+                                        {inspection.media.map((mediaItem) => (
+                                          <Box
+                                            key={mediaItem.id}
+                                            sx={{
+                                              position: "relative",
+                                              cursor: "pointer",
+                                              "&:hover": {
+                                                opacity: 0.8,
+                                              },
+                                            }}
+                                            onClick={() =>
+                                              setSelectedImage(mediaItem.url)
+                                            }
+                                          >
+                                            <Box
+                                              component="img"
+                                              src={mediaItem.url}
+                                              alt={
+                                                mediaItem.label ||
+                                                "Inspection image"
+                                              }
+                                              sx={{
+                                                width: 60,
+                                                height: 60,
+                                                objectFit: "cover",
+                                                borderRadius: 1,
+                                                border: "1px solid #E5E7EB",
+                                              }}
+                                            />
+                                            <Box
+                                              sx={{
+                                                position: "absolute",
+                                                top: 4,
+                                                right: 4,
+                                                bgcolor: "rgba(0,0,0,0.5)",
+                                                borderRadius: "50%",
+                                                p: 0.5,
+                                                display: "flex",
+                                                alignItems: "center",
+                                                justifyContent: "center",
+                                              }}
+                                            >
+                                              <ZoomIn
+                                                sx={{
+                                                  color: "white",
+                                                  fontSize: 16,
+                                                }}
+                                              />
+                                            </Box>
+                                          </Box>
+                                        ))}
+                                      </Box>
+                                    ) : (
+                                      <Typography
+                                        sx={{
+                                          color: "#94A3B8",
+                                          fontSize: "0.875rem",
+                                          fontStyle: "italic",
+                                        }}
+                                      >
+                                        Không có ảnh
+                                      </Typography>
+                                    )}
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </TableContainer>
+                      </Box>
+                    )
+                  )}
+                </Stack>
+              );
+            })()}
+          </Paper>
+        )}
+
+        {/* No Inspections Message */}
+        {(!booking.inspections ||
+          booking.inspections.length === 0) && (
+          <Paper
+            elevation={0}
+            sx={{
+              p: 3,
+              mb: 3,
+              border: "1px solid #E5E7EB",
+              borderRadius: 3,
+              textAlign: "center",
+            }}
+          >
+            <Typography
+              variant="body2"
+              sx={{ color: "#94A3B8", fontStyle: "italic" }}
+            >
+              Chưa có dữ liệu kiểm tra nào
+            </Typography>
+          </Paper>
+        )}
+
         {/* Update Status Dialog */}
         <Dialog
           open={updateDialogOpen}
@@ -1051,6 +1437,60 @@ const BookingDetail: React.FC = () => {
                 Xác nhận
               </Button>
             </Box>
+          </DialogContent>
+        </Dialog>
+
+        {/* Image Viewer Dialog */}
+        <Dialog
+          open={!!selectedImage}
+          onClose={() => setSelectedImage(null)}
+          maxWidth="lg"
+          fullWidth
+          PaperProps={{
+            sx: {
+              bgcolor: "rgba(0, 0, 0, 0.9)",
+              borderRadius: 2,
+            },
+          }}
+        >
+          <DialogContent
+            sx={{
+              p: 0,
+              position: "relative",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              minHeight: "70vh",
+            }}
+          >
+            <IconButton
+              onClick={() => setSelectedImage(null)}
+              sx={{
+                position: "absolute",
+                top: 16,
+                right: 16,
+                bgcolor: "rgba(255, 255, 255, 0.1)",
+                color: "white",
+                "&:hover": {
+                  bgcolor: "rgba(255, 255, 255, 0.2)",
+                },
+                zIndex: 1,
+              }}
+            >
+              <Close />
+            </IconButton>
+            {selectedImage && (
+              <Box
+                component="img"
+                src={selectedImage}
+                alt="Inspection image"
+                sx={{
+                  maxWidth: "100%",
+                  maxHeight: "90vh",
+                  objectFit: "contain",
+                }}
+              />
+            )}
           </DialogContent>
         </Dialog>
       </Container>

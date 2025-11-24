@@ -37,6 +37,7 @@ import StaffManagement from "../pages/Manager/StaffManagement";
 import EquipmentCheck from "../pages/Staff/EquipmentCheck";
 import BookingDetail from "../pages/Staff/BookingDetail";
 import Verifications from "../pages/Staff/InspectionsVerify";
+import VerificationDetailPage from "../pages/Staff/VerificationDetailPage";
 import RenterLayout from "../layouts/RenterLayout/RenterLayout";
 import RenterDashboard from "@/pages/Renter/Dashboard";
 import OrderPage from "@/pages/Renter/OrderPage";
@@ -234,6 +235,10 @@ const routes: RouteObject[] = [
       {
         path: "verifications",
         element: <Verifications />,
+      },
+      {
+        path: "verification/:id",
+        element: <VerificationDetailPage />,
       },
       {
         path: "booking/:id",

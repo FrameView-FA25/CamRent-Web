@@ -73,7 +73,7 @@ export interface Booking {
   snapshotRentalTotal: number;
   snapshotDepositAmount: number;
   items: BookingItem[];
-  inspections?: Inspection[];
+  inspections?: BookingInspection[];
   createdAt: string;
   updatedAt: string;
 }
@@ -153,6 +153,28 @@ export interface Inspection {
   branchId: string;
   notes: string;
   items: InspectionItem[];
+}
+
+// Booking Inspection Media (for inspections in booking details)
+export interface BookingInspectionMedia {
+  id: string;
+  url: string;
+  contentType: string;
+  sizeBytes: number;
+  label: string;
+}
+
+// Booking Inspection (matches API response structure)
+export interface BookingInspection {
+  id: string;
+  itemName: string;
+  itemType: string; // "Camera" | "Accessory"
+  section: string;
+  label: string;
+  value: string;
+  passed: boolean | null;
+  notes: string;
+  media: BookingInspectionMedia[];
 }
 
 export interface CreateInspectionRequest {

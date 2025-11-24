@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Box,
   Container,
@@ -36,7 +37,6 @@ import { createInspection } from "../../services/inspection.service";
 import InspectionDialog from "../../components/Modal/InspectionDialog";
 import { verificationService } from "../../services/verification.service";
 import type { Verification } from "../../types/verification.types";
-import VerificationDetailDialog from "../../components/Verification/VerificationDetailDialog";
 import { toast } from "react-toastify";
 
 const getStatusColor = (status: string) => {
@@ -66,15 +66,13 @@ const getStatusLabel = (status: string) => {
 };
 
 const Inspections: React.FC = () => {
+  const navigate = useNavigate();
   const [data, setData] = useState<Verification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [selectedVerification, setSelectedVerification] =
-    useState<Verification | null>(null);
-  const [openDetailDialog, setOpenDetailDialog] = useState(false);
 
   useEffect(() => {
     load();
@@ -151,8 +149,7 @@ const Inspections: React.FC = () => {
   };
 
   const handleViewDetail = (row: Verification) => {
-    setSelectedVerification(row);
-    setOpenDetailDialog(true);
+    navigate(`/staff/verification/${row.id}`);
   };
 
   // Xử lý submit tạo inspection
@@ -928,14 +925,6 @@ const Inspections: React.FC = () => {
               }
             : {}
         }
-      />
-      <VerificationDetailDialog
-        open={openDetailDialog}
-        onClose={() => {
-          setOpenDetailDialog(false);
-          setSelectedVerification(null);
-        }}
-        verification={selectedVerification}
       />
     </Box>
   );
