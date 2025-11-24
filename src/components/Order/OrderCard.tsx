@@ -522,7 +522,7 @@ const OrderCard: React.FC<OrderCardProps> = ({ booking, onMenuOpen }) => {
                   bgcolor: colors.primary.lighter,
                 },
               }}
-              onClick={() => navigate(`/renter/orders/${booking.id}`)}
+              onClick={() => navigate(`/renter/my-orders/${booking.id}`)}
             >
               Xem chi tiết
             </Button>

@@ -13,208 +13,89 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Stepper,
-  Step,
-  StepLabel,
-  StepContent,
   Skeleton,
+  ImageList,
+  ImageListItem,
+  Card,
+  CardContent,
 } from "@mui/material";
 import {
   ArrowLeft,
   Package,
-  Clock,
-  CheckCircle,
-  XCircle,
-  Truck,
   Camera,
   Calendar,
   MapPin,
-  User,
   Phone,
   Mail,
   FileText,
   Download,
   MessageSquare,
+  XCircle,
   AlertCircle,
   Shield,
+  CheckCircle,
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { colors } from "../../theme/colors";
+import type { BookingDetail } from "../../types/booking.types";
+import { toast } from "react-toastify";
+import { getOrderStatusInfo } from "../../utils/order.utils";
 
-interface OrderItem {
-  productId: string;
-  productName: string;
-  category: string;
-  quantity: number;
-  unitPrice: number;
-  depositAmount: number;
-  image: string;
-}
-
-interface OrderDetail {
-  id: string;
-  orderNumber: string;
-  status:
-    | "pending"
-    | "confirmed"
-    | "delivering"
-    | "delivered"
-    | "completed"
-    | "cancelled";
-  items: OrderItem[];
-  pickupDate: string;
-  returnDate: string;
-  deliveryAddress: string;
-  totalAmount: number;
-  depositAmount: number;
-  transportFee: number;
-  createdAt: string;
-  renter: {
-    id: string;
-    fullName: string;
-    email: string;
-    phoneNumber: string;
-    avatar: string;
-  };
-  delivery?: {
-    assigneeName: string;
-    assigneePhone: string;
-    estimatedTime: string;
-    trackingNumber: string;
-  };
-  timeline: {
-    status: string;
-    timestamp: string;
-    description: string;
-  }[];
-  contractUrl?: string;
-}
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 const OrderDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const { orderId } = useParams<{ orderId: string }>();
-  const [order, setOrder] = useState<OrderDetail | null>(null);
+  const [order, setOrder] = useState<BookingDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [openContractDialog, setOpenContractDialog] = useState(false);
   const [openCancelDialog, setOpenCancelDialog] = useState(false);
+  const [selectedInspectionImage, setSelectedInspectionImage] = useState<
+    string | null
+  >(null);
 
   useEffect(() => {
-    // Mock data
-    const mockOrder: OrderDetail = {
-      id: orderId || "1",
-      orderNumber: "ORD-2024-001",
-      status: "delivering",
-      items: [
-        {
-          productId: "1",
-          productName: "Canon EOS R5",
-          category: "Camera",
-          quantity: 1,
-          unitPrice: 3000000,
-          depositAmount: 1500000,
-          image: "",
-        },
-        {
-          productId: "2",
-          productName: "Lens RF 24-70mm f/2.8",
-          category: "Lens",
-          quantity: 1,
-          unitPrice: 1500000,
-          depositAmount: 500000,
-          image: "",
-        },
-      ],
-      pickupDate: "2024-11-15",
-      returnDate: "2024-11-22",
-      deliveryAddress: "123 Nguyễn Huệ, Quận 1, TP.HCM",
-      totalAmount: 4500000,
-      depositAmount: 2000000,
-      transportFee: 100000,
-      createdAt: "2024-11-10T10:30:00",
-      renter: {
-        id: "1",
-        fullName: "Nguyễn Văn A",
-        email: "nguyenvana@email.com",
-        phoneNumber: "0901234567",
-        avatar: "",
-      },
-      delivery: {
-        assigneeName: "Trần Văn B",
-        assigneePhone: "0912345678",
-        estimatedTime: "2024-11-15T14:00:00",
-        trackingNumber: "TRK-001-2024",
-      },
-      timeline: [
-        {
-          status: "Order Created",
-          timestamp: "2024-11-10T10:30:00",
-          description: "Your order has been created successfully",
-        },
-        {
-          status: "Payment Confirmed",
-          timestamp: "2024-11-10T11:00:00",
-          description: "Payment has been confirmed",
-        },
-        {
-          status: "Order Confirmed",
-          timestamp: "2024-11-10T12:00:00",
-          description: "Your order has been confirmed by the shop",
-        },
-        {
-          status: "Out for Delivery",
-          timestamp: "2024-11-14T08:00:00",
-          description: "Your order is on the way",
-        },
-      ],
-      contractUrl: "/contracts/contract-001.pdf",
-    };
-
-    setTimeout(() => {
-      setOrder(mockOrder);
-      setLoading(false);
-    }, 1000);
+    if (orderId) {
+      fetchOrderDetail();
+    }
   }, [orderId]);
 
-  const getStatusInfo = (status: OrderDetail["status"]) => {
-    const statusMap = {
-      pending: {
-        label: "Chờ xác nhận",
-        color: colors.status.warning,
-        bgColor: colors.status.warningLight,
-        icon: <Clock size={20} />,
-      },
-      confirmed: {
-        label: "Đã xác nhận",
-        color: colors.status.info,
-        bgColor: colors.status.infoLight,
-        icon: <CheckCircle size={20} />,
-      },
-      delivering: {
-        label: "Đang giao hàng",
-        color: colors.accent.blue,
-        bgColor: colors.accent.blueLight,
-        icon: <Truck size={20} />,
-      },
-      delivered: {
-        label: "Đã giao hàng",
-        color: colors.accent.purple,
-        bgColor: colors.accent.purpleLight,
-        icon: <Package size={20} />,
-      },
-      completed: {
-        label: "Hoàn thành",
-        color: colors.status.success,
-        bgColor: colors.status.successLight,
-        icon: <CheckCircle size={20} />,
-      },
-      cancelled: {
-        label: "Đã hủy",
-        color: colors.status.error,
-        bgColor: colors.status.errorLight,
-        icon: <XCircle size={20} />,
-      },
-    };
-    return statusMap[status];
+  const fetchOrderDetail = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const token = localStorage.getItem("accessToken");
+      if (!token) {
+        toast.warning("Please login to view order details");
+        navigate("/login");
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/Bookings/${orderId}`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch order details: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setOrder(data);
+    } catch (err) {
+      console.error("Error fetching order details:", err);
+      setError(
+        err instanceof Error ? err.message : "Failed to load order details"
+      );
+      toast.error("Failed to load order details");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const formatCurrency = (amount: number) => {
@@ -242,10 +123,34 @@ const OrderDetailPage: React.FC = () => {
     });
   };
 
-  const handleCancelOrder = () => {
-    // Handle cancel order logic
-    console.log("Cancel order:", orderId);
-    setOpenCancelDialog(false);
+  const formatLocation = (location: BookingDetail["location"]) => {
+    return `${location.district}, ${location.province}, ${location.country}`;
+  };
+
+  const calculateRentalDays = (pickupAt: string, returnAt: string) => {
+    const pickup = new Date(pickupAt);
+    const returnDate = new Date(returnAt);
+    const diffTime = Math.abs(returnDate.getTime() - pickup.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays || 1;
+  };
+
+  const handleCancelOrder = async () => {
+    try {
+      const token = localStorage.getItem("accessToken");
+      if (!token) {
+        toast.warning("Please login");
+        return;
+      }
+
+      // TODO: Implement cancel order API call
+      toast.success("Order cancelled successfully");
+      setOpenCancelDialog(false);
+      fetchOrderDetail(); // Refresh order data
+    } catch (err) {
+      console.error("Error cancelling order:", err);
+      toast.error("Failed to cancel order");
+    }
   };
 
   const handleViewContract = () => {
@@ -253,8 +158,7 @@ const OrderDetailPage: React.FC = () => {
   };
 
   const handleDownloadContract = () => {
-    // Handle download contract
-    console.log("Download contract");
+    toast.info("Contract download feature coming soon");
   };
 
   if (loading) {
@@ -285,7 +189,7 @@ const OrderDetailPage: React.FC = () => {
     );
   }
 
-  if (!order) {
+  if (error || !order) {
     return (
       <Box
         sx={{ bgcolor: colors.background.default, minHeight: "100vh", py: 4 }}
@@ -305,7 +209,7 @@ const OrderDetailPage: React.FC = () => {
               variant="h6"
               sx={{ color: colors.text.secondary, mt: 2, mb: 1 }}
             >
-              Order not found
+              {error || "Order not found"}
             </Typography>
             <Button
               variant="contained"
@@ -330,7 +234,12 @@ const OrderDetailPage: React.FC = () => {
     );
   }
 
-  const statusInfo = getStatusInfo(order.status);
+  const statusInfo = getOrderStatusInfo(order.status, order.statusText);
+  const rentalDays = calculateRentalDays(order.pickupAt, order.returnAt);
+  const platformFee =
+    order.snapshotRentalTotal * order.snapshotPlatformFeePercent;
+  const totalAmount =
+    order.snapshotRentalTotal + order.snapshotDepositAmount + platformFee;
 
   return (
     <Box sx={{ bgcolor: colors.background.default, minHeight: "100vh", py: 4 }}>
@@ -379,7 +288,7 @@ const OrderDetailPage: React.FC = () => {
                   variant="h4"
                   sx={{ fontWeight: 700, color: colors.text.primary }}
                 >
-                  {order.orderNumber}
+                  {order.id.slice(0, 13)}...
                 </Typography>
                 <Chip
                   icon={statusInfo.icon}
@@ -393,32 +302,40 @@ const OrderDetailPage: React.FC = () => {
                     },
                   }}
                 />
+                <Chip
+                  label={order.type}
+                  variant="outlined"
+                  sx={{
+                    borderColor: colors.primary.main,
+                    color: colors.primary.main,
+                    fontWeight: 600,
+                  }}
+                />
               </Box>
               <Typography variant="body2" sx={{ color: colors.text.secondary }}>
-                Created on {formatDateTime(order.createdAt)}
+                {rentalDays} ngày thuê • {formatDate(order.pickupAt)} -{" "}
+                {formatDate(order.returnAt)}
               </Typography>
             </Box>
 
             <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
-              {order.contractUrl && (
-                <Button
-                  variant="outlined"
-                  startIcon={<FileText size={18} />}
-                  sx={{
-                    borderColor: colors.primary.main,
-                    color: colors.primary.main,
-                    textTransform: "none",
-                    fontWeight: 600,
-                    "&:hover": {
-                      borderColor: colors.primary.dark,
-                      bgcolor: colors.primary.lighter,
-                    },
-                  }}
-                  onClick={handleViewContract}
-                >
-                  View Contract
-                </Button>
-              )}
+              <Button
+                variant="outlined"
+                startIcon={<FileText size={18} />}
+                sx={{
+                  borderColor: colors.primary.main,
+                  color: colors.primary.main,
+                  textTransform: "none",
+                  fontWeight: 600,
+                  "&:hover": {
+                    borderColor: colors.primary.dark,
+                    bgcolor: colors.primary.lighter,
+                  },
+                }}
+                onClick={handleViewContract}
+              >
+                View Contract
+              </Button>
 
               <Button
                 variant="outlined"
@@ -437,7 +354,7 @@ const OrderDetailPage: React.FC = () => {
                 Contact Support
               </Button>
 
-              {order.status === "pending" && (
+              {order.status === "PendingApproval" && (
                 <Button
                   variant="outlined"
                   startIcon={<XCircle size={18} />}
@@ -484,7 +401,7 @@ const OrderDetailPage: React.FC = () => {
                 variant="h6"
                 sx={{ fontWeight: 700, color: colors.text.primary, mb: 3 }}
               >
-                Order Items ({order.items.length})
+                Sản phẩm ({order.items.length})
               </Typography>
 
               <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
@@ -533,10 +450,10 @@ const OrderDetailPage: React.FC = () => {
                               mb: 0.5,
                             }}
                           >
-                            {item.productName}
+                            {item.itemName || "Camera"}
                           </Typography>
                           <Chip
-                            label={item.category}
+                            label={item.itemType}
                             size="small"
                             sx={{
                               bgcolor: colors.primary.lighter,
@@ -550,46 +467,21 @@ const OrderDetailPage: React.FC = () => {
                           variant="h6"
                           sx={{ fontWeight: 700, color: colors.primary.main }}
                         >
-                          {formatCurrency(item.unitPrice)}
+                          {formatCurrency(item.unitPrice)}/ngày
                         </Typography>
                       </Box>
 
-                      <Box sx={{ display: "flex", gap: 3, mt: 2 }}>
-                        <Box>
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              color: colors.text.secondary,
-                              display: "block",
-                            }}
-                          >
-                            Quantity
-                          </Typography>
-                          <Typography
-                            variant="body2"
-                            sx={{ fontWeight: 600, color: colors.text.primary }}
-                          >
-                            {item.quantity}
-                          </Typography>
-                        </Box>
-                        <Box>
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              color: colors.text.secondary,
-                              display: "block",
-                            }}
-                          >
-                            Deposit
-                          </Typography>
-                          <Typography
-                            variant="body2"
-                            sx={{ fontWeight: 600, color: colors.text.primary }}
-                          >
-                            {formatCurrency(item.depositAmount)}
-                          </Typography>
-                        </Box>
-                      </Box>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: colors.text.secondary,
+                          display: "block",
+                          fontFamily: "monospace",
+                          mt: 1,
+                        }}
+                      >
+                        ID: {item.itemId.slice(0, 13)}...
+                      </Typography>
                     </Box>
                   </Box>
                 ))}
@@ -610,7 +502,7 @@ const OrderDetailPage: React.FC = () => {
                 variant="h6"
                 sx={{ fontWeight: 700, color: colors.text.primary, mb: 3 }}
               >
-                Rental Information
+                Thông tin thuê
               </Typography>
 
               <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
@@ -629,13 +521,13 @@ const OrderDetailPage: React.FC = () => {
                         mb: 0.5,
                       }}
                     >
-                      Pickup Date
+                      Ngày nhận
                     </Typography>
                     <Typography
                       variant="body1"
                       sx={{ fontWeight: 600, color: colors.text.primary }}
                     >
-                      {formatDate(order.pickupDate)}
+                      {formatDateTime(order.pickupAt)}
                     </Typography>
                   </Box>
                 </Box>
@@ -657,13 +549,13 @@ const OrderDetailPage: React.FC = () => {
                         mb: 0.5,
                       }}
                     >
-                      Return Date
+                      Ngày trả
                     </Typography>
                     <Typography
                       variant="body1"
                       sx={{ fontWeight: 600, color: colors.text.primary }}
                     >
-                      {formatDate(order.returnDate)}
+                      {formatDateTime(order.returnAt)}
                     </Typography>
                   </Box>
                 </Box>
@@ -685,21 +577,21 @@ const OrderDetailPage: React.FC = () => {
                         mb: 0.5,
                       }}
                     >
-                      Delivery Address
+                      Địa điểm
                     </Typography>
                     <Typography
                       variant="body1"
                       sx={{ fontWeight: 600, color: colors.text.primary }}
                     >
-                      {order.deliveryAddress}
+                      {formatLocation(order.location)}
                     </Typography>
                   </Box>
                 </Box>
               </Box>
             </Paper>
 
-            {/* Delivery Information */}
-            {order.delivery && (
+            {/* Inspections */}
+            {order.inspections && order.inspections.length > 0 && (
               <Paper
                 elevation={0}
                 sx={{
@@ -713,261 +605,270 @@ const OrderDetailPage: React.FC = () => {
                   variant="h6"
                   sx={{ fontWeight: 700, color: colors.text.primary, mb: 3 }}
                 >
-                  Delivery Information
+                  Kiểm tra thiết bị ({order.inspections.length})
                 </Typography>
 
-                <Box
-                  sx={{
-                    p: 2.5,
-                    bgcolor: colors.accent.blueLight,
-                    borderRadius: 2,
-                    mb: 2.5,
-                  }}
-                >
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 1.5,
-                      mb: 1,
-                    }}
-                  >
-                    <Truck size={20} color={colors.accent.blue} />
-                    <Typography
-                      variant="body1"
-                      sx={{ fontWeight: 700, color: colors.accent.blue }}
-                    >
-                      Tracking Number: {order.delivery.trackingNumber}
-                    </Typography>
-                  </Box>
-                  <Typography
-                    variant="body2"
-                    sx={{ color: colors.text.secondary }}
-                  >
-                    Estimated delivery:{" "}
-                    {formatDateTime(order.delivery.estimatedTime)}
-                  </Typography>
-                </Box>
-
                 <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                  <Box sx={{ display: "flex", gap: 2 }}>
-                    <User
-                      size={24}
-                      color={colors.primary.main}
-                      style={{ flexShrink: 0 }}
-                    />
-                    <Box sx={{ flex: 1 }}>
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          color: colors.text.secondary,
-                          display: "block",
-                          mb: 0.5,
-                        }}
-                      >
-                        Delivery Staff
-                      </Typography>
-                      <Typography
-                        variant="body1"
-                        sx={{ fontWeight: 600, color: colors.text.primary }}
-                      >
-                        {order.delivery.assigneeName}
-                      </Typography>
-                    </Box>
-                  </Box>
+                  {order.inspections.map((inspection) => (
+                    <Card
+                      key={inspection.id}
+                      elevation={0}
+                      sx={{
+                        border: `1px solid ${colors.border.light}`,
+                        borderRadius: 2,
+                      }}
+                    >
+                      <CardContent>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "start",
+                            mb: 2,
+                          }}
+                        >
+                          <Box>
+                            <Typography
+                              variant="body1"
+                              sx={{
+                                fontWeight: 700,
+                                color: colors.text.primary,
+                                mb: 0.5,
+                              }}
+                            >
+                              {inspection.itemName}
+                            </Typography>
+                            <Chip
+                              label={inspection.itemType}
+                              size="small"
+                              sx={{
+                                bgcolor: colors.primary.lighter,
+                                color: colors.primary.main,
+                                fontWeight: 600,
+                              }}
+                            />
+                          </Box>
+                          {inspection.passed !== null && (
+                            <Chip
+                              icon={
+                                inspection.passed ? (
+                                  <CheckCircle size={16} />
+                                ) : (
+                                  <XCircle size={16} />
+                                )
+                              }
+                              label={inspection.passed ? "Passed" : "Failed"}
+                              size="small"
+                              sx={{
+                                bgcolor: inspection.passed
+                                  ? colors.status.successLight
+                                  : colors.status.errorLight,
+                                color: inspection.passed
+                                  ? colors.status.success
+                                  : colors.status.error,
+                                fontWeight: 600,
+                                "& .MuiChip-icon": {
+                                  color: "inherit",
+                                },
+                              }}
+                            />
+                          )}
+                        </Box>
 
-                  <Divider />
+                        <Box sx={{ mb: 2 }}>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: colors.text.secondary,
+                              display: "block",
+                            }}
+                          >
+                            Section: {inspection.section} • Label:{" "}
+                            {inspection.label}
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            sx={{ color: colors.text.primary, mt: 0.5 }}
+                          >
+                            Value: {inspection.value}
+                          </Typography>
+                          {inspection.notes && (
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                color: colors.text.secondary,
+                                mt: 0.5,
+                                fontStyle: "italic",
+                              }}
+                            >
+                              Notes: {inspection.notes}
+                            </Typography>
+                          )}
+                        </Box>
 
-                  <Box sx={{ display: "flex", gap: 2 }}>
-                    <Phone
-                      size={24}
-                      color={colors.status.success}
-                      style={{ flexShrink: 0 }}
-                    />
-                    <Box sx={{ flex: 1 }}>
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          color: colors.text.secondary,
-                          display: "block",
-                          mb: 0.5,
-                        }}
-                      >
-                        Phone Number
-                      </Typography>
-                      <Typography
-                        variant="body1"
-                        sx={{ fontWeight: 600, color: colors.text.primary }}
-                      >
-                        {order.delivery.assigneePhone}
-                      </Typography>
-                    </Box>
-                  </Box>
+                        {inspection.media && inspection.media.length > 0 && (
+                          <Box>
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                color: colors.text.secondary,
+                                display: "block",
+                                mb: 1,
+                              }}
+                            >
+                              Hình ảnh ({inspection.media.length})
+                            </Typography>
+                            <ImageList cols={3} gap={8} sx={{ m: 0 }}>
+                              {inspection.media.map((media) => (
+                                <ImageListItem
+                                  key={media.id}
+                                  sx={{
+                                    cursor: "pointer",
+                                    borderRadius: 1,
+                                    overflow: "hidden",
+                                    "&:hover": {
+                                      opacity: 0.8,
+                                    },
+                                  }}
+                                  onClick={() =>
+                                    setSelectedInspectionImage(media.url)
+                                  }
+                                >
+                                  <img
+                                    src={media.url}
+                                    alt={media.label}
+                                    loading="lazy"
+                                    style={{
+                                      width: "100%",
+                                      height: 100,
+                                      objectFit: "cover",
+                                    }}
+                                  />
+                                </ImageListItem>
+                              ))}
+                            </ImageList>
+                          </Box>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
                 </Box>
               </Paper>
             )}
-
-            {/* Order Timeline */}
-            <Paper
-              elevation={0}
-              sx={{
-                p: 3,
-                borderRadius: 3,
-                border: `1px solid ${colors.border.light}`,
-              }}
-            >
-              <Typography
-                variant="h6"
-                sx={{ fontWeight: 700, color: colors.text.primary, mb: 3 }}
-              >
-                Order Timeline
-              </Typography>
-
-              <Stepper orientation="vertical">
-                {order.timeline.map((item, index) => (
-                  <Step key={index} active completed>
-                    <StepLabel
-                      StepIconProps={{
-                        sx: {
-                          color: colors.primary.main,
-                          "&.Mui-completed": {
-                            color: colors.status.success,
-                          },
-                        },
-                      }}
-                    >
-                      <Typography
-                        variant="body1"
-                        sx={{ fontWeight: 600, color: colors.text.primary }}
-                      >
-                        {item.status}
-                      </Typography>
-                      <Typography
-                        variant="caption"
-                        sx={{ color: colors.text.secondary }}
-                      >
-                        {formatDateTime(item.timestamp)}
-                      </Typography>
-                    </StepLabel>
-                    <StepContent>
-                      <Typography
-                        variant="body2"
-                        sx={{ color: colors.text.secondary }}
-                      >
-                        {item.description}
-                      </Typography>
-                    </StepContent>
-                  </Step>
-                ))}
-              </Stepper>
-            </Paper>
           </Box>
 
           {/* Right Column */}
           <Box sx={{ width: { xs: "100%", lg: "400px" }, flexShrink: 0 }}>
             {/* Customer Information */}
-            <Paper
-              elevation={0}
-              sx={{
-                p: 3,
-                borderRadius: 3,
-                border: `1px solid ${colors.border.light}`,
-                mb: 3,
-              }}
-            >
-              <Typography
-                variant="h6"
-                sx={{ fontWeight: 700, color: colors.text.primary, mb: 3 }}
+            {order.renter && (
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 3,
+                  borderRadius: 3,
+                  border: `1px solid ${colors.border.light}`,
+                  mb: 3,
+                }}
               >
-                Customer Information
-              </Typography>
-
-              <Box
-                sx={{ display: "flex", alignItems: "center", gap: 2, mb: 3 }}
-              >
-                <Avatar
-                  sx={{
-                    width: 56,
-                    height: 56,
-                    bgcolor: colors.primary.main,
-                    fontSize: "1.5rem",
-                    fontWeight: 700,
-                  }}
+                <Typography
+                  variant="h6"
+                  sx={{ fontWeight: 700, color: colors.text.primary, mb: 3 }}
                 >
-                  {order.renter.fullName.charAt(0)}
-                </Avatar>
-                <Box>
-                  <Typography
-                    variant="body1"
-                    sx={{ fontWeight: 700, color: colors.text.primary }}
-                  >
-                    {order.renter.fullName}
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{ color: colors.text.secondary }}
-                  >
-                    Customer ID: {order.renter.id}
-                  </Typography>
-                </Box>
-              </Box>
+                  Thông tin khách hàng
+                </Typography>
 
-              <Divider sx={{ my: 2 }} />
-
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                <Box sx={{ display: "flex", gap: 2 }}>
-                  <Mail
-                    size={20}
-                    color={colors.text.secondary}
-                    style={{ flexShrink: 0, marginTop: 2 }}
-                  />
-                  <Box sx={{ flex: 1 }}>
+                <Box
+                  sx={{ display: "flex", alignItems: "center", gap: 2, mb: 3 }}
+                >
+                  <Avatar
+                    src={order.renter.avatar}
+                    sx={{
+                      width: 56,
+                      height: 56,
+                      bgcolor: colors.primary.main,
+                      fontSize: "1.5rem",
+                      fontWeight: 700,
+                    }}
+                  >
+                    {order.renter.fullName?.charAt(0) || "U"}
+                  </Avatar>
+                  <Box>
                     <Typography
-                      variant="caption"
-                      sx={{
-                        color: colors.text.secondary,
-                        display: "block",
-                        mb: 0.5,
-                      }}
+                      variant="body1"
+                      sx={{ fontWeight: 700, color: colors.text.primary }}
                     >
-                      Email
+                      {order.renter.fullName || "Unknown"}
                     </Typography>
                     <Typography
                       variant="body2"
-                      sx={{ fontWeight: 600, color: colors.text.primary }}
+                      sx={{ color: colors.text.secondary }}
                     >
-                      {order.renter.email}
+                      ID: {order.renterId.slice(0, 13)}...
                     </Typography>
                   </Box>
                 </Box>
 
-                <Box sx={{ display: "flex", gap: 2 }}>
-                  <Phone
-                    size={20}
-                    color={colors.text.secondary}
-                    style={{ flexShrink: 0, marginTop: 2 }}
-                  />
-                  <Box sx={{ flex: 1 }}>
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        color: colors.text.secondary,
-                        display: "block",
-                        mb: 0.5,
-                      }}
-                    >
-                      Phone Number
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      sx={{ fontWeight: 600, color: colors.text.primary }}
-                    >
-                      {order.renter.phoneNumber}
-                    </Typography>
-                  </Box>
+                <Divider sx={{ my: 2 }} />
+
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  {order.renter.email && (
+                    <Box sx={{ display: "flex", gap: 2 }}>
+                      <Mail
+                        size={20}
+                        color={colors.text.secondary}
+                        style={{ flexShrink: 0, marginTop: 2 }}
+                      />
+                      <Box sx={{ flex: 1 }}>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            color: colors.text.secondary,
+                            display: "block",
+                            mb: 0.5,
+                          }}
+                        >
+                          Email
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          sx={{ fontWeight: 600, color: colors.text.primary }}
+                        >
+                          {order.renter.email}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  )}
+
+                  {order.renter.phoneNumber && (
+                    <Box sx={{ display: "flex", gap: 2 }}>
+                      <Phone
+                        size={20}
+                        color={colors.text.secondary}
+                        style={{ flexShrink: 0, marginTop: 2 }}
+                      />
+                      <Box sx={{ flex: 1 }}>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            color: colors.text.secondary,
+                            display: "block",
+                            mb: 0.5,
+                          }}
+                        >
+                          Số điện thoại
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          sx={{ fontWeight: 600, color: colors.text.primary }}
+                        >
+                          {order.renter.phoneNumber}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  )}
                 </Box>
-              </Box>
-            </Paper>
+              </Paper>
+            )}
 
             {/* Payment Summary */}
             <Paper
@@ -983,7 +884,7 @@ const OrderDetailPage: React.FC = () => {
                 variant="h6"
                 sx={{ fontWeight: 700, color: colors.text.primary, mb: 3 }}
               >
-                Payment Summary
+                Chi tiết thanh toán
               </Typography>
 
               <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
@@ -998,13 +899,13 @@ const OrderDetailPage: React.FC = () => {
                     variant="body2"
                     sx={{ color: colors.text.secondary }}
                   >
-                    Rental Fee
+                    Phí thuê ({rentalDays} ngày)
                   </Typography>
                   <Typography
                     variant="body2"
                     sx={{ fontWeight: 600, color: colors.text.primary }}
                   >
-                    {formatCurrency(order.totalAmount)}
+                    {formatCurrency(order.snapshotRentalTotal)}
                   </Typography>
                 </Box>
 
@@ -1019,13 +920,14 @@ const OrderDetailPage: React.FC = () => {
                     variant="body2"
                     sx={{ color: colors.text.secondary }}
                   >
-                    Deposit Amount
+                    Tiền cọc ({(order.snapshotDepositPercent * 100).toFixed(0)}
+                    %)
                   </Typography>
                   <Typography
                     variant="body2"
                     sx={{ fontWeight: 600, color: colors.text.primary }}
                   >
-                    {formatCurrency(order.depositAmount)}
+                    {formatCurrency(order.snapshotDepositAmount)}
                   </Typography>
                 </Box>
 
@@ -1040,13 +942,14 @@ const OrderDetailPage: React.FC = () => {
                     variant="body2"
                     sx={{ color: colors.text.secondary }}
                   >
-                    Transport Fee
+                    Phí nền tảng (
+                    {(order.snapshotPlatformFeePercent * 100).toFixed(0)}%)
                   </Typography>
                   <Typography
                     variant="body2"
                     sx={{ fontWeight: 600, color: colors.text.primary }}
                   >
-                    {formatCurrency(order.transportFee)}
+                    {formatCurrency(platformFee)}
                   </Typography>
                 </Box>
 
@@ -1066,19 +969,27 @@ const OrderDetailPage: React.FC = () => {
                     variant="body1"
                     sx={{ fontWeight: 700, color: colors.text.primary }}
                   >
-                    Total Amount
+                    Tổng cộng
                   </Typography>
                   <Typography
                     variant="h6"
                     sx={{ fontWeight: 700, color: colors.primary.main }}
                   >
-                    {formatCurrency(
-                      order.totalAmount +
-                        order.depositAmount +
-                        order.transportFee
-                    )}
+                    {formatCurrency(totalAmount)}
                   </Typography>
                 </Box>
+
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: colors.text.secondary,
+                    textAlign: "center",
+                    mt: 1,
+                  }}
+                >
+                  Giá thuê cơ bản: {formatCurrency(order.snapshotBaseDailyRate)}
+                  /ngày
+                </Typography>
 
                 <Box
                   sx={{
@@ -1123,21 +1034,60 @@ const OrderDetailPage: React.FC = () => {
                     variant="body2"
                     sx={{ fontWeight: 700, color: colors.text.primary, mb: 1 }}
                   >
-                    Important Note
+                    Lưu ý quan trọng
                   </Typography>
                   <Typography
                     variant="body2"
                     sx={{ color: colors.text.secondary }}
                   >
-                    Please inspect all equipment upon delivery. Report any
-                    damages within 24 hours. Deposit will be refunded after
-                    equipment return and inspection.
+                    Vui lòng kiểm tra kỹ thiết bị khi nhận hàng. Báo cáo hư hỏng
+                    trong vòng 24 giờ. Tiền cọc sẽ được hoàn lại sau khi trả
+                    thiết bị và kiểm tra.
                   </Typography>
                 </Box>
               </Box>
             </Paper>
           </Box>
         </Box>
+
+        {/* Inspection Image Dialog */}
+        <Dialog
+          open={Boolean(selectedInspectionImage)}
+          onClose={() => setSelectedInspectionImage(null)}
+          maxWidth="md"
+          fullWidth
+        >
+          <DialogContent sx={{ p: 0, position: "relative" }}>
+            <IconButton
+              onClick={() => setSelectedInspectionImage(null)}
+              sx={{
+                position: "absolute",
+                top: 8,
+                right: 8,
+                bgcolor: "rgba(0,0,0,0.5)",
+                color: "white",
+                "&:hover": {
+                  bgcolor: "rgba(0,0,0,0.7)",
+                },
+                zIndex: 1,
+              }}
+            >
+              <XCircle size={20} />
+            </IconButton>
+            {selectedInspectionImage && (
+              <img
+                src={selectedInspectionImage}
+                alt="Inspection"
+                style={{
+                  width: "100%",
+                  height: "auto",
+                  maxHeight: "80vh",
+                  objectFit: "contain",
+                }}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
 
         {/* Contract Dialog */}
         <Dialog
@@ -1175,11 +1125,11 @@ const OrderDetailPage: React.FC = () => {
                 Camera Rental Agreement
               </Typography>
               <Typography variant="body2" sx={{ mb: 2 }}>
-                Contract Number: {order.orderNumber}
+                Contract ID: {order.id}
               </Typography>
               <Typography variant="body2" sx={{ mb: 2 }}>
                 This agreement is made between CamRent and{" "}
-                {order.renter.fullName}.
+                {order.renter?.fullName || "Customer"}.
               </Typography>
               <Typography variant="body2" sx={{ mb: 1 }}>
                 <strong>Terms and Conditions:</strong>
@@ -1187,11 +1137,18 @@ const OrderDetailPage: React.FC = () => {
               <Typography variant="body2" component="div" sx={{ mb: 2 }}>
                 <ol>
                   <li>
-                    The rental period is from {formatDate(order.pickupDate)} to{" "}
-                    {formatDate(order.returnDate)}
+                    Rental period: {formatDate(order.pickupAt)} to{" "}
+                    {formatDate(order.returnAt)} ({rentalDays} days)
                   </li>
-                  <li>Total rental fee: {formatCurrency(order.totalAmount)}</li>
-                  <li>Deposit amount: {formatCurrency(order.depositAmount)}</li>
+                  <li>
+                    Total rental fee:{" "}
+                    {formatCurrency(order.snapshotRentalTotal)}
+                  </li>
+                  <li>
+                    Deposit amount:{" "}
+                    {formatCurrency(order.snapshotDepositAmount)}
+                  </li>
+                  <li>Platform fee: {formatCurrency(platformFee)}</li>
                   <li>Equipment must be returned in original condition</li>
                   <li>Any damages will be deducted from the deposit</li>
                   <li>Late returns will incur additional charges</li>
@@ -1270,7 +1227,7 @@ const OrderDetailPage: React.FC = () => {
                 </Typography>
               </Box>
               <Typography variant="body2" sx={{ color: colors.text.secondary }}>
-                Order Number: <strong>{order.orderNumber}</strong>
+                Order ID: <strong>{order.id.slice(0, 13)}...</strong>
               </Typography>
             </Box>
           </DialogContent>

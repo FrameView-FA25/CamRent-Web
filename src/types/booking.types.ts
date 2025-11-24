@@ -191,3 +191,11 @@ export interface Location {
   province: string;
   district: string;
 }
+export interface BookingDetail extends Booking {
+  staffId?: string;
+  staff?: Staff | null;
+  branchId?: string;
+  branch?: Branch | null;
+  createdAt: string;
+  updatedAt: string;
+}

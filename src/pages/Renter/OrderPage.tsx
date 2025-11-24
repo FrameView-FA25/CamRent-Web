@@ -250,7 +250,7 @@ const OrderPage: React.FC = () => {
         >
           <MenuItem
             onClick={() => {
-              navigate(`/renter/orders/${selectedBooking?.id}`);
+              navigate(`/renter/my-orders/${selectedBooking?.id}`);
               handleMenuClose();
             }}
           >
