@@ -33,9 +33,13 @@ import {
   Visibility,
   PlaylistAddCheck,
   Clear,
+  Edit,
 } from "@mui/icons-material";
-import { fetchStaffBookings } from "../../services/booking.service";
-import type { Booking } from "../../types/booking.types";
+import {
+  fetchStaffBookings,
+  fetchBookingById,
+} from "../../services/booking.service";
+import type { Booking, BookingInspection } from "../../types/booking.types";
 import {
   formatCurrency,
   formatDate,
@@ -44,9 +48,19 @@ import {
 import { getItemName } from "../../helpers/booking.helper";
 import { useNavigate } from "react-router-dom";
 import CheckBookingDialog from "../../components/Modal/CheckBookingDialog";
-import { createInspection } from "../../services/inspection.service";
+import {
+  createInspection,
+  updateInspection,
+  deleteInspection,
+} from "../../services/inspection.service";
 import { toast } from "react-toastify";
 import type { VerificationItemType } from "../../types/verification.types";
+import InspectionListDialog, {
+  type InspectionListItem,
+} from "../../components/Modal/InspectionListDialog";
+import EditInspectionDialog, {
+  type EditInspectionFormState,
+} from "../../components/Modal/EditInspectionDialog";
 
 const CheckBookings: React.FC = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -60,6 +74,19 @@ const CheckBookings: React.FC = () => {
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(
     null
   );
+  const [inspectionListOpen, setInspectionListOpen] = useState(false);
+  const [inspectionListLoading, setInspectionListLoading] = useState(false);
+  const [inspectionListSubtitle, setInspectionListSubtitle] = useState("");
+  const [inspectionList, setInspectionList] = useState<InspectionListItem[]>(
+    []
+  );
+  const [editingInspection, setEditingInspection] =
+    useState<InspectionListItem | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [savingInspection, setSavingInspection] = useState(false);
+  const [deletingInspectionId, setDeletingInspectionId] = useState<
+    string | null
+  >(null);
   const navigate = useNavigate();
   useEffect(() => {
     loadAssignments();
@@ -104,15 +131,21 @@ const CheckBookings: React.FC = () => {
     setSelectedBookingId(null);
   };
 
-  const handleInspectionSuccess = async (data: any) => {
+  const handleInspectionSuccess = async (
+    data: Record<string, unknown>
+  ): Promise<void> => {
     try {
       // Tạo FormData từ dữ liệu form
       const formData = new FormData();
       Object.entries(data).forEach(([key, value]) => {
         if (key === "images" && Array.isArray(value)) {
-          value.forEach((file) => formData.append("files", file));
+          value.forEach((file) => {
+            if (file instanceof File) {
+              formData.append("files", file);
+            }
+          });
         } else if (value !== undefined && value !== null) {
-          formData.append(key, value as string);
+          formData.append(key, String(value));
         }
       });
       // Gọi API tạo inspection
@@ -131,9 +164,10 @@ const CheckBookings: React.FC = () => {
 
       await loadAssignments();
       setInspectionModalOpen(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Lỗi tạo kiểm tra:", err);
-      const errorMessage = err.message || "Có lỗi xảy ra khi tạo kiểm tra";
+      const errorMessage =
+        err instanceof Error ? err.message : "Có lỗi xảy ra khi tạo kiểm tra";
       setError(errorMessage);
       toast.error(errorMessage, {
         position: "top-right",
@@ -143,6 +177,128 @@ const CheckBookings: React.FC = () => {
         pauseOnHover: true,
         draggable: true,
       });
+    }
+  };
+
+  const mapBookingInspectionToListItem = (
+    inspection: BookingInspection
+  ): InspectionListItem => ({
+    id: inspection.id,
+    itemName: inspection.itemName,
+    itemType: inspection.itemType,
+    section: inspection.section,
+    label: inspection.label,
+    value: inspection.value,
+    notes: inspection.notes,
+    passed: inspection.passed ?? null,
+    media: inspection.media?.map((media) => ({
+      id: media.id,
+      url: media.url,
+      label: media.label,
+    })),
+  });
+
+  const shortId = (id: string) =>
+    id.length > 8 ? `${id.substring(0, 8)}...` : id;
+
+  const handleManageInspections = async (bookingId: string) => {
+    setInspectionListOpen(true);
+    setInspectionListLoading(true);
+    setInspectionListSubtitle(`Đơn hàng ${shortId(bookingId)}`);
+
+    try {
+      const { booking, error } = await fetchBookingById(bookingId);
+      if (error || !booking) {
+        throw new Error(error || "Không tìm thấy phiếu kiểm tra");
+      }
+      const mapped =
+        booking.inspections?.map(mapBookingInspectionToListItem) || [];
+      setInspectionList(mapped);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Không thể tải phiếu kiểm tra";
+      toast.error(message);
+      setInspectionList([]);
+    } finally {
+      setInspectionListLoading(false);
+    }
+  };
+
+  const handleCloseInspectionList = () => {
+    setInspectionListOpen(false);
+    setInspectionList([]);
+    setInspectionListSubtitle("");
+    setDeletingInspectionId(null);
+  };
+
+  const handleEditInspection = (inspection: InspectionListItem) => {
+    setEditingInspection(inspection);
+    setEditDialogOpen(true);
+  };
+
+  const handleCloseEditInspection = () => {
+    setEditDialogOpen(false);
+    setEditingInspection(null);
+  };
+
+  const handleSubmitEditInspection = async (
+    formState: EditInspectionFormState
+  ) => {
+    if (!editingInspection) return;
+    setSavingInspection(true);
+    try {
+      await updateInspection(editingInspection.id, {
+        section: formState.section,
+        label: formState.label,
+        value: formState.value || undefined,
+        notes: formState.notes || undefined,
+        passed: formState.passed,
+      });
+      setInspectionList((prev) =>
+        prev.map((item) =>
+          item.id === editingInspection.id
+            ? {
+                ...item,
+                section: formState.section,
+                label: formState.label,
+                value: formState.value,
+                notes: formState.notes,
+                passed: formState.passed,
+              }
+            : item
+        )
+      );
+      toast.success("Cập nhật phiếu kiểm tra thành công");
+      handleCloseEditInspection();
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Cập nhật phiếu kiểm tra thất bại";
+      toast.error(message);
+    } finally {
+      setSavingInspection(false);
+    }
+  };
+
+  const handleDeleteInspection = async (inspection: InspectionListItem) => {
+    const confirmDelete = window.confirm(
+      `Bạn có chắc muốn xóa phiếu kiểm tra "${
+        inspection.label || inspection.section
+      }"?`
+    );
+    if (!confirmDelete) return;
+    setDeletingInspectionId(inspection.id);
+    try {
+      await deleteInspection(inspection.id);
+      setInspectionList((prev) =>
+        prev.filter((item) => item.id !== inspection.id)
+      );
+      toast.success("Xóa phiếu kiểm tra thành công");
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Xóa phiếu kiểm tra thất bại";
+      toast.error(message);
+    } finally {
+      setDeletingInspectionId(null);
     }
   };
 
@@ -231,7 +387,7 @@ const CheckBookings: React.FC = () => {
                     fontSize: { xs: "1.75rem", sm: "2rem" },
                   }}
                 >
-                  Công việc của tôi
+                  Kiểm tra đơn hàng
                 </Typography>
                 <Typography
                   variant="body1"
@@ -802,8 +958,7 @@ const CheckBookings: React.FC = () => {
                       default: { base: "#6B7280", icon: Assignment },
                     };
                     const palette =
-                      statusPalette[statusInfo.color] ||
-                      statusPalette.default;
+                      statusPalette[statusInfo.color] || statusPalette.default;
                     const StatusIcon = palette.icon;
                     return (
                       <TableRow
@@ -942,26 +1097,44 @@ const CheckBookings: React.FC = () => {
                                 <Visibility fontSize="small" />
                               </IconButton>
                             </Tooltip>
+                            <Tooltip title="Chỉnh sửa phiếu kiểm tra">
+                              <IconButton
+                                onClick={() =>
+                                  handleManageInspections(booking.id)
+                                }
+                                size="small"
+                                sx={{
+                                  borderRadius: 2,
+                                  border: "1px solid #E5E7EB",
+                                  bgcolor: "#F3F4F6",
+                                  color: "#4B5563",
+                                  "&:hover": {
+                                    bgcolor: "#FFF7ED",
+                                    color: "#F97316",
+                                    borderColor: "#F97316",
+                                  },
+                                }}
+                              >
+                                <Edit fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
                             <Tooltip title="Tạo phiếu kiểm tra">
                               <Button
                                 variant="contained"
                                 size="small"
-                                startIcon={
-                                  <PlaylistAddCheck fontSize="small" />
-                                }
                                 onClick={() => handleOpenInspection(booking.id)}
+                                aria-label="Tạo phiếu kiểm tra"
                                 sx={{
                                   borderRadius: 999,
                                   textTransform: "none",
                                   fontWeight: 600,
-                                  px: 1.75,
+                                  px: 1.25,
                                   height: 34,
                                   minWidth: 0,
                                   background:
                                     "linear-gradient(135deg, #F97316 0%, #EA580C 100%)",
                                   boxShadow:
                                     "0 6px 16px rgba(249, 115, 22, 0.25)",
-                                  "& .MuiButton-startIcon": { mr: 0.5 },
                                   "&:hover": {
                                     background:
                                       "linear-gradient(135deg, #EA580C 0%, #C2410C 100%)",
@@ -970,7 +1143,7 @@ const CheckBookings: React.FC = () => {
                                   },
                                 }}
                               >
-                                Kiểm tra
+                                <PlaylistAddCheck fontSize="small" />
                               </Button>
                             </Tooltip>
                           </Box>
@@ -1057,6 +1230,27 @@ const CheckBookings: React.FC = () => {
           }}
         />
       )}
+      <InspectionListDialog
+        open={inspectionListOpen}
+        onClose={() => {
+          handleCloseInspectionList();
+          handleCloseEditInspection();
+        }}
+        title="Phiếu kiểm tra thiết bị"
+        subtitle={inspectionListSubtitle}
+        inspections={inspectionList}
+        loading={inspectionListLoading}
+        onEdit={handleEditInspection}
+        onDelete={handleDeleteInspection}
+        deletingInspectionId={deletingInspectionId}
+      />
+      <EditInspectionDialog
+        open={editDialogOpen}
+        inspection={editingInspection}
+        saving={savingInspection}
+        onClose={handleCloseEditInspection}
+        onSubmit={handleSubmitEditInspection}
+      />
     </Box>
   );
 };

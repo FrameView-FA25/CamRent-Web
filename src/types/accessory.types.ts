@@ -46,3 +46,27 @@ export interface AccessoryFilters {
   model?: string;
   branchName?: string;
 }
+
+export interface AccessoryQrHistoryResponse {
+  accessory: Accessory;
+  bookings: Array<AccessoryBooking>;
+  inspections: Array<AccessoryInspection>;
+}
+
+export interface AccessoryBooking {
+  bookingId: string;
+  renterName: string;
+  pickupAt: string;
+  returnAt: string;
+  status: string;
+}
+
+export interface AccessoryInspection {
+  id: string;
+  label?: string;
+  itemName?: string;
+  section?: string;
+  itemType?: string;
+  notes?: string;
+  passed: boolean;
+}
