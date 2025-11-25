@@ -2,6 +2,7 @@ import type {
   Accessory,
   AccessoryResponse,
   AccessoryFilters,
+  AccessoryQrHistoryResponse,
 } from "../types/accessory.types";
 
 // URL cơ sở của API backend
@@ -300,5 +301,26 @@ export const accessoryService = {
       console.error("API Error:", response.status, errorText);
       throw new Error(`HTTP error! status: ${response.status}`);
     }
+  },
+  getAccessoryQrHistory: async (
+    id: string
+  ): Promise<AccessoryQrHistoryResponse> => {
+    const token = localStorage.getItem("accessToken");
+    const headers: HeadersInit = {};
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    const response = await fetch(
+      `${API_BASE_URL}/Accessories/${id}/qr-history`,
+      {
+        method: "GET",
+        headers,
+      }
+    );
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(
+        errorText || `Lỗi lấy QR history phụ kiện (mã ${response.status})`
+      );
+    }
+    return await response.json();
   },
 };

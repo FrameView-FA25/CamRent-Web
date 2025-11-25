@@ -34,12 +34,26 @@ import {
   CheckCircleOutline,
   PlaylistAddCheck,
   Clear,
+  Edit,
 } from "@mui/icons-material";
-import { createInspection } from "../../services/inspection.service";
+import {
+  createInspection,
+  updateInspection,
+  deleteInspection,
+} from "../../services/inspection.service";
 import InspectionDialog from "../../components/Modal/InspectionDialog";
 import { verificationService } from "../../services/verification.service";
-import type { Verification } from "../../types/verification.types";
+import type {
+  Verification,
+  VerificationInspection,
+} from "../../types/verification.types";
 import { toast } from "react-toastify";
+import InspectionListDialog, {
+  type InspectionListItem,
+} from "../../components/Modal/InspectionListDialog";
+import EditInspectionDialog, {
+  type EditInspectionFormState,
+} from "../../components/Modal/EditInspectionDialog";
 
 const statusPalette = {
   warning: { base: "#F59E0B", icon: HourglassEmpty },
@@ -148,6 +162,19 @@ const Inspections: React.FC = () => {
   // State cho dialog tạo inspection
   const [openDialog, setOpenDialog] = useState(false);
   const [dialogRow, setDialogRow] = useState<Verification | null>(null);
+  const [inspectionListOpen, setInspectionListOpen] = useState(false);
+  const [inspectionListSubtitle, setInspectionListSubtitle] = useState("");
+  const [inspectionListLoading, setInspectionListLoading] = useState(false);
+  const [inspectionList, setInspectionList] = useState<InspectionListItem[]>(
+    []
+  );
+  const [editingInspection, setEditingInspection] =
+    useState<InspectionListItem | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [savingInspection, setSavingInspection] = useState(false);
+  const [deletingInspectionId, setDeletingInspectionId] = useState<
+    string | null
+  >(null);
 
   // Mở dialog với row tương ứng
   const openInspectionDialog = (row: Verification) => {
@@ -183,6 +210,130 @@ const Inspections: React.FC = () => {
           ? (err as { message?: unknown }).message
           : err;
       toast.error("Lỗi tạo kiểm tra: " + (message || "Không xác định"));
+    }
+  };
+
+  const mapVerificationInspectionToListItem = (
+    inspection: VerificationInspection
+  ): InspectionListItem => ({
+    id: inspection.id,
+    itemName: inspection.itemName,
+    itemType: inspection.itemType,
+    section: inspection.section,
+    label: inspection.label,
+    value: inspection.value,
+    notes: inspection.notes,
+    passed: inspection.passed ?? null,
+    media: inspection.media?.map((media) => ({
+      id: media.id,
+      url: media.url,
+      label: media.label,
+    })),
+  });
+
+  const shortId = (id: string) =>
+    id.length > 8 ? `${id.substring(0, 8)}...` : id;
+
+  const handleManageVerificationInspections = async (
+    verificationId: string
+  ) => {
+    setInspectionListOpen(true);
+    setInspectionListLoading(true);
+    setInspectionListSubtitle(`Yêu cầu ${shortId(verificationId)}`);
+    try {
+      const verificationDetail = await verificationService.getVerificationById(
+        verificationId
+      );
+      const mapped =
+        verificationDetail.inspections?.map(
+          mapVerificationInspectionToListItem
+        ) || [];
+      setInspectionList(mapped);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Không thể tải phiếu kiểm tra";
+      toast.error(message);
+      setInspectionList([]);
+    } finally {
+      setInspectionListLoading(false);
+    }
+  };
+
+  const handleCloseInspectionList = () => {
+    setInspectionListOpen(false);
+    setInspectionList([]);
+    setInspectionListSubtitle("");
+    setDeletingInspectionId(null);
+  };
+
+  const handleEditInspection = (inspection: InspectionListItem) => {
+    setEditingInspection(inspection);
+    setEditDialogOpen(true);
+  };
+
+  const handleCloseEditInspection = () => {
+    setEditDialogOpen(false);
+    setEditingInspection(null);
+  };
+
+  const handleSubmitEditInspection = async (
+    formState: EditInspectionFormState
+  ) => {
+    if (!editingInspection) return;
+    setSavingInspection(true);
+    try {
+      await updateInspection(editingInspection.id, {
+        section: formState.section,
+        label: formState.label,
+        value: formState.value || undefined,
+        notes: formState.notes || undefined,
+        passed: formState.passed,
+      });
+      setInspectionList((prev) =>
+        prev.map((item) =>
+          item.id === editingInspection.id
+            ? {
+                ...item,
+                section: formState.section,
+                label: formState.label,
+                value: formState.value,
+                notes: formState.notes,
+                passed: formState.passed,
+              }
+            : item
+        )
+      );
+      toast.success("Cập nhật phiếu kiểm tra thành công");
+      handleCloseEditInspection();
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Cập nhật phiếu kiểm tra thất bại";
+      toast.error(message);
+    } finally {
+      setSavingInspection(false);
+    }
+  };
+
+  const handleDeleteInspection = async (inspection: InspectionListItem) => {
+    const confirmDelete = window.confirm(
+      `Bạn có chắc muốn xóa phiếu kiểm tra "${
+        inspection.label || inspection.section
+      }"?`
+    );
+    if (!confirmDelete) return;
+    setDeletingInspectionId(inspection.id);
+    try {
+      await deleteInspection(inspection.id);
+      setInspectionList((prev) =>
+        prev.filter((item) => item.id !== inspection.id)
+      );
+      toast.success("Xóa phiếu kiểm tra thành công");
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Xóa phiếu kiểm tra thất bại";
+      toast.error(message);
+    } finally {
+      setDeletingInspectionId(null);
     }
   };
   return (
@@ -837,20 +988,41 @@ const Inspections: React.FC = () => {
                                 <Visibility fontSize="small" />
                               </IconButton>
                             </Tooltip>
+                            <Tooltip title="Chỉnh sửa phiếu kiểm tra">
+                              <IconButton
+                                onClick={() =>
+                                  handleManageVerificationInspections(row.id)
+                                }
+                                size="small"
+                                sx={{
+                                  borderRadius: 2,
+                                  border: "1px solid #E5E7EB",
+                                  bgcolor: "#F3F4F6",
+                                  color: "#4B5563",
+                                  "&:hover": {
+                                    bgcolor: "#FFF7ED",
+                                    color: "#F97316",
+                                    borderColor: "#F97316",
+                                  },
+                                }}
+                              >
+                                <Edit fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
                             <Tooltip title="Tạo phiếu kiểm tra">
                               <Button
                                 variant="contained"
                                 size="small"
-                                startIcon={<PlaylistAddCheck fontSize="small" />}
                                 onClick={() => openInspectionDialog(row)}
                                 disabled={
                                   row.status.toLowerCase() !== "pending"
                                 }
+                                aria-label="Tạo phiếu kiểm tra"
                                 sx={{
                                   borderRadius: 999,
                                   textTransform: "none",
                                   fontWeight: 600,
-                                  px: 1.75,
+                                  px: 1.25,
                                   height: 34,
                                   minWidth: 0,
                                   whiteSpace: "nowrap",
@@ -858,7 +1030,6 @@ const Inspections: React.FC = () => {
                                     "linear-gradient(135deg, #F97316 0%, #EA580C 100%)",
                                   boxShadow:
                                     "0 6px 16px rgba(249, 115, 22, 0.25)",
-                                  "& .MuiButton-startIcon": { mr: 0.5 },
                                   "&:hover": {
                                     background:
                                       "linear-gradient(135deg, #EA580C 0%, #C2410C 100%)",
@@ -872,7 +1043,7 @@ const Inspections: React.FC = () => {
                                   },
                                 }}
                               >
-                                Kiểm tra
+                                <PlaylistAddCheck fontSize="small" />
                               </Button>
                             </Tooltip>
                           </Box>
@@ -934,6 +1105,27 @@ const Inspections: React.FC = () => {
               }
             : {}
         }
+      />
+      <InspectionListDialog
+        open={inspectionListOpen}
+        onClose={() => {
+          handleCloseInspectionList();
+          handleCloseEditInspection();
+        }}
+        title="Phiếu kiểm tra thiết bị"
+        subtitle={inspectionListSubtitle}
+        inspections={inspectionList}
+        loading={inspectionListLoading}
+        onEdit={handleEditInspection}
+        onDelete={handleDeleteInspection}
+        deletingInspectionId={deletingInspectionId}
+      />
+      <EditInspectionDialog
+        open={editDialogOpen}
+        inspection={editingInspection}
+        saving={savingInspection}
+        onClose={handleCloseEditInspection}
+        onSubmit={handleSubmitEditInspection}
       />
     </Box>
   );
