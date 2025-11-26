@@ -46,6 +46,7 @@ import CheckoutPage from "@/pages/Renter/CheckoutPage";
 import { ChatPage } from "@/pages/Renter/ChatPage";
 import ComparePage from "@/pages/Home/ComparePage";
 import CameraQrHistory from "@/pages/Owner/QRScanner/CameraQrHistory";
+import RenterProfile from "@/pages/Renter/RenterProfile";
 const routes: RouteObject[] = [
   {
     path: "/",
@@ -272,6 +273,10 @@ const routes: RouteObject[] = [
       {
         path: "my-orders/:orderId",
         element: <OrderDetailPage />,
+      },
+      {
+        path: "profile",
+        element: <RenterProfile />,
       },
       {
         path: "chat",
