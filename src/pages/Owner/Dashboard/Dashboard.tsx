@@ -3,138 +3,35 @@ import {
   Card,
   CardContent,
   Typography,
-  Avatar,
-  Chip,
-  IconButton,
-  Button,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
+  Chip,
 } from "@mui/material";
 import {
   PhotoCamera as CameraIcon,
-  TrendingUp as TrendingUpIcon,
   AttachMoney as MoneyIcon,
   People as PeopleIcon,
-  Visibility as ViewIcon,
-  Edit as EditIcon,
-  MoreVert as MoreVertIcon,
-  ArrowUpward as ArrowUpIcon,
-  ArrowDownward as ArrowDownIcon,
 } from "@mui/icons-material";
 import type { ReactElement } from "react";
+import { useEffect, useMemo, useState } from "react";
+import type {
+  OwnerDashboardResponse,
+  TopRentedAsset,
+} from "../../../services/dashboard.service";
+import { dashboardService } from "../../../services/dashboard.service";
 
 // ===== TYPES =====
 
 interface StatItem {
   title: string;
   value: string;
-  change: string;
-  changeValue: string;
-  isPositive: boolean;
+  description?: string;
   icon: ReactElement;
 }
-
-interface Booking {
-  id: string;
-  customer: string;
-  camera: string;
-  startDate: string;
-  endDate: string;
-  amount: string;
-  status: "active" | "pending" | "completed";
-}
-
-interface WeeklyDataItem {
-  day: string;
-  value: number;
-}
-
-// ===== CONSTANTS =====
-
-const STATS: StatItem[] = [
-  {
-    title: "Total Page Views",
-    value: "4,42,236",
-    change: "59.3%",
-    changeValue: "35,000",
-    isPositive: true,
-    icon: <CameraIcon />,
-  },
-  {
-    title: "Total Users",
-    value: "78,250",
-    change: "70.5%",
-    changeValue: "8,900",
-    isPositive: true,
-    icon: <PeopleIcon />,
-  },
-  {
-    title: "Total Order",
-    value: "18,800",
-    change: "27.4%",
-    changeValue: "1,943",
-    isPositive: false,
-    icon: <MoneyIcon />,
-  },
-  {
-    title: "Total Sales",
-    value: "35,078",
-    change: "27.4%",
-    changeValue: "20,395",
-    isPositive: false,
-    icon: <TrendingUpIcon />,
-  },
-];
-
-const RECENT_BOOKINGS: Booking[] = [
-  {
-    id: "001",
-    customer: "Nguyễn Văn A",
-    camera: "Canon EOS R5",
-    startDate: "2024-01-15",
-    endDate: "2024-01-18",
-    amount: "₫1.200.000",
-    status: "active",
-  },
-  {
-    id: "002",
-    customer: "Trần Thị B",
-    camera: "Sony A7 IV",
-    startDate: "2024-01-20",
-    endDate: "2024-01-25",
-    amount: "₫1.500.000",
-    status: "pending",
-  },
-  {
-    id: "003",
-    customer: "Lê Minh C",
-    camera: "Fujifilm X-T5",
-    startDate: "2024-01-12",
-    endDate: "2024-01-14",
-    amount: "₫800.000",
-    status: "completed",
-  },
-];
-
-const WEEKLY_DATA: WeeklyDataItem[] = [
-  { day: "Mo", value: 45 },
-  { day: "Tu", value: 60 },
-  { day: "We", value: 50 },
-  { day: "Th", value: 30 },
-  { day: "Fr", value: 55 },
-  { day: "Sa", value: 40 },
-  { day: "Su", value: 70 },
-];
-
-const STATUS_MAP = {
-  active: { label: "Đang thuê", color: "success" as const },
-  pending: { label: "Chờ duyệt", color: "warning" as const },
-  completed: { label: "Hoàn thành", color: "info" as const },
-};
 
 // ===== COMPONENTS =====
 
@@ -162,164 +59,43 @@ const StatCard = ({ stat }: { stat: StatItem }) => (
       </Typography>
 
       <Box sx={{ display: "flex", alignItems: "baseline", mb: 1.5 }}>
+        <Box
+          sx={{
+            mr: 2,
+            width: 36,
+            height: 36,
+            borderRadius: "50%",
+            bgcolor: "#FFF7CC",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "#FFC800",
+          }}
+        >
+          {stat.icon}
+        </Box>
         <Typography
           variant="h4"
           sx={{ color: "#121212", fontWeight: 700, fontSize: "1.75rem" }}
         >
           {stat.value}
         </Typography>
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            ml: 2,
-            color: stat.isPositive ? "#4CAF50" : "#FF9800",
-          }}
-        >
-          {stat.isPositive ? (
-            <ArrowUpIcon sx={{ fontSize: 16 }} />
-          ) : (
-            <ArrowDownIcon sx={{ fontSize: 16 }} />
-          )}
-          <Typography
-            variant="body2"
-            sx={{ fontWeight: 600, fontSize: "0.875rem" }}
-          >
-            {stat.change}
-          </Typography>
-        </Box>
       </Box>
 
-      <Typography variant="body2" sx={{ color: "#999", fontSize: "0.75rem" }}>
-        You made an extra{" "}
-        <Box
-          component="span"
-          sx={{
-            color: stat.isPositive ? "#4CAF50" : "#FF9800",
-            fontWeight: 600,
-          }}
-        >
-          {stat.changeValue}
-        </Box>{" "}
-        this year
-      </Typography>
+      {stat.description && (
+        <Typography variant="body2" sx={{ color: "#999", fontSize: "0.75rem" }}>
+          {stat.description}
+        </Typography>
+      )}
     </CardContent>
   </Card>
 );
 
-const BookingRow = ({ booking }: { booking: Booking }) => {
-  const statusConfig = STATUS_MAP[booking.status];
-
-  return (
-    <TableRow
-      sx={{
-        "&:hover": { bgcolor: "#FAFAFA" },
-        borderBottom: "1px solid #F0F0F0",
-      }}
-    >
-      <TableCell sx={{ border: "none" }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-          <Avatar
-            sx={{
-              bgcolor: "#FFC800",
-              color: "#121212",
-              width: 36,
-              height: 36,
-              fontSize: "0.875rem",
-              fontWeight: 600,
-            }}
-          >
-            {booking.customer.charAt(0)}
-          </Avatar>
-          <Typography
-            variant="body2"
-            sx={{ color: "#121212", fontWeight: 500 }}
-          >
-            {booking.customer}
-          </Typography>
-        </Box>
-      </TableCell>
-      <TableCell sx={{ border: "none", color: "#666" }}>
-        <Typography variant="body2">{booking.camera}</Typography>
-      </TableCell>
-      <TableCell sx={{ border: "none", color: "#666" }}>
-        <Typography variant="body2">
-          {booking.startDate} - {booking.endDate}
-        </Typography>
-      </TableCell>
-      <TableCell sx={{ border: "none" }}>
-        <Typography variant="body2" sx={{ color: "#121212", fontWeight: 600 }}>
-          {booking.amount}
-        </Typography>
-      </TableCell>
-      <TableCell sx={{ border: "none" }}>
-        <Chip
-          label={statusConfig.label}
-          size="small"
-          color={statusConfig.color}
-          sx={{ borderRadius: 1, fontWeight: 500 }}
-        />
-      </TableCell>
-      <TableCell align="center" sx={{ border: "none" }}>
-        <Box sx={{ display: "flex", gap: 0.5, justifyContent: "center" }}>
-          <IconButton size="small" sx={{ color: "#666" }}>
-            <ViewIcon fontSize="small" />
-          </IconButton>
-          <IconButton size="small" sx={{ color: "#666" }}>
-            <EditIcon fontSize="small" />
-          </IconButton>
-          <IconButton size="small" sx={{ color: "#666" }}>
-            <MoreVertIcon fontSize="small" />
-          </IconButton>
-        </Box>
-      </TableCell>
-    </TableRow>
-  );
-};
-
-const BarChart = ({ data }: { data: WeeklyDataItem[] }) => (
-  <Box
-    sx={{
-      display: "flex",
-      alignItems: "flex-end",
-      gap: { xs: 1, sm: 1.5 },
-      height: { xs: 150, sm: 200 },
-      mt: 3,
-    }}
-  >
-    {data.map((item, index) => (
-      <Box
-        key={index}
-        sx={{
-          flex: 1,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: 1,
-        }}
-      >
-        <Box
-          sx={{
-            width: "100%",
-            bgcolor: "#FFC800",
-            borderRadius: 1,
-            height: `${item.value * 2}px`,
-            transition: "all 0.3s",
-            "&:hover": { bgcolor: "#FFD633" },
-          }}
-        />
-        <Typography
-          variant="caption"
-          sx={{ color: "#999", fontSize: "0.75rem", fontWeight: 500 }}
-        >
-          {item.day}
-        </Typography>
-      </Box>
-    ))}
-  </Box>
-);
-
-const IncomeOverview = () => (
+const IncomeOverview = ({
+  totalGrossRevenue,
+}: {
+  totalGrossRevenue: number;
+}) => (
   <Card
     elevation={0}
     sx={{ border: "1px solid #F0F0F0", borderRadius: 2, height: "100%" }}
@@ -327,26 +103,26 @@ const IncomeOverview = () => (
     <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
       <Typography
         variant="h6"
-        sx={{ color: "#121212", fontWeight: 700, fontSize: "1.125rem", mb: 3 }}
+        sx={{ color: "#121212", fontWeight: 700, fontSize: "1.125rem", mb: 2 }}
       >
-        Income Overview
+        Tổng quan doanh thu
       </Typography>
 
-      <Box sx={{ mb: 2 }}>
-        <Typography variant="body2" sx={{ color: "#999", mb: 1 }}>
-          This Week Statistics
-        </Typography>
-        <Typography variant="h4" sx={{ color: "#121212", fontWeight: 700 }}>
-          $7,650
-        </Typography>
-      </Box>
-
-      <BarChart data={WEEKLY_DATA} />
+      <Typography variant="body2" sx={{ color: "#999", mb: 1 }}>
+        Tổng doanh thu ước tính từ tất cả thiết bị của bạn.
+      </Typography>
+      <Typography variant="h4" sx={{ color: "#121212", fontWeight: 700 }}>
+        {new Intl.NumberFormat("vi-VN", {
+          style: "currency",
+          currency: "VND",
+          maximumFractionDigits: 0,
+        }).format(totalGrossRevenue)}
+      </Typography>
     </CardContent>
   </Card>
 );
 
-const RecentOrdersTable = () => {
+const TopRentedAssetsTable = ({ assets }: { assets: TopRentedAsset[] }) => {
   const headerCellStyle = {
     border: "none",
     color: "#999",
@@ -374,21 +150,8 @@ const RecentOrdersTable = () => {
             variant="h6"
             sx={{ color: "#121212", fontWeight: 700, fontSize: "1.125rem" }}
           >
-            Recent Orders
+            Thiết bị được thuê nhiều nhất
           </Typography>
-          <Button
-            variant="outlined"
-            size="small"
-            sx={{
-              color: "#FFC800",
-              borderColor: "#FFC800",
-              "&:hover": { borderColor: "#FFD633", bgcolor: "#FFF9E6" },
-              textTransform: "none",
-              fontWeight: 600,
-            }}
-          >
-            View All
-          </Button>
         </Box>
 
         <TableContainer sx={{ overflowX: "auto" }}>
@@ -398,21 +161,74 @@ const RecentOrdersTable = () => {
                 <TableCell
                   sx={{ ...headerCellStyle, textTransform: "uppercase" }}
                 >
-                  Khách hàng
+                  Thiết bị
                 </TableCell>
-                <TableCell sx={headerCellStyle}>Camera</TableCell>
-                <TableCell sx={headerCellStyle}>Thời gian</TableCell>
-                <TableCell sx={headerCellStyle}>Số tiền</TableCell>
-                <TableCell sx={headerCellStyle}>Trạng thái</TableCell>
-                <TableCell align="center" sx={headerCellStyle}>
-                  Hành động
-                </TableCell>
+                <TableCell sx={headerCellStyle}>Loại</TableCell>
+                <TableCell sx={headerCellStyle}>Số lượt thuê</TableCell>
+                <TableCell sx={headerCellStyle}>Doanh thu ước tính</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {RECENT_BOOKINGS.map((booking) => (
-                <BookingRow key={booking.id} booking={booking} />
-              ))}
+              {assets.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={4} sx={{ border: "none", py: 4 }}>
+                    <Typography
+                      variant="body2"
+                      sx={{ color: "#999", textAlign: "center" }}
+                    >
+                      Chưa có dữ liệu thiết bị được thuê nhiều.
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                assets.map((asset) => (
+                  <TableRow
+                    key={asset.itemId}
+                    sx={{
+                      "&:hover": { bgcolor: "#FAFAFA" },
+                      borderBottom: "1px solid #F0F0F0",
+                    }}
+                  >
+                    <TableCell sx={{ border: "none" }}>
+                      <Typography
+                        variant="body2"
+                        sx={{ color: "#121212", fontWeight: 500 }}
+                      >
+                        {asset.name}
+                      </Typography>
+                    </TableCell>
+                    <TableCell sx={{ border: "none" }}>
+                      <Chip
+                        size="small"
+                        label={
+                          asset.itemType === "camera" ? "Camera" : "Phụ kiện"
+                        }
+                        color={
+                          asset.itemType === "camera" ? "primary" : "default"
+                        }
+                        sx={{ borderRadius: 1, fontWeight: 500 }}
+                      />
+                    </TableCell>
+                    <TableCell sx={{ border: "none" }}>
+                      <Typography variant="body2" sx={{ color: "#121212" }}>
+                        {asset.rentalCount}
+                      </Typography>
+                    </TableCell>
+                    <TableCell sx={{ border: "none" }}>
+                      <Typography
+                        variant="body2"
+                        sx={{ color: "#121212", fontWeight: 600 }}
+                      >
+                        {new Intl.NumberFormat("vi-VN", {
+                          style: "currency",
+                          currency: "VND",
+                          maximumFractionDigits: 0,
+                        }).format(asset.grossRevenue)}
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </TableContainer>
@@ -425,6 +241,96 @@ const RecentOrdersTable = () => {
  * Component Dashboard - Trang tổng quan quản lý cho Owner
  */
 export default function Dashboard() {
+  const [data, setData] = useState<OwnerDashboardResponse | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      try {
+        const dashboard = await dashboardService.getOwnerDashboard();
+        setData(dashboard);
+        setError(null);
+      } catch (err) {
+        console.error("Lỗi khi tải dashboard owner:", err);
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Đã xảy ra lỗi khi tải dữ liệu thống kê."
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchDashboard();
+  }, []);
+
+  const stats: StatItem[] = useMemo(() => {
+    if (!data) {
+      return [
+        {
+          title: "Tổng camera",
+          value: "-",
+          description: "Số lượng camera bạn đang cho thuê.",
+          icon: <CameraIcon />,
+        },
+        {
+          title: "Tổng phụ kiện",
+          value: "-",
+          description: "Số lượng phụ kiện bạn đang cho thuê.",
+          icon: <PeopleIcon />,
+        },
+        {
+          title: "Tổng lượt booking",
+          value: "-",
+          description: "Tổng số đơn thuê liên quan tới thiết bị của bạn.",
+          icon: <PeopleIcon />,
+        },
+        {
+          title: "Tổng doanh thu ước tính",
+          value: "-",
+          description: "Tổng doanh thu ước tính từ các booking.",
+          icon: <MoneyIcon />,
+        },
+      ];
+    }
+
+    const formatCurrency = (value: number) =>
+      new Intl.NumberFormat("vi-VN", {
+        style: "currency",
+        currency: "VND",
+        maximumFractionDigits: 0,
+      }).format(value);
+
+    return [
+      {
+        title: "Tổng camera",
+        value: data.totalCameras.toString(),
+        description: "Số lượng camera bạn đang cho thuê.",
+        icon: <CameraIcon />,
+      },
+      {
+        title: "Tổng phụ kiện",
+        value: data.totalAccessories.toString(),
+        description: "Số lượng phụ kiện bạn đang cho thuê.",
+        icon: <PeopleIcon />,
+      },
+      {
+        title: "Tổng lượt booking",
+        value: data.totalBookingsForOwnerItems.toString(),
+        description: "Tổng số đơn thuê liên quan tới thiết bị của bạn.",
+        icon: <PeopleIcon />,
+      },
+      {
+        title: "Tổng doanh thu ước tính",
+        value: formatCurrency(data.totalGrossRevenue),
+        description: "Tổng doanh thu ước tính từ các booking.",
+        icon: <MoneyIcon />,
+      },
+    ];
+  }, [data]);
+
   return (
     <Box
       sx={{
@@ -450,11 +356,24 @@ export default function Dashboard() {
         <Typography variant="body2" sx={{ color: "#666" }}>
           Chào mừng trở lại! Đây là tổng quan về hoạt động kinh doanh của bạn.
         </Typography>
+        {isLoading && (
+          <Typography variant="body2" sx={{ color: "#999", mt: 1 }}>
+            Đang tải dữ liệu thống kê...
+          </Typography>
+        )}
+        {error && !isLoading && (
+          <Typography
+            variant="body2"
+            sx={{ color: "error.main", mt: 1, maxWidth: 600 }}
+          >
+            {error}
+          </Typography>
+        )}
       </Box>
 
       {/* Stats Cards */}
       <Box sx={{ display: "flex", flexWrap: "wrap", gap: 3, mb: 3 }}>
-        {STATS.map((stat, index) => (
+        {stats.map((stat, index) => (
           <StatCard key={index} stat={stat} />
         ))}
       </Box>
@@ -468,10 +387,10 @@ export default function Dashboard() {
         }}
       >
         <Box sx={{ flex: { xs: "1 1 100%", xl: "1 1 35%" } }}>
-          <IncomeOverview />
+          <IncomeOverview totalGrossRevenue={data?.totalGrossRevenue ?? 0} />
         </Box>
         <Box sx={{ flex: { xs: "1 1 100%", xl: "1 1 65%" } }}>
-          <RecentOrdersTable />
+          <TopRentedAssetsTable assets={data?.topRentedAssets ?? []} />
         </Box>
       </Box>
     </Box>
