@@ -470,111 +470,94 @@ const VerificationDetailDialog: React.FC<VerificationDetailDialogProps> = ({
             </Paper>
 
             {/* Inspections */}
-            {verification.inspections.length > 0 && (
-              <Paper
-                elevation={0}
-                sx={{
-                  p: 3,
-                  bgcolor: colors.background.default,
-                  borderRadius: 2,
-                }}
-              >
-                <Typography
-                  variant="h6"
-                  sx={{ fontWeight: 700, mb: 2, color: colors.text.primary }}
+            {verification.inspections &&
+              verification.inspections.length > 0 && (
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 3,
+                    bgcolor: colors.background.default,
+                    borderRadius: 2,
+                  }}
                 >
-                  Kết quả kiểm tra ({verification.inspections.length})
-                </Typography>
-                <Stack spacing={2}>
-                  {verification.inspections.map((inspection) => (
-                    <Paper
-                      key={inspection.id}
-                      elevation={0}
-                      sx={{
-                        p: 2,
-                        border: `1px solid ${colors.border.light}`,
-                        borderRadius: 1,
-                      }}
-                    >
-                      <Box
+                  <Typography
+                    variant="h6"
+                    sx={{ fontWeight: 700, mb: 2, color: colors.text.primary }}
+                  >
+                    Kết quả kiểm tra ({verification.inspections.length})
+                  </Typography>
+                  <Stack spacing={2}>
+                    {verification.inspections.map((inspection) => (
+                      <Paper
+                        key={inspection.id}
+                        elevation={0}
                         sx={{
-                          display: "flex",
-                          alignItems: "flex-start",
-                          gap: 2,
-                          mb: 2,
+                          p: 2,
+                          border: `1px solid ${colors.border.light}`,
+                          borderRadius: 1,
                         }}
                       >
-                        {getInspectionStatusIcon(inspection.passed)}
-                        <Box sx={{ flex: 1 }}>
-                          <Typography
-                            variant="body1"
-                            sx={{
-                              fontWeight: 700,
-                              color: colors.text.primary,
-                              mb: 0.5,
-                            }}
-                          >
-                            {inspection.itemName} - {inspection.section}
-                          </Typography>
-                          <Typography
-                            variant="caption"
-                            sx={{ color: colors.text.secondary }}
-                          >
-                            {inspection.itemType} • {inspection.label}
-                          </Typography>
-                        </Box>
-                        <Chip
-                          label={
-                            inspection.passed === true
-                              ? "Đạt"
-                              : inspection.passed === false
-                              ? "Không đạt"
-                              : "Chưa kiểm tra"
-                          }
-                          size="small"
+                        <Box
                           sx={{
-                            bgcolor:
-                              inspection.passed === true
-                                ? colors.status.successLight
-                                : inspection.passed === false
-                                ? colors.status.errorLight
-                                : colors.neutral[100],
-                            color:
-                              inspection.passed === true
-                                ? colors.status.success
-                                : inspection.passed === false
-                                ? colors.status.error
-                                : colors.text.secondary,
-                            fontWeight: 600,
+                            display: "flex",
+                            alignItems: "flex-start",
+                            gap: 2,
+                            mb: 2,
                           }}
-                        />
-                      </Box>
-
-                      <Box
-                        sx={{
-                          display: "grid",
-                          gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
-                          gap: 2,
-                        }}
-                      >
-                        <Box>
-                          <Typography
-                            variant="caption"
+                        >
+                          {getInspectionStatusIcon(inspection.passed)}
+                          <Box sx={{ flex: 1 }}>
+                            <Typography
+                              variant="body1"
+                              sx={{
+                                fontWeight: 700,
+                                color: colors.text.primary,
+                                mb: 0.5,
+                              }}
+                            >
+                              {inspection.itemName} - {inspection.section}
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              sx={{ color: colors.text.secondary }}
+                            >
+                              {inspection.itemType} • {inspection.label}
+                            </Typography>
+                          </Box>
+                          <Chip
+                            label={
+                              inspection.passed === true
+                                ? "Đạt"
+                                : inspection.passed === false
+                                ? "Không đạt"
+                                : "Chưa kiểm tra"
+                            }
+                            size="small"
                             sx={{
-                              color: colors.text.secondary,
+                              bgcolor:
+                                inspection.passed === true
+                                  ? colors.status.successLight
+                                  : inspection.passed === false
+                                  ? colors.status.errorLight
+                                  : colors.neutral[100],
+                              color:
+                                inspection.passed === true
+                                  ? colors.status.success
+                                  : inspection.passed === false
+                                  ? colors.status.error
+                                  : colors.text.secondary,
                               fontWeight: 600,
                             }}
-                          >
-                            Giá trị
-                          </Typography>
-                          <Typography
-                            variant="body2"
-                            sx={{ color: colors.text.primary }}
-                          >
-                            {inspection.value}
-                          </Typography>
+                          />
                         </Box>
-                        {inspection.notes && (
+
+                        <Box
+                          sx={{
+                            display: "grid",
+                            gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
+                            gap: 2,
+                          }}
+                        >
                           <Box>
                             <Typography
                               variant="caption"
@@ -583,54 +566,72 @@ const VerificationDetailDialog: React.FC<VerificationDetailDialogProps> = ({
                                 fontWeight: 600,
                               }}
                             >
-                              Ghi chú
+                              Giá trị
                             </Typography>
                             <Typography
                               variant="body2"
                               sx={{ color: colors.text.primary }}
                             >
-                              {inspection.notes}
+                              {inspection.value}
                             </Typography>
                           </Box>
-                        )}
-                      </Box>
-
-                      {/* Media */}
-                      {inspection.media.length > 0 && (
-                        <Box sx={{ mt: 2 }}>
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              color: colors.text.secondary,
-                              fontWeight: 600,
-                              display: "block",
-                              mb: 1,
-                            }}
-                          >
-                            Hình ảnh ({inspection.media.length})
-                          </Typography>
-                          <ImageList cols={3} gap={8}>
-                            {inspection.media.map((media) => (
-                              <ImageListItem key={media.id}>
-                                <img
-                                  src={media.url}
-                                  alt={media.label}
-                                  loading="lazy"
-                                  style={{
-                                    borderRadius: 8,
-                                    objectFit: "cover",
-                                  }}
-                                />
-                              </ImageListItem>
-                            ))}
-                          </ImageList>
+                          {inspection.notes && (
+                            <Box>
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  color: colors.text.secondary,
+                                  fontWeight: 600,
+                                }}
+                              >
+                                Ghi chú
+                              </Typography>
+                              <Typography
+                                variant="body2"
+                                sx={{ color: colors.text.primary }}
+                              >
+                                {inspection.notes}
+                              </Typography>
+                            </Box>
+                          )}
                         </Box>
-                      )}
-                    </Paper>
-                  ))}
-                </Stack>
-              </Paper>
-            )}
+
+                        {/* Media */}
+                        {inspection.media && inspection.media.length > 0 && (
+                          <Box sx={{ mt: 2 }}>
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                color: colors.text.secondary,
+                                fontWeight: 600,
+                                display: "block",
+                                mb: 1,
+                              }}
+                            >
+                              Hình ảnh ({inspection.media.length})
+                            </Typography>
+                            <ImageList cols={3} gap={8}>
+                              {inspection.media.map((media) => (
+                                <ImageListItem key={media.id}>
+                                  <img
+                                    src={media.url}
+                                    alt={media.label}
+                                    loading="lazy"
+                                    style={{
+                                      borderRadius: 8,
+                                      objectFit: "cover",
+                                    }}
+                                  />
+                                </ImageListItem>
+                              ))}
+                            </ImageList>
+                          </Box>
+                        )}
+                      </Paper>
+                    ))}
+                  </Stack>
+                </Paper>
+              )}
           </Stack>
         </DialogContent>
 
