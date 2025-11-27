@@ -5,78 +5,52 @@ import {
   Typography,
   Skeleton,
   Paper,
-  Menu,
-  MenuItem,
+  TextField,
+  InputAdornment,
+  Tabs,
+  Tab,
+  Chip,
 } from "@mui/material";
-import { Eye, UserPlus, FileText, Edit } from "lucide-react";
+import { Search, FileText } from "lucide-react";
 import { colors } from "../../theme/colors";
 import { useVerifications } from "../../hooks/useVerifications";
 import VerificationStats from "../../components/Verification/VerificationStats";
-import VerificationFilters from "../../components/Verification/VerificationFilters";
-import VerificationCard from "../../components/Verification/VerificationCard";
-import AssignStaffDialog from "../../components/Verification/AssignStaffDialog";
+import VerificationListItem from "../../components/Verification/VerificationListItem";
 import VerificationDetailDialog from "../../components/Verification/VerificationDetailDialog";
-import UpdateStatusDialog from "../../components/Verification/UpdateStatusDialog";
 import type { Verification } from "../../types/verification.types";
 
 const VerifyManagement: React.FC = () => {
-  const {
-    verifications,
-    filteredVerifications,
-    searchQuery,
-    setSearchQuery,
-    activeTab,
-    setActiveTab,
-    loading,
-    staffList,
-    assignStaff,
-    updateStatus, // ✅ Get updateStatus function
-  } = useVerifications();
+  const { verifications, loading, refreshVerifications } = useVerifications();
 
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState<string>("all");
   const [selectedVerification, setSelectedVerification] =
     useState<Verification | null>(null);
   const [openDetailDialog, setOpenDetailDialog] = useState(false);
-  const [openAssignDialog, setOpenAssignDialog] = useState(false);
-  const [openUpdateDialog, setOpenUpdateDialog] = useState(false); // ✅ New state
 
-  const handleMenuOpen = (
-    event: React.MouseEvent<HTMLElement>,
-    verification: Verification
-  ) => {
-    setAnchorEl(event.currentTarget);
+  // Filter verifications
+  const filteredVerifications = verifications.filter((v) => {
+    const matchesSearch =
+      v.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      v.phoneNumber.includes(searchQuery) ||
+      v.branchName?.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesTab =
+      activeTab === "all" || v.status.toLowerCase() === activeTab.toLowerCase();
+
+    return matchesSearch && matchesTab;
+  });
+
+  const handleViewDetails = (verification: Verification) => {
     setSelectedVerification(verification);
-  };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-  };
-
-  const handleViewDetails = () => {
     setOpenDetailDialog(true);
-    handleMenuClose();
   };
 
-  const handleOpenAssignDialog = () => {
-    setOpenAssignDialog(true);
-    handleMenuClose();
-  };
-
-  // ✅ NEW: Handle open update dialog
-  const handleOpenUpdateDialog = () => {
-    setOpenUpdateDialog(true);
-    handleMenuClose();
-  };
-
-  const handleAssignStaff = async (staffId: string) => {
-    if (!selectedVerification) return false;
-    return await assignStaff(selectedVerification.id, staffId);
-  };
-
-  // ✅ NEW: Handle update status
-  const handleUpdateStatus = async (status: string, note: string) => {
-    if (!selectedVerification) return false;
-    return await updateStatus(selectedVerification.id, status, note);
+  const statusCounts = {
+    all: verifications.length,
+    pending: verifications.filter((v) => v.status === "Pending").length,
+    approved: verifications.filter((v) => v.status === "Approved").length,
+    rejected: verifications.filter((v) => v.status === "Rejected").length,
   };
 
   return (
@@ -87,7 +61,7 @@ const VerifyManagement: React.FC = () => {
           <Typography
             variant="h4"
             sx={{
-              fontWeight: 600,
+              fontWeight: 700,
               color: colors.text.primary,
               mb: 1,
             }}
@@ -95,30 +69,147 @@ const VerifyManagement: React.FC = () => {
             Quản lý yêu cầu xác minh
           </Typography>
           <Typography variant="body1" sx={{ color: colors.text.secondary }}>
-            Manage and track verification requests
+            Quản lý và theo dõi các yêu cầu xác minh sản phẩm
           </Typography>
         </Box>
 
         {/* Stats */}
         <VerificationStats verifications={verifications} />
 
-        {/* Filters */}
-        <VerificationFilters
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-        />
+        {/* Search & Filters */}
+        <Paper
+          elevation={0}
+          sx={{
+            p: 3,
+            mb: 3,
+            borderRadius: 3,
+            border: `1px solid ${colors.border.light}`,
+          }}
+        >
+          <TextField
+            fullWidth
+            placeholder="Tìm kiếm theo tên, số điện thoại, chi nhánh..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Search size={20} color={colors.text.secondary} />
+                </InputAdornment>
+              ),
+            }}
+            sx={{
+              mb: 2,
+              "& .MuiOutlinedInput-root": {
+                borderRadius: 2,
+              },
+            }}
+          />
+
+          <Tabs
+            value={activeTab}
+            onChange={(_, newValue) => setActiveTab(newValue)}
+            sx={{
+              "& .MuiTab-root": {
+                textTransform: "none",
+                fontWeight: 600,
+                fontSize: 15,
+                minWidth: 100,
+                color: colors.text.secondary,
+              },
+              "& .Mui-selected": {
+                color: `${colors.primary.main} !important`,
+              },
+              "& .MuiTabs-indicator": {
+                bgcolor: colors.primary.main,
+                height: 3,
+              },
+            }}
+          >
+            <Tab
+              label={
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  Tất cả
+                  <Chip
+                    label={statusCounts.all}
+                    size="small"
+                    sx={{
+                      height: 20,
+                      fontSize: 12,
+                      bgcolor: colors.neutral[100],
+                      color: colors.text.primary,
+                    }}
+                  />
+                </Box>
+              }
+              value="all"
+            />
+            <Tab
+              label={
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  Chờ xử lý
+                  <Chip
+                    label={statusCounts.pending}
+                    size="small"
+                    sx={{
+                      height: 20,
+                      fontSize: 12,
+                      bgcolor: colors.status.warningLight,
+                      color: colors.status.warning,
+                    }}
+                  />
+                </Box>
+              }
+              value="pending"
+            />
+            <Tab
+              label={
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  Đã duyệt
+                  <Chip
+                    label={statusCounts.approved}
+                    size="small"
+                    sx={{
+                      height: 20,
+                      fontSize: 12,
+                      bgcolor: colors.status.successLight,
+                      color: colors.status.success,
+                    }}
+                  />
+                </Box>
+              }
+              value="approved"
+            />
+            <Tab
+              label={
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  Từ chối
+                  <Chip
+                    label={statusCounts.rejected}
+                    size="small"
+                    sx={{
+                      height: 20,
+                      fontSize: 12,
+                      bgcolor: colors.status.errorLight,
+                      color: colors.status.error,
+                    }}
+                  />
+                </Box>
+              }
+              value="rejected"
+            />
+          </Tabs>
+        </Paper>
 
         {/* Verifications List */}
         {loading ? (
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
             {[1, 2, 3].map((i) => (
               <Skeleton
                 key={i}
                 variant="rectangular"
-                height={200}
-                sx={{ borderRadius: 3 }}
+                height={100}
+                sx={{ borderRadius: 2 }}
               />
             ))}
           </Box>
@@ -137,68 +228,36 @@ const VerifyManagement: React.FC = () => {
               variant="h6"
               sx={{ color: colors.text.secondary, mt: 2, mb: 1 }}
             >
-              No verifications found
+              Không tìm thấy yêu cầu xác minh
             </Typography>
             <Typography variant="body2" sx={{ color: colors.text.secondary }}>
               {searchQuery
-                ? "Try adjusting your search"
-                : "No verification requests at the moment"}
+                ? "Thử điều chỉnh từ khóa tìm kiếm"
+                : "Chưa có yêu cầu xác minh nào"}
             </Typography>
           </Paper>
         ) : (
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
             {filteredVerifications.map((verification) => (
-              <VerificationCard
+              <VerificationListItem
                 key={verification.id}
                 verification={verification}
-                onMenuOpen={(e) => handleMenuOpen(e, verification)}
+                onViewDetails={handleViewDetails}
+                onRefresh={refreshVerifications}
               />
             ))}
           </Box>
         )}
 
-        {/* Action Menu */}
-        <Menu
-          anchorEl={anchorEl}
-          open={Boolean(anchorEl)}
-          onClose={handleMenuClose}
-        >
-          <MenuItem onClick={handleViewDetails}>
-            <Eye size={16} style={{ marginRight: 8 }} />
-            View Details
-          </MenuItem>
-          <MenuItem onClick={handleOpenAssignDialog}>
-            <UserPlus size={16} style={{ marginRight: 8 }} />
-            Assign Staff
-          </MenuItem>
-          <MenuItem onClick={handleOpenUpdateDialog}>
-            {" "}
-            {/* ✅ Fixed */}
-            <Edit size={16} style={{ marginRight: 8 }} />
-            Update Status
-          </MenuItem>
-        </Menu>
-
-        {/* Dialogs */}
-        <AssignStaffDialog
-          open={openAssignDialog}
-          onClose={() => setOpenAssignDialog(false)}
-          staffList={staffList}
-          onAssign={handleAssignStaff}
-        />
-
+        {/* Detail Dialog */}
         <VerificationDetailDialog
           open={openDetailDialog}
-          onClose={() => setOpenDetailDialog(false)}
+          onClose={() => {
+            setOpenDetailDialog(false);
+            setSelectedVerification(null);
+          }}
           verification={selectedVerification}
-        />
-
-        {/* ✅ NEW: Update Status Dialog */}
-        <UpdateStatusDialog
-          open={openUpdateDialog}
-          onClose={() => setOpenUpdateDialog(false)}
-          verification={selectedVerification}
-          onUpdate={handleUpdateStatus}
+          onRefresh={refreshVerifications}
         />
       </Container>
     </Box>
