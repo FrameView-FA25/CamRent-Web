@@ -20,7 +20,7 @@ export interface Combo {
 export interface BookingItem {
   itemId: string;
   itemName: string;
-  itemType: "Camera" | "Accessory" | "Combo" | "Product"; 
+  itemType: "Camera" | "Accessory" | "Combo" | "Product";
   unitPrice: number;
   quantity: number;
   depositAmount: number;
@@ -40,17 +40,18 @@ export interface BookingItem {
 
 export interface Renter {
   id: string;
-  fullName: string;
-  email: string;
-  phoneNumber: string;
-  address: string;
-  dateOfBirth: string;
-  gender: number; // 0: Female, 1: Male, 2: Other
-  avatar: string;
-  emailConfirmed: boolean;
-  phoneNumberConfirmed: boolean;
-  createdAt: string;
-  updatedAt: string;
+  fullName?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  phoneNumber?: string | null;
+  address?: string | null;
+  dateOfBirth?: string | null;
+  gender?: number | null; // 0: Female, 1: Male, 2: Other
+  avatar?: string | string[] | null;
+  emailConfirmed?: boolean | null;
+  phoneNumberConfirmed?: boolean | null;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Booking {

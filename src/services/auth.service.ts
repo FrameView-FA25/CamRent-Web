@@ -61,10 +61,25 @@ export const authService = {
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(
-        errorData.message || `Login failed with status ${response.status}`
-      );
+      let message = "Đăng nhập thất bại. Vui lòng thử lại.";
+      let payload: Record<string, unknown> | null = null;
+
+      if (response.headers.get("content-type")?.includes("application/json")) {
+        payload = await response.json().catch(() => null);
+        message = (payload as { message?: string } | null)?.message || message;
+      } else {
+        await response.text().catch(() => "");
+      }
+
+      if (
+        response.status === 400 ||
+        response.status === 401 ||
+        response.status === 500
+      ) {
+        message = "Sai tên đăng nhập hoặc mật khẩu";
+      }
+
+      throw new Error(message);
     }
 
     const data = await response.json();

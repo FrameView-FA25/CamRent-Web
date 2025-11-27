@@ -32,6 +32,22 @@ export type InspectionListItem = {
   id: string;
   itemName?: string;
   itemType?: string;
+  /**
+   * Item identifier (camera/accessory/combo) used when updating inspection
+   */
+  itemId?: string;
+  /**
+   * Numeric value expected by backend for item type (Camera = 1, Accessory = 2, Combo = 3)
+   */
+  itemTypeValue?: number | string;
+  /**
+   * Inspection type id (bookingId / verificationId) required for update API
+   */
+  inspectionTypeId?: string;
+  /**
+   * Context of inspection ("Booking" | "Verification")
+   */
+  type?: string;
   section: string;
   label: string;
   value?: string;

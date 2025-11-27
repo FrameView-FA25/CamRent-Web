@@ -1,13 +1,7 @@
 // URL cơ sở của API backend
 const API_BASE_URL = "https://camrent-backend.up.railway.app/api";
 
-export type UpdateInspectionPayload = {
-  section: string;
-  label: string;
-  value?: string;
-  notes?: string;
-  passed?: boolean | null;
-};
+export type UpdateInspectionPayload = FormData;
 
 /**
  * Tạo bản kiểm tra thiết bị (Inspection) và upload file ảnh
@@ -68,9 +62,8 @@ export async function updateInspection(
     method: "PUT",
     headers: {
       Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
     },
-    body: JSON.stringify(payload),
+    body: payload,
   });
 
   if (!response.ok) {
@@ -83,6 +76,14 @@ export async function updateInspection(
       if (errorText) errorMessage = errorText;
     }
     throw new Error(errorMessage);
+  }
+
+  // optional: consume body to avoid unresolved promise for some backends
+  const contentType = response.headers.get("content-type");
+  if (contentType?.includes("application/json")) {
+    await response.json().catch(() => undefined);
+  } else {
+    await response.text().catch(() => "");
   }
 }
 

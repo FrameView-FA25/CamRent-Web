@@ -46,6 +46,7 @@ import { verificationService } from "../../services/verification.service";
 import type {
   Verification,
   VerificationInspection,
+  VerificationItem,
 } from "../../types/verification.types";
 import { toast } from "react-toastify";
 import InspectionListDialog, {
@@ -175,6 +176,12 @@ const Inspections: React.FC = () => {
   const [deletingInspectionId, setDeletingInspectionId] = useState<
     string | null
   >(null);
+  const [activeVerificationId, setActiveVerificationId] = useState<
+    string | null
+  >(null);
+  const [currentVerificationItems, setCurrentVerificationItems] = useState<
+    VerificationItem[]
+  >([]);
 
   // Mở dialog với row tương ứng
   const openInspectionDialog = (row: Verification) => {
@@ -184,6 +191,32 @@ const Inspections: React.FC = () => {
 
   const handleViewDetail = (row: Verification) => {
     navigate(`/staff/verification/${row.id}`);
+  };
+
+  const getItemTypeNumber = (value?: string | number): number | undefined => {
+    if (value === undefined || value === null) return undefined;
+    if (typeof value === "number" && !Number.isNaN(value)) return value;
+    const normalized = value.toString().toLowerCase();
+    if (normalized === "camera" || normalized === "1") return 1;
+    if (normalized === "accessory" || normalized === "2") return 2;
+    if (normalized === "combo" || normalized === "3") return 3;
+    return undefined;
+  };
+
+  const resolveInspectionItemMetadata = (inspection: InspectionListItem) => {
+    const normalizedName = inspection.itemName?.toLowerCase();
+    const fallbackItem = currentVerificationItems.find((item) => {
+      if (inspection.itemId && item.itemId === inspection.itemId) return true;
+      const itemNameLower = item.itemName?.toLowerCase() || "";
+      return itemNameLower === (normalizedName || "");
+    });
+
+    const itemId = inspection.itemId || fallbackItem?.itemId;
+    const itemTypeValue =
+      getItemTypeNumber(inspection.itemTypeValue ?? inspection.itemType) ??
+      (fallbackItem ? getItemTypeNumber(fallbackItem.itemType) : undefined);
+
+    return { itemId, itemTypeValue };
   };
 
   // Xử lý submit tạo inspection
@@ -214,49 +247,88 @@ const Inspections: React.FC = () => {
   };
 
   const mapVerificationInspectionToListItem = (
-    inspection: VerificationInspection
-  ): InspectionListItem => ({
-    id: inspection.id,
-    itemName: inspection.itemName,
-    itemType: inspection.itemType,
-    section: inspection.section,
-    label: inspection.label,
-    value: inspection.value,
-    notes: inspection.notes,
-    passed: inspection.passed ?? null,
-    media: inspection.media?.map((media) => ({
-      id: media.id,
-      url: media.url,
-      label: media.label,
-    })),
-  });
+    inspection: VerificationInspection,
+    verification?: Verification
+  ): InspectionListItem => {
+    const normalizedName = inspection.itemName?.toLowerCase();
+    const matchedItem = verification?.items?.find((item) => {
+      if (
+        (inspection as VerificationInspection & { itemId?: string }).itemId &&
+        item.itemId === (inspection as VerificationInspection & { itemId?: string }).itemId
+      ) {
+        return true;
+      }
+      const itemNameLower = item.itemName?.toLowerCase() || "";
+      return itemNameLower === (normalizedName || "");
+    });
+
+    const resolvedItemId =
+      (inspection as VerificationInspection & { itemId?: string }).itemId ||
+      matchedItem?.itemId;
+
+    const resolvedItemType =
+      getItemTypeNumber(
+        (inspection as VerificationInspection & { itemTypeValue?: number | string })
+          .itemTypeValue ?? inspection.itemType
+      ) ??
+      (matchedItem ? getItemTypeNumber(matchedItem.itemType) : undefined);
+
+    return {
+      id: inspection.id,
+      itemName: inspection.itemName,
+      itemType: inspection.itemType,
+      section: inspection.section,
+      label: inspection.label,
+      value: inspection.value,
+      notes: inspection.notes,
+      passed: inspection.passed ?? null,
+      itemId: resolvedItemId || undefined,
+      itemTypeValue: resolvedItemType,
+      inspectionTypeId:
+        (inspection as VerificationInspection & { inspectionTypeId?: string })
+          .inspectionTypeId || verification?.id,
+      type: (inspection as VerificationInspection & { type?: string }).type || "Verification",
+      media: inspection.media?.map((media) => ({
+        id: media.id,
+        url: media.url,
+        label: media.label,
+      })),
+    };
+  };
 
   const shortId = (id: string) =>
     id.length > 8 ? `${id.substring(0, 8)}...` : id;
 
-  const handleManageVerificationInspections = async (
-    verificationId: string
-  ) => {
-    setInspectionListOpen(true);
+  const loadVerificationInspections = async (verificationId: string) => {
     setInspectionListLoading(true);
-    setInspectionListSubtitle(`Yêu cầu ${shortId(verificationId)}`);
     try {
       const verificationDetail = await verificationService.getVerificationById(
         verificationId
       );
       const mapped =
-        verificationDetail.inspections?.map(
-          mapVerificationInspectionToListItem
+        verificationDetail.inspections?.map((inspection) =>
+          mapVerificationInspectionToListItem(inspection, verificationDetail)
         ) || [];
       setInspectionList(mapped);
+      setCurrentVerificationItems(verificationDetail.items || []);
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Không thể tải phiếu kiểm tra";
       toast.error(message);
       setInspectionList([]);
+      setCurrentVerificationItems([]);
     } finally {
       setInspectionListLoading(false);
     }
+  };
+
+  const handleManageVerificationInspections = async (
+    verificationId: string
+  ) => {
+    setInspectionListOpen(true);
+    setInspectionListSubtitle(`Yêu cầu ${shortId(verificationId)}`);
+    setActiveVerificationId(verificationId);
+    await loadVerificationInspections(verificationId);
   };
 
   const handleCloseInspectionList = () => {
@@ -264,6 +336,8 @@ const Inspections: React.FC = () => {
     setInspectionList([]);
     setInspectionListSubtitle("");
     setDeletingInspectionId(null);
+    setActiveVerificationId(null);
+    setCurrentVerificationItems([]);
   };
 
   const handleEditInspection = (inspection: InspectionListItem) => {
@@ -282,27 +356,46 @@ const Inspections: React.FC = () => {
     if (!editingInspection) return;
     setSavingInspection(true);
     try {
-      await updateInspection(editingInspection.id, {
-        section: formState.section,
-        label: formState.label,
-        value: formState.value || undefined,
-        notes: formState.notes || undefined,
-        passed: formState.passed,
-      });
-      setInspectionList((prev) =>
-        prev.map((item) =>
-          item.id === editingInspection.id
-            ? {
-                ...item,
-                section: formState.section,
-                label: formState.label,
-                value: formState.value,
-                notes: formState.notes,
-                passed: formState.passed,
-              }
-            : item
-        )
+      const formData = new FormData();
+      formData.append("Section", formState.section);
+      formData.append("Label", formState.label);
+      formData.append("Value", formState.value ?? "");
+      formData.append("Notes", formState.notes ?? "");
+      if (formState.passed !== null) {
+        formData.append("Passed", formState.passed ? "true" : "false");
+      }
+
+      const { itemId, itemTypeValue } =
+        resolveInspectionItemMetadata(editingInspection);
+
+      if (!itemId || itemTypeValue === undefined) {
+        throw new Error("Không xác định được thông tin thiết bị cho phiếu kiểm tra.");
+      }
+
+      formData.append("ItemId", itemId);
+      formData.append("ItemType", String(itemTypeValue));
+
+      const inspectionTypeId =
+        editingInspection.inspectionTypeId ||
+        activeVerificationId ||
+        dialogRow?.id;
+      if (inspectionTypeId) {
+        formData.append("InspectionTypeId", inspectionTypeId);
+      }
+
+      formData.append("Type", editingInspection.type || "Verification");
+
+      formState.files.forEach((file) => formData.append("files", file));
+      formState.removeMediaIds.forEach((mediaId) =>
+        formData.append("RemoveMediaIds", mediaId)
       );
+
+      await updateInspection(editingInspection.id, formData);
+
+      if (activeVerificationId) {
+        await loadVerificationInspections(activeVerificationId);
+      }
+
       toast.success("Cập nhật phiếu kiểm tra thành công");
       handleCloseEditInspection();
     } catch (err) {

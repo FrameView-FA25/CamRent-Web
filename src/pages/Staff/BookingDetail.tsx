@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Box,
@@ -21,12 +21,6 @@ import {
   Avatar,
   IconButton,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
 } from "@mui/material";
 import {
   ArrowBack,
@@ -42,15 +36,15 @@ import {
   TaskAlt,
   AccessTime,
   Payment,
-  CheckCircleOutline,
-  CheckCircle,
 } from "@mui/icons-material";
-import { fetchBookingById } from "../../services/booking.service";
+import {
+  fetchBookingById,
+  fetchStaffBookings,
+} from "../../services/booking.service";
 import type { Booking } from "../../types/booking.types";
 import {
   formatCurrency,
   formatDate,
-  getStatusInfo,
   getBookingType,
 } from "../../utils/booking.utils";
 import { getItemName } from "../../helpers/booking.helper";
@@ -74,13 +68,7 @@ const BookingDetail: React.FC = () => {
   const [notes, setNotes] = useState("");
   const [deliveryPhotos, setDeliveryPhotos] = useState<File[]>([]);
 
-  useEffect(() => {
-    if (id) {
-      loadBookingDetail();
-    }
-  }, [id]);
-
-  const loadBookingDetail = async () => {
+  const loadBookingDetail = useCallback(async () => {
     if (!id) return;
 
     setLoading(true);
@@ -91,11 +79,24 @@ const BookingDetail: React.FC = () => {
 
     if (fetchError) {
       setError(fetchError);
-    } else {
-      setBooking(fetchedBooking);
+    } else if (fetchedBooking) {
+      let renter = fetchedBooking.renter;
+
+      if (!renter && fetchedBooking.renterId) {
+        const { bookings: staffBookings } = await fetchStaffBookings();
+        renter =
+          staffBookings.find((staffBooking) => staffBooking.id === id)
+            ?.renter || null;
+      }
+
+      setBooking({ ...fetchedBooking, renter });
     }
     setLoading(false);
-  };
+  }, [id]);
+
+  useEffect(() => {
+    loadBookingDetail();
+  }, [loadBookingDetail]);
 
   const handleUpdateStatus = () => {
     setUpdateDialogOpen(false);
@@ -122,11 +123,11 @@ const BookingDetail: React.FC = () => {
 
   const getStatusNumber = (statusText: string): number => {
     const statusMap: Record<string, number> = {
-      "Chờ xác nhận": 0,
-      "Đã xác nhận": 1,
-      "Đang thuê": 2,
-      "Hoàn thành": 3,
-      "Đã hủy": 4,
+      Pending: 0,
+      Confirmed: 1,
+      Delivering: 2,
+      Completed: 4,
+      Cancelled: 4,
     };
     return statusMap[statusText] ?? 0;
   };
@@ -193,7 +194,6 @@ const BookingDetail: React.FC = () => {
     );
   }
 
-  const statusInfo = getStatusInfo(booking.statusText);
   const statusNumber = getStatusNumber(booking.statusText);
   const canUpdateStatus = statusNumber >= 1 && statusNumber < 3;
 
@@ -228,39 +228,6 @@ const BookingDetail: React.FC = () => {
                 }}
               >
                 Chi tiết đơn hàng
-                <Chip
-                  label={statusInfo.label}
-                  color={statusInfo.color}
-                  icon={
-                    statusInfo.label === "Đã xác nhận" ? (
-                      <CheckCircleOutline
-                        sx={{
-                          fontSize: 18,
-                          color: "#10B981 !important",
-                        }}
-                      />
-                    ) : undefined
-                  }
-                  sx={{
-                    fontWeight: 600,
-                    fontSize: "0.875rem",
-                    ...(statusInfo.label === "Đã xác nhận"
-                      ? {
-                          bgcolor: "#10B981",
-                          color: "#FFFFFF",
-                          boxShadow: "0 2px 8px rgba(16, 185, 129, 0.3)",
-                          "&:hover": {
-                            bgcolor: "#059669",
-                            boxShadow: "0 4px 12px rgba(16, 185, 129, 0.4)",
-                          },
-                          background:
-                            "linear-gradient(135deg, #10B981 0%, #059669 100%)",
-                          border: "none",
-                          transition: "all 0.3s ease",
-                        }
-                      : {}),
-                  }}
-                />
               </Typography>
               <Typography variant="body2" sx={{ color: "#6B7280", mt: 0.5 }}>
                 Mã đơn: {booking.id}
@@ -331,506 +298,526 @@ const BookingDetail: React.FC = () => {
           {/* Customer Info */}
           <Paper
             elevation={0}
-            sx={{ p: 3, borderRadius: 3, display: "flex", flexDirection: "column" }}
+            sx={{
+              p: 3,
+              borderRadius: 3,
+              display: "flex",
+              flexDirection: "column",
+            }}
           >
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 2,
+                mb: 3,
+              }}
+            >
               <Box
                 sx={{
+                  width: 50,
+                  height: 50,
+                  borderRadius: 2,
+                  bgcolor: "#FFF7ED",
                   display: "flex",
                   alignItems: "center",
-                  gap: 2,
-                  mb: 3,
+                  justifyContent: "center",
                 }}
               >
-                <Box
-                  sx={{
-                    width: 50,
-                    height: 50,
-                    borderRadius: 2,
-                    bgcolor: "#FFF7ED",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
+                <Person sx={{ color: "#F97316", fontSize: 28 }} />
+              </Box>
+              <Box>
+                <Typography
+                  variant="h6"
+                  sx={{ fontWeight: 700, color: "#1F2937" }}
                 >
-                  <Person sx={{ color: "#F97316", fontSize: 28 }} />
-                </Box>
+                  Thông tin khách hàng
+                </Typography>
+                <Typography variant="body2" sx={{ color: "#6B7280" }}>
+                  Chi tiết người thuê
+                </Typography>
+              </Box>
+            </Box>
+
+            <Divider sx={{ mb: 3 }} />
+
+            <Stack spacing={2.5}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                <Avatar sx={{ bgcolor: "#F9FAFB", color: "#6B7280" }}>
+                  <Person />
+                </Avatar>
                 <Box>
                   <Typography
-                    variant="h6"
-                    sx={{ fontWeight: 700, color: "#1F2937" }}
+                    variant="caption"
+                    sx={{ color: "#6B7280", display: "block" }}
                   >
-                    Thông tin khách hàng
+                    Họ và tên
                   </Typography>
-                  <Typography variant="body2" sx={{ color: "#6B7280" }}>
-                    Chi tiết người thuê
+                  <Typography
+                    variant="body1"
+                    sx={{ fontWeight: 600, color: "#1F2937" }}
+                  >
+                    {booking.renter?.fullName || "N/A"}
                   </Typography>
                 </Box>
               </Box>
 
-              <Divider sx={{ mb: 3 }} />
-
-              <Stack spacing={2.5}>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                  <Avatar sx={{ bgcolor: "#F9FAFB", color: "#6B7280" }}>
-                    <Person />
-                  </Avatar>
-                  <Box>
-                    <Typography
-                      variant="caption"
-                      sx={{ color: "#6B7280", display: "block" }}
-                    >
-                      Họ và tên
-                    </Typography>
-                    <Typography
-                      variant="body1"
-                      sx={{ fontWeight: 600, color: "#1F2937" }}
-                    >
-                      {booking.renter?.fullName || "N/A"}
-                    </Typography>
-                  </Box>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                <Avatar sx={{ bgcolor: "#F9FAFB", color: "#6B7280" }}>
+                  <Phone />
+                </Avatar>
+                <Box>
+                  <Typography
+                    variant="caption"
+                    sx={{ color: "#6B7280", display: "block" }}
+                  >
+                    Số điện thoại
+                  </Typography>
+                  <Typography
+                    variant="body1"
+                    sx={{ fontWeight: 600, color: "#1F2937" }}
+                  >
+                    {booking.renter?.phone ||
+                      booking.renter?.phoneNumber ||
+                      "N/A"}
+                  </Typography>
                 </Box>
+              </Box>
 
-                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                  <Avatar sx={{ bgcolor: "#F9FAFB", color: "#6B7280" }}>
-                    <Phone />
-                  </Avatar>
-                  <Box>
-                    <Typography
-                      variant="caption"
-                      sx={{ color: "#6B7280", display: "block" }}
-                    >
-                      Số điện thoại
-                    </Typography>
-                    <Typography
-                      variant="body1"
-                      sx={{ fontWeight: 600, color: "#1F2937" }}
-                    >
-                      {booking.renter?.phoneNumber || "N/A"}
-                    </Typography>
-                  </Box>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                <Avatar sx={{ bgcolor: "#F9FAFB", color: "#6B7280" }}>
+                  <Email />
+                </Avatar>
+                <Box>
+                  <Typography
+                    variant="caption"
+                    sx={{ color: "#6B7280", display: "block" }}
+                  >
+                    Email
+                  </Typography>
+                  <Typography
+                    variant="body1"
+                    sx={{ fontWeight: 600, color: "#1F2937" }}
+                  >
+                    {booking.renter?.email || "N/A"}
+                  </Typography>
                 </Box>
+              </Box>
 
-                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                  <Avatar sx={{ bgcolor: "#F9FAFB", color: "#6B7280" }}>
-                    <Email />
-                  </Avatar>
-                  <Box>
-                    <Typography
-                      variant="caption"
-                      sx={{ color: "#6B7280", display: "block" }}
-                    >
-                      Email
-                    </Typography>
-                    <Typography
-                      variant="body1"
-                      sx={{ fontWeight: 600, color: "#1F2937" }}
-                    >
-                      {booking.renter?.email || "N/A"}
-                    </Typography>
-                  </Box>
+              <Box sx={{ display: "flex", alignItems: "start", gap: 2 }}>
+                <Avatar sx={{ bgcolor: "#F9FAFB", color: "#6B7280" }}>
+                  <LocationOn />
+                </Avatar>
+                <Box>
+                  <Typography
+                    variant="caption"
+                    sx={{ color: "#6B7280", display: "block" }}
+                  >
+                    Địa chỉ giao hàng
+                  </Typography>
+                  <Typography
+                    variant="body1"
+                    sx={{ fontWeight: 600, color: "#1F2937" }}
+                  >
+                    {booking.location
+                      ? `${booking.location.district}, ${booking.location.province}`
+                      : "N/A"}
+                  </Typography>
                 </Box>
-
-                <Box sx={{ display: "flex", alignItems: "start", gap: 2 }}>
-                  <Avatar sx={{ bgcolor: "#F9FAFB", color: "#6B7280" }}>
-                    <LocationOn />
-                  </Avatar>
-                  <Box>
-                    <Typography
-                      variant="caption"
-                      sx={{ color: "#6B7280", display: "block" }}
-                    >
-                      Địa chỉ giao hàng
-                    </Typography>
-                    <Typography
-                      variant="body1"
-                      sx={{ fontWeight: 600, color: "#1F2937" }}
-                    >
-                      {booking.location
-                        ? `${booking.location.district}, ${booking.location.province}`
-                        : "N/A"}
-                    </Typography>
-                  </Box>
-                </Box>
-              </Stack>
-            </Paper>
+              </Box>
+            </Stack>
+          </Paper>
 
           {/* Delivery Info */}
           <Paper
             elevation={0}
-            sx={{ p: 3, borderRadius: 3, display: "flex", flexDirection: "column" }}
+            sx={{
+              p: 3,
+              borderRadius: 3,
+              display: "flex",
+              flexDirection: "column",
+            }}
           >
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 2,
+                mb: 3,
+              }}
+            >
               <Box
                 sx={{
+                  width: 50,
+                  height: 50,
+                  borderRadius: 2,
+                  bgcolor: "#EEF2FF",
                   display: "flex",
                   alignItems: "center",
-                  gap: 2,
-                  mb: 3,
+                  justifyContent: "center",
                 }}
               >
-                <Box
-                  sx={{
-                    width: 50,
-                    height: 50,
-                    borderRadius: 2,
-                    bgcolor: "#EEF2FF",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
+                <LocalShipping sx={{ color: "#4F46E5", fontSize: 28 }} />
+              </Box>
+              <Box>
+                <Typography
+                  variant="h6"
+                  sx={{ fontWeight: 700, color: "#1F2937" }}
                 >
-                  <LocalShipping sx={{ color: "#4F46E5", fontSize: 28 }} />
-                </Box>
+                  Thông tin giao hàng
+                </Typography>
+                <Typography variant="body2" sx={{ color: "#6B7280" }}>
+                  Chi tiết thời gian và địa điểm
+                </Typography>
+              </Box>
+            </Box>
+
+            <Divider sx={{ mb: 3 }} />
+
+            <Stack spacing={2.5}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                <Avatar sx={{ bgcolor: "#F9FAFB", color: "#6B7280" }}>
+                  <CalendarToday />
+                </Avatar>
                 <Box>
                   <Typography
-                    variant="h6"
-                    sx={{ fontWeight: 700, color: "#1F2937" }}
+                    variant="caption"
+                    sx={{ color: "#6B7280", display: "block" }}
                   >
-                    Thông tin giao hàng
+                    Ngày nhận hàng
                   </Typography>
-                  <Typography variant="body2" sx={{ color: "#6B7280" }}>
-                    Chi tiết thời gian và địa điểm
+                  <Typography
+                    variant="body1"
+                    sx={{ fontWeight: 600, color: "#1F2937" }}
+                  >
+                    {formatDate(booking.pickupAt)}
                   </Typography>
                 </Box>
               </Box>
 
-              <Divider sx={{ mb: 3 }} />
-
-              <Stack spacing={2.5}>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                  <Avatar sx={{ bgcolor: "#F9FAFB", color: "#6B7280" }}>
-                    <CalendarToday />
-                  </Avatar>
-                  <Box>
-                    <Typography
-                      variant="caption"
-                      sx={{ color: "#6B7280", display: "block" }}
-                    >
-                      Ngày nhận hàng
-                    </Typography>
-                    <Typography
-                      variant="body1"
-                      sx={{ fontWeight: 600, color: "#1F2937" }}
-                    >
-                      {formatDate(booking.pickupAt)}
-                    </Typography>
-                  </Box>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                <Avatar sx={{ bgcolor: "#F9FAFB", color: "#6B7280" }}>
+                  <CalendarToday />
+                </Avatar>
+                <Box>
+                  <Typography
+                    variant="caption"
+                    sx={{ color: "#6B7280", display: "block" }}
+                  >
+                    Ngày trả hàng
+                  </Typography>
+                  <Typography
+                    variant="body1"
+                    sx={{ fontWeight: 600, color: "#1F2937" }}
+                  >
+                    {formatDate(booking.returnAt)}
+                  </Typography>
                 </Box>
+              </Box>
 
-                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                  <Avatar sx={{ bgcolor: "#F9FAFB", color: "#6B7280" }}>
-                    <CalendarToday />
-                  </Avatar>
-                  <Box>
-                    <Typography
-                      variant="caption"
-                      sx={{ color: "#6B7280", display: "block" }}
-                    >
-                      Ngày trả hàng
-                    </Typography>
-                    <Typography
-                      variant="body1"
-                      sx={{ fontWeight: 600, color: "#1F2937" }}
-                    >
-                      {formatDate(booking.returnAt)}
-                    </Typography>
-                  </Box>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                <Avatar sx={{ bgcolor: "#F9FAFB", color: "#6B7280" }}>
+                  <AccessTime />
+                </Avatar>
+                <Box>
+                  <Typography
+                    variant="caption"
+                    sx={{ color: "#6B7280", display: "block" }}
+                  >
+                    Loại thuê
+                  </Typography>
+                  <Chip
+                    label={getBookingType(booking.type)}
+                    size="small"
+                    sx={{
+                      bgcolor: "#FFF7ED",
+                      color: "#F97316",
+                      fontWeight: 600,
+                      fontSize: "0.75rem",
+                      mt: 0.5,
+                    }}
+                  />
                 </Box>
+              </Box>
+            </Stack>
+          </Paper>
 
-                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                  <Avatar sx={{ bgcolor: "#F9FAFB", color: "#6B7280" }}>
-                    <AccessTime />
-                  </Avatar>
-                  <Box>
+          {/* Equipment List */}
+          <Paper
+            elevation={0}
+            sx={{
+              p: 3,
+              borderRadius: 3,
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 2,
+                mb: 3,
+              }}
+            >
+              <Box
+                sx={{
+                  width: 50,
+                  height: 50,
+                  borderRadius: 2,
+                  bgcolor: "#D1FAE5",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <PhotoCamera sx={{ color: "#059669", fontSize: 28 }} />
+              </Box>
+              <Box>
+                <Typography
+                  variant="h6"
+                  sx={{ fontWeight: 700, color: "#1F2937" }}
+                >
+                  Danh sách thiết bị
+                </Typography>
+                <Typography variant="body2" sx={{ color: "#6B7280" }}>
+                  {booking.items.length} thiết bị
+                </Typography>
+              </Box>
+            </Box>
+
+            <Divider sx={{ mb: 3 }} />
+
+            <Stack spacing={2}>
+              {booking.items.map((item, index) => (
+                <Paper
+                  key={index}
+                  elevation={0}
+                  sx={{
+                    p: 2.5,
+                    bgcolor: "#F9FAFB",
+                    borderRadius: 2,
+                    border: "1px solid #E5E7EB",
+                  }}
+                >
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "start",
+                      mb: 1.5,
+                    }}
+                  >
                     <Typography
-                      variant="caption"
-                      sx={{ color: "#6B7280", display: "block" }}
+                      variant="subtitle1"
+                      sx={{ fontWeight: 700, color: "#1F2937", flex: 1 }}
                     >
-                      Loại thuê
+                      {getItemName(item)}
                     </Typography>
                     <Chip
-                      label={getBookingType(booking.type)}
+                      label={`x${item.quantity}`}
                       size="small"
                       sx={{
                         bgcolor: "#FFF7ED",
                         color: "#F97316",
                         fontWeight: 600,
                         fontSize: "0.75rem",
-                        mt: 0.5,
                       }}
                     />
                   </Box>
-                </Box>
-              </Stack>
-            </Paper>
 
-          {/* Equipment List */}
-          <Paper
-            elevation={0}
-            sx={{ p: 3, borderRadius: 3, display: "flex", flexDirection: "column" }}
-          >
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 2,
-                  mb: 3,
-                }}
-              >
-                <Box
-                  sx={{
-                    width: 50,
-                    height: 50,
-                    borderRadius: 2,
-                    bgcolor: "#D1FAE5",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <PhotoCamera sx={{ color: "#059669", fontSize: 28 }} />
-                </Box>
-                <Box>
-                  <Typography
-                    variant="h6"
-                    sx={{ fontWeight: 700, color: "#1F2937" }}
-                  >
-                    Danh sách thiết bị
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: "#6B7280" }}>
-                    {booking.items.length} thiết bị
-                  </Typography>
-                </Box>
-              </Box>
-
-              <Divider sx={{ mb: 3 }} />
-
-              <Stack spacing={2}>
-                {booking.items.map((item, index) => (
-                  <Paper
-                    key={index}
-                    elevation={0}
+                  <Box
                     sx={{
-                      p: 2.5,
-                      bgcolor: "#F9FAFB",
-                      borderRadius: 2,
-                      border: "1px solid #E5E7EB",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      mb: 1,
                     }}
                   >
-                    <Box
-                      sx={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "start",
-                        mb: 1.5,
-                      }}
+                    <Typography variant="body2" sx={{ color: "#6B7280" }}>
+                      Đơn giá
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      sx={{ fontWeight: 600, color: "#1F2937" }}
                     >
-                      <Typography
-                        variant="subtitle1"
-                        sx={{ fontWeight: 700, color: "#1F2937", flex: 1 }}
-                      >
-                        {getItemName(item)}
-                      </Typography>
-                      <Chip
-                        label={`x${item.quantity}`}
-                        size="small"
-                        sx={{
-                          bgcolor: "#FFF7ED",
-                          color: "#F97316",
-                          fontWeight: 600,
-                          fontSize: "0.75rem",
-                        }}
-                      />
-                    </Box>
+                      {formatCurrency(item.unitPrice)}
+                    </Typography>
+                  </Box>
 
-                    <Box
-                      sx={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        mb: 1,
-                      }}
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <Typography variant="body2" sx={{ color: "#6B7280" }}>
+                      Tiền cọc
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      sx={{ fontWeight: 600, color: "#1F2937" }}
                     >
-                      <Typography variant="body2" sx={{ color: "#6B7280" }}>
-                        Đơn giá
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        sx={{ fontWeight: 600, color: "#1F2937" }}
-                      >
-                        {formatCurrency(item.unitPrice)}
-                      </Typography>
-                    </Box>
+                      {formatCurrency(item.depositAmount)}
+                    </Typography>
+                  </Box>
 
-                    <Box
-                      sx={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                      }}
+                  <Divider sx={{ my: 1.5 }} />
+
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <Typography
+                      variant="body2"
+                      sx={{ color: "#1F2937", fontWeight: 600 }}
                     >
-                      <Typography variant="body2" sx={{ color: "#6B7280" }}>
-                        Tiền cọc
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        sx={{ fontWeight: 600, color: "#1F2937" }}
-                      >
-                        {formatCurrency(item.depositAmount)}
-                      </Typography>
-                    </Box>
-
-                    <Divider sx={{ my: 1.5 }} />
-
-                    <Box
-                      sx={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                      }}
+                      Thành tiền
+                    </Typography>
+                    <Typography
+                      variant="body1"
+                      sx={{ fontWeight: 700, color: "#F97316" }}
                     >
-                      <Typography
-                        variant="body2"
-                        sx={{ color: "#1F2937", fontWeight: 600 }}
-                      >
-                        Thành tiền
-                      </Typography>
-                      <Typography
-                        variant="body1"
-                        sx={{ fontWeight: 700, color: "#F97316" }}
-                      >
-                        {formatCurrency(item.unitPrice * item.quantity)}
-                      </Typography>
-                    </Box>
-                  </Paper>
-                ))}
-              </Stack>
-            </Paper>
+                      {formatCurrency(item.unitPrice * item.quantity)}
+                    </Typography>
+                  </Box>
+                </Paper>
+              ))}
+            </Stack>
+          </Paper>
 
           {/* Payment Summary */}
           <Paper
             elevation={0}
-            sx={{ p: 3, borderRadius: 3, display: "flex", flexDirection: "column" }}
+            sx={{
+              p: 3,
+              borderRadius: 3,
+              display: "flex",
+              flexDirection: "column",
+            }}
           >
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 2,
+                mb: 3,
+              }}
+            >
+              <Box
+                sx={{
+                  width: 50,
+                  height: 50,
+                  borderRadius: 2,
+                  bgcolor: "#DBEAFE",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Payment sx={{ color: "#0284C7", fontSize: 28 }} />
+              </Box>
+              <Box>
+                <Typography
+                  variant="h6"
+                  sx={{ fontWeight: 700, color: "#1F2937" }}
+                >
+                  Tổng quan thanh toán
+                </Typography>
+                <Typography variant="body2" sx={{ color: "#6B7280" }}>
+                  Chi tiết chi phí
+                </Typography>
+              </Box>
+            </Box>
+
+            <Divider sx={{ mb: 3 }} />
+
+            <Stack spacing={2}>
               <Box
                 sx={{
                   display: "flex",
+                  justifyContent: "space-between",
                   alignItems: "center",
-                  gap: 2,
-                  mb: 3,
                 }}
               >
-                <Box
-                  sx={{
-                    width: 50,
-                    height: 50,
-                    borderRadius: 2,
-                    bgcolor: "#DBEAFE",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
+                <Typography variant="body2" sx={{ color: "#6B7280" }}>
+                  Tổng tiền thuê
+                </Typography>
+                <Typography
+                  variant="body1"
+                  sx={{ fontWeight: 600, color: "#1F2937" }}
                 >
-                  <Payment sx={{ color: "#0284C7", fontSize: 28 }} />
-                </Box>
-                <Box>
-                  <Typography
-                    variant="h6"
-                    sx={{ fontWeight: 700, color: "#1F2937" }}
-                  >
-                    Tổng quan thanh toán
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: "#6B7280" }}>
-                    Chi tiết chi phí
-                  </Typography>
-                </Box>
+                  {formatCurrency(booking.snapshotRentalTotal)}
+                </Typography>
               </Box>
 
-              <Divider sx={{ mb: 3 }} />
-
-              <Stack spacing={2}>
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <Typography variant="body2" sx={{ color: "#6B7280" }}>
+                  Tiền cọc
+                </Typography>
+                <Typography
+                  variant="body1"
+                  sx={{ fontWeight: 600, color: "#1F2937" }}
                 >
-                  <Typography variant="body2" sx={{ color: "#6B7280" }}>
-                    Tổng tiền thuê
-                  </Typography>
-                  <Typography
-                    variant="body1"
-                    sx={{ fontWeight: 600, color: "#1F2937" }}
-                  >
-                    {formatCurrency(booking.snapshotRentalTotal)}
-                  </Typography>
-                </Box>
+                  {formatCurrency(booking.snapshotDepositAmount)}
+                </Typography>
+              </Box>
 
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <Typography variant="body2" sx={{ color: "#6B7280" }}>
+                  Phí vận chuyển
+                </Typography>
+                <Typography
+                  variant="body1"
+                  sx={{ fontWeight: 600, color: "#1F2937" }}
                 >
-                  <Typography variant="body2" sx={{ color: "#6B7280" }}>
-                    Tiền cọc
-                  </Typography>
-                  <Typography
-                    variant="body1"
-                    sx={{ fontWeight: 600, color: "#1F2937" }}
-                  >
-                    {formatCurrency(booking.snapshotDepositAmount)}
-                  </Typography>
-                </Box>
+                  {formatCurrency(0)}
+                </Typography>
+              </Box>
 
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
+              <Divider />
+
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  p: 2,
+                  bgcolor: "#FFF7ED",
+                  borderRadius: 2,
+                }}
+              >
+                <Typography
+                  variant="h6"
+                  sx={{ fontWeight: 700, color: "#1F2937" }}
                 >
-                  <Typography variant="body2" sx={{ color: "#6B7280" }}>
-                    Phí vận chuyển
-                  </Typography>
-                  <Typography
-                    variant="body1"
-                    sx={{ fontWeight: 600, color: "#1F2937" }}
-                  >
-                    {formatCurrency(0)}
-                  </Typography>
-                </Box>
-
-                <Divider />
-
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    p: 2,
-                    bgcolor: "#FFF7ED",
-                    borderRadius: 2,
-                  }}
+                  Tổng cộng
+                </Typography>
+                <Typography
+                  variant="h5"
+                  sx={{ fontWeight: 700, color: "#F97316" }}
                 >
-                  <Typography
-                    variant="h6"
-                    sx={{ fontWeight: 700, color: "#1F2937" }}
-                  >
-                    Tổng cộng
-                  </Typography>
-                  <Typography
-                    variant="h5"
-                    sx={{ fontWeight: 700, color: "#F97316" }}
-                  >
-                    {formatCurrency(
-                      booking.snapshotRentalTotal +
-                        booking.snapshotDepositAmount
-                    )}
-                  </Typography>
-                </Box>
-              </Stack>
-            </Paper>
+                  {formatCurrency(
+                    booking.snapshotRentalTotal + booking.snapshotDepositAmount
+                  )}
+                </Typography>
+              </Box>
+            </Stack>
+          </Paper>
         </Box>
-
 
         {/* Update Status Dialog */}
         <Dialog
@@ -1069,7 +1056,6 @@ const BookingDetail: React.FC = () => {
             </Box>
           </DialogContent>
         </Dialog>
-
       </Container>
     </Box>
   );
