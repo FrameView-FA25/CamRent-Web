@@ -1,7 +1,21 @@
+type CanonicalVerificationStatus =
+  | "Pending"
+  | "Approved"
+  | "Rejected"
+  | "Assigned"
+  | "Completed"
+  | "Cancelled";
+
+export type VerificationStatus =
+  | CanonicalVerificationStatus
+  | Lowercase<CanonicalVerificationStatus>;
+
+export type VerificationItemType = "Camera" | "Accessory" | "Combo" | "1" | "2" | "3";
+
 export interface VerificationItem {
   itemId: string;
   itemName: string;
-  itemType: "Camera" | "Accessory";
+  itemType: VerificationItemType;
 }
 
 export interface InspectionMedia {
@@ -12,16 +26,35 @@ export interface InspectionMedia {
   label: string;
 }
 
-export interface Inspection {
+export interface VerificationInspection {
   id: string;
+  itemId?: string | null;
   itemName: string;
-  itemType: "Camera" | "Accessory";
+  itemType: VerificationItemType | string;
   section: string;
   label: string;
-  value: string;
+  value: string | null;
   passed: boolean | null;
   notes: string | null;
   media: InspectionMedia[];
+  inspectionTypeId?: string | null;
+  type?: string | null;
+  itemTypeValue?: number | string | null;
+}
+
+export interface CreateVerificationRequest {
+  name: string;
+  phoneNumber: string;
+  inspectionDate: string;
+  branchId: string;
+  items: VerificationItem[];
+  notes?: string;
+}
+
+export interface CreateVerificationResponse {
+  success: boolean;
+  message?: string;
+  data?: Verification | null;
 }
 
 export interface Verification {
@@ -29,7 +62,7 @@ export interface Verification {
   name: string;
   phoneNumber: string;
   inspectionDate: string;
-  status: "Pending" | "Approved" | "Rejected";
+  status: VerificationStatus;
   staffId: string | null;
   staffName: string | null;
   branchId: string;
@@ -38,5 +71,5 @@ export interface Verification {
   notes: string | null;
   createdByUserId: string;
   items: VerificationItem[];
-  inspections: Inspection[];
+  inspections: VerificationInspection[];
 }

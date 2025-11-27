@@ -4,10 +4,20 @@ import { CameraAlt as CameraIcon, Add as AddIcon } from "@mui/icons-material";
 import { colors } from "../../theme/colors";
 
 interface ProductEmptyStateProps {
-  onAddNew: () => void;
+  type?: "camera" | "accessory";
+  onAddNew?: () => void;
 }
 
-const ProductEmptyState: React.FC<ProductEmptyStateProps> = ({ onAddNew }) => {
+const ProductEmptyState: React.FC<ProductEmptyStateProps> = ({
+  type = "camera",
+  onAddNew,
+}) => {
+  const isCamera = type === "camera";
+  const heading = isCamera
+    ? "Chưa có camera nào trong chi nhánh"
+    : "Chưa có phụ kiện nào trong chi nhánh";
+  const buttonLabel = isCamera ? "Thêm Camera Đầu Tiên" : "Thêm Phụ Kiện Đầu Tiên";
+
   return (
     <Paper
       elevation={0}
@@ -23,27 +33,29 @@ const ProductEmptyState: React.FC<ProductEmptyStateProps> = ({ onAddNew }) => {
         variant="h6"
         sx={{ color: colors.text.secondary, mb: 2, fontWeight: 600 }}
       >
-        Chưa có camera nào trong chi nhánh
+        {heading}
       </Typography>
-      <Button
-        variant="outlined"
-        startIcon={<AddIcon />}
-        onClick={onAddNew}
-        sx={{
-          borderColor: colors.primary.main,
-          color: colors.primary.main,
-          textTransform: "none",
-          fontWeight: 600,
-          px: 3,
-          py: 1,
-          "&:hover": {
-            borderColor: colors.primary.dark,
-            bgcolor: colors.primary.lighter,
-          },
-        }}
-      >
-        Thêm Camera Đầu Tiên
-      </Button>
+      {onAddNew && (
+        <Button
+          variant="outlined"
+          startIcon={<AddIcon />}
+          onClick={onAddNew}
+          sx={{
+            borderColor: colors.primary.main,
+            color: colors.primary.main,
+            textTransform: "none",
+            fontWeight: 600,
+            px: 3,
+            py: 1,
+            "&:hover": {
+              borderColor: colors.primary.dark,
+              bgcolor: colors.primary.lighter,
+            },
+          }}
+        >
+          {buttonLabel}
+        </Button>
+      )}
     </Paper>
   );
 };

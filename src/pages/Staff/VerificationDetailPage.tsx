@@ -13,14 +13,6 @@ import {
   Avatar,
   IconButton,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Dialog,
-  DialogContent,
 } from "@mui/material";
 import {
   ArrowBack,
@@ -32,7 +24,6 @@ import {
   Note,
   Camera,
   Inventory,
-  CheckCircle,
   PhotoCamera,
   TaskAlt,
 } from "@mui/icons-material";

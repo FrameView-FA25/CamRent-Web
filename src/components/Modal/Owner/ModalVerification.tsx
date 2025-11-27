@@ -130,7 +130,7 @@ export default function ModalVerification({
     if (isEditMode && initialData) {
       const items =
         initialData.items && initialData.items.length > 0
-          ? initialData.items.map((item) => ({
+          ? initialData.items.map((item: VerificationItem) => ({
               ...item,
               itemType: normalizeItemType(item.itemType),
             }))
@@ -151,7 +151,7 @@ export default function ModalVerification({
     field: keyof CreateVerificationRequest,
     value: string
   ) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((prev: CreateVerificationRequest) => ({ ...prev, [field]: value }));
   };
 
   useEffect(() => {
@@ -221,16 +221,16 @@ export default function ModalVerification({
   }, [open, computedInitialForm, cameraCtx]);
 
   const handleAddItem = () => {
-    setFormData((prev) => ({
+    setFormData((prev: CreateVerificationRequest) => ({
       ...prev,
       items: [...(prev.items || []), getEmptyItem()],
     }));
   };
 
   const handleRemoveItem = (index: number) => {
-    setFormData((prev) => ({
+    setFormData((prev: CreateVerificationRequest) => ({
       ...prev,
-      items: prev.items.filter((_, i) => i !== index),
+      items: prev.items.filter((_: VerificationItem, i: number) => i !== index),
     }));
   };
 
@@ -239,7 +239,7 @@ export default function ModalVerification({
     field: keyof VerificationItem,
     value: string
   ) => {
-    setFormData((prev) => {
+    setFormData((prev: CreateVerificationRequest) => {
       const newItems = [...(prev.items || [])];
       const item = { ...(newItems[index] || getEmptyItem()) };
 

@@ -158,7 +158,13 @@ const CheckBookings: React.FC = () => {
         (item) => item.itemType === "Camera" || item.itemType === "Accessory"
       )
       .map((item) => ({
-        itemId: item.itemId || item.id || "",
+        itemId:
+          item.itemId ||
+          item.cameraId ||
+          item.accessoryId ||
+          item.productId ||
+          item.comboId ||
+          "",
         itemName: item.itemName || getItemName(item),
         itemType: item.itemType === "Camera" ? "1" : "2",
       }));
@@ -247,7 +253,6 @@ const CheckBookings: React.FC = () => {
     const resolvedItemId =
       (inspection as BookingInspection & { itemId?: string }).itemId ||
       matchedItem?.itemId ||
-      matchedItem?.id ||
       "";
 
     const resolvedItemType =

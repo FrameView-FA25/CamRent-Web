@@ -1,7 +1,13 @@
 import { useMemo, useState } from "react";
-import type { Camera } from "../types/product.types";
 
-export const useProductFilters = (cameras: Camera[]) => {
+type FilterableProduct = {
+  id: string;
+  brand: string;
+  model: string;
+  serialNumber?: string | null;
+};
+
+export const useProductFilters = <T extends FilterableProduct>(products: T[]) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedBrand, setSelectedBrand] = useState<string>("");
   const [sortBy, setSortBy] = useState<"model" | "brand" | "serialNumber">("model");
@@ -11,28 +17,28 @@ export const useProductFilters = (cameras: Camera[]) => {
 
   // Extract unique brands
   const brands = useMemo(() => {
-    const uniqueBrands = new Set(cameras.map((c) => c.brand));
+    const uniqueBrands = new Set(products.map((item) => item.brand));
     return Array.from(uniqueBrands).sort();
-  }, [cameras]);
+  }, [products]);
 
   // Filter and sort
-  const filteredAndSortedCameras = useMemo(() => {
-    let result = [...cameras];
+  const filteredAndSortedItems = useMemo(() => {
+    let result = [...products];
 
     // Filter by search query
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       result = result.filter(
-        (camera) =>
-          camera.model.toLowerCase().includes(query) ||
-          camera.brand.toLowerCase().includes(query) ||
-          camera.serialNumber?.toLowerCase().includes(query)
+        (item) =>
+          item.model.toLowerCase().includes(query) ||
+          item.brand.toLowerCase().includes(query) ||
+          item.serialNumber?.toLowerCase().includes(query)
       );
     }
 
     // Filter by brand
     if (selectedBrand) {
-      result = result.filter((camera) => camera.brand === selectedBrand);
+      result = result.filter((item) => item.brand === selectedBrand);
     }
 
     // Sort
@@ -48,16 +54,16 @@ export const useProductFilters = (cameras: Camera[]) => {
     });
 
     return result;
-  }, [cameras, searchQuery, selectedBrand, sortBy, sortDir]);
+  }, [products, searchQuery, selectedBrand, sortBy, sortDir]);
 
   // Paginate
-  const paginatedCameras = useMemo(() => {
+  const paginatedItems = useMemo(() => {
     const startIndex = (currentPage - 1) * pageSize;
     const endIndex = startIndex + pageSize;
-    return filteredAndSortedCameras.slice(startIndex, endIndex);
-  }, [filteredAndSortedCameras, currentPage]);
+    return filteredAndSortedItems.slice(startIndex, endIndex);
+  }, [filteredAndSortedItems, currentPage]);
 
-  const totalPages = Math.ceil(filteredAndSortedCameras.length / pageSize);
+  const totalPages = Math.ceil(filteredAndSortedItems.length / pageSize);
 
   // Handlers
   const handleSearchChange = (value: string) => {
@@ -90,8 +96,8 @@ export const useProductFilters = (cameras: Camera[]) => {
     sortDir,
     currentPage,
     pageSize,
-    filteredAndSortedCameras,
-    paginatedCameras,
+    filteredAndSortedItems,
+    paginatedItems,
     totalPages,
     handleSearchChange,
     handleBrandChange,
