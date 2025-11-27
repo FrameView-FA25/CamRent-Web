@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import { colors } from "../../theme/colors";
 import confetti from "canvas-confetti";
-
+import { toast } from "react-toastify";
 interface PaymentDetails {
   orderId: string;
   amount: number;
@@ -93,50 +93,63 @@ const PaymentSuccess: React.FC = () => {
     const fetchPaymentDetails = async () => {
       try {
         // Get payment info from URL params
+        const paymentId = searchParams.get("paymentId");
         const orderId = searchParams.get("orderId");
-        const transactionId = searchParams.get("transactionId");
+        const bookingId = searchParams.get("bookingId");
+        const status = searchParams.get("status");
 
-        // TODO: Replace with actual API call
-        // const response = await fetch(`/api/payments/${orderId}`);
-        // const data = await response.json();
+        console.log("Payment return params:", {
+          paymentId,
+          orderId,
+          bookingId,
+          status,
+        });
 
-        // Mock data for demo
-        const mockData: PaymentDetails = {
+        if (status !== "PAID" && status !== "SUCCESS") {
+          // Payment was not successful
+          navigate(
+            `/payment-failed?paymentId=${paymentId}&orderId=${orderId}&status=${status}`
+          );
+          return;
+        }
+
+        // TODO: Fetch actual payment details from API
+        // const response = await getPaymentDetails(paymentId);
+        // setPaymentDetails(response);
+
+        // Mock data
+        setPaymentDetails({
           orderId: orderId || "ORD-2024-001",
           amount: 5000000,
-          paymentMethod: "VNPay",
-          transactionId: transactionId || "VNP-" + Date.now(),
+          paymentMethod: "PayOS",
+          transactionId: paymentId || "PAY-" + Date.now(),
           paidAt: new Date().toISOString(),
           customerName: "Nguyễn Văn A",
-          customerEmail: "nguyenvana@example.com",
-          customerPhone: "0901234567",
+          customerEmail: "customer@example.com",
+          customerPhone: "0123456789",
           items: [
             {
-              name: "Canon EOS R5",
+              name: "Camera Canon EOS R5",
               quantity: 1,
               price: 3000000,
             },
             {
-              name: "Ống kính RF 24-70mm f/2.8",
+              name: "Lens 24-70mm f/2.8",
               quantity: 1,
-              price: 1500000,
-            },
-            {
-              name: "Thẻ nhớ 128GB",
-              quantity: 1,
-              price: 500000,
+              price: 2000000,
             },
           ],
           rentalPeriod: {
-            startDate: "2024-12-01",
-            endDate: "2024-12-07",
+            startDate: new Date().toISOString(),
+            endDate: new Date(
+              Date.now() + 7 * 24 * 60 * 60 * 1000
+            ).toISOString(),
           },
-          pickupLocation: "Chi nhánh Quận 1, TP.HCM",
-        };
-
-        setPaymentDetails(mockData);
+          pickupLocation: "123 Nguyễn Huệ, Quận 1, TP.HCM",
+        });
       } catch (error) {
         console.error("Error fetching payment details:", error);
+        toast.error("Không thể lấy thông tin thanh toán");
       } finally {
         setLoading(false);
       }

@@ -49,26 +49,31 @@ const PaymentFailed: React.FC = () => {
   useEffect(() => {
     const fetchFailedPaymentInfo = async () => {
       try {
+        const paymentId = searchParams.get("paymentId");
         const orderId = searchParams.get("orderId");
-        const errorCode = searchParams.get("errorCode");
-        const errorMessage = searchParams.get("errorMessage");
+        const bookingId = searchParams.get("bookingId");
+        const errorCode =
+          searchParams.get("errorCode") || searchParams.get("status");
+        const errorMessage =
+          searchParams.get("message") || "Giao dịch bị từ chối";
 
-        // TODO: Replace with actual API call
-        // const response = await fetch(`/api/payments/failed/${orderId}`);
-        // const data = await response.json();
+        console.log("Payment failed params:", {
+          paymentId,
+          orderId,
+          bookingId,
+          errorCode,
+          errorMessage,
+        });
 
         // Mock data
-        const mockData: FailedPaymentInfo = {
-          orderId: orderId || "ORD-2024-001",
+        setPaymentInfo({
+          orderId: orderId || bookingId || "ORD-2024-001",
           amount: 5000000,
           failedAt: new Date().toISOString(),
-          errorCode: errorCode || "PAYMENT_DECLINED",
-          errorMessage:
-            errorMessage || "Giao dịch bị từ chối bởi ngân hàng phát hành",
-          paymentMethod: "VNPay",
-        };
-
-        setPaymentInfo(mockData);
+          errorCode: errorCode || "PAYMENT_FAILED",
+          errorMessage: errorMessage,
+          paymentMethod: "PayOS",
+        });
       } catch (error) {
         console.error("Error fetching failed payment info:", error);
       } finally {
@@ -78,7 +83,11 @@ const PaymentFailed: React.FC = () => {
 
     fetchFailedPaymentInfo();
   }, [searchParams]);
-
+  const handleRetry = () => {
+    if (paymentInfo) {
+      navigate(`/checkout?orderId=${paymentInfo.orderId}`);
+    }
+  };
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("vi-VN", {
       style: "currency",
@@ -138,12 +147,6 @@ const PaymentFailed: React.FC = () => {
         "Liên hệ hỗ trợ nếu vấn đề vẫn tiếp diễn",
       ]
     );
-  };
-
-  const handleRetry = () => {
-    if (paymentInfo) {
-      navigate(`/checkout?orderId=${paymentInfo.orderId}`);
-    }
   };
 
   if (loading) {
