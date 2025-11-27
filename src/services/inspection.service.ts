@@ -114,3 +114,126 @@ export async function deleteInspection(inspectionId: string): Promise<void> {
     throw new Error(errorMessage);
   }
 }
+
+/**
+ * Duyệt hoặc từ chối một inspection
+ * Chỉ dành cho BranchManager
+ * PUT /api/Inspections/{id}/approve?pass=true|false
+ * @param inspectionId - ID inspection cần duyệt
+ * @param pass - true: duyệt, false: từ chối
+ * @returns Promise chứa kết quả approve
+ */
+export async function approveInspection(
+  inspectionId: string,
+  pass: boolean = true
+): Promise<any> {
+  const token = localStorage.getItem("accessToken");
+  if (!token) throw new Error("Vui lòng đăng nhập để thực hiện thao tác này");
+
+  const response = await fetch(
+    `${API_BASE_URL}/Inspections/${inspectionId}/approve?pass=${pass}`,
+    {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  if (!response.ok) {
+    let errorMessage = `${pass ? "Duyệt" : "Từ chối"} inspection thất bại với mã lỗi ${response.status}`;
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.message || errorMessage;
+    } catch {
+      const errorText = await response.text().catch(() => "");
+      if (errorText) errorMessage = errorText;
+    }
+    throw new Error(errorMessage);
+  }
+
+  // Parse response
+  const contentType = response.headers.get("content-type");
+  if (contentType?.includes("application/json")) {
+    return await response.json();
+  }
+  return await response.text();
+}
+
+/**
+ * Lấy chi tiết một inspection theo ID
+ * @param inspectionId - ID inspection cần lấy
+ * @returns Promise chứa thông tin inspection
+ */
+export async function getInspectionById(inspectionId: string): Promise<any> {
+  const token = localStorage.getItem("accessToken");
+  if (!token) throw new Error("Vui lòng đăng nhập để thực hiện thao tác này");
+
+  const response = await fetch(`${API_BASE_URL}/Inspections/${inspectionId}`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    let errorMessage = `Lấy thông tin inspection thất bại với mã lỗi ${response.status}`;
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.message || errorMessage;
+    } catch {
+      const errorText = await response.text().catch(() => "");
+      if (errorText) errorMessage = errorText;
+    }
+    throw new Error(errorMessage);
+  }
+
+  const contentType = response.headers.get("content-type");
+  if (contentType?.includes("application/json")) {
+    return await response.json();
+  }
+  return await response.text();
+}
+
+/**
+ * Lấy danh sách inspections theo booking ID
+ * @param bookingId - ID booking cần lấy inspections
+ * @returns Promise chứa danh sách inspections
+ */
+export async function getInspectionsByBookingId(
+  bookingId: string
+): Promise<any[]> {
+  const token = localStorage.getItem("accessToken");
+  if (!token) throw new Error("Vui lòng đăng nhập để thực hiện thao tác này");
+
+  const response = await fetch(
+    `${API_BASE_URL}/Inspections/booking/${bookingId}`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  if (!response.ok) {
+    let errorMessage = `Lấy danh sách inspections thất bại với mã lỗi ${response.status}`;
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.message || errorMessage;
+    } catch {
+      const errorText = await response.text().catch(() => "");
+      if (errorText) errorMessage = errorText;
+    }
+    throw new Error(errorMessage);
+  }
+
+  const contentType = response.headers.get("content-type");
+  if (contentType?.includes("application/json")) {
+    return await response.json();
+  }
+  return [];
+}
