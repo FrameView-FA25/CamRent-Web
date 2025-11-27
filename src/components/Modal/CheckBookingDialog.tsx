@@ -19,7 +19,6 @@ type CheckBookingDefaultValues = {
   Section?: string;
   Label?: string;
   Value?: string;
-  Passed?: boolean;
   Notes?: string;
 };
 

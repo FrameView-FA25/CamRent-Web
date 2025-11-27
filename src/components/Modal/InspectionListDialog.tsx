@@ -52,7 +52,7 @@ export type InspectionListItem = {
   label: string;
   value?: string;
   notes?: string;
-  passed: boolean | null;
+  passed?: boolean | null;
   media?: InspectionMedia[];
 };
 
@@ -225,10 +225,7 @@ const InspectionListDialog: React.FC<InspectionListDialogProps> = ({
                         >
                           {inspection.itemName || "Không xác định"}
                         </Typography>
-                        <Typography
-                          variant="caption"
-                          sx={{ color: "#6B7280" }}
-                        >
+                        <Typography variant="caption" sx={{ color: "#6B7280" }}>
                           {inspection.itemType || "N/A"}
                         </Typography>
                       </TableCell>
@@ -275,13 +272,16 @@ const InspectionListDialog: React.FC<InspectionListDialogProps> = ({
                             )}
                           </Box>
                         ) : (
-                          <Typography variant="caption" sx={{ color: "#94A3B8" }}>
+                          <Typography
+                            variant="caption"
+                            sx={{ color: "#94A3B8" }}
+                          >
                             -
                           </Typography>
                         )}
                       </TableCell>
                       <TableCell align="center">
-                        {statusChip(inspection.passed)}
+                        {statusChip(inspection.passed ?? null)}
                       </TableCell>
                       <TableCell align="right">
                         <Box sx={{ display: "flex", gap: 1 }}>
@@ -306,7 +306,9 @@ const InspectionListDialog: React.FC<InspectionListDialogProps> = ({
                               <span>
                                 <IconButton
                                   size="small"
-                                  disabled={deletingInspectionId === inspection.id}
+                                  disabled={
+                                    deletingInspectionId === inspection.id
+                                  }
                                   onClick={() => onDelete(inspection)}
                                   sx={{
                                     border: "1px solid #FEE2E2",
@@ -325,7 +327,10 @@ const InspectionListDialog: React.FC<InspectionListDialogProps> = ({
                                   }}
                                 >
                                   {deletingInspectionId === inspection.id ? (
-                                    <CircularProgress size={16} sx={{ color: "#DC2626" }} />
+                                    <CircularProgress
+                                      size={16}
+                                      sx={{ color: "#DC2626" }}
+                                    />
                                   ) : (
                                     <DeleteOutline fontSize="small" />
                                   )}
@@ -396,4 +401,3 @@ const InspectionListDialog: React.FC<InspectionListDialogProps> = ({
 };
 
 export default InspectionListDialog;
-

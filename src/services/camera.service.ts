@@ -32,6 +32,9 @@ export interface Camera {
   depositCapMaxVnd: number; // Mức đặt cọc tối đa (VNĐ)
   media: CameraMedia[]; // Danh sách hình ảnh/media của camera
   specsJson: string | null; // Thông số kỹ thuật dạng JSON string
+  isConfirmed?: boolean; // Trạng thái đã được xác minh hay chưa
+  isAvailable?: boolean; // Thiết bị đang sẵn sàng hay tạm ngưng
+  status?: string | null; // Trạng thái tổng hợp trả về từ API (nếu có)
 }
 
 // Interface cho response khi gọi API lấy danh sách camera
