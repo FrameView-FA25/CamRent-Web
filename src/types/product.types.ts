@@ -51,3 +51,35 @@ export interface MediaItem {
   url: string;
   type?: string;
 }
+
+export interface AccessoryMedia {
+  id: string;
+  url: string;
+  contentType: string;
+  sizeBytes: number;
+  label: string;
+}
+
+export interface Accessory {
+  id: string;
+  brand: string;
+  model: string;
+  variant: string | null;
+  serialNumber: string;
+  specsJson: string;
+  branchName: string | null;
+  branchAddress: string | null;
+  itemType: "Accessory";
+  baseDailyRate: number;
+  platformFeePercent: number;
+  estimatedValueVnd: number;
+  depositPercent: number;
+  depositCapMinVnd: number | null;
+  depositCapMaxVnd: number | null;
+  isConfirmed: boolean;
+  isAvailable: boolean;
+  location: string;
+  ownerUserId: string;
+  ownerName: string | null;
+  media: AccessoryMedia[];
+}
