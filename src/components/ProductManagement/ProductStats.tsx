@@ -7,14 +7,17 @@ import {
   Cancel as CancelIcon,
 } from "@mui/icons-material";
 import { colors } from "../../theme/colors";
-import type { Camera } from "../../types/product.types";
+type ProductWithStatus = {
+  isConfirmed: boolean;
+  isAvailable: boolean;
+};
 
 interface ProductStatsProps {
-  cameras: Camera[];
+  items: ProductWithStatus[];
   total: number;
 }
 
-const ProductStats: React.FC<ProductStatsProps> = ({ cameras, total }) => {
+const ProductStats: React.FC<ProductStatsProps> = ({ items, total }) => {
   const stats = [
     {
       icon: <SearchIcon sx={{ fontSize: 32 }} />,
@@ -25,21 +28,21 @@ const ProductStats: React.FC<ProductStatsProps> = ({ cameras, total }) => {
     },
     {
       icon: <CheckCircleIcon sx={{ fontSize: 32 }} />,
-      count: cameras.filter((c) => c.isConfirmed).length,
+      count: items.filter((c) => c.isConfirmed).length,
       label: "Đã xác minh",
       bgColor: colors.status.successLight,
       iconColor: colors.status.success,
     },
     {
       icon: <CameraIcon sx={{ fontSize: 32 }} />,
-      count: cameras.filter((c) => c.isAvailable).length,
+      count: items.filter((c) => c.isAvailable).length,
       label: "Sẵn sàng cho thuê",
       bgColor: colors.accent.blueLight,
       iconColor: colors.accent.blue,
     },
     {
       icon: <CancelIcon sx={{ fontSize: 32 }} />,
-      count: cameras.filter((c) => !c.isAvailable).length,
+      count: items.filter((c) => !c.isAvailable).length,
       label: "Không khả dụng",
       bgColor: colors.status.warningLight,
       iconColor: colors.status.warning,

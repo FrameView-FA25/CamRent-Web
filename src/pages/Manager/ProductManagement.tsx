@@ -56,15 +56,15 @@ const ProductManagementPage: React.FC = () => {
     brands: cameraBrands,
     currentPage: cameraCurrentPage,
     pageSize: cameraPageSize,
-    filteredAndSortedCameras,
-    paginatedCameras,
+    filteredAndSortedItems: filteredAndSortedCameras,
+    paginatedItems: paginatedCameras,
     totalPages: cameraTotalPages,
     handleSearchChange: handleCameraSearchChange,
     handleBrandChange: handleCameraBrandChange,
     handleSortChange: handleCameraSortChange,
     setCurrentPage: setCameraCurrentPage,
     resetFilters: resetCameraFilters,
-  } = useProductFilters(cameras);
+  } = useProductFilters<Camera>(cameras);
 
   // Filters for accessories
   const {
@@ -72,15 +72,15 @@ const ProductManagementPage: React.FC = () => {
     brands: accessoryBrands,
     currentPage: accessoryCurrentPage,
     pageSize: accessoryPageSize,
-    filteredAndSortedCameras: filteredAndSortedAccessories,
-    paginatedCameras: paginatedAccessories,
+    filteredAndSortedItems: filteredAndSortedAccessories,
+    paginatedItems: paginatedAccessories,
     totalPages: accessoryTotalPages,
     handleSearchChange: handleAccessorySearchChange,
     handleBrandChange: handleAccessoryBrandChange,
     handleSortChange: handleAccessorySortChange,
     setCurrentPage: setAccessoryCurrentPage,
     resetFilters: resetAccessoryFilters,
-  } = useProductFilters(accessories);
+  } = useProductFilters<Accessory>(accessories);
 
   const handleView = (item: Camera | Accessory) => {
     console.log("View item:", item);
@@ -198,7 +198,7 @@ const ProductManagementPage: React.FC = () => {
         </Box>
 
         {/* Stats */}
-        <ProductStats cameras={items} total={total} />
+        <ProductStats items={items} total={total} />
 
         {/* Search Bar */}
         <ProductSearchBar

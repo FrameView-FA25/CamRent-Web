@@ -32,48 +32,59 @@ const VerificationCard: React.FC<VerificationCardProps> = ({
 }) => {
   const getStatusInfo = (status: Verification["status"]) => {
     const statusMap = {
-      Pending: {
+      pending: {
         label: "Pending",
         color: colors.status.warning,
         bgColor: colors.status.warningLight,
         icon: <Clock size={16} />,
       },
-      Assigned: {
+      assigned: {
         label: "Assigned",
         color: colors.accent.blue,
         bgColor: colors.accent.blueLight,
         icon: <Clock size={16} />,
       },
-      Approved: {
+      approved: {
         label: "Approved",
         color: colors.status.success,
         bgColor: colors.status.successLight,
         icon: <Clock size={16} />,
       },
-      Rejected: {
+      rejected: {
         label: "Rejected",
         color: colors.status.error,
         bgColor: colors.status.errorLight,
         icon: <Clock size={16} />,
       },
-      Completed: {
+      completed: {
         label: "Completed",
         color: colors.status.success,
         bgColor: colors.status.successLight,
         icon: <Clock size={16} />,
       },
-      Cancelled: {
+      cancelled: {
         label: "Cancelled",
         color: colors.status.error,
         bgColor: colors.status.errorLight,
         icon: <Clock size={16} />,
       },
     };
-    return statusMap[status];
+    const normalized = status?.toString().toLowerCase() || "pending";
+    return (
+      statusMap[normalized as keyof typeof statusMap] || {
+        label: status,
+        color: colors.neutral[600],
+        bgColor: colors.neutral[100],
+        icon: <AlertCircle size={16} />,
+      }
+    );
   };
 
   const getItemTypeLabel = (itemType: string) => {
-    return itemType === "1" || itemType === "Camera" ? "Camera" : "Accessory";
+    if (itemType === "1" || itemType === "Camera") return "Camera";
+    if (itemType === "2" || itemType === "Accessory") return "Accessory";
+    if (itemType === "3" || itemType === "Combo") return "Combo";
+    return "Other";
   };
 
   const formatDateTime = (dateString: string) => {

@@ -58,7 +58,10 @@ export const useVerifications = () => {
 
     const tabs = ["all", "pending", "in-progress", "approved", "rejected"];
     if (activeTab > 0) {
-      filtered = filtered.filter((v) => v.status === tabs[activeTab]);
+      const target = tabs[activeTab];
+      filtered = filtered.filter(
+        (v) => v.status?.toString().toLowerCase() === target
+      );
     }
 
     if (searchQuery) {
@@ -66,7 +69,8 @@ export const useVerifications = () => {
         (v) =>
           v.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
           v.phoneNumber.includes(searchQuery) ||
-          v.branchName.toLowerCase().includes(searchQuery.toLowerCase())
+          (v.branchName?.toLowerCase().includes(searchQuery.toLowerCase()) ??
+            false)
       );
     }
 
