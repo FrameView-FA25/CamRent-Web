@@ -318,20 +318,15 @@ export default function VerificationDetailModal({
                         <TableCell>
                           <Chip
                             label={
-                              item.itemType === "1" ||
-                              item.itemType === "Camera"
-                                ? "Camera"
-                                : "Phụ kiện"
+                              item.itemType === "Camera" ? "Camera" : "Phụ kiện"
                             }
                             size="small"
                             sx={{
                               bgcolor:
-                                item.itemType === "1" ||
                                 item.itemType === "Camera"
                                   ? "#EFF6FF"
                                   : "#F0FDF4",
                               color:
-                                item.itemType === "1" ||
                                 item.itemType === "Camera"
                                   ? "#3B82F6"
                                   : "#10B981",
