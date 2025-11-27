@@ -47,6 +47,7 @@ import { ChatPage } from "@/pages/Renter/ChatPage";
 import ComparePage from "@/pages/Home/ComparePage";
 import CameraQrHistory from "@/pages/Owner/QRScanner/CameraQrHistory";
 import RenterProfile from "@/pages/Renter/RenterProfile";
+import ContractTemplateManagement from "@/pages/Manager/ContractTemplateManagement";
 const routes: RouteObject[] = [
   {
     path: "/",
@@ -205,6 +206,10 @@ const routes: RouteObject[] = [
       {
         path: "verifications",
         element: <VerifyManagement />,
+      },
+      {
+        path: "contracts",
+        element: <ContractTemplateManagement />,
       },
       {
         path: "profile",
