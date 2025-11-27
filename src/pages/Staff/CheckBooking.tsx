@@ -54,7 +54,10 @@ import {
   deleteInspection,
 } from "../../services/inspection.service";
 import { toast } from "react-toastify";
-import type { VerificationItemType } from "../../types/verification.types";
+import type {
+  VerificationItem,
+  VerificationItemType,
+} from "../../types/verification.types";
 import InspectionListDialog, {
   type InspectionListItem,
 } from "../../components/Modal/InspectionListDialog";
@@ -87,6 +90,12 @@ const CheckBookings: React.FC = () => {
   const [deletingInspectionId, setDeletingInspectionId] = useState<
     string | null
   >(null);
+  const [activeInspectionBookingId, setActiveInspectionBookingId] = useState<
+    string | null
+  >(null);
+  const [currentInspectionItems, setCurrentInspectionItems] = useState<
+    VerificationItem[]
+  >([]);
   const navigate = useNavigate();
   useEffect(() => {
     loadAssignments();
@@ -129,6 +138,45 @@ const CheckBookings: React.FC = () => {
   const handleCloseInspection = () => {
     setInspectionModalOpen(false);
     setSelectedBookingId(null);
+  };
+
+  const getItemTypeNumber = (value?: string | number): number | undefined => {
+    if (value === undefined || value === null) return undefined;
+    if (typeof value === "number" && !Number.isNaN(value)) return value;
+    const normalized = value.toString().toLowerCase();
+    if (normalized === "camera" || normalized === "1") return 1;
+    if (normalized === "accessory" || normalized === "2") return 2;
+    if (normalized === "combo" || normalized === "3") return 3;
+    return undefined;
+  };
+
+  const convertBookingItemsToVerificationItems = (
+    items: Booking["items"]
+  ): VerificationItem[] => {
+    return items
+      .filter(
+        (item) => item.itemType === "Camera" || item.itemType === "Accessory"
+      )
+      .map((item) => ({
+        itemId: item.itemId || item.id || "",
+        itemName: item.itemName || getItemName(item),
+        itemType: item.itemType === "Camera" ? "1" : "2",
+      }));
+  };
+
+  const resolveInspectionItemMetadata = (inspection: InspectionListItem) => {
+    const normalizedName = inspection.itemName?.toLowerCase();
+    const fallbackItem = currentInspectionItems.find((item) => {
+      if (inspection.itemId && item.itemId === inspection.itemId) return true;
+      const itemNameLower = item.itemName?.toLowerCase() || "";
+      return itemNameLower === (normalizedName || "");
+    });
+    const itemId = inspection.itemId || fallbackItem?.itemId;
+    const itemTypeValue =
+      getItemTypeNumber(inspection.itemTypeValue ?? inspection.itemType) ??
+      (fallbackItem ? getItemTypeNumber(fallbackItem.itemType) : undefined);
+
+    return { itemId, itemTypeValue };
   };
 
   const handleInspectionSuccess = async (
@@ -181,47 +229,88 @@ const CheckBookings: React.FC = () => {
   };
 
   const mapBookingInspectionToListItem = (
-    inspection: BookingInspection
-  ): InspectionListItem => ({
-    id: inspection.id,
-    itemName: inspection.itemName,
-    itemType: inspection.itemType,
-    section: inspection.section,
-    label: inspection.label,
-    value: inspection.value,
-    notes: inspection.notes,
-    passed: inspection.passed ?? null,
-    media: inspection.media?.map((media) => ({
-      id: media.id,
-      url: media.url,
-      label: media.label,
-    })),
-  });
+    inspection: BookingInspection,
+    booking?: Booking
+  ): InspectionListItem => {
+    const normalizedName = inspection.itemName?.toLowerCase();
+    const matchedItem = booking?.items.find((item) => {
+      if (
+        (inspection as BookingInspection & { itemId?: string }).itemId &&
+        item.itemId === (inspection as BookingInspection & { itemId?: string }).itemId
+      ) {
+        return true;
+      }
+      const itemNameLower = item.itemName?.toLowerCase() || "";
+      return itemNameLower === (normalizedName || "");
+    });
+
+    const resolvedItemId =
+      (inspection as BookingInspection & { itemId?: string }).itemId ||
+      matchedItem?.itemId ||
+      matchedItem?.id ||
+      "";
+
+    const resolvedItemType =
+      getItemTypeNumber(
+        (inspection as BookingInspection & { itemTypeValue?: number | string })
+          .itemTypeValue ?? inspection.itemType
+      ) ?? (matchedItem ? getItemTypeNumber(matchedItem.itemType) : undefined);
+
+    return {
+      id: inspection.id,
+      itemName: inspection.itemName,
+      itemType: inspection.itemType,
+      section: inspection.section,
+      label: inspection.label,
+      value: inspection.value,
+      notes: inspection.notes,
+      passed: inspection.passed ?? null,
+      itemId: resolvedItemId || undefined,
+      itemTypeValue: resolvedItemType,
+      inspectionTypeId:
+        (inspection as BookingInspection & { inspectionTypeId?: string })
+          .inspectionTypeId || booking?.id,
+      type: (inspection as BookingInspection & { type?: string }).type || "Booking",
+      media: inspection.media?.map((media) => ({
+        id: media.id,
+        url: media.url,
+        label: media.label,
+      })),
+    };
+  };
 
   const shortId = (id: string) =>
     id.length > 8 ? `${id.substring(0, 8)}...` : id;
 
-  const handleManageInspections = async (bookingId: string) => {
-    setInspectionListOpen(true);
+  const loadInspectionList = async (bookingId: string) => {
     setInspectionListLoading(true);
-    setInspectionListSubtitle(`Đơn hàng ${shortId(bookingId)}`);
-
     try {
       const { booking, error } = await fetchBookingById(bookingId);
       if (error || !booking) {
         throw new Error(error || "Không tìm thấy phiếu kiểm tra");
       }
       const mapped =
-        booking.inspections?.map(mapBookingInspectionToListItem) || [];
+        booking.inspections?.map((inspection) =>
+          mapBookingInspectionToListItem(inspection, booking)
+        ) || [];
       setInspectionList(mapped);
+      setCurrentInspectionItems(convertBookingItemsToVerificationItems(booking.items));
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Không thể tải phiếu kiểm tra";
       toast.error(message);
       setInspectionList([]);
+      setCurrentInspectionItems([]);
     } finally {
       setInspectionListLoading(false);
     }
+  };
+
+  const handleManageInspections = async (bookingId: string) => {
+    setInspectionListOpen(true);
+    setInspectionListSubtitle(`Đơn hàng ${shortId(bookingId)}`);
+    setActiveInspectionBookingId(bookingId);
+    await loadInspectionList(bookingId);
   };
 
   const handleCloseInspectionList = () => {
@@ -229,6 +318,8 @@ const CheckBookings: React.FC = () => {
     setInspectionList([]);
     setInspectionListSubtitle("");
     setDeletingInspectionId(null);
+    setCurrentInspectionItems([]);
+    setActiveInspectionBookingId(null);
   };
 
   const handleEditInspection = (inspection: InspectionListItem) => {
@@ -247,27 +338,46 @@ const CheckBookings: React.FC = () => {
     if (!editingInspection) return;
     setSavingInspection(true);
     try {
-      await updateInspection(editingInspection.id, {
-        section: formState.section,
-        label: formState.label,
-        value: formState.value || undefined,
-        notes: formState.notes || undefined,
-        passed: formState.passed,
-      });
-      setInspectionList((prev) =>
-        prev.map((item) =>
-          item.id === editingInspection.id
-            ? {
-                ...item,
-                section: formState.section,
-                label: formState.label,
-                value: formState.value,
-                notes: formState.notes,
-                passed: formState.passed,
-              }
-            : item
-        )
+      const formData = new FormData();
+      formData.append("Section", formState.section);
+      formData.append("Label", formState.label);
+      formData.append("Value", formState.value ?? "");
+      formData.append("Notes", formState.notes ?? "");
+      if (formState.passed !== null) {
+        formData.append("Passed", formState.passed ? "true" : "false");
+      }
+
+      const { itemId, itemTypeValue } =
+        resolveInspectionItemMetadata(editingInspection);
+
+      if (!itemId || itemTypeValue === undefined) {
+        throw new Error("Không xác định được thông tin thiết bị cho phiếu kiểm tra.");
+      }
+
+      formData.append("ItemId", itemId);
+      formData.append("ItemType", String(itemTypeValue));
+
+      const inspectionTypeId =
+        editingInspection.inspectionTypeId ||
+        activeInspectionBookingId ||
+        selectedBookingId;
+      if (inspectionTypeId) {
+        formData.append("InspectionTypeId", inspectionTypeId);
+      }
+
+      formData.append("Type", editingInspection.type || "Booking");
+
+      formState.files.forEach((file) => formData.append("files", file));
+      formState.removeMediaIds.forEach((mediaId) =>
+        formData.append("RemoveMediaIds", mediaId)
       );
+
+      await updateInspection(editingInspection.id, formData);
+
+      if (activeInspectionBookingId) {
+        await loadInspectionList(activeInspectionBookingId);
+      }
+
       toast.success("Cập nhật phiếu kiểm tra thành công");
       handleCloseEditInspection();
     } catch (err) {

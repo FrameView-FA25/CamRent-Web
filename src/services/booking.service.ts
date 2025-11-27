@@ -6,6 +6,13 @@ import type {
   CreateInspectionRequest,
 } from "../types/booking.types";
 
+type ApiBookingItem = BookingItem & {
+  id: string;
+  bookingId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
 // URL cơ sở của API backend
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -443,7 +450,7 @@ export const fetchBookingById = async (
       snapshotDepositAmount: data.snapshotDepositAmount,
       createdAt: data.createdAt,
       updatedAt: data.updatedAt,
-      items: data.items.map((item: any) => ({
+      items: data.items.map((item: ApiBookingItem) => ({
         id: item.id,
         bookingId: item.bookingId,
         cameraId: item.cameraId,
@@ -452,26 +459,35 @@ export const fetchBookingById = async (
         accessory: item.accessory,
         comboId: item.comboId,
         combo: item.combo,
-        unitPrice: item.unitPrice,
-        depositAmount: item.depositAmount,
-        // Thêm itemName và itemType để đồng nhất với các component khác
-        itemId: item.cameraId || item.accessoryId || item.comboId || "",
-        itemName: item.camera
-          ? `${item.camera.brand} ${item.camera.model}${
-              item.camera.variant ? ` ${item.camera.variant}` : ""
-            }`
-          : item.accessory
-          ? `${item.accessory.brand} ${item.accessory.model}`
-          : item.combo
-          ? item.combo.name
-          : "Unknown Item",
-        itemType: item.camera
-          ? "Camera"
-          : item.accessory
-          ? "Accessory"
-          : item.combo
-          ? "Combo"
-          : "Unknown",
+        itemId:
+          item.itemId ||
+          item.cameraId ||
+          item.accessoryId ||
+          item.comboId ||
+          "",
+        itemName:
+          item.itemName ||
+          (item.camera
+            ? `${item.camera.brand} ${item.camera.model}${
+                item.camera.variant ? ` ${item.camera.variant}` : ""
+              }`
+            : item.accessory
+            ? `${item.accessory.brand} ${item.accessory.model}`
+            : item.combo
+            ? item.combo.name
+            : "Unknown Item"),
+        itemType:
+          item.itemType ||
+          (item.camera
+            ? "Camera"
+            : item.accessory
+            ? "Accessory"
+            : item.combo
+            ? "Combo"
+            : "Unknown"),
+        quantity: item.quantity ?? 1,
+        unitPrice: item.unitPrice ?? 0,
+        depositAmount: item.depositAmount ?? 0,
         createdAt: item.createdAt,
         updatedAt: item.updatedAt,
       })),
