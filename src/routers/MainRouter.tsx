@@ -48,6 +48,8 @@ import ComparePage from "@/pages/Home/ComparePage";
 import CameraQrHistory from "@/pages/Owner/QRScanner/CameraQrHistory";
 import RenterProfile from "@/pages/Renter/RenterProfile";
 import ContractTemplateManagement from "@/pages/Manager/ContractTemplateManagement";
+import PaymentSuccess from "@/components/Payment/PaymentSuccess";
+import PaymentFailed from "@/components/Payment/PaymentFailed";
 const routes: RouteObject[] = [
   {
     path: "/",
@@ -92,6 +94,14 @@ const routes: RouteObject[] = [
       {
         path: "checkout",
         element: <CheckoutPage />,
+      },
+      {
+        path: "payment-success",
+        element: <PaymentSuccess />,
+      },
+      {
+        path: "payment-failed",
+        element: <PaymentFailed />,
       },
       {
         path: "*",
