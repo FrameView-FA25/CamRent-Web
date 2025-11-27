@@ -105,7 +105,7 @@ const MainLayout: React.FC = () => {
                 : "text-gray-700 hover:text-yellow-500"
             }
           >
-            Home
+            Trang Chủ
           </Link>
           <Link
             to="/products"
@@ -115,7 +115,7 @@ const MainLayout: React.FC = () => {
                 : "text-gray-700 hover:text-yellow-500"
             }
           >
-            Product
+            Sản Phẩm
           </Link>
           <Link
             to="/how-it-works"
@@ -125,7 +125,7 @@ const MainLayout: React.FC = () => {
                 : "text-gray-700 hover:text-yellow-500"
             }
           >
-            How it works
+            Hướng dẫn
           </Link>
           <Link
             to="/contract"
@@ -145,7 +145,7 @@ const MainLayout: React.FC = () => {
                 : "text-gray-700 hover:text-yellow-500"
             }
           >
-            Why Us
+            Lý do
           </Link>
           <Link
             to="/contact"
@@ -155,7 +155,7 @@ const MainLayout: React.FC = () => {
                 : "text-gray-700 hover:text-yellow-500"
             }
           >
-            Contact
+            Liên lạc
           </Link>
         </nav>
 
