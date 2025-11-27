@@ -24,6 +24,7 @@ import type { Camera } from "../../types/product.types";
 import type { Accessory } from "../../services/camera.service";
 import { useCompare } from "../../context/CompareContext/CompareContext";
 import { toast } from "react-toastify";
+import { colors } from "@/theme/colors";
 
 interface ProductCardProps {
   camera: Camera | Accessory;
@@ -42,7 +43,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ camera }) => {
     useCompare();
 
   const isVerified = camera.isConfirmed ?? false;
-  const isAvailable = camera.isAvailable ?? false;
   const isInCompare = compareIds.includes(camera.id);
   const ownerName = camera.branchName || camera.ownerName;
 
@@ -132,7 +132,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ camera }) => {
           )}
         </Box>
 
-        {/* Verified Badge */}
         <Chip
           icon={
             isVerified ? (
@@ -146,7 +145,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ camera }) => {
           sx={{
             position: "absolute",
             top: 12,
-            left: 12,
+            right: 12,
             borderRadius: 999,
             fontSize: 11,
             fontWeight: 600,
@@ -158,27 +157,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ camera }) => {
               color: "white",
               ml: 0.5,
             },
-          }}
-        />
-
-        {/* Available Badge */}
-        <Chip
-          label={isAvailable ? "Available" : "Unavailable"}
-          size="small"
-          sx={{
-            position: "absolute",
-            top: 12,
-            right: 12,
-            bgcolor: isAvailable
-              ? "rgba(255,255,255,0.95)"
-              : "rgba(158,158,158,0.95)",
-            color: isAvailable ? grey[800] : "white",
-            px: 1.5,
-            py: 0.5,
-            borderRadius: 999,
-            fontWeight: 600,
-            fontSize: 12,
-            border: isAvailable ? `1px solid ${grey[200]}` : "none",
           }}
         />
 
@@ -401,20 +379,19 @@ const ProductCard: React.FC<ProductCardProps> = ({ camera }) => {
           <Button
             fullWidth
             variant="contained"
-            disabled={!isAvailable}
             onClick={(e) => {
               e.stopPropagation();
               // Handle rental flow
             }}
             sx={{
-              bgcolor: isAvailable ? "black" : grey[400],
+              bgcolor: colors.primary.main,
               color: "white",
               textTransform: "none",
               fontWeight: 700,
               borderRadius: 2,
               py: 1,
               "&:hover": {
-                bgcolor: isAvailable ? grey[800] : grey[400],
+                bgcolor: colors.primary.dark,
               },
               "&:disabled": {
                 bgcolor: grey[400],
@@ -422,7 +399,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ camera }) => {
               },
             }}
           >
-            {isAvailable ? "Thuê ngay" : "Không có sẵn"}
+            Thuê Ngay
           </Button>
         </Stack>
       </CardContent>

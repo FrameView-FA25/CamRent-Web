@@ -276,7 +276,7 @@ const MainLayout: React.FC = () => {
             disableElevation
             sx={{
               bgcolor: colors.primary.main,
-              color: "#111827",
+              color: "white",
               fontWeight: 700,
               borderRadius: 999,
               px: 3,

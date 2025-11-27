@@ -60,8 +60,15 @@ const ProductHeader: React.FC<ProductHeaderProps> = ({
         }}
       >
         <Container maxWidth="lg">
-          <Typography variant="h3" sx={{ fontWeight: 800, mb: 1 }}>
-            Khám phá Thiết bị
+          <Typography
+            variant="h3"
+            sx={{
+              fontWeight: 800,
+              mb: 1,
+              fontFamily: "Times New Roman, serif",
+            }}
+          >
+            Khám phá thiết bị
           </Typography>
           <Typography variant="h6" sx={{ color: grey[600], mb: 1 }}>
             Cho thuê thiết bị camera chuyên nghiệp cho dự án của bạn
@@ -150,7 +157,7 @@ const ProductHeader: React.FC<ProductHeaderProps> = ({
                   disabled={isAISearching}
                   sx={{
                     bgcolor: colors.primary.main,
-                    color: "black",
+                    color: "white",
                     minWidth: 160,
                     py: 1.5,
                     px: 3,

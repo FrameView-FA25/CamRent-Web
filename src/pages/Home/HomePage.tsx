@@ -89,7 +89,11 @@ const HomePage: React.FC = () => {
             Rent it, shoot it, slay it.
           </p>
           <div className="hero-buttons">
-            <a href="/products" className="btn btn-primary">
+            <a
+              href="/products"
+              className="btn btn-primary"
+              style={{ color: "white" }}
+            >
               Explore Gears
             </a>
             <a href="/rent" className="btn btn-secondary">
