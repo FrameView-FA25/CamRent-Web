@@ -5,6 +5,7 @@ const API_BASE_URL =
 // Interface định nghĩa cấu trúc media/hình ảnh của camera
 export interface CameraMedia {
   url: string; // URL của hình ảnh
+  id?: string;
   contentType?: string; // Loại content (VD: image/jpeg)
   sizeBytes?: number; // Kích thước file
   label?: string; // Nhãn mô tả
@@ -24,17 +25,23 @@ export interface Camera {
   variant: string | null; // Phiên bản (VD: Body Only, Kit)
   serialNumber: string | null; // Số serial của camera
   branchName: string | null; // Tên chi nhánh (có thể null)
-  itemType: number; // Loại mục đặt hàng (1: camera, 2: lens, ...)
+  branchAddress?: string | null;
+  itemType: string | number; // Loại mục đặt hàng (1: camera, 2: lens, ...)
   baseDailyRate: number; // Giá thuê cơ bản theo ngày (VNĐ)
   estimatedValueVnd: number; // Giá trị ước tính của camera (VNĐ)
   depositPercent: number; // Phần trăm đặt cọc (VD: 0.2 = 20%, hoặc 30 = 30%)
-  depositCapMinVnd: number; // Mức đặt cọc tối thiểu (VNĐ)
-  depositCapMaxVnd: number; // Mức đặt cọc tối đa (VNĐ)
+  depositCapMinVnd: number | null; // Mức đặt cọc tối thiểu (VNĐ)
+  depositCapMaxVnd: number | null; // Mức đặt cọc tối đa (VNĐ)
   media: CameraMedia[]; // Danh sách hình ảnh/media của camera
   specsJson: string | null; // Thông số kỹ thuật dạng JSON string
   isConfirmed?: boolean; // Trạng thái đã được xác minh hay chưa
   isAvailable?: boolean; // Thiết bị đang sẵn sàng hay tạm ngưng
   status?: string | null; // Trạng thái tổng hợp trả về từ API (nếu có)
+  location?: string | null;
+  ownerUserId?: string | null;
+  ownerName?: string | null;
+  branchId?: string;
+  createdAt?: string | null;
 }
 
 // Interface cho response khi gọi API lấy danh sách camera
@@ -58,21 +65,23 @@ export interface Accessory {
   model: string;
   variant: string | null;
   serialNumber: string | null;
-  branchName: string;
+  branchName: string | null;
   branchAddress: string | null;
-  bookingItemType: number;
+  bookingItemType?: number;
   baseDailyRate: number;
   platformFeePercent: number;
   estimatedValueVnd: number;
   depositPercent: number;
-  depositCapMinVnd: number;
-  depositCapMaxVnd: number;
+  depositCapMinVnd: number | null;
+  depositCapMaxVnd: number | null;
   ownerName: string | null;
-  media: string[];
+  media: CameraMedia[];
   specsJson: string | null;
-  categories: string[];
+  categories?: string[];
   isConfirmed: boolean;
   isAvailable: boolean;
+  location?: string | null;
+  createdAt?: string | null;
 }
 
 // Interface cho response API Accessories với phân trang
@@ -240,6 +249,77 @@ export const cameraService = {
       // Log lỗi ra console để debug
       console.error("Lỗi khi lấy danh sách camera:", error);
       // Ném lỗi để component xử lý
+      throw error;
+    }
+  },
+
+  /**
+   * Lấy danh sách camera công khai cho Admin/khách (có phân trang)
+   */
+  async getAllCameras(
+    page: number = 1,
+    pageSize: number = 20,
+    searchQuery?: string
+  ): Promise<CamerasResponse> {
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        pageSize: pageSize.toString(),
+      });
+
+      if (searchQuery && searchQuery.trim()) {
+        params.append("q", searchQuery.trim());
+      }
+
+      const urlParams = params.toString();
+      const response = await fetch(
+        urlParams
+          ? `${API_BASE_URL}/Cameras?${urlParams}`
+          : `${API_BASE_URL}/Cameras`,
+        {
+          method: "GET",
+          headers: {
+            accept: "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.message ||
+            `Lấy danh sách camera thất bại với status ${response.status}`
+        );
+      }
+
+      const responseData = await response.json();
+
+      if (
+        responseData &&
+        typeof responseData === "object" &&
+        Array.isArray(responseData.items)
+      ) {
+        return responseData as CamerasResponse;
+      }
+
+      if (Array.isArray(responseData)) {
+        return {
+          page,
+          pageSize,
+          total: responseData.length,
+          items: responseData,
+        };
+      }
+
+      console.warn("Unexpected camera list response:", responseData);
+      return {
+        page,
+        pageSize,
+        total: 0,
+        items: [],
+      };
+    } catch (error) {
+      console.error("Lỗi khi tải danh sách camera:", error);
       throw error;
     }
   },

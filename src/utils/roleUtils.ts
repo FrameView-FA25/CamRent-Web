@@ -3,6 +3,24 @@
  * @param role - Role của user (Admin, Owner, etc.)
  * @returns Đường dẫn route mặc định
  */
+const ROLE_LABELS: Record<string, string> = {
+  Admin: "Quản trị viên",
+  Owner: "Chủ sở hữu",
+  BranchManager: "Quản lý chi nhánh",
+  Staff: "Nhân viên",
+  Renter: "Người thuê",
+};
+
+export const getRoleLabel = (role?: string): string => {
+  if (!role) return "";
+  return ROLE_LABELS[role] || role;
+};
+
+export const formatRoles = (roles?: string[]): string => {
+  if (!roles || roles.length === 0) return "";
+  return roles.map((role) => getRoleLabel(role)).join(", ");
+};
+
 export const getDefaultRouteByRole = (role: string): string => {
   if (role === "Admin") {
     return "/admin/dashboard";

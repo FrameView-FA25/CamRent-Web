@@ -70,6 +70,20 @@ const mockAccounts: Account[] = [
   },
 ];
 
+const STATUS_LABELS: Record<Account["status"], string> = {
+  Active: "Hoạt động",
+  Inactive: "Tạm ngưng",
+  Blocked: "Đã khóa",
+};
+
+const ROLE_LABELS: Record<string, string> = {
+  Manager: "Quản lý",
+  Staff: "Nhân viên",
+};
+
+const getLabel = (map: Record<string, string>, key: string): string =>
+  map[key] || key;
+
 const AccountManagement: React.FC = () => {
   const [accounts] = useState<Account[]>(mockAccounts);
   const [searchTerm, setSearchTerm] = useState("");
@@ -138,7 +152,7 @@ const AccountManagement: React.FC = () => {
             color: "#1F2937",
           }}
         >
-          Account Management
+          Quản lý tài khoản
         </Typography>
         <Button
           variant="contained"
@@ -152,7 +166,7 @@ const AccountManagement: React.FC = () => {
             px: 3,
           }}
         >
-          Create Account
+          Tạo tài khoản
         </Button>
       </Box>
 
@@ -167,7 +181,7 @@ const AccountManagement: React.FC = () => {
         <Box sx={{ p: 3, borderBottom: "1px solid #E5E7EB" }}>
           <TextField
             fullWidth
-            placeholder="Search by username or email..."
+            placeholder="Tìm theo tên tài khoản hoặc email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             InputProps={{
@@ -190,13 +204,13 @@ const AccountManagement: React.FC = () => {
             <TableHead sx={{ bgcolor: "#F9FAFB" }}>
               <TableRow>
                 <TableCell sx={{ fontWeight: 600 }}>ID</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Username</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Tên tài khoản</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Email</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Role</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Created At</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Vai trò</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Trạng thái</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Ngày tạo</TableCell>
                 <TableCell sx={{ fontWeight: 600 }} align="right">
-                  Actions
+                  Thao tác
                 </TableCell>
               </TableRow>
             </TableHead>
@@ -210,14 +224,14 @@ const AccountManagement: React.FC = () => {
                   <TableCell>{account.email}</TableCell>
                   <TableCell>
                     <Chip
-                      label={account.role}
+                      label={getLabel(ROLE_LABELS, account.role)}
                       size="small"
                       sx={{ bgcolor: "#EFF6FF", color: "#3B82F6" }}
                     />
                   </TableCell>
                   <TableCell>
                     <Chip
-                      label={account.status}
+                      label={STATUS_LABELS[account.status]}
                       size="small"
                       color={getStatusColor(account.status)}
                     />
@@ -246,24 +260,24 @@ const AccountManagement: React.FC = () => {
       >
         <MenuItem onClick={handleMenuClose}>
           <EditIcon sx={{ mr: 1, fontSize: 20 }} />
-          Edit
+          Chỉnh sửa
         </MenuItem>
         <MenuItem onClick={handleMenuClose}>
           {selectedAccount?.status === "Active" ? (
             <>
               <BlockIcon sx={{ mr: 1, fontSize: 20 }} />
-              Block
+              Khóa tài khoản
             </>
           ) : (
             <>
               <CheckCircleIcon sx={{ mr: 1, fontSize: 20 }} />
-              Activate
+              Kích hoạt
             </>
           )}
         </MenuItem>
         <MenuItem onClick={handleMenuClose} sx={{ color: "#EF4444" }}>
           <DeleteIcon sx={{ mr: 1, fontSize: 20 }} />
-          Delete
+          Xóa
         </MenuItem>
       </Menu>
 
@@ -274,31 +288,31 @@ const AccountManagement: React.FC = () => {
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle sx={{ fontWeight: 600 }}>Create New Account</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 600 }}>Tạo tài khoản mới</DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 2, display: "flex", flexDirection: "column", gap: 2 }}>
             <TextField
               fullWidth
-              label="Username"
-              placeholder="Enter username"
+              label="Tên tài khoản"
+              placeholder="Nhập tên tài khoản"
             />
             <TextField
               fullWidth
               label="Email"
               type="email"
-              placeholder="Enter email address"
+              placeholder="Nhập địa chỉ email"
             />
             <TextField
               fullWidth
-              label="Password"
+              label="Mật khẩu"
               type="password"
-              placeholder="Enter password"
+              placeholder="Nhập mật khẩu"
             />
             <FormControl fullWidth>
-              <InputLabel>Role</InputLabel>
-              <Select label="Role" defaultValue="Manager">
-                <MenuItem value="Manager">Manager</MenuItem>
-                <MenuItem value="Staff">Staff</MenuItem>
+              <InputLabel>Vai trò</InputLabel>
+              <Select label="Vai trò" defaultValue="Manager">
+                <MenuItem value="Manager">Quản lý</MenuItem>
+                <MenuItem value="Staff">Nhân viên</MenuItem>
               </Select>
             </FormControl>
           </Box>
@@ -311,7 +325,7 @@ const AccountManagement: React.FC = () => {
               color: "#6B7280",
             }}
           >
-            Cancel
+            Hủy
           </Button>
           <Button
             variant="contained"
@@ -322,7 +336,7 @@ const AccountManagement: React.FC = () => {
               textTransform: "none",
             }}
           >
-            Create Account
+            Tạo tài khoản
           </Button>
         </DialogActions>
       </Dialog>

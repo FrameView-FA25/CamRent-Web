@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Box,
   Paper,
@@ -23,6 +23,10 @@ import {
   FormControl,
   InputLabel,
   Select,
+  CircularProgress,
+  Alert,
+  Tabs,
+  Tab,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -34,81 +38,155 @@ import {
   Cancel as RejectIcon,
   CameraAlt as CameraIcon,
 } from "@mui/icons-material";
+import {
+  cameraService,
+  type Camera,
+  type Accessory,
+} from "../../../services/camera.service";
 
-interface Device {
-  id: number;
+type DeviceStatus = "pending" | "active" | "inactive" | "unavailable";
+
+interface AdminDevice {
+  id: string;
   name: string;
   type: string;
   brand: string;
-  agency: string;
+  branch: string;
   owner: string;
-  status: "Active" | "Pending" | "Rejected" | "Inactive";
+  status: DeviceStatus;
+  statusLabel: string;
+  statusColor: "default" | "success" | "warning" | "error" | "info";
+  highlight: boolean;
   createdAt: string;
 }
 
-const mockDevices: Device[] = [
-  {
-    id: 1,
-    name: "Canon EOS R5",
-    type: "Camera",
-    brand: "Canon",
-    agency: "Downtown Branch",
-    owner: "owner1@camrent.com",
-    status: "Active",
-    createdAt: "2024-01-15",
-  },
-  {
-    id: 2,
-    name: "Sony A7 IV",
-    type: "Camera",
-    brand: "Sony",
-    agency: "North Branch",
-    owner: "owner2@camrent.com",
-    status: "Pending",
-    createdAt: "2024-02-20",
-  },
-  {
-    id: 3,
-    name: "DJI Mavic 3",
-    type: "Drone",
-    brand: "DJI",
-    agency: "South Branch",
-    owner: "owner3@camrent.com",
-    status: "Active",
-    createdAt: "2024-03-10",
-  },
-  {
-    id: 4,
-    name: "GoPro Hero 12",
-    type: "Action Camera",
-    brand: "GoPro",
-    agency: "Downtown Branch",
-    owner: "owner1@camrent.com",
-    status: "Rejected",
-    createdAt: "2024-03-25",
-  },
-  {
-    id: 5,
-    name: "Nikon Z9",
-    type: "Camera",
-    brand: "Nikon",
-    agency: "North Branch",
-    owner: "owner2@camrent.com",
-    status: "Pending",
-    createdAt: "2024-04-05",
-  },
-];
+const STATUS_DISPLAY: Record<
+  DeviceStatus,
+  { label: string; color: "default" | "success" | "warning" | "error" | "info" }
+> = {
+  pending: { label: "Chờ duyệt", color: "warning" },
+  active: { label: "Đang hoạt động", color: "success" },
+  inactive: { label: "Ngừng cho thuê", color: "default" },
+  unavailable: { label: "Không khả dụng", color: "error" },
+};
 
 const DeviceManagement: React.FC = () => {
-  const [devices] = useState<Device[]>(mockDevices);
+  const [cameraDevices, setCameraDevices] = useState<AdminDevice[]>([]);
+  const [accessoryDevices, setAccessoryDevices] = useState<AdminDevice[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
+  const [selectedDevice, setSelectedDevice] = useState<AdminDevice | null>(null);
   const [openDialog, setOpenDialog] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"camera" | "accessory">("camera");
+
+  const deriveStatus = (
+    isConfirmed?: boolean,
+    isAvailable?: boolean,
+    location?: string | null
+  ): DeviceStatus => {
+    if (!isConfirmed) return "pending";
+    if (isAvailable) return "active";
+    if (location && location !== "Platform") return "unavailable";
+    return "inactive";
+  };
+
+  const formatBranch = (
+    branchName?: string | null,
+    branchAddress?: string | null
+  ) => {
+    const parts = [branchName, branchAddress]
+      .map((part) => part?.trim())
+      .filter(Boolean);
+    return parts.length > 0 ? parts.join(" - ") : "Chưa phân bổ";
+  };
+
+  const buildDeviceName = (
+    brand?: string | null,
+    model?: string | null,
+    variant?: string | null
+  ) => {
+    const parts = [brand, model, variant].filter(Boolean);
+    return parts.length ? parts.join(" ") : "Thiết bị không tên";
+  };
+
+  const mapCameraToDevice = (camera: Camera): AdminDevice => {
+    const status = deriveStatus(camera.isConfirmed, camera.isAvailable, camera.location);
+    const { label, color } = STATUS_DISPLAY[status];
+    return {
+      id: camera.id,
+      name: buildDeviceName(camera.brand, camera.model, camera.variant),
+      type: "Camera",
+      brand: camera.brand || "Không rõ",
+      branch: formatBranch(camera.branchName, camera.branchAddress),
+      owner: camera.ownerName || "Không rõ",
+      status,
+      statusLabel: label,
+      statusColor: color,
+      highlight: status === "pending",
+      createdAt: camera.createdAt
+        ? new Date(camera.createdAt).toLocaleDateString("vi-VN")
+        : "-",
+    };
+  };
+
+  const mapAccessoryToDevice = (accessory: Accessory): AdminDevice => {
+    const status = deriveStatus(accessory.isConfirmed, accessory.isAvailable, accessory.location);
+    const { label, color } = STATUS_DISPLAY[status];
+    return {
+      id: accessory.id,
+      name: buildDeviceName(accessory.brand, accessory.model, accessory.variant),
+      type: "Phụ kiện",
+      brand: accessory.brand || "Không rõ",
+      branch: formatBranch(accessory.branchName, accessory.branchAddress),
+      owner: accessory.ownerName || "Không rõ",
+      status,
+      statusLabel: label,
+      statusColor: color,
+      highlight: status === "pending",
+      createdAt: accessory.createdAt
+        ? new Date(accessory.createdAt).toLocaleDateString("vi-VN")
+        : "-",
+    };
+  };
+
+  const fetchDevices = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const [cameraResponse, accessoryResponse] = await Promise.all([
+        cameraService.getAllCameras(),
+        cameraService.getAccessories(),
+      ]);
+
+      setCameraDevices(cameraResponse.items.map(mapCameraToDevice));
+      setAccessoryDevices(
+        (accessoryResponse.items || []).map(mapAccessoryToDevice)
+      );
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Không thể tải dữ liệu thiết bị. Vui lòng thử lại.";
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDevices();
+  }, []);
+
+  const handleTabChange = (_: React.SyntheticEvent, value: string) => {
+    setActiveTab(value as "camera" | "accessory");
+    setSearchTerm("");
+  };
 
   const handleMenuClick = (
     event: React.MouseEvent<HTMLElement>,
-    device: Device
+    device: AdminDevice
   ) => {
     setAnchorEl(event.currentTarget);
     setSelectedDevice(device);
@@ -127,30 +205,22 @@ const DeviceManagement: React.FC = () => {
     setOpenDialog(false);
   };
 
-  const filteredDevices = devices.filter(
-    (device) =>
-      device.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      device.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      device.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      device.agency.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const currentDevices =
+    activeTab === "camera" ? cameraDevices : accessoryDevices;
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Active":
-        return "success";
-      case "Pending":
-        return "warning";
-      case "Rejected":
-        return "error";
-      case "Inactive":
-        return "default";
-      default:
-        return "default";
-    }
-  };
+  const filteredDevices = useMemo(() => {
+    const keyword = searchTerm.trim().toLowerCase();
+    if (!keyword) return currentDevices;
+    return currentDevices.filter((device) =>
+      [device.name, device.type, device.brand, device.branch, device.owner].some(
+        (field) => field.toLowerCase().includes(keyword)
+      )
+    );
+  }, [currentDevices, searchTerm]);
 
-  const pendingCount = devices.filter((d) => d.status === "Pending").length;
+  const pendingCount = currentDevices.filter(
+    (d) => d.status === "pending"
+  ).length;
 
   return (
     <Box
@@ -175,15 +245,14 @@ const DeviceManagement: React.FC = () => {
               mb: 0.5,
             }}
           >
-            Device Management
+            Quản lý thiết bị
           </Typography>
           {pendingCount > 0 && (
             <Typography
               variant="body2"
               sx={{ color: "#F59E0B", fontWeight: 500 }}
             >
-              {pendingCount} device{pendingCount > 1 ? "s" : ""} pending
-              approval
+              {pendingCount} thiết bị đang chờ phê duyệt
             </Typography>
           )}
         </Box>
@@ -199,9 +268,21 @@ const DeviceManagement: React.FC = () => {
             px: 3,
           }}
         >
-          Add Device
+          Thêm thiết bị
         </Button>
       </Box>
+      <Tabs
+        value={activeTab}
+        onChange={handleTabChange}
+        sx={{
+          mb: 2,
+          borderBottom: "1px solid #E5E7EB",
+          "& .MuiTab-root": { textTransform: "none", fontWeight: 600 },
+        }}
+      >
+        <Tab value="camera" label={`Camera (${cameraDevices.length})`} />
+        <Tab value="accessory" label={`Phụ kiện (${accessoryDevices.length})`} />
+      </Tabs>
 
       <Paper
         elevation={0}
@@ -214,7 +295,11 @@ const DeviceManagement: React.FC = () => {
         <Box sx={{ p: 3, borderBottom: "1px solid #E5E7EB" }}>
           <TextField
             fullWidth
-            placeholder="Search by name, type, brand, or agency..."
+            placeholder={
+              activeTab === "camera"
+                ? "Tìm theo tên, thương hiệu hoặc chi nhánh camera..."
+                : "Tìm theo tên, thương hiệu hoặc chi nhánh phụ kiện..."
+            }
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             InputProps={{
@@ -232,69 +317,91 @@ const DeviceManagement: React.FC = () => {
           />
         </Box>
 
-        <TableContainer>
-          <Table>
-            <TableHead sx={{ bgcolor: "#F9FAFB" }}>
-              <TableRow>
-                <TableCell sx={{ fontWeight: 600 }}>ID</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Device Name</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Type</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Brand</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Agency</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Owner</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Created At</TableCell>
-                <TableCell sx={{ fontWeight: 600 }} align="right">
-                  Actions
-                </TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {filteredDevices.map((device) => (
-                <TableRow
-                  key={device.id}
-                  hover
-                  sx={{
-                    bgcolor:
-                      device.status === "Pending" ? "#FFFBEB" : "transparent",
-                  }}
-                >
-                  <TableCell>{device.id}</TableCell>
-                  <TableCell sx={{ fontWeight: 500 }}>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                      <CameraIcon sx={{ fontSize: 18, color: "#6B7280" }} />
-                      {device.name}
-                    </Box>
-                  </TableCell>
-                  <TableCell>{device.type}</TableCell>
-                  <TableCell>{device.brand}</TableCell>
-                  <TableCell>{device.agency}</TableCell>
-                  <TableCell>
-                    <Typography variant="body2" sx={{ color: "#6B7280" }}>
-                      {device.owner}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      label={device.status}
-                      size="small"
-                      color={getStatusColor(device.status)}
-                    />
-                  </TableCell>
-                  <TableCell>{device.createdAt}</TableCell>
-                  <TableCell align="right">
-                    <IconButton
-                      onClick={(e) => handleMenuClick(e, device)}
-                      size="small"
-                    >
-                      <MoreVertIcon />
-                    </IconButton>
+        {error && (
+          <Alert severity="error" sx={{ mx: 3, my: 2 }}>
+            {error}
+          </Alert>
+        )}
+        {loading ? (
+          <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
+            <CircularProgress color="error" />
+          </Box>
+        ) : (
+          <TableContainer>
+            <Table>
+              <TableHead sx={{ bgcolor: "#F9FAFB" }}>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 600 }}>ID</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Tên thiết bị</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Loại</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Thương hiệu</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Đại lý</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Chủ sở hữu</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Trạng thái</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Ngày tạo</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }} align="right">
+                    Thao tác
                   </TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+              </TableHead>
+              <TableBody>
+                {filteredDevices.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={9} align="center" sx={{ py: 6 }}>
+                      Không có thiết bị nào phù hợp với từ khóa tìm kiếm.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredDevices.map((device) => (
+                    <TableRow
+                      key={device.id}
+                      hover
+                      sx={{
+                        bgcolor: device.highlight ? "#FFFBEB" : "transparent",
+                      }}
+                    >
+                      <TableCell sx={{ whiteSpace: "nowrap" }}>
+                        {device.id}
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 500 }}>
+                        <Box
+                          sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                        >
+                          <CameraIcon sx={{ fontSize: 18, color: "#6B7280" }} />
+                          {device.name}
+                        </Box>
+                      </TableCell>
+                      <TableCell>{device.type}</TableCell>
+                      <TableCell>{device.brand}</TableCell>
+                      <TableCell>{device.branch}</TableCell>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ color: "#6B7280" }}>
+                          {device.owner}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={device.statusLabel}
+                          size="small"
+                          color={device.statusColor}
+                        />
+                      </TableCell>
+                      <TableCell>{device.createdAt}</TableCell>
+                      <TableCell align="right">
+                        <IconButton
+                          onClick={(e) => handleMenuClick(e, device)}
+                          size="small"
+                        >
+                          <MoreVertIcon />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
       </Paper>
 
       {/* Action Menu */}
@@ -303,25 +410,25 @@ const DeviceManagement: React.FC = () => {
         open={Boolean(anchorEl)}
         onClose={handleMenuClose}
       >
-        {selectedDevice?.status === "Pending" && (
+        {selectedDevice?.status === "pending" && (
           <>
             <MenuItem onClick={handleMenuClose} sx={{ color: "#10B981" }}>
               <ApproveIcon sx={{ mr: 1, fontSize: 20 }} />
-              Approve Device
+              Phê duyệt thiết bị
             </MenuItem>
             <MenuItem onClick={handleMenuClose} sx={{ color: "#EF4444" }}>
               <RejectIcon sx={{ mr: 1, fontSize: 20 }} />
-              Reject Device
+              Từ chối thiết bị
             </MenuItem>
           </>
         )}
         <MenuItem onClick={handleMenuClose}>
           <EditIcon sx={{ mr: 1, fontSize: 20 }} />
-          Edit
+          Chỉnh sửa
         </MenuItem>
         <MenuItem onClick={handleMenuClose} sx={{ color: "#EF4444" }}>
           <DeleteIcon sx={{ mr: 1, fontSize: 20 }} />
-          Delete
+          Xóa
         </MenuItem>
       </Menu>
 
@@ -332,37 +439,41 @@ const DeviceManagement: React.FC = () => {
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle sx={{ fontWeight: 600 }}>Add New Device</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 600 }}>Thêm thiết bị mới</DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 2, display: "flex", flexDirection: "column", gap: 2 }}>
             <TextField
               fullWidth
-              label="Device Name"
-              placeholder="Enter device name"
+              label="Tên thiết bị"
+              placeholder="Nhập tên thiết bị"
             />
             <FormControl fullWidth>
-              <InputLabel>Device Type</InputLabel>
-              <Select label="Device Type" defaultValue="">
-                <MenuItem value="Camera">Camera</MenuItem>
+              <InputLabel>Loại thiết bị</InputLabel>
+              <Select label="Loại thiết bị" defaultValue="">
+                <MenuItem value="Camera">Máy ảnh</MenuItem>
                 <MenuItem value="Drone">Drone</MenuItem>
                 <MenuItem value="Action Camera">Action Camera</MenuItem>
-                <MenuItem value="Lens">Lens</MenuItem>
-                <MenuItem value="Accessories">Accessories</MenuItem>
-              </Select>
-            </FormControl>
-            <TextField fullWidth label="Brand" placeholder="Enter brand name" />
-            <FormControl fullWidth>
-              <InputLabel>Agency</InputLabel>
-              <Select label="Agency" defaultValue="">
-                <MenuItem value="Downtown Branch">Downtown Branch</MenuItem>
-                <MenuItem value="North Branch">North Branch</MenuItem>
-                <MenuItem value="South Branch">South Branch</MenuItem>
+                <MenuItem value="Lens">Ống kính</MenuItem>
+                <MenuItem value="Accessories">Phụ kiện</MenuItem>
               </Select>
             </FormControl>
             <TextField
               fullWidth
-              label="Description"
-              placeholder="Enter device description"
+              label="Thương hiệu"
+              placeholder="Nhập tên thương hiệu"
+            />
+            <FormControl fullWidth>
+              <InputLabel>Đại lý</InputLabel>
+              <Select label="Đại lý" defaultValue="">
+                <MenuItem value="Downtown Branch">Chi nhánh trung tâm</MenuItem>
+                <MenuItem value="North Branch">Chi nhánh phía Bắc</MenuItem>
+                <MenuItem value="South Branch">Chi nhánh phía Nam</MenuItem>
+              </Select>
+            </FormControl>
+            <TextField
+              fullWidth
+              label="Mô tả"
+              placeholder="Nhập mô tả thiết bị"
               multiline
               rows={3}
             />
@@ -376,7 +487,7 @@ const DeviceManagement: React.FC = () => {
               color: "#6B7280",
             }}
           >
-            Cancel
+            Hủy
           </Button>
           <Button
             variant="contained"
@@ -387,7 +498,7 @@ const DeviceManagement: React.FC = () => {
               textTransform: "none",
             }}
           >
-            Add Device
+            Thêm thiết bị
           </Button>
         </DialogActions>
       </Dialog>

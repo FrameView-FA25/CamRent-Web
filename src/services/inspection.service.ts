@@ -10,7 +10,28 @@ export type UpdateInspectionPayload = FormData;
  * @param formData - FormData chứa dữ liệu inspection và file ảnh (multipart/form-data)
  * @returns Promise chứa kết quả tạo inspection
  */
-export async function createInspection(formData: FormData): Promise<any> {
+export interface InspectionDto {
+  id: string;
+  bookingId: string;
+  itemId: string;
+  itemName?: string;
+  itemType?: string;
+  condition: string;
+  notes?: string | null;
+  passed: boolean;
+  createdAt: string;
+  updatedAt?: string;
+  media?: Array<{
+    id: string;
+    url: string;
+    label?: string;
+    contentType?: string;
+  }>;
+}
+
+export async function createInspection(
+  formData: FormData
+): Promise<InspectionDto | string> {
   // Lấy token xác thực từ localStorage
   const token = localStorage.getItem("accessToken");
   if (!token) throw new Error("Vui lòng đăng nhập để thực hiện thao tác này");
@@ -123,10 +144,17 @@ export async function deleteInspection(inspectionId: string): Promise<void> {
  * @param pass - true: duyệt, false: từ chối
  * @returns Promise chứa kết quả approve
  */
+interface ApproveInspectionResponse {
+  id: string;
+  status: "Approved" | "Rejected";
+  approvedBy: string;
+  approvedAt: string;
+}
+
 export async function approveInspection(
   inspectionId: string,
   pass: boolean = true
-): Promise<any> {
+): Promise<ApproveInspectionResponse | string> {
   const token = localStorage.getItem("accessToken");
   if (!token) throw new Error("Vui lòng đăng nhập để thực hiện thao tác này");
 
@@ -142,7 +170,9 @@ export async function approveInspection(
   );
 
   if (!response.ok) {
-    let errorMessage = `${pass ? "Duyệt" : "Từ chối"} inspection thất bại với mã lỗi ${response.status}`;
+    let errorMessage = `${
+      pass ? "Duyệt" : "Từ chối"
+    } inspection thất bại với mã lỗi ${response.status}`;
     try {
       const errorData = await response.json();
       errorMessage = errorData.message || errorMessage;
@@ -166,7 +196,9 @@ export async function approveInspection(
  * @param inspectionId - ID inspection cần lấy
  * @returns Promise chứa thông tin inspection
  */
-export async function getInspectionById(inspectionId: string): Promise<any> {
+export async function getInspectionById(
+  inspectionId: string
+): Promise<InspectionDto | string> {
   const token = localStorage.getItem("accessToken");
   if (!token) throw new Error("Vui lòng đăng nhập để thực hiện thao tác này");
 
@@ -204,7 +236,7 @@ export async function getInspectionById(inspectionId: string): Promise<any> {
  */
 export async function getInspectionsByBookingId(
   bookingId: string
-): Promise<any[]> {
+): Promise<InspectionDto[]> {
   const token = localStorage.getItem("accessToken");
   if (!token) throw new Error("Vui lòng đăng nhập để thực hiện thao tác này");
 
