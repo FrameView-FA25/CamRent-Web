@@ -6,178 +6,208 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
-  IconButton,
   Chip,
+  Avatar,
+  IconButton,
   Box,
   Typography,
-  Avatar,
+  Tooltip,
+  Switch,
 } from "@mui/material";
-import {
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Visibility as ViewIcon,
-} from "@mui/icons-material";
-import type { Accessory } from "../../types/accessory.types";
+import { Eye, Edit } from "lucide-react";
+import type { Accessory } from "../../types/product.types";
 import { colors } from "../../theme/colors";
 
 interface AccessoryTableProps {
   accessories: Accessory[];
   onView: (accessory: Accessory) => void;
   onEdit: (accessory: Accessory) => void;
-  onDelete: (accessory: Accessory) => void;
+  onToggleAvailability: (accessory: Accessory) => void;
 }
-
-const formatCurrency = (amount: number): string => {
-  return new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-  }).format(amount);
-};
 
 export const AccessoryTable: React.FC<AccessoryTableProps> = ({
   accessories,
   onView,
   onEdit,
-  onDelete,
+  onToggleAvailability,
 }) => {
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+    }).format(amount);
+  };
+
+  const getStatusChip = (isConfirmed: boolean) => {
+    if (!isConfirmed) {
+      return (
+        <Chip
+          label="Chưa xác minh"
+          size="small"
+          sx={{
+            bgcolor: colors.status.warningLight,
+            color: colors.status.warning,
+            fontWeight: 600,
+          }}
+        />
+      );
+    }
+    return (
+      <Chip
+        label="Đã xác minh"
+        size="small"
+        sx={{
+          bgcolor: colors.status.successLight,
+          color: colors.status.success,
+          fontWeight: 600,
+        }}
+      />
+    );
+  };
+
   return (
-    <TableContainer
-      component={Paper}
-      sx={{
-        borderRadius: 2,
-        boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-      }}
-    >
+    <TableContainer>
       <Table>
         <TableHead>
           <TableRow sx={{ bgcolor: colors.neutral[50] }}>
-            <TableCell sx={{ fontWeight: 700 }}>Hình ảnh</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Thương hiệu</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Model</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Serial Number</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Giá thuê/ngày</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Giá trị ước tính</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Đặt cọc (%)</TableCell>
-            <TableCell sx={{ fontWeight: 700 }} align="center">
-              Hành động
+            <TableCell sx={{ fontWeight: 700, color: colors.text.primary }}>
+              Hình ảnh
+            </TableCell>
+            <TableCell sx={{ fontWeight: 700, color: colors.text.primary }}>
+              Thông tin
+            </TableCell>
+            <TableCell sx={{ fontWeight: 700, color: colors.text.primary }}>
+              Serial Number
+            </TableCell>
+            <TableCell sx={{ fontWeight: 700, color: colors.text.primary }}>
+              Giá thuê/ngày
+            </TableCell>
+            <TableCell sx={{ fontWeight: 700, color: colors.text.primary }}>
+              Trạng thái xác minh
+            </TableCell>
+            <TableCell sx={{ fontWeight: 700, color: colors.text.primary }}>
+              Còn hàng
+            </TableCell>
+            <TableCell
+              sx={{ fontWeight: 700, color: colors.text.primary }}
+              align="center"
+            >
+              Thao tác
             </TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
-          {accessories.map((accessory) => (
-            <TableRow
-              key={accessory.id}
-              sx={{
-                "&:hover": { bgcolor: colors.neutral[50] },
-                transition: "background-color 0.2s",
-              }}
-            >
-              <TableCell>
-                <Avatar
-                  variant="rounded"
-                  src={accessory.media[0]?.url}
-                  sx={{
-                    width: 56,
-                    height: 56,
-                    bgcolor: colors.neutral[200],
-                  }}
-                >
-                  🎒
-                </Avatar>
-              </TableCell>
-              <TableCell>
-                <Typography variant="body2" fontWeight={600}>
-                  {accessory.brand}
-                </Typography>
-              </TableCell>
-              <TableCell>
-                <Typography variant="body2">{accessory.model}</Typography>
-                {accessory.variant && (
-                  <Typography variant="caption" color="text.secondary">
-                    {accessory.variant}
-                  </Typography>
-                )}
-              </TableCell>
-              <TableCell>
-                {accessory.serialNumber ? (
-                  <Chip
-                    label={accessory.serialNumber}
-                    size="small"
+          {accessories.map((accessory) => {
+            const imageUrl =
+              accessory.media && accessory.media.length > 0
+                ? accessory.media[0].url
+                : null;
+
+            return (
+              <TableRow
+                key={accessory.id}
+                sx={{
+                  "&:hover": { bgcolor: colors.neutral[50] },
+                }}
+              >
+                <TableCell>
+                  <Avatar
+                    src={imageUrl || undefined}
+                    variant="rounded"
                     sx={{
+                      width: 60,
+                      height: 60,
                       bgcolor: colors.neutral[100],
+                    }}
+                  >
+                    {!imageUrl && accessory.brand?.charAt(0)}
+                  </Avatar>
+                </TableCell>
+                <TableCell>
+                  <Box>
+                    <Typography
+                      variant="body2"
+                      sx={{ fontWeight: 600, color: colors.text.primary }}
+                    >
+                      {accessory.brand} {accessory.model}
+                    </Typography>
+                    {accessory.variant && (
+                      <Typography
+                        variant="caption"
+                        sx={{ color: colors.text.secondary }}
+                      >
+                        {accessory.variant}
+                      </Typography>
+                    )}
+                  </Box>
+                </TableCell>
+                <TableCell>
+                  <Typography
+                    variant="body2"
+                    sx={{
                       fontFamily: "monospace",
+                      color: colors.text.secondary,
                     }}
-                  />
-                ) : (
-                  <Typography variant="caption" color="text.secondary">
-                    Chưa có
+                  >
+                    {accessory.serialNumber}
                   </Typography>
-                )}
-              </TableCell>
-              <TableCell>
-                <Typography
-                  variant="body2"
-                  fontWeight={600}
-                  color={colors.neutral[900]}
-                >
-                  {formatCurrency(accessory.baseDailyRate)}
-                </Typography>
-              </TableCell>
-              <TableCell>
-                <Typography variant="body2" fontWeight={600}>
-                  {formatCurrency(accessory.estimatedValueVnd)}
-                </Typography>
-              </TableCell>
-              <TableCell>
-                <Chip
-                  label={`${accessory.depositPercent}%`}
-                  size="small"
-                  sx={{
-                    bgcolor: colors.status.warningLight,
-                    color: colors.status.warning,
-                    fontWeight: 600,
-                  }}
-                />
-              </TableCell>
-              <TableCell align="center">
-                <Box
-                  sx={{ display: "flex", gap: 0.5, justifyContent: "center" }}
-                >
-                  <IconButton
-                    size="small"
-                    onClick={() => onView(accessory)}
-                    sx={{
-                      color: colors.primary.main,
-                      "&:hover": { bgcolor: colors.primary.lighter },
-                    }}
+                </TableCell>
+                <TableCell>
+                  <Typography
+                    variant="body2"
+                    sx={{ fontWeight: 600, color: colors.primary.main }}
                   >
-                    <ViewIcon fontSize="small" />
-                  </IconButton>
-                  <IconButton
-                    size="small"
-                    onClick={() => onEdit(accessory)}
-                    sx={{
-                      color: colors.status.info,
-                      "&:hover": { bgcolor: colors.status.infoLight },
-                    }}
+                    {formatCurrency(accessory.baseDailyRate)}
+                  </Typography>
+                </TableCell>
+                <TableCell>{getStatusChip(accessory.isConfirmed)}</TableCell>
+                <TableCell>
+                  <Tooltip
+                    title={
+                      accessory.isAvailable ? "Đang có sẵn" : "Không có sẵn"
+                    }
                   >
-                    <EditIcon fontSize="small" />
-                  </IconButton>
-                  <IconButton
-                    size="small"
-                    onClick={() => onDelete(accessory)}
-                    sx={{
-                      color: colors.status.error,
-                      "&:hover": { bgcolor: colors.status.errorLight },
-                    }}
+                    <Switch
+                      checked={accessory.isAvailable}
+                      onChange={() => onToggleAvailability(accessory)}
+                      color="success"
+                      size="small"
+                    />
+                  </Tooltip>
+                </TableCell>
+                <TableCell align="center">
+                  <Box
+                    sx={{ display: "flex", gap: 1, justifyContent: "center" }}
                   >
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                </Box>
-              </TableCell>
-            </TableRow>
-          ))}
+                    <Tooltip title="Xem chi tiết">
+                      <IconButton
+                        size="small"
+                        onClick={() => onView(accessory)}
+                        sx={{
+                          color: colors.neutral[600],
+                          "&:hover": { bgcolor: colors.neutral[100] },
+                        }}
+                      >
+                        <Eye size={18} />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Chỉnh sửa">
+                      <IconButton
+                        size="small"
+                        onClick={() => onEdit(accessory)}
+                        sx={{
+                          color: colors.primary.main,
+                          "&:hover": { bgcolor: colors.primary.lighter },
+                        }}
+                      >
+                        <Edit size={18} />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </TableContainer>

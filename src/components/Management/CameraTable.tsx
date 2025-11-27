@@ -6,17 +6,15 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
-  IconButton,
   Chip,
+  Avatar,
+  IconButton,
   Box,
   Typography,
+  Tooltip,
+  Switch,
 } from "@mui/material";
-import {
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Visibility as ViewIcon,
-} from "@mui/icons-material";
+import { Eye, Edit } from "lucide-react";
 import type { Camera } from "../../types/product.types";
 import { colors } from "../../theme/colors";
 
@@ -24,201 +22,190 @@ interface CameraTableProps {
   cameras: Camera[];
   onView: (camera: Camera) => void;
   onEdit: (camera: Camera) => void;
-  onDelete: (camera: Camera) => void;
+  onToggleAvailability: (camera: Camera) => void;
 }
-
-const formatCurrency = (amount: number): string => {
-  return new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-  }).format(amount);
-};
 
 export const CameraTable: React.FC<CameraTableProps> = ({
   cameras,
   onView,
   onEdit,
-  onDelete,
+  onToggleAvailability,
 }) => {
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+    }).format(amount);
+  };
+
+  const getStatusChip = (isConfirmed: boolean) => {
+    if (!isConfirmed) {
+      return (
+        <Chip
+          label="Chưa xác minh"
+          size="small"
+          sx={{
+            bgcolor: colors.status.warningLight,
+            color: colors.status.warning,
+            fontWeight: 600,
+          }}
+        />
+      );
+    }
+    return (
+      <Chip
+        label="Đã xác minh"
+        size="small"
+        sx={{
+          bgcolor: colors.status.successLight,
+          color: colors.status.success,
+          fontWeight: 600,
+        }}
+      />
+    );
+  };
+
   return (
-    <TableContainer
-      component={Paper}
-      sx={{
-        borderRadius: 2,
-        boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-      }}
-    >
+    <TableContainer>
       <Table>
         <TableHead>
           <TableRow sx={{ bgcolor: colors.neutral[50] }}>
-            <TableCell sx={{ fontWeight: 700 }}>Hình ảnh</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Thương hiệu</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Model</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Serial Number</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Giá thuê/ngày</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Giá trị ước tính</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Đặt cọc (%)</TableCell>
-            <TableCell sx={{ fontWeight: 700 }} align="center">
-              Hành động
+            <TableCell sx={{ fontWeight: 700, color: colors.text.primary }}>
+              Hình ảnh
+            </TableCell>
+            <TableCell sx={{ fontWeight: 700, color: colors.text.primary }}>
+              Thông tin
+            </TableCell>
+            <TableCell sx={{ fontWeight: 700, color: colors.text.primary }}>
+              Serial Number
+            </TableCell>
+            <TableCell sx={{ fontWeight: 700, color: colors.text.primary }}>
+              Giá thuê/ngày
+            </TableCell>
+            <TableCell sx={{ fontWeight: 700, color: colors.text.primary }}>
+              Trạng thái xác minh
+            </TableCell>
+            <TableCell sx={{ fontWeight: 700, color: colors.text.primary }}>
+              Còn hàng
+            </TableCell>
+            <TableCell
+              sx={{ fontWeight: 700, color: colors.text.primary }}
+              align="center"
+            >
+              Thao tác
             </TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
-          {cameras.map((camera) => (
-            <TableRow
-              key={camera.id}
-              sx={{
-                "&:hover": { bgcolor: colors.neutral[50] },
-                transition: "background-color 0.2s",
-              }}
-            >
-              <TableCell>
-                <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-                  {Array.isArray(camera.media) && camera.media.length > 0 ? (
-                    camera.media.slice(0, 3).map((m, idx) => {
-                      const url =
-                        typeof m === "string" ? m : m && (m.url || "");
-                      return url ? (
-                        <Box
-                          key={`${camera.id}-${idx}`}
-                          component="img"
-                          src={url}
-                          alt={`${camera.brand} ${camera.model} ${idx + 1}`}
-                          sx={{
-                            width: 56,
-                            height: 56,
-                            objectFit: "cover",
-                            borderRadius: 1,
-                            border: `1px solid ${colors.neutral[200]}`,
-                            bgcolor: colors.neutral[100],
-                          }}
-                        />
-                      ) : (
-                        <Box
-                          key={`${camera.id}-${idx}`}
-                          sx={{
-                            width: 56,
-                            height: 56,
-                            borderRadius: 1,
-                            bgcolor: colors.neutral[200],
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                          }}
-                        >
-                          📷
-                        </Box>
-                      );
-                    })
-                  ) : (
-                    <Box
-                      sx={{
-                        width: 56,
-                        height: 56,
-                        borderRadius: 1,
-                        bgcolor: colors.neutral[200],
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      📷
-                    </Box>
-                  )}
-                </Box>
-              </TableCell>
-              <TableCell>
-                <Typography variant="body2" fontWeight={600}>
-                  {camera.brand}
-                </Typography>
-              </TableCell>
-              <TableCell>
-                <Typography variant="body2">{camera.model}</Typography>
-                {camera.variant && (
-                  <Typography variant="caption" color="text.secondary">
-                    {camera.variant}
-                  </Typography>
-                )}
-              </TableCell>
-              <TableCell>
-                {camera.serialNumber ? (
-                  <Chip
-                    label={camera.serialNumber}
-                    size="small"
+          {cameras.map((camera) => {
+            const imageUrl =
+              camera.media && camera.media.length > 0
+                ? camera.media[0].url
+                : null;
+
+            return (
+              <TableRow
+                key={camera.id}
+                sx={{
+                  "&:hover": { bgcolor: colors.neutral[50] },
+                }}
+              >
+                <TableCell>
+                  <Avatar
+                    src={imageUrl || undefined}
+                    variant="rounded"
                     sx={{
+                      width: 60,
+                      height: 60,
                       bgcolor: colors.neutral[100],
+                    }}
+                  >
+                    {!imageUrl && camera.brand?.charAt(0)}
+                  </Avatar>
+                </TableCell>
+                <TableCell>
+                  <Box>
+                    <Typography
+                      variant="body2"
+                      sx={{ fontWeight: 600, color: colors.text.primary }}
+                    >
+                      {camera.brand} {camera.model}
+                    </Typography>
+                    {camera.variant && (
+                      <Typography
+                        variant="caption"
+                        sx={{ color: colors.text.secondary }}
+                      >
+                        {camera.variant}
+                      </Typography>
+                    )}
+                  </Box>
+                </TableCell>
+                <TableCell>
+                  <Typography
+                    variant="body2"
+                    sx={{
                       fontFamily: "monospace",
+                      color: colors.text.secondary,
                     }}
-                  />
-                ) : (
-                  <Typography variant="caption" color="text.secondary">
-                    Chưa có
+                  >
+                    {camera.serialNumber}
                   </Typography>
-                )}
-              </TableCell>
-              <TableCell>
-                <Typography
-                  variant="body2"
-                  fontWeight={600}
-                  color={colors.neutral[900]}
-                >
-                  {formatCurrency(camera.baseDailyRate)}
-                </Typography>
-              </TableCell>
-              <TableCell>
-                <Typography variant="body2" fontWeight={600}>
-                  {formatCurrency(camera.estimatedValueVnd)}
-                </Typography>
-              </TableCell>
-              <TableCell>
-                <Chip
-                  label={`${camera.depositPercent}%`}
-                  size="small"
-                  sx={{
-                    bgcolor: colors.status.warningLight,
-                    color: colors.status.warning,
-                    fontWeight: 600,
-                  }}
-                />
-              </TableCell>
-              <TableCell align="center">
-                <Box
-                  sx={{ display: "flex", gap: 0.5, justifyContent: "center" }}
-                >
-                  <IconButton
-                    size="small"
-                    onClick={() => onView(camera)}
-                    sx={{
-                      color: colors.neutral[900],
-                      "&:hover": { bgcolor: colors.primary.lighter },
-                    }}
+                </TableCell>
+                <TableCell>
+                  <Typography
+                    variant="body2"
+                    sx={{ fontWeight: 600, color: colors.primary.main }}
                   >
-                    <ViewIcon fontSize="small" />
-                  </IconButton>
-                  <IconButton
-                    size="small"
-                    onClick={() => onEdit(camera)}
-                    sx={{
-                      color: colors.neutral[900],
-                      "&:hover": { bgcolor: colors.primary.lighter },
-                    }}
+                    {formatCurrency(camera.baseDailyRate)}
+                  </Typography>
+                </TableCell>
+                <TableCell>{getStatusChip(camera.isConfirmed)}</TableCell>
+                <TableCell>
+                  <Tooltip
+                    title={camera.isAvailable ? "Đang có sẵn" : "Không có sẵn"}
                   >
-                    <EditIcon fontSize="small" />
-                  </IconButton>
-                  <IconButton
-                    size="small"
-                    onClick={() => onDelete(camera)}
-                    sx={{
-                      color: colors.status.error,
-                      "&:hover": { bgcolor: colors.status.errorLight },
-                    }}
+                    <Switch
+                      checked={camera.isAvailable}
+                      onChange={() => onToggleAvailability(camera)}
+                      color="success"
+                      size="small"
+                    />
+                  </Tooltip>
+                </TableCell>
+                <TableCell align="center">
+                  <Box
+                    sx={{ display: "flex", gap: 1, justifyContent: "center" }}
                   >
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                </Box>
-              </TableCell>
-            </TableRow>
-          ))}
+                    <Tooltip title="Xem chi tiết">
+                      <IconButton
+                        size="small"
+                        onClick={() => onView(camera)}
+                        sx={{
+                          color: colors.neutral[600],
+                          "&:hover": { bgcolor: colors.neutral[100] },
+                        }}
+                      >
+                        <Eye size={18} />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Chỉnh sửa">
+                      <IconButton
+                        size="small"
+                        onClick={() => onEdit(camera)}
+                        sx={{
+                          color: colors.primary.main,
+                          "&:hover": { bgcolor: colors.primary.lighter },
+                        }}
+                      >
+                        <Edit size={18} />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </TableContainer>
