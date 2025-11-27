@@ -50,7 +50,7 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
               sx={{
                 cursor: "pointer",
                 bgcolor: selected ? colors.primary.main : "white",
-                color: selected ? "black" : grey[800],
+                color: selected ? "white" : grey[800],
                 fontWeight: selected ? 700 : 500,
                 borderRadius: 999,
                 px: 1,
