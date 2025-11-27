@@ -22,6 +22,7 @@ import {
   Tooltip,
   Dialog,
   DialogContent,
+  Stack,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -29,6 +30,11 @@ import {
   Close as CloseIcon,
   Edit as EditIcon,
   QrCodeScanner as QrCodeScannerIcon,
+  HourglassEmptyRounded,
+  CheckCircleRounded,
+  CancelRounded,
+  TaskAltRounded,
+  DoNotDisturbOnRounded,
 } from "@mui/icons-material";
 import ModalAddCamera from "../../../components/Modal/Owner/ModalAddCamera";
 import ModalEditCamera from "../../../components/Modal/Owner/ModalEditCamera";
@@ -144,6 +150,109 @@ export default function CameraManagement() {
    */
   const formatPrice = (price: number) => {
     return `₫${price.toLocaleString("vi-VN")}/ngày`;
+  };
+
+  const statusStyles = {
+    pending: {
+      label: "Chờ xử lý",
+      bg: "#FFF4ED",
+      color: "#C8501D",
+      border: "1px solid rgba(255, 107, 53, 0.35)",
+      icon: (
+        <HourglassEmptyRounded
+          fontSize="small"
+          sx={{ color: "#FF6B35", mr: 0.5 }}
+        />
+      ),
+    },
+    approved: {
+      label: "Đã duyệt",
+      bg: "#EEF4FF",
+      color: "#1D4ED8",
+      border: "1px solid rgba(59, 130, 246, 0.3)",
+      icon: (
+        <CheckCircleRounded
+          fontSize="small"
+          sx={{ color: "#2563EB", mr: 0.5 }}
+        />
+      ),
+    },
+    rejected: {
+      label: "Từ chối",
+      bg: "#FEF2F2",
+      color: "#B91C1C",
+      border: "1px solid rgba(239, 68, 68, 0.35)",
+      icon: (
+        <CancelRounded fontSize="small" sx={{ color: "#EF4444", mr: 0.5 }} />
+      ),
+    },
+    completed: {
+      label: "Hoàn thành",
+      bg: "#F0FDF4",
+      color: "#047857",
+      border: "1px solid rgba(16, 185, 129, 0.35)",
+      icon: (
+        <TaskAltRounded fontSize="small" sx={{ color: "#059669", mr: 0.5 }} />
+      ),
+    },
+    cancelled: {
+      label: "Đã hủy",
+      bg: "#F4F4F5",
+      color: "#52525B",
+      border: "1px solid rgba(148, 163, 184, 0.35)",
+      icon: (
+        <DoNotDisturbOnRounded
+          fontSize="small"
+          sx={{ color: "#64748B", mr: 0.5 }}
+        />
+      ),
+    },
+  } as const;
+
+  type StatusKey = keyof typeof statusStyles;
+
+  const renderStatusChip = (statusKey: StatusKey, labelOverride?: string) => {
+    const config = statusStyles[statusKey] || statusStyles.pending;
+    return (
+      <Chip
+        label={labelOverride ?? config.label}
+        size="small"
+        icon={config.icon}
+        sx={{
+          bgcolor: config.bg,
+          color: config.color,
+          border: config.border,
+          borderRadius: 999,
+          fontWeight: 600,
+          fontSize: "0.75rem",
+          px: 0.5,
+          "& .MuiChip-icon": {
+            marginLeft: 0,
+          },
+        }}
+        variant="outlined"
+      />
+    );
+  };
+
+  const mapCameraStatus = (
+    cameraItem: Camera
+  ): { key: StatusKey; label?: string } => {
+    if (!cameraItem.isConfirmed) {
+      return { key: "pending", label: "Chờ xác minh" };
+    }
+    if (cameraItem.isConfirmed && !cameraItem.isAvailable) {
+      return { key: "cancelled", label: "Tạm ngưng" };
+    }
+    return { key: "approved", label: "Sẵn sàng" };
+  };
+
+  const actionButtonBaseSx = {
+    width: 42,
+    height: 42,
+    borderRadius: 2,
+    transition: "all 0.2s ease",
+    boxShadow: "0 4px 10px rgba(15, 23, 42, 0.08)",
   };
 
   // Hiển thị loading khi đang tải dữ liệu
@@ -845,77 +954,77 @@ export default function CameraManagement() {
                     </Typography>
                   </TableCell>
                   <TableCell>
-                    <Chip
-                      label="Có sẵn"
-                      size="small"
-                      sx={{
-                        bgcolor: "#ECFDF5",
-                        color: "#059669",
-                        fontWeight: 600,
-                        fontSize: "0.7rem",
-                        height: "24px",
-                        border: "1px solid #A7F3D0",
-                      }}
-                    />
+                    {(() => {
+                      const status = mapCameraStatus(camera);
+                      return renderStatusChip(status.key, status.label);
+                    })()}
                   </TableCell>
                   <TableCell>
-                    <Box
-                      sx={{
-                        display: "flex",
-                        gap: 0.5,
-                        justifyContent: "center",
-                      }}
+                    <Stack
+                      direction="row"
+                      spacing={1}
+                      justifyContent="center"
+                      sx={{ minWidth: 180 }}
                     >
-                      <Tooltip title="Xóa camera">
+                      <Tooltip title="Xóa camera" arrow>
                         <IconButton
-                          size="small"
+                          size="medium"
                           onClick={() => handleDeleteCamera(camera.id)}
                           sx={{
-                            color: "#64748B",
+                            ...actionButtonBaseSx,
+                            border: "1px solid rgba(239, 68, 68, 0.2)",
+                            color: "#B91C1C",
+                            bgcolor: "rgba(254, 226, 226, 0.7)",
                             "&:hover": {
-                              bgcolor: "#FEF2F2",
-                              color: "#EF4444",
+                              bgcolor: "#FEE2E2",
+                              borderColor: "rgba(239, 68, 68, 0.4)",
                             },
                           }}
                         >
                           <DeleteIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
-                      <Tooltip title="Chỉnh sửa camera">
+                      <Tooltip title="Chỉnh sửa camera" arrow>
                         <IconButton
-                          size="small"
+                          size="medium"
                           onClick={() => handleOpenEdit(camera)}
                           sx={{
-                            color: "#64748B",
+                            ...actionButtonBaseSx,
+                            border: "1px solid rgba(37, 99, 235, 0.25)",
+                            color: "#1D4ED8",
+                            bgcolor: "rgba(219, 234, 254, 0.8)",
                             "&:hover": {
-                              bgcolor: "#EFF6FF",
-                              color: "#3B82F6",
+                              bgcolor: "#DBEAFE",
+                              borderColor: "rgba(37, 99, 235, 0.4)",
                             },
                           }}
                         >
                           <EditIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
-                      <Tooltip title="Kiểm tra thiết bị">
+                      <Tooltip title="Quét QR kiểm tra" arrow>
                         <IconButton
-                          size="small"
+                          size="medium"
                           onClick={() =>
                             navigate(
                               `/owner/qr-inspection?cameraId=${camera.id}`
                             )
                           }
                           sx={{
-                            color: "#64748B",
+                            ...actionButtonBaseSx,
+                            border: "1px solid rgba(255, 107, 53, 0.3)",
+                            color: "#C8501D",
+                            bgcolor: "rgba(255, 245, 240, 0.9)",
                             "&:hover": {
-                              bgcolor: "#FFF7ED",
-                              color: "#EA580C",
+                              bgcolor: "#FFE7DD",
+                              borderColor: "rgba(255, 107, 53, 0.45)",
                             },
                           }}
                         >
                           <QrCodeScannerIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
-                    </Box>
+                    </Stack>
                   </TableCell>
                 </TableRow>
               ))}

@@ -43,6 +43,7 @@ interface DeviceOptionSource {
   name?: string | null;
 }
 
+// Chuẩn hóa giá trị itemType từ API/tham số về "Camera" hoặc "Accessory"
 const normalizeItemType = (
   value: string | number | undefined
 ): "Camera" | "Accessory" => {
@@ -52,6 +53,7 @@ const normalizeItemType = (
   return "Camera";
 };
 
+// Trả về chuỗi nhãn dễ đọc từ thông tin thiết bị
 const getDeviceLabel = (option?: DeviceOption) => {
   if (!option) return "";
   if (option.brand || option.model) {
@@ -60,6 +62,7 @@ const getDeviceLabel = (option?: DeviceOption) => {
   return option.name ?? "";
 };
 
+// Chuyển đổi dữ liệu trả về từ service sang DeviceOption nội bộ
 const toDeviceOption = ({
   id,
   brand,
@@ -72,12 +75,14 @@ const toDeviceOption = ({
   name: name ?? undefined,
 });
 
+// Tạo item rỗng dùng khi thêm thiết bị mới
 const getEmptyItem = (): VerificationItem => ({
   itemId: "",
   itemName: "",
   itemType: "Camera",
 });
 
+// Khởi tạo form rỗng mặc định
 const getEmptyForm = (): CreateVerificationRequest => ({
   name: "",
   phoneNumber: "",
@@ -108,11 +113,14 @@ export default function ModalVerification({
 }: ModalVerificationProps) {
   const isEditMode = mode === "edit";
 
+  // Trạng thái nắm dữ liệu form
   const [formData, setFormData] = useState<CreateVerificationRequest>(
     getEmptyForm()
   );
+  // Các option cho camera và phụ kiện
   const [cameraOptions, setCameraOptions] = useState<DeviceOption[]>([]);
   const [accessoryOptions, setAccessoryOptions] = useState<DeviceOption[]>([]);
+  // Cờ loading + lỗi cho từng loại thiết bị
   const [cameraLoading, setCameraLoading] = useState(false);
   const [accessoryLoading, setAccessoryLoading] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
@@ -123,9 +131,10 @@ export default function ModalVerification({
     text: string;
   } | null>(null);
 
-  // Try to read camera context if available (safe: useContext returns undefined if provider not present)
+  // Thử lấy context camera nếu có (useContext trả undefined nếu không có provider)
   const cameraCtx = useContext(CameraContext);
 
+  // Chuẩn hóa dữ liệu khởi tạo (đặc biệt khi ở chế độ chỉnh sửa)
   const computedInitialForm = useMemo(() => {
     if (isEditMode && initialData) {
       const items =
@@ -147,19 +156,24 @@ export default function ModalVerification({
     return getEmptyForm();
   }, [initialData, isEditMode]);
 
+  // Cập nhật các field cấp 1 của form
   const handleInputChange = (
     field: keyof CreateVerificationRequest,
     value: string
   ) => {
-    setFormData((prev: CreateVerificationRequest) => ({ ...prev, [field]: value }));
+    setFormData((prev: CreateVerificationRequest) => ({
+      ...prev,
+      [field]: value,
+    }));
   };
 
+  // Mở modal sẽ load lại dữ liệu form + fetch camera/phụ kiện
   useEffect(() => {
-    // load camera & accessory lists when modal opens
+    // Khi modal mở thì tải lại danh sách camera/phụ kiện
     if (!open) return;
     setFormData(computedInitialForm);
     (async () => {
-      // If camera context already has cameras, use them to avoid extra fetch
+      // Nếu context đã có danh sách camera thì ưu tiên dùng để tránh gọi API
       if (cameraCtx && Array.isArray(cameraCtx.cameras)) {
         const contextOptions = cameraCtx.cameras.map((camera) =>
           toDeviceOption({
@@ -195,7 +209,7 @@ export default function ModalVerification({
       }
 
       try {
-        // Use accessoryService owner endpoint (requires token) to get owner's accessories
+        // Gọi API phụ kiện của chủ sở hữu (yêu cầu token)
         const accessories: Accessory[] =
           await accessoryService.getAccessoriesByOwnerId();
         const options = accessories.map((accessory) =>
@@ -220,6 +234,7 @@ export default function ModalVerification({
     })();
   }, [open, computedInitialForm, cameraCtx]);
 
+  // Thêm một dòng thiết bị mới
   const handleAddItem = () => {
     setFormData((prev: CreateVerificationRequest) => ({
       ...prev,
@@ -227,6 +242,7 @@ export default function ModalVerification({
     }));
   };
 
+  // Xóa thiết bị theo index
   const handleRemoveItem = (index: number) => {
     setFormData((prev: CreateVerificationRequest) => ({
       ...prev,
@@ -234,6 +250,7 @@ export default function ModalVerification({
     }));
   };
 
+  // Cập nhật thông tin từng thiết bị (loại, id, tên hiển thị)
   const handleItemChange = (
     index: number,
     field: keyof VerificationItem,
@@ -258,6 +275,7 @@ export default function ModalVerification({
     });
   };
 
+  // Validate và submit form lên parent
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -321,6 +339,7 @@ export default function ModalVerification({
     }
   };
 
+  // Reset state khi đóng modal
   const handleClose = () => {
     setFormData(getEmptyForm());
     setMessage(null);
@@ -482,7 +501,11 @@ export default function ModalVerification({
               }
               required
               disabled={isLoading}
-              InputLabelProps={{ shrink: true }}
+              slotProps={{
+                inputLabel: {
+                  shrink: true,
+                },
+              }}
               sx={{
                 "& .MuiOutlinedInput-root": {
                   borderRadius: 1.5,
@@ -536,34 +559,7 @@ export default function ModalVerification({
               ))}
             </TextField>
 
-            <TextField
-              fullWidth
-              label="Ghi chú"
-              value={formData.notes}
-              onChange={(e) => handleInputChange("notes", e.target.value)}
-              multiline
-              rows={3}
-              disabled={isLoading}
-              placeholder="Nhập ghi chú nếu có..."
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  borderRadius: 1.5,
-                  bgcolor: "#F8FAFC",
-                  "& fieldset": {
-                    borderColor: "#E2E8F0",
-                  },
-                  "&:hover fieldset": {
-                    borderColor: "#FF6B35",
-                  },
-                  "&.Mui-focused fieldset": {
-                    borderColor: "#FF6B35",
-                    borderWidth: 2,
-                  },
-                },
-              }}
-            />
-
-            {/* Items: multiple */}
+            {/* Danh sách nhiều thiết bị */}
             <Box>
               <Box
                 sx={{
@@ -622,10 +618,14 @@ export default function ModalVerification({
                       );
                     }}
                     sx={{ flex: 1 }}
-                    SelectProps={{
-                      MenuProps: {
-                        PaperProps: {
-                          style: { maxHeight: 48 * 5 + 8 }, // show ~5 items, with small padding
+                    slotProps={{
+                      select: {
+                        MenuProps: {
+                          PaperProps: {
+                            style: {
+                              maxHeight: 48 * 5 + 8,
+                            },
+                          },
                         },
                       },
                     }}

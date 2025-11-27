@@ -8,7 +8,6 @@ import {
   DialogContent,
   DialogTitle,
   FormControlLabel,
-  MenuItem,
   Stack,
   TextField,
   Typography,
@@ -110,16 +109,6 @@ const EditInspectionDialog: React.FC<EditInspectionDialogProps> = ({
     });
   };
 
-  const handlePassedChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { value } = e.target;
-    setForm((prev) => ({
-      ...prev,
-      passed: value === "" ? null : value === "true",
-    }));
-  };
-
   const handleSubmit = async () => {
     if (!form.section || !form.label) return;
     await onSubmit(form);
@@ -179,17 +168,7 @@ const EditInspectionDialog: React.FC<EditInspectionDialogProps> = ({
             minRows={3}
             fullWidth
           />
-          <TextField
-            select
-            label="Trạng thái"
-            value={form.passed === null ? "" : form.passed ? "true" : "false"}
-            onChange={handlePassedChange}
-            fullWidth
-          >
-            <MenuItem value="">Chưa đánh giá</MenuItem>
-            <MenuItem value="true">Đạt</MenuItem>
-            <MenuItem value="false">Không đạt</MenuItem>
-          </TextField>
+
           {inspection?.media && inspection.media.length > 0 && (
             <Box>
               <Typography
