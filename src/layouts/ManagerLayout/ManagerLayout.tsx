@@ -20,12 +20,13 @@ import {
   People as PeopleIcon,
   Inventory as ProductsIcon,
   ShoppingCart as OrdersIcon,
-  Settings as SettingsIcon,
+  // Settings as SettingsIcon,
   ExitToApp as LogoutIcon,
   Person as PersonIcon,
 } from "@mui/icons-material";
 import { useAuth } from "../../hooks/useAuth";
 import { colors } from "../../theme/colors";
+import ImportContactsIcon from "@mui/icons-material/ImportContacts";
 const DRAWER_WIDTH = 280;
 
 const menuItems = [
@@ -46,8 +47,13 @@ const menuItems = [
     icon: <ProductsIcon />,
     path: "/manager/products",
   },
+  {
+    text: "Quản lý hợp đồng",
+    icon: <ImportContactsIcon />,
+    path: "/manager/contracts",
+  },
   { text: "Hồ sơ", icon: <PersonIcon />, path: "/manager/profile" },
-  { text: "Cài đặt", icon: <SettingsIcon />, path: "/manager/settings" },
+  // { text: "Cài đặt", icon: <SettingsIcon />, path: "/manager/settings" },
 ];
 
 const ManagerLayout: React.FC = () => {
