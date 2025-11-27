@@ -77,7 +77,13 @@ export interface Verification {
 export interface Inspection {
   id: string;
   verificationId: string;
+  itemName: string;
+  section: string;
+  media?: InspectionMedia[];
+  itemType: VerificationItemType | string;
+  label: string;
   inspectorId: string;
+  value: string;
   inspectorName?: string;
   inspectionDate: string;
   passed: boolean;
