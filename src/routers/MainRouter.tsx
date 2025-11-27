@@ -22,7 +22,6 @@ import DashboardAdmin from "../pages/Admin/Dashboard/Dashboard";
 import AccountManagement from "../pages/Admin/AccountManagement/AccountManagement";
 import AgencyManagement from "../pages/Admin/AgencyManagement/AgencyManagement";
 import DeviceManagement from "../pages/Admin/DeviceManagement/DeviceManagement";
-import AdminSettings from "../pages/Admin/Settings/AdminSettings";
 import AdminProfile from "../pages/Admin/Profile/AdminProfile";
 import OwnerProfile from "../pages/Owner/Profile/OwnerProfile";
 import VerificationManagement from "../pages/Owner/VerificationManagement/VerificationManagement";
@@ -179,10 +178,6 @@ const routes: RouteObject[] = [
         path: "profile",
         element: <AdminProfile />,
       },
-      {
-        path: "settings",
-        element: <AdminSettings />,
-      },
     ],
   },
   {
@@ -225,10 +220,6 @@ const routes: RouteObject[] = [
         path: "profile",
         element: <ManagerProfile />,
       },
-      {
-        path: "settings",
-        element: <AdminSettings />,
-      },
     ],
   },
   {
@@ -262,10 +253,6 @@ const routes: RouteObject[] = [
       {
         path: "profile",
         element: <AdminProfile />,
-      },
-      {
-        path: "settings",
-        element: <AdminSettings />,
       },
     ],
   },

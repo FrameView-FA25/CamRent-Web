@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Box,
   Paper,
@@ -20,6 +20,8 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  CircularProgress,
+  Alert,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -30,65 +32,31 @@ import {
   Visibility as ViewIcon,
   LocationOn as LocationIcon,
 } from "@mui/icons-material";
+import { branchService } from "../../../services/branch.service";
+import type { Branch } from "../../../types/branch.types";
 
-interface Agency {
-  id: number;
-  name: string;
-  location: string;
-  manager: string;
-  devices: number;
-  status: "Active" | "Inactive";
-  createdAt: string;
-}
-
-const mockAgencies: Agency[] = [
-  {
-    id: 1,
-    name: "Ha Noi",
-    location: "123 Main St, District 1",
-    manager: "John Doe",
-    devices: 150,
-    status: "Active",
-    createdAt: "2024-01-10",
-  },
-  {
-    id: 2,
-    name: "Ho Chi Minh",
-    location: "456 North Ave, District 3",
-    manager: "Jane Smith",
-    devices: 98,
-    status: "Active",
-    createdAt: "2024-02-15",
-  },
-  {
-    id: 3,
-    name: "Da Nang",
-    location: "789 South Rd, District 7",
-    manager: "Bob Johnson",
-    devices: 75,
-    status: "Inactive",
-    createdAt: "2024-03-20",
-  },
-];
+const formatAddress = (agency: Branch): string => {
+  if (!agency.address) return "Chưa cập nhật";
+  const { district, province, country } = agency.address;
+  return (
+    [district, province, country].filter(Boolean).join(", ") || "Chưa cập nhật"
+  );
+};
 
 const AgencyManagement: React.FC = () => {
-  const [agencies] = useState<Agency[]>(mockAgencies);
+  const [agencies, setAgencies] = useState<Branch[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [_selectedAgency, setSelectedAgency] = useState<Agency | null>(null);
   const [openDialog, setOpenDialog] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleMenuClick = (
-    event: React.MouseEvent<HTMLElement>,
-    agency: Agency
-  ) => {
+  const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
-    setSelectedAgency(agency);
   };
 
   const handleMenuClose = () => {
     setAnchorEl(null);
-    setSelectedAgency(null);
   };
 
   const handleOpenDialog = () => {
@@ -99,12 +67,40 @@ const AgencyManagement: React.FC = () => {
     setOpenDialog(false);
   };
 
-  const filteredAgencies = agencies.filter(
-    (agency) =>
-      agency.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      agency.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      agency.manager.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  useEffect(() => {
+    const fetchAgencies = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await branchService.getBranches();
+        setAgencies(data);
+      } catch (err) {
+        const message =
+          err instanceof Error
+            ? err.message
+            : "Không thể tải danh sách đại lý. Vui lòng thử lại.";
+        setError(message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAgencies();
+  }, []);
+
+  const filteredAgencies = useMemo(() => {
+    if (!searchTerm.trim()) return agencies;
+    const keyword = searchTerm.trim().toLowerCase();
+    return agencies.filter((agency) => {
+      const nameMatch = agency.name?.toLowerCase().includes(keyword);
+      const managerMatch =
+        agency.managerName?.toLowerCase().includes(keyword) ?? false;
+      const addressMatch = formatAddress(agency)
+        .toLowerCase()
+        .includes(keyword);
+      return nameMatch || managerMatch || addressMatch;
+    });
+  }, [agencies, searchTerm]);
 
   return (
     <Box
@@ -127,7 +123,7 @@ const AgencyManagement: React.FC = () => {
             color: "#1F2937",
           }}
         >
-          Agency Management
+          Quản lý đại lý
         </Typography>
         <Button
           variant="contained"
@@ -141,7 +137,7 @@ const AgencyManagement: React.FC = () => {
             px: 3,
           }}
         >
-          Create Agency
+          Thêm đại lý
         </Button>
       </Box>
 
@@ -156,7 +152,7 @@ const AgencyManagement: React.FC = () => {
         <Box sx={{ p: 3, borderBottom: "1px solid #E5E7EB" }}>
           <TextField
             fullWidth
-            placeholder="Search by name, location, or manager..."
+            placeholder="Tìm theo tên, địa chỉ hoặc quản lý..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             InputProps={{
@@ -174,62 +170,76 @@ const AgencyManagement: React.FC = () => {
           />
         </Box>
 
-        <TableContainer>
-          <Table>
-            <TableHead sx={{ bgcolor: "#F9FAFB" }}>
-              <TableRow>
-                <TableCell sx={{ fontWeight: 600 }}>ID</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Agency Name</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Location</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Manager</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Devices</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Created At</TableCell>
-                <TableCell sx={{ fontWeight: 600 }} align="right">
-                  Actions
-                </TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {filteredAgencies.map((agency) => (
-                <TableRow key={agency.id} hover>
-                  <TableCell>{agency.id}</TableCell>
-                  <TableCell sx={{ fontWeight: 500 }}>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                      <LocationIcon sx={{ fontSize: 18, color: "#DC2626" }} />
-                      {agency.name}
-                    </Box>
-                  </TableCell>
-                  <TableCell>{agency.location}</TableCell>
-                  <TableCell>{agency.manager}</TableCell>
-                  <TableCell>
-                    <Chip
-                      label={`${agency.devices} devices`}
-                      size="small"
-                      sx={{ bgcolor: "#FEF3C7", color: "#F59E0B" }}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      label={agency.status}
-                      size="small"
-                      color={agency.status === "Active" ? "success" : "default"}
-                    />
-                  </TableCell>
-                  <TableCell>{agency.createdAt}</TableCell>
-                  <TableCell align="right">
-                    <IconButton
-                      onClick={(e) => handleMenuClick(e, agency)}
-                      size="small"
-                    >
-                      <MoreVertIcon />
-                    </IconButton>
+        {error && (
+          <Alert severity="error" sx={{ m: 3 }}>
+            {error}
+          </Alert>
+        )}
+        {loading ? (
+          <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
+            <CircularProgress color="error" />
+          </Box>
+        ) : (
+          <TableContainer>
+            <Table>
+              <TableHead sx={{ bgcolor: "#F9FAFB" }}>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 600 }}>ID</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Tên đại lý</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Địa chỉ</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Quản lý</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Thành viên</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }} align="right">
+                    Thao tác
                   </TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+              </TableHead>
+              <TableBody>
+                {filteredAgencies.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
+                      Không tìm thấy đại lý nào phù hợp.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredAgencies.map((agency) => (
+                    <TableRow key={agency.id} hover>
+                      <TableCell sx={{ whiteSpace: "nowrap" }}>
+                        {agency.id}
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 500 }}>
+                        <Box
+                          sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                        >
+                          <LocationIcon
+                            sx={{ fontSize: 18, color: "#DC2626" }}
+                          />
+                          {agency.name}
+                        </Box>
+                      </TableCell>
+                      <TableCell>{formatAddress(agency)}</TableCell>
+                      <TableCell>{agency.managerName || "Chưa có"}</TableCell>
+                      <TableCell>
+                        <Chip
+                          label={`${
+                            agency.userMemberships?.length || 0
+                          } thành viên`}
+                          size="small"
+                          sx={{ bgcolor: "#EFF6FF", color: "#1D4ED8" }}
+                        />
+                      </TableCell>
+                      <TableCell align="right">
+                        <IconButton onClick={handleMenuClick} size="small">
+                          <MoreVertIcon />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
       </Paper>
 
       {/* Action Menu */}
@@ -240,15 +250,15 @@ const AgencyManagement: React.FC = () => {
       >
         <MenuItem onClick={handleMenuClose}>
           <ViewIcon sx={{ mr: 1, fontSize: 20 }} />
-          View Details
+          Xem chi tiết
         </MenuItem>
         <MenuItem onClick={handleMenuClose}>
           <EditIcon sx={{ mr: 1, fontSize: 20 }} />
-          Edit
+          Chỉnh sửa
         </MenuItem>
         <MenuItem onClick={handleMenuClose} sx={{ color: "#EF4444" }}>
           <DeleteIcon sx={{ mr: 1, fontSize: 20 }} />
-          Delete
+          Xóa
         </MenuItem>
       </Menu>
 
@@ -259,31 +269,31 @@ const AgencyManagement: React.FC = () => {
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle sx={{ fontWeight: 600 }}>Create New Agency</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 600 }}>Tạo đại lý mới</DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 2, display: "flex", flexDirection: "column", gap: 2 }}>
             <TextField
               fullWidth
-              label="Agency Name"
-              placeholder="Enter agency name"
+              label="Tên đại lý"
+              placeholder="Nhập tên đại lý"
             />
             <TextField
               fullWidth
-              label="Location"
-              placeholder="Enter location address"
+              label="Địa chỉ"
+              placeholder="Nhập địa chỉ đại lý"
               multiline
               rows={2}
             />
             <TextField
               fullWidth
-              label="Manager Email"
+              label="Email quản lý"
               type="email"
-              placeholder="Enter manager email"
+              placeholder="Nhập email quản lý"
             />
             <TextField
               fullWidth
-              label="Phone Number"
-              placeholder="Enter phone number"
+              label="Số điện thoại"
+              placeholder="Nhập số điện thoại"
             />
           </Box>
         </DialogContent>
@@ -295,7 +305,7 @@ const AgencyManagement: React.FC = () => {
               color: "#6B7280",
             }}
           >
-            Cancel
+            Hủy
           </Button>
           <Button
             variant="contained"
@@ -306,7 +316,7 @@ const AgencyManagement: React.FC = () => {
               textTransform: "none",
             }}
           >
-            Create Agency
+            Thêm đại lý
           </Button>
         </DialogActions>
       </Dialog>

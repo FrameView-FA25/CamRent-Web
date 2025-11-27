@@ -18,15 +18,15 @@ import {
 const DashboardAdmin: React.FC = () => {
   const statsCards = [
     {
-      title: "Total Accounts",
-      value: "1,234",
+      title: "Tài khoản toàn hệ thống",
+      value: "1.234",
       change: "+12.5%",
       icon: <PeopleIcon sx={{ fontSize: 40 }} />,
       color: "#3B82F6",
       bgcolor: "#EFF6FF",
     },
     {
-      title: "Total Agencies",
+      title: "Số lượng đại lý",
       value: "56",
       change: "+8.2%",
       icon: <StoreIcon sx={{ fontSize: 40 }} />,
@@ -34,17 +34,17 @@ const DashboardAdmin: React.FC = () => {
       bgcolor: "#ECFDF5",
     },
     {
-      title: "Total Devices",
-      value: "8,456",
+      title: "Thiết bị đang quản lý",
+      value: "8.456",
       change: "+15.3%",
       icon: <DevicesIcon sx={{ fontSize: 40 }} />,
       color: "#F59E0B",
       bgcolor: "#FEF3C7",
     },
     {
-      title: "Growth Rate",
+      title: "Tăng trưởng tháng này",
       value: "+23.5%",
-      change: "This month",
+      change: "So với tháng trước",
       icon: <TrendingUpIcon sx={{ fontSize: 40 }} />,
       color: "#8B5CF6",
       bgcolor: "#F3E8FF",
@@ -53,24 +53,24 @@ const DashboardAdmin: React.FC = () => {
 
   const recentActivities = [
     {
-      action: "New account created",
+      action: "Tạo mới tài khoản quản lý",
       user: "manager@branch1.com",
-      time: "2 minutes ago",
+      time: "2 phút trước",
     },
     {
-      action: "Agency approved",
+      action: "Phê duyệt đại lý mới",
       user: "Downtown Branch",
-      time: "15 minutes ago",
+      time: "15 phút trước",
     },
     {
-      action: "Device pending approval",
+      action: "Thiết bị chờ duyệt",
       user: "Canon EOS R5",
-      time: "1 hour ago",
+      time: "1 giờ trước",
     },
     {
-      action: "Account status updated",
+      action: "Cập nhật trạng thái tài khoản",
       user: "staff@branch2.com",
-      time: "2 hours ago",
+      time: "2 giờ trước",
     },
   ];
 
@@ -88,7 +88,7 @@ const DashboardAdmin: React.FC = () => {
           color: "#1F2937",
         }}
       >
-        Admin Dashboard
+        Bảng điều khiển quản trị
       </Typography>
 
       {/* Stats Cards */}
@@ -185,7 +185,7 @@ const DashboardAdmin: React.FC = () => {
                 color: "#1F2937",
               }}
             >
-              Recent System Activities
+              Hoạt động hệ thống gần đây
             </Typography>
             <Box>
               {recentActivities.map((activity, index) => (
@@ -253,7 +253,7 @@ const DashboardAdmin: React.FC = () => {
                 color: "#1F2937",
               }}
             >
-              System Status
+              Tình trạng hệ thống
             </Typography>
             <Box sx={{ mb: 3 }}>
               <Box
@@ -264,7 +264,7 @@ const DashboardAdmin: React.FC = () => {
                 }}
               >
                 <Typography variant="body2" sx={{ color: "#6B7280" }}>
-                  Server Performance
+                  Hiệu suất máy chủ
                 </Typography>
                 <Typography
                   variant="body2"
@@ -295,7 +295,7 @@ const DashboardAdmin: React.FC = () => {
                 }}
               >
                 <Typography variant="body2" sx={{ color: "#6B7280" }}>
-                  Database Usage
+                  Sử dụng cơ sở dữ liệu
                 </Typography>
                 <Typography
                   variant="body2"
@@ -319,16 +319,14 @@ const DashboardAdmin: React.FC = () => {
             </Box>
             <Box>
               <Typography sx={{ mb: 1, color: "#6B7280" }}>
-                <strong>Status:</strong>{" "}
-                <span style={{ color: "#10B981" }}>
-                  All systems operational
-                </span>
+                <strong>Trạng thái:</strong>{" "}
+                <span style={{ color: "#10B981" }}>Hệ thống ổn định</span>
               </Typography>
               <Typography sx={{ mb: 1, color: "#6B7280" }}>
-                <strong>Uptime:</strong> 99.9%
+                <strong>Uptime:</strong> 99,9%
               </Typography>
               <Typography sx={{ color: "#6B7280" }}>
-                <strong>Last Updated:</strong> Just now
+                <strong>Cập nhật gần nhất:</strong> Vừa xong
               </Typography>
             </Box>
           </Paper>

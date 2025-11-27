@@ -25,6 +25,7 @@ import {
   Person as PersonIcon,
   Security as SecurityIcon,
 } from "@mui/icons-material";
+import { getRoleLabel } from "../../../utils/roleUtils";
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -63,7 +64,7 @@ const AdminProfile: React.FC = () => {
     email: "admin@camrent.com",
     phone: "0123456789",
     address: "123 Đường ABC, Quận 1, TP.HCM",
-    role: "Administrator",
+    role: "Admin",
     joinDate: "01/01/2024",
   });
 
@@ -150,7 +151,11 @@ const AdminProfile: React.FC = () => {
           fullWidth
           label={field.label}
           type={field.type || "text"}
-          value={data[field.field]}
+          value={
+            field.field === "role"
+              ? getRoleLabel(data[field.field])
+              : data[field.field]
+          }
           onChange={(e) =>
             handleFieldChange(setter, data, field.field, e.target.value)
           }

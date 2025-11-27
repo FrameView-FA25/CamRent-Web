@@ -20,25 +20,28 @@ import {
   AdminPanelSettings as AdminIcon,
   Store as StoreIcon,
   Devices as DevicesIcon,
-  Settings as SettingsIcon,
   ExitToApp as LogoutIcon,
   Person as PersonIcon,
 } from "@mui/icons-material";
 import { useAuth } from "../../hooks/useAuth";
+import { formatRoles, getRoleLabel } from "../../utils/roleUtils";
 
 const DRAWER_WIDTH = 280;
 
 const menuItems = [
-  { text: "Dashboard", icon: <DashboardIcon />, path: "/admin/dashboard" },
-  { text: "Account Management", icon: <AdminIcon />, path: "/admin/account" },
   {
-    text: "Agency Management",
+    text: "Bảng điều khiển",
+    icon: <DashboardIcon />,
+    path: "/admin/dashboard",
+  },
+  { text: "Quản lý tài khoản", icon: <AdminIcon />, path: "/admin/account" },
+  {
+    text: "Quản lý đại lý",
     icon: <StoreIcon />,
     path: "/admin/agencies",
   },
-  { text: "Device Management", icon: <DevicesIcon />, path: "/admin/devices" },
-  { text: "Profile", icon: <PersonIcon />, path: "/admin/profile" },
-  { text: "Settings", icon: <SettingsIcon />, path: "/admin/settings" },
+  { text: "Quản lý thiết bị", icon: <DevicesIcon />, path: "/admin/devices" },
+  { text: "Hồ sơ", icon: <PersonIcon />, path: "/admin/profile" },
 ];
 
 const AdminLayout: React.FC = () => {
@@ -46,6 +49,7 @@ const AdminLayout: React.FC = () => {
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user, logout } = useAuth();
+  const roleDisplay = formatRoles(user?.roles);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -97,7 +101,7 @@ const AdminLayout: React.FC = () => {
             letterSpacing: "-0.02em",
           }}
         >
-          Admin Panel
+          Bảng điều khiển quản trị
         </Typography>
       </Box>
 
@@ -183,7 +187,7 @@ const AdminLayout: React.FC = () => {
                 lineHeight: 1.3,
               }}
             >
-              {user?.fullName || "Admin"}
+              {user?.fullName || getRoleLabel("Admin")}
             </Typography>
             <Typography
               sx={{
@@ -192,7 +196,7 @@ const AdminLayout: React.FC = () => {
                 lineHeight: 1.3,
               }}
             >
-              {user?.roles?.join(", ") || "User Role"}
+              {roleDisplay || getRoleLabel("Admin")}
             </Typography>
           </Box>
         </Stack>
@@ -214,7 +218,7 @@ const AdminLayout: React.FC = () => {
             <LogoutIcon />
           </ListItemIcon>
           <ListItemText
-            primary="Logout"
+            primary="Đăng xuất"
             primaryTypographyProps={{
               fontWeight: 500,
               fontSize: "0.9375rem",
