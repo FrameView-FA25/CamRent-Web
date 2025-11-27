@@ -70,6 +70,19 @@ export interface Verification {
   address: string;
   notes: string | null;
   createdByUserId: string;
+  inspections?: Inspection[];
   items: VerificationItem[];
-  inspections: VerificationInspection[];
+  createdAt: string;
+}
+export interface Inspection {
+  id: string;
+  verificationId: string;
+  inspectorId: string;
+  inspectorName?: string;
+  inspectionDate: string;
+  passed: boolean;
+  notes?: string;
+  images?: string[];
+  createdAt?: string;
+  updatedAt?: string;
 }

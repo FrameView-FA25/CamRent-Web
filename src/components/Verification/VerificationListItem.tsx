@@ -1,388 +1,270 @@
 import React, { useState } from "react";
 import {
-  Paper,
   Box,
+  Card,
+  CardContent,
   Typography,
   Chip,
-  IconButton,
-  Collapse,
-  Avatar,
-  Divider,
   Button,
   Stack,
+  Divider,
+  Collapse,
 } from "@mui/material";
 import {
+  Eye,
   ChevronDown,
   ChevronUp,
-  Eye,
   Calendar,
-  MapPin,
   Phone,
-  Package,
-  UserCheck,
+  MapPin,
   Building2,
+  CheckCircle,
+  Clock,
+  XCircle,
+  ClipboardList,
 } from "lucide-react";
 import { colors } from "../../theme/colors";
+import InspectionListItem from "./InspectionListItem";
 import type { Verification } from "../../types/verification.types";
 
 interface VerificationListItemProps {
   verification: Verification;
   onViewDetails: (verification: Verification) => void;
-  onRefresh: () => void;
+  onRefresh?: () => void;
 }
 
 const VerificationListItem: React.FC<VerificationListItemProps> = ({
   verification,
   onViewDetails,
+  onRefresh,
 }) => {
-  const [expanded, setExpanded] = useState(false);
-
-  const getStatusInfo = (status: string) => {
-    const statusMap: Record<
-      string,
-      { label: string; color: string; bgColor: string }
-    > = {
-      pending: {
-        label: "Chờ xử lý",
-        color: colors.status.warning,
-        bgColor: colors.status.warningLight,
-      },
-      approved: {
-        label: "Đã duyệt",
-        color: colors.status.success,
-        bgColor: colors.status.successLight,
-      },
-      rejected: {
-        label: "Từ chối",
-        color: colors.status.error,
-        bgColor: colors.status.errorLight,
-      },
-    };
-    return (
-      statusMap[status.toLowerCase()] || {
-        label: status,
-        color: colors.neutral[600],
-        bgColor: colors.neutral[100],
-      }
-    );
-  };
-
-  const statusInfo = getStatusInfo(verification.status);
+  const [showInspections, setShowInspections] = useState(false);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("vi-VN", {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
     });
   };
 
+  const getStatusInfo = () => {
+    switch (verification.status) {
+      case "Approved":
+        return {
+          label: "Đã duyệt",
+          color: colors.status.success,
+          bgcolor: colors.status.successLight,
+          icon: <CheckCircle size={16} />,
+        };
+      case "Rejected":
+        return {
+          label: "Từ chối",
+          color: colors.status.error,
+          bgcolor: colors.status.errorLight,
+          icon: <XCircle size={16} />,
+        };
+      default:
+        return {
+          label: "Chờ xử lý",
+          color: colors.status.warning,
+          bgcolor: colors.status.warningLight,
+          icon: <Clock size={16} />,
+        };
+    }
+  };
+
+  const statusInfo = getStatusInfo();
+  const hasInspections =
+    verification.inspections && verification.inspections.length > 0;
+  const pendingInspections =
+    verification.inspections?.filter((i) => !i.passed) || [];
+  const approvedInspections =
+    verification.inspections?.filter((i) => i.passed) || [];
+
   return (
-    <Paper
+    <Card
       elevation={0}
       sx={{
-        borderRadius: 2,
         border: `1px solid ${colors.border.light}`,
-        overflow: "hidden",
-        transition: "all 0.2s",
+        borderRadius: 2,
+        transition: "all 0.2s ease",
         "&:hover": {
-          boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-          borderColor: colors.primary.main,
+          boxShadow: 2,
+          borderColor: colors.border.main,
         },
       }}
     >
-      {/* Collapsed View - Basic Info */}
-      <Box
-        sx={{
-          p: 3,
-          display: "flex",
-          alignItems: "center",
-          gap: 3,
-          cursor: "pointer",
-          bgcolor: expanded ? colors.neutral[50] : "transparent",
-        }}
-        onClick={() => setExpanded(!expanded)}
-      >
-        <Avatar
-          sx={{
-            width: 48,
-            height: 48,
-            bgcolor: colors.primary.lighter,
-            color: colors.primary.main,
-            fontWeight: 700,
-            fontSize: 18,
-          }}
-        >
-          {verification.name.charAt(0).toUpperCase()}
-        </Avatar>
+      <CardContent sx={{ p: 3 }}>
+        <Stack spacing={2}>
+          {/* Header */}
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-start",
+            }}
+          >
+            <Box sx={{ flex: 1 }}>
+              <Box
+                sx={{ display: "flex", alignItems: "center", gap: 2, mb: 1 }}
+              >
+                <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                  {verification.name}
+                </Typography>
+                <Chip
+                  icon={statusInfo.icon}
+                  label={statusInfo.label}
+                  size="small"
+                  sx={{
+                    bgcolor: statusInfo.bgcolor,
+                    color: statusInfo.color,
+                    fontWeight: 600,
+                    "& .MuiChip-icon": {
+                      color: statusInfo.color,
+                    },
+                  }}
+                />
+              </Box>
 
-        <Box sx={{ flex: 1 }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 1 }}>
-            <Typography
-              variant="h6"
-              sx={{ fontWeight: 700, color: colors.text.primary }}
-            >
-              {verification.name}
-            </Typography>
-            <Chip
-              label={statusInfo.label}
-              size="small"
-              sx={{
-                bgcolor: statusInfo.bgColor,
-                color: statusInfo.color,
-                fontWeight: 600,
-              }}
-            />
-          </Box>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 3 }}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-              <Phone size={14} color={colors.text.secondary} />
-              <Typography variant="body2" sx={{ color: colors.text.secondary }}>
-                {verification.phoneNumber}
-              </Typography>
-            </Box>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-              <Building2 size={14} color={colors.text.secondary} />
-              <Typography variant="body2" sx={{ color: colors.text.secondary }}>
-                {verification.branchName || "Chưa có chi nhánh"}
-              </Typography>
-            </Box>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-              <Package size={14} color={colors.text.secondary} />
-              <Typography variant="body2" sx={{ color: colors.text.secondary }}>
-                {verification.items.length} sản phẩm
-              </Typography>
-            </Box>
-          </Box>
-        </Box>
-
-        <IconButton
-          sx={{
-            color: colors.text.secondary,
-            transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
-            transition: "transform 0.2s",
-          }}
-        >
-          {expanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-        </IconButton>
-      </Box>
-
-      {/* Expanded View - More Details */}
-      <Collapse in={expanded}>
-        <Divider />
-        <Box sx={{ p: 3, bgcolor: colors.background.paper }}>
-          <Stack spacing={2.5}>
-            {/* Inspection Date & Staff */}
-            <Box
-              sx={{
-                display: "flex",
-                gap: 3,
-                flexWrap: "wrap",
-              }}
-            >
-              <Box sx={{ flex: 1, minWidth: 200 }}>
-                <Box
-                  sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}
-                >
+              <Stack direction="row" spacing={2} flexWrap="wrap">
+                <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                  <Phone size={16} color={colors.text.secondary} />
+                  <Typography
+                    variant="body2"
+                    sx={{ color: colors.text.secondary }}
+                  >
+                    {verification.phoneNumber}
+                  </Typography>
+                </Box>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                  <MapPin size={16} color={colors.text.secondary} />
+                  <Typography
+                    variant="body2"
+                    sx={{ color: colors.text.secondary }}
+                  >
+                    {verification.address}
+                  </Typography>
+                </Box>
+                {verification.branchName && (
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                    <Building2 size={16} color={colors.text.secondary} />
+                    <Typography
+                      variant="body2"
+                      sx={{ color: colors.text.secondary }}
+                    >
+                      {verification.branchName}
+                    </Typography>
+                  </Box>
+                )}
+                <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                   <Calendar size={16} color={colors.text.secondary} />
                   <Typography
-                    variant="caption"
-                    sx={{ color: colors.text.secondary, fontWeight: 600 }}
+                    variant="body2"
+                    sx={{ color: colors.text.secondary }}
                   >
-                    Ngày kiểm tra
+                    {formatDate(verification.createdAt)}
                   </Typography>
                 </Box>
-                <Typography variant="body2" sx={{ color: colors.text.primary }}>
-                  {formatDate(verification.inspectionDate)}
-                </Typography>
-              </Box>
-
-              <Box sx={{ flex: 1, minWidth: 200 }}>
-                <Box
-                  sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}
-                >
-                  <UserCheck size={16} color={colors.text.secondary} />
-                  <Typography
-                    variant="caption"
-                    sx={{ color: colors.text.secondary, fontWeight: 600 }}
-                  >
-                    Nhân viên phụ trách
-                  </Typography>
-                </Box>
-                <Typography variant="body2" sx={{ color: colors.text.primary }}>
-                  {verification.staffName || (
-                    <Chip
-                      label="Chưa phân công"
-                      size="small"
-                      sx={{
-                        bgcolor: colors.status.warningLight,
-                        color: colors.status.warning,
-                      }}
-                    />
-                  )}
-                </Typography>
-              </Box>
+              </Stack>
             </Box>
 
-            {/* Address */}
-            <Box>
-              <Box
-                sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}
-              >
-                <MapPin size={16} color={colors.text.secondary} />
-                <Typography
-                  variant="caption"
-                  sx={{ color: colors.text.secondary, fontWeight: 600 }}
-                >
-                  Địa chỉ
-                </Typography>
-              </Box>
-              <Typography variant="body2" sx={{ color: colors.text.primary }}>
-                {verification.address}
-              </Typography>
-            </Box>
+            <Button
+              variant="outlined"
+              startIcon={<Eye size={18} />}
+              onClick={() => onViewDetails(verification)}
+              sx={{
+                textTransform: "none",
+                fontWeight: 600,
+                borderColor: colors.border.main,
+                color: colors.text.primary,
+                "&:hover": {
+                  borderColor: colors.primary.main,
+                  bgcolor: colors.primary.lighter,
+                },
+              }}
+            >
+              Xem chi tiết
+            </Button>
+          </Box>
 
-            {/* Items List */}
-            <Box>
-              <Typography
-                variant="caption"
-                sx={{
-                  color: colors.text.secondary,
-                  fontWeight: 600,
-                  display: "block",
-                  mb: 1,
-                }}
-              >
-                Danh sách sản phẩm cần kiểm tra
-              </Typography>
-              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-                {verification.items.map((item, index) => (
-                  <Chip
-                    key={index}
-                    label={`${item.itemName} (${item.itemType})`}
-                    size="small"
-                    icon={<Package size={14} />}
-                    sx={{
-                      bgcolor: colors.neutral[50],
-                      color: colors.text.primary,
-                      fontWeight: 500,
-                    }}
-                  />
-                ))}
-              </Box>
-            </Box>
-
-            {/* Inspections Summary */}
-            {verification.inspections.length > 0 && (
+          {/* Inspections Section */}
+          {hasInspections && (
+            <>
+              <Divider />
               <Box>
-                <Typography
-                  variant="caption"
+                <Button
+                  fullWidth
+                  onClick={() => setShowInspections(!showInspections)}
+                  endIcon={
+                    showInspections ? (
+                      <ChevronUp size={20} />
+                    ) : (
+                      <ChevronDown size={20} />
+                    )
+                  }
                   sx={{
-                    color: colors.text.secondary,
-                    fontWeight: 600,
-                    display: "block",
-                    mb: 1,
-                  }}
-                >
-                  Kết quả kiểm tra
-                </Typography>
-                <Box sx={{ display: "flex", gap: 2 }}>
-                  <Chip
-                    label={`${
-                      verification.inspections.filter((i) => i.passed === true)
-                        .length
-                    } Đạt`}
-                    size="small"
-                    sx={{
-                      bgcolor: colors.status.successLight,
-                      color: colors.status.success,
-                      fontWeight: 600,
-                    }}
-                  />
-                  <Chip
-                    label={`${
-                      verification.inspections.filter((i) => i.passed === false)
-                        .length
-                    } Không đạt`}
-                    size="small"
-                    sx={{
-                      bgcolor: colors.status.errorLight,
-                      color: colors.status.error,
-                      fontWeight: 600,
-                    }}
-                  />
-                  <Chip
-                    label={`${
-                      verification.inspections.filter((i) => i.passed === null)
-                        .length
-                    } Chưa kiểm tra`}
-                    size="small"
-                    sx={{
-                      bgcolor: colors.neutral[100],
-                      color: colors.text.secondary,
-                      fontWeight: 600,
-                    }}
-                  />
-                </Box>
-              </Box>
-            )}
-
-            {/* Notes */}
-            {verification.notes && (
-              <Box>
-                <Typography
-                  variant="caption"
-                  sx={{
-                    color: colors.text.secondary,
-                    fontWeight: 600,
-                    display: "block",
-                    mb: 1,
-                  }}
-                >
-                  Ghi chú
-                </Typography>
-                <Typography
-                  variant="body2"
-                  sx={{
+                    justifyContent: "space-between",
+                    textTransform: "none",
                     color: colors.text.primary,
-                    bgcolor: colors.neutral[50],
-                    p: 2,
-                    borderRadius: 1,
+                    bgcolor: colors.background.default,
+                    p: 1.5,
+                    borderRadius: 2,
+                    "&:hover": {
+                      bgcolor: colors.neutral[100],
+                    },
                   }}
                 >
-                  {verification.notes}
-                </Typography>
-              </Box>
-            )}
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <ClipboardList size={20} color={colors.text.secondary} />
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      Danh sách Inspections ({verification.inspections?.length})
+                    </Typography>
+                    {pendingInspections.length > 0 && (
+                      <Chip
+                        label={`${pendingInspections.length} chưa duyệt`}
+                        size="small"
+                        sx={{
+                          height: 20,
+                          bgcolor: colors.status.warningLight,
+                          color: colors.status.warning,
+                          fontWeight: 600,
+                        }}
+                      />
+                    )}
+                    {approvedInspections.length > 0 && (
+                      <Chip
+                        label={`${approvedInspections.length} đã duyệt`}
+                        size="small"
+                        sx={{
+                          height: 20,
+                          bgcolor: colors.status.successLight,
+                          color: colors.status.success,
+                          fontWeight: 600,
+                        }}
+                      />
+                    )}
+                  </Box>
+                </Button>
 
-            {/* Action Button */}
-            <Box sx={{ display: "flex", justifyContent: "flex-end", pt: 1 }}>
-              <Button
-                variant="contained"
-                startIcon={<Eye size={18} />}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onViewDetails(verification);
-                }}
-                sx={{
-                  bgcolor: colors.primary.main,
-                  color: "white",
-                  textTransform: "none",
-                  fontWeight: 600,
-                  "&:hover": {
-                    bgcolor: colors.primary.dark,
-                  },
-                }}
-              >
-                Xem chi tiết đầy đủ
-              </Button>
-            </Box>
-          </Stack>
-        </Box>
-      </Collapse>
-    </Paper>
+                <Collapse in={showInspections}>
+                  <Stack spacing={2} sx={{ mt: 2 }}>
+                    {verification.inspections?.map((inspection) => (
+                      <InspectionListItem
+                        key={inspection.id}
+                        inspection={inspection}
+                        verificationId={verification.id}
+                        onApprove={onRefresh}
+                      />
+                    ))}
+                  </Stack>
+                </Collapse>
+              </Box>
+            </>
+          )}
+        </Stack>
+      </CardContent>
+    </Card>
   );
 };
 
