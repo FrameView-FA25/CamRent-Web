@@ -82,7 +82,11 @@ const BookingManagement: React.FC = () => {
   const [assignLoading, setAssignLoading] = useState(false);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-
+  const [contractLoading, setContractLoading] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
+  const [currentContractId, setCurrentContractId] = useState<string>("");
+  const [currentFilename, setCurrentFilename] = useState<string>("");
   useEffect(() => {
     loadBookings();
     loadStaff();
@@ -180,9 +184,105 @@ const BookingManagement: React.FC = () => {
     }
   };
 
-  const handleContractConfirm = () => {
-    navigate(`/manager/contracts/create?bookingId=${selectedBooking?.id}`);
-    setContractDialogOpen(false);
+  const handleContractConfirm = async () => {
+    if (!selectedBooking) return;
+    const token = localStorage.getItem("accessToken");
+    try {
+      setContractLoading(true);
+
+      // Step 1: POST to create contract
+      const createResponse = await fetch(
+        `https://camrent-backend.up.railway.app/api/Contracts/booking/${selectedBooking.id}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!createResponse.ok) {
+        throw new Error("Tạo hợp đồng thất bại");
+      }
+
+      const contractData = await createResponse.json();
+      const contractId = contractData.contractId;
+
+      // Step 2: GET preview with contractId
+      const previewResponse = await fetch(
+        `https://camrent-backend.up.railway.app/api/Contracts/${contractId}/preview`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!previewResponse.ok) {
+        throw new Error("Không thể lấy preview hợp đồng");
+      }
+
+      // Get filename from content-disposition header
+      const contentDisposition = previewResponse.headers.get(
+        "content-disposition"
+      );
+      let filename = `contract_${contractId}.pdf`;
+
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(
+          /filename[^;=\n]*=(?:(["\'])([^"'\n]*)\1|([^;\n]*));?/
+        );
+        if (filenameMatch && filenameMatch[2]) {
+          filename = filenameMatch[2];
+        }
+      }
+
+      // Get blob from response
+      const blob = await previewResponse.blob();
+      const pdfBlob = new Blob([blob], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(pdfBlob);
+
+      // Save for download later
+      setPdfUrl(url);
+      setCurrentContractId(contractId);
+      setCurrentFilename(filename);
+
+      // Show preview dialog
+      setPdfDialogOpen(true);
+      setContractDialogOpen(false);
+      setContractLoading(false);
+    } catch (error) {
+      console.error("Contract error:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Lỗi khi tạo hợp đồng"
+      );
+      setContractLoading(false);
+    }
+  };
+
+  const handleDownloadPdf = () => {
+    if (!pdfUrl) return;
+
+    const link = document.createElement("a");
+    link.href = pdfUrl;
+    link.download = currentFilename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast.success("File đã tải xuống thành công");
+    setPdfDialogOpen(false);
+    setPdfUrl(null);
+  };
+
+  const handleClosePdfDialog = () => {
+    if (pdfUrl) {
+      window.URL.revokeObjectURL(pdfUrl);
+    }
+    setPdfDialogOpen(false);
+    setPdfUrl(null);
   };
   const getStatusNumber = (statusText: string): number => {
     const statusMap: Record<string, number> = {
@@ -1260,7 +1360,72 @@ const BookingManagement: React.FC = () => {
             <Button
               onClick={handleContractConfirm}
               variant="contained"
-              startIcon={<Description />}
+              disabled={contractLoading}
+              sx={{
+                bgcolor: "#F97316",
+                "&:hover": {
+                  bgcolor: "#EA580C",
+                },
+                "&:disabled": {
+                  bgcolor: "#E5E7EB",
+                },
+              }}
+            >
+              {contractLoading ? (
+                <CircularProgress size={24} sx={{ color: "white" }} />
+              ) : (
+                <>
+                  <Description sx={{ mr: 1 }} /> Tạo hợp đồng
+                </>
+              )}
+            </Button>
+          </DialogActions>
+        </Dialog>
+        <Dialog
+          open={pdfDialogOpen}
+          onClose={handleClosePdfDialog}
+          maxWidth="md"
+          fullWidth
+          PaperProps={{
+            sx: {
+              borderRadius: 3,
+              height: "90vh",
+            },
+          }}
+        >
+          <DialogTitle sx={{ fontWeight: 600, color: "#1F2937" }}>
+            Xem trước hợp đồng
+          </DialogTitle>
+          <DialogContent sx={{ overflow: "auto", p: 0 }}>
+            {pdfUrl && (
+              <iframe
+                src={pdfUrl}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  border: "none",
+                  minHeight: "600px",
+                }}
+                title="PDF Preview"
+              />
+            )}
+          </DialogContent>
+          <DialogActions sx={{ p: 3, borderTop: "1px solid #E5E7EB" }}>
+            <Button
+              onClick={handleClosePdfDialog}
+              sx={{
+                color: "#6B7280",
+                "&:hover": {
+                  bgcolor: "#F3F4F6",
+                },
+              }}
+            >
+              Đóng
+            </Button>
+            <Button
+              onClick={handleDownloadPdf}
+              variant="contained"
+              startIcon={<FileDownload />}
               sx={{
                 bgcolor: "#F97316",
                 "&:hover": {
@@ -1268,7 +1433,7 @@ const BookingManagement: React.FC = () => {
                 },
               }}
             >
-              Tạo hợp đồng
+              Tải về
             </Button>
           </DialogActions>
         </Dialog>
