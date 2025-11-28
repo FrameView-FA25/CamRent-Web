@@ -204,8 +204,8 @@ const CheckBookings: React.FC = () => {
       });
       // Gọi API tạo inspection
       const res = await createInspection(formData);
-      if (res?.success === false)
-        throw new Error(res.message || "Tạo kiểm tra thất bại");
+      if (typeof res === "string")
+        throw new Error(res || "Tạo kiểm tra thất bại");
 
       toast.success("Tạo kiểm tra thiết bị thành công!", {
         position: "top-right",
@@ -242,7 +242,8 @@ const CheckBookings: React.FC = () => {
     const matchedItem = booking?.items.find((item) => {
       if (
         (inspection as BookingInspection & { itemId?: string }).itemId &&
-        item.itemId === (inspection as BookingInspection & { itemId?: string }).itemId
+        item.itemId ===
+          (inspection as BookingInspection & { itemId?: string }).itemId
       ) {
         return true;
       }
@@ -275,7 +276,8 @@ const CheckBookings: React.FC = () => {
       inspectionTypeId:
         (inspection as BookingInspection & { inspectionTypeId?: string })
           .inspectionTypeId || booking?.id,
-      type: (inspection as BookingInspection & { type?: string }).type || "Booking",
+      type:
+        (inspection as BookingInspection & { type?: string }).type || "Booking",
       media: inspection.media?.map((media) => ({
         id: media.id,
         url: media.url,
@@ -299,7 +301,9 @@ const CheckBookings: React.FC = () => {
           mapBookingInspectionToListItem(inspection, booking)
         ) || [];
       setInspectionList(mapped);
-      setCurrentInspectionItems(convertBookingItemsToVerificationItems(booking.items));
+      setCurrentInspectionItems(
+        convertBookingItemsToVerificationItems(booking.items)
+      );
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Không thể tải phiếu kiểm tra";
@@ -356,7 +360,9 @@ const CheckBookings: React.FC = () => {
         resolveInspectionItemMetadata(editingInspection);
 
       if (!itemId || itemTypeValue === undefined) {
-        throw new Error("Không xác định được thông tin thiết bị cho phiếu kiểm tra.");
+        throw new Error(
+          "Không xác định được thông tin thiết bị cho phiếu kiểm tra."
+        );
       }
 
       formData.append("ItemId", itemId);

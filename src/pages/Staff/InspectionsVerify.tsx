@@ -247,14 +247,17 @@ const Inspections: React.FC = () => {
   };
 
   const mapVerificationInspectionToListItem = (
-    inspection: VerificationInspection,
+    inspection:
+      | VerificationInspection
+      | (VerificationInspection & { notes?: string | undefined }),
     verification?: Verification
   ): InspectionListItem => {
     const normalizedName = inspection.itemName?.toLowerCase();
     const matchedItem = verification?.items?.find((item) => {
       if (
         (inspection as VerificationInspection & { itemId?: string }).itemId &&
-        item.itemId === (inspection as VerificationInspection & { itemId?: string }).itemId
+        item.itemId ===
+          (inspection as VerificationInspection & { itemId?: string }).itemId
       ) {
         return true;
       }
@@ -268,10 +271,12 @@ const Inspections: React.FC = () => {
 
     const resolvedItemType =
       getItemTypeNumber(
-        (inspection as VerificationInspection & { itemTypeValue?: number | string })
-          .itemTypeValue ?? inspection.itemType
-      ) ??
-      (matchedItem ? getItemTypeNumber(matchedItem.itemType) : undefined);
+        (
+          inspection as VerificationInspection & {
+            itemTypeValue?: number | string;
+          }
+        ).itemTypeValue ?? inspection.itemType
+      ) ?? (matchedItem ? getItemTypeNumber(matchedItem.itemType) : undefined);
 
     return {
       id: inspection.id,
@@ -280,14 +285,16 @@ const Inspections: React.FC = () => {
       section: inspection.section,
       label: inspection.label,
       value: inspection.value ?? undefined,
-      notes: inspection.notes ?? undefined,
+      notes: inspection.notes ?? undefined, // Normalize null/undefined to undefined
       passed: inspection.passed ?? null,
       itemId: resolvedItemId || undefined,
       itemTypeValue: resolvedItemType,
       inspectionTypeId:
         (inspection as VerificationInspection & { inspectionTypeId?: string })
           .inspectionTypeId || verification?.id,
-      type: (inspection as VerificationInspection & { type?: string }).type || "Verification",
+      type:
+        (inspection as VerificationInspection & { type?: string }).type ||
+        "Verification",
       media: inspection.media?.map((media) => ({
         id: media.id,
         url: media.url,
@@ -306,9 +313,16 @@ const Inspections: React.FC = () => {
         verificationId
       );
       const mapped =
-        verificationDetail.inspections?.map((inspection) =>
-          mapVerificationInspectionToListItem(inspection, verificationDetail)
-        ) || [];
+        verificationDetail.inspections?.map((inspection) => {
+          const normalizedInspection = {
+            ...inspection,
+            notes: inspection.notes ?? null, // Convert undefined to null
+          } as VerificationInspection;
+          return mapVerificationInspectionToListItem(
+            normalizedInspection,
+            verificationDetail
+          );
+        }) || [];
       setInspectionList(mapped);
       setCurrentVerificationItems(verificationDetail.items || []);
     } catch (err) {
@@ -369,7 +383,9 @@ const Inspections: React.FC = () => {
         resolveInspectionItemMetadata(editingInspection);
 
       if (!itemId || itemTypeValue === undefined) {
-        throw new Error("Không xác định được thông tin thiết bị cho phiếu kiểm tra.");
+        throw new Error(
+          "Không xác định được thông tin thiết bị cho phiếu kiểm tra."
+        );
       }
 
       formData.append("ItemId", itemId);

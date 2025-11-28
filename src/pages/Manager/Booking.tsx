@@ -85,7 +85,7 @@ const BookingManagement: React.FC = () => {
   const [contractLoading, setContractLoading] = useState(false);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
-  const [currentContractId, setCurrentContractId] = useState<string>("");
+  const [, setCurrentContractId] = useState<string>("");
   const [currentFilename, setCurrentFilename] = useState<string>("");
   useEffect(() => {
     loadBookings();
