@@ -333,20 +333,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ camera }) => {
               <Typography variant="caption" sx={{ color: grey[600] }}>
                 Đặt cọc ({camera.depositPercent}%):
               </Typography>
-              <Typography
-                variant="caption"
-                sx={{ fontWeight: 600, color: grey[700] }}
-              >
-                {formatCurrency(
-                  Math.min(
-                    Math.max(
-                      (camera.estimatedValueVnd * camera.depositPercent) / 100,
-                      camera.depositCapMinVnd
-                    ),
-                    camera.depositCapMaxVnd
-                  )
-                )}
-              </Typography>
             </Box>
           </Box>
         </Box>
