@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Box,
   Typography,
@@ -28,6 +29,7 @@ import {
   Delete as DeleteIcon,
   Close as CloseIcon,
   Edit as EditIcon,
+  QrCodeScanner as QrCodeScannerIcon,
   HourglassEmptyRounded,
   CheckCircleRounded,
   CancelRounded,
@@ -36,11 +38,11 @@ import {
 } from "@mui/icons-material";
 import ModalAddAccessory from "../../../components/Modal/Owner/ModalAddAccessory";
 import ModalEditAccessory from "../../../components/Modal/Owner/ModalEditAccessory";
-import { accessoryService } from "../../../services/accessory.service";
 import { useAccessoryContext } from "../../../context/AccessoryContext/useAccessoryContext";
 import type { Accessory } from "../../../types/accessory.types";
 
 export default function AccessoryManagement() {
+  const navigate = useNavigate();
   const {
     accessories,
     loading,
@@ -48,6 +50,7 @@ export default function AccessoryManagement() {
     fetchAccessories,
     updateAccessoryInList,
     refreshAccessories,
+    deleteAccessory: deleteAccessoryFromContext,
   } = useAccessoryContext();
 
   // State quản lý modal thêm phụ kiện
@@ -82,7 +85,7 @@ export default function AccessoryManagement() {
    * Hàm xử lý khi thêm phụ kiện mới thành công
    */
   const handleAddAccessory = () => {
-    fetchAccessories();
+    refreshAccessories();
     setCurrentPage(1);
   };
 
@@ -128,7 +131,11 @@ export default function AccessoryManagement() {
    * Hàm xử lý xóa phụ kiện
    */
   const handleDeleteAccessory = async (accessoryId: string) => {
-    await accessoryService.deleteAccessory(accessoryId);
+    try {
+      await deleteAccessoryFromContext(accessoryId);
+    } catch {
+      // Thông báo lỗi đã được xử lý trong context
+    }
   };
 
   /**
@@ -980,8 +987,26 @@ export default function AccessoryManagement() {
                       direction="row"
                       spacing={1}
                       justifyContent="center"
-                      sx={{ minWidth: 150 }}
+                      sx={{ minWidth: 200 }}
                     >
+                      <Tooltip title="Xóa phụ kiện" arrow>
+                        <IconButton
+                          size="medium"
+                          onClick={() => handleDeleteAccessory(accessory.id)}
+                          sx={{
+                            ...actionButtonBaseSx,
+                            border: "1px solid rgba(239, 68, 68, 0.2)",
+                            color: "#B91C1C",
+                            bgcolor: "rgba(254, 226, 226, 0.7)",
+                            "&:hover": {
+                              bgcolor: "#FEE2E2",
+                              borderColor: "rgba(239, 68, 68, 0.4)",
+                            },
+                          }}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
                       <Tooltip title="Chỉnh sửa phụ kiện" arrow>
                         <IconButton
                           size="medium"
@@ -1000,22 +1025,26 @@ export default function AccessoryManagement() {
                           <EditIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
-                      <Tooltip title="Xóa phụ kiện" arrow>
+                      <Tooltip title="Quét QR kiểm tra" arrow>
                         <IconButton
                           size="medium"
-                          onClick={() => handleDeleteAccessory(accessory.id)}
+                          onClick={() =>
+                            navigate(
+                              `/owner/qr-inspection?cameraId=${accessory.id}`
+                            )
+                          }
                           sx={{
                             ...actionButtonBaseSx,
-                            border: "1px solid rgba(239, 68, 68, 0.2)",
-                            color: "#B91C1C",
-                            bgcolor: "rgba(254, 226, 226, 0.7)",
+                            border: "1px solid rgba(255, 107, 53, 0.3)",
+                            color: "#C8501D",
+                            bgcolor: "rgba(255, 245, 240, 0.9)",
                             "&:hover": {
-                              bgcolor: "#FEE2E2",
-                              borderColor: "rgba(239, 68, 68, 0.4)",
+                              bgcolor: "#FFE7DD",
+                              borderColor: "rgba(255, 107, 53, 0.45)",
                             },
                           }}
                         >
-                          <DeleteIcon fontSize="small" />
+                          <QrCodeScannerIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
                     </Stack>

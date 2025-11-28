@@ -336,6 +336,7 @@ export const cameraService = {
     variant: string;
     serialNumber: string;
     baseDailyRate?: number;
+    depositPercent: number;
     estimatedValueVnd: number;
     specsJson: string;
     mediaFiles?: File[];
@@ -354,6 +355,7 @@ export const cameraService = {
       formData.append("Model", cameraData.model);
       formData.append("Variant", cameraData.variant);
       formData.append("SerialNumber", cameraData.serialNumber);
+      formData.append("DepositPercent", cameraData.depositPercent.toString());
       // Nếu frontend không cung cấp BaseDailyRate thì không append (backend có thể dùng default)
       if (
         typeof cameraData.baseDailyRate === "number" &&
@@ -421,7 +423,7 @@ export const cameraService = {
    */
   async updateCamera(
     cameraId: string,
-    cameraData: Partial<Camera> & { 
+    cameraData: Partial<Camera> & {
       mediaFiles?: File[];
       removeMediaIds?: string[];
     }
@@ -457,8 +459,6 @@ export const cameraService = {
       appendIfDefined("BaseDailyRate", cameraData.baseDailyRate);
       appendIfDefined("EstimatedValueVnd", cameraData.estimatedValueVnd);
       appendIfDefined("DepositPercent", cameraData.depositPercent);
-      appendIfDefined("DepositCapMinVnd", cameraData.depositCapMinVnd);
-      appendIfDefined("DepositCapMaxVnd", cameraData.depositCapMaxVnd);
       appendIfDefined("SpecsJson", cameraData.specsJson);
 
       // Thêm media files mới nếu có
@@ -495,6 +495,7 @@ export const cameraService = {
         },
         body: formData,
       });
+      console.log(formData);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -621,9 +622,7 @@ export const cameraService = {
   /**
    * Lấy thông tin QR history cho camera
    */
-  async getCameraQrHistory(
-    cameraId: string
-  ): Promise<CameraQrHistoryResponse> {
+  async getCameraQrHistory(cameraId: string): Promise<CameraQrHistoryResponse> {
     try {
       const token = localStorage.getItem("accessToken");
 

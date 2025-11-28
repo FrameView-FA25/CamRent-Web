@@ -35,6 +35,7 @@ export interface AccessoryFormData {
   variant: string; // Phiên bản
   serialNumber: string; // Số serial
   baseDailyRate: number; // Giá thuê cơ bản/ngày
+  depositPercent: number; // Phần trăm đặt cọc
   estimatedValueVnd: number; // Giá trị ước tính
   specsJson: string; // Thông số kỹ thuật
   mediaFiles?: File[]; // Danh sách file ảnh upload
@@ -52,6 +53,7 @@ export default function ModalAddAccessory({
     variant: "",
     serialNumber: "",
     estimatedValueVnd: 0,
+    depositPercent: 0,
     baseDailyRate: 0,
     specsJson: "",
     mediaFiles: [],
@@ -279,6 +281,7 @@ export default function ModalAddAccessory({
       serialNumber: "",
       baseDailyRate: 0,
       estimatedValueVnd: 0,
+      depositPercent: 0,
       specsJson: "",
       mediaFiles: [],
     });
@@ -518,10 +521,12 @@ export default function ModalAddAccessory({
               error={!!errors.estimatedValueVnd}
               helperText={errors.estimatedValueVnd}
               required
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">₫</InputAdornment>
-                ),
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">₫</InputAdornment>
+                  ),
+                },
               }}
               placeholder="5000000"
               sx={{
@@ -574,7 +579,38 @@ export default function ModalAddAccessory({
               }}
             />
           </Box>
-
+          <TextField
+            fullWidth
+            label="Phần trăm đặt cọc"
+            name="depositPercent"
+            type="number"
+            value={formData.depositPercent || ""}
+            onChange={(e) =>
+              handleNumberChange("depositPercent", e.target.value)
+            }
+            error={!!errors.depositPercent}
+            helperText={errors.depositPercent}
+            slotProps={{
+              input: {
+                endAdornment: <InputAdornment position="end">%</InputAdornment>,
+              },
+            }}
+            placeholder={`${formData.depositPercent || 0}%`}
+            sx={{
+              "& .MuiOutlinedInput-root": {
+                borderRadius: 2,
+                "&:hover fieldset": {
+                  borderColor: "#FF6B35",
+                },
+                "&.Mui-focused fieldset": {
+                  borderColor: "#FF6B35",
+                },
+              },
+              "& .MuiInputLabel-root.Mui-focused": {
+                color: "#FF6B35",
+              },
+            }}
+          />
           {/* Thông số kỹ thuật */}
           <TextField
             fullWidth

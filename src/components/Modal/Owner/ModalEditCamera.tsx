@@ -105,15 +105,13 @@ export default function ModalEditCamera({
     if (mediaItem?.id) return mediaItem.id;
     // Nếu không, thử extract từ URL (format: .../media/xxx-id.jpg hoặc .../xxx-id)
     if (typeof mediaItem === "string") {
-      const match = mediaItem.match(
-        /\/([^\/]+?)(?:\.(jpg|jpeg|png|gif|webp))?$/
-      );
+      const match = mediaItem.match(/([^/]+?)(?:\.(jpg|jpeg|png|gif|webp))?$/);
       if (match) return match[1];
       return mediaItem; // Fallback: dùng toàn bộ URL
     }
     if (mediaItem?.url) {
       const match = mediaItem.url.match(
-        /\/([^\/]+?)(?:\.(jpg|jpeg|png|gif|webp))?$/
+        /([^/]+?)(?:\.(?:jpg|jpeg|png|gif|webp))?$/
       );
       if (match) return match[1];
       return mediaItem.url; // Fallback: dùng toàn bộ URL
@@ -170,6 +168,7 @@ export default function ModalEditCamera({
           try {
             URL.revokeObjectURL(url);
           } catch (e) {
+            console.error("Error revoking object URL:", e);
             // Ignore errors when revoking
           }
         });
@@ -369,10 +368,12 @@ export default function ModalEditCamera({
       onClose={handleClose}
       maxWidth="md"
       fullWidth
-      PaperProps={{
-        sx: {
-          borderRadius: 3,
-          boxShadow: "0 8px 32px rgba(0, 0, 0, 0.12)",
+      slotProps={{
+        paper: {
+          sx: {
+            borderRadius: 3,
+            boxShadow: "0 8px 32px rgba(0, 0, 0, 0.12)",
+          },
         },
       }}
     >
@@ -602,89 +603,29 @@ export default function ModalEditCamera({
               />
             </Box>
 
-            <Box
-              sx={{
-                display: "flex",
-                gap: 2,
-                flexDirection: { xs: "column", sm: "row" },
+            <TextField
+              fullWidth
+              label="Phần trăm đặt cọc"
+              name="depositPercent"
+              type="number"
+              value={formData.depositPercent}
+              onChange={(e) =>
+                handleNumberChange("depositPercent", e.target.value)
+              }
+              error={!!fieldErrors.depositPercent}
+              helperText={fieldErrors.depositPercent}
+              InputProps={{
+                endAdornment: <InputAdornment position="end">%</InputAdornment>,
               }}
-            >
-              <TextField
-                fullWidth
-                label="Phần trăm đặt cọc"
-                name="depositPercent"
-                type="number"
-                value={formData.depositPercent}
-                onChange={(e) =>
-                  handleNumberChange("depositPercent", e.target.value)
-                }
-                error={!!fieldErrors.depositPercent}
-                helperText={fieldErrors.depositPercent}
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">%</InputAdornment>
-                  ),
-                }}
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    borderRadius: 2,
-                    "&:hover fieldset": { borderColor: "#FF6B35" },
-                    "&.Mui-focused fieldset": { borderColor: "#FF6B35" },
-                  },
-                  "& .MuiInputLabel-root.Mui-focused": { color: "#FF6B35" },
-                }}
-              />
-              <TextField
-                fullWidth
-                label="Đặt cọc tối thiểu"
-                name="depositCapMinVnd"
-                type="number"
-                value={formData.depositCapMinVnd}
-                onChange={(e) =>
-                  handleNumberChange("depositCapMinVnd", e.target.value)
-                }
-                error={!!fieldErrors.depositCapMinVnd}
-                helperText={fieldErrors.depositCapMinVnd}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">₫</InputAdornment>
-                  ),
-                }}
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    borderRadius: 2,
-                    "&:hover fieldset": { borderColor: "#FF6B35" },
-                    "&.Mui-focused fieldset": { borderColor: "#FF6B35" },
-                  },
-                  "& .MuiInputLabel-root.Mui-focused": { color: "#FF6B35" },
-                }}
-              />
-              <TextField
-                fullWidth
-                label="Đặt cọc tối đa"
-                name="depositCapMaxVnd"
-                type="number"
-                value={formData.depositCapMaxVnd}
-                onChange={(e) =>
-                  handleNumberChange("depositCapMaxVnd", e.target.value)
-                }
-                error={!!fieldErrors.depositCapMaxVnd}
-                helperText={fieldErrors.depositCapMaxVnd}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">₫</InputAdornment>
-                  ),
-                }}
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    borderRadius: 2,
-                    "&:hover fieldset": { borderColor: "#FF6B35" },
-                    "&.Mui-focused fieldset": { borderColor: "#FF6B35" },
-                  },
-                  "& .MuiInputLabel-root.Mui-focused": { color: "#FF6B35" },
-                }}
-              />
-            </Box>
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: 2,
+                  "&:hover fieldset": { borderColor: "#FF6B35" },
+                  "&.Mui-focused fieldset": { borderColor: "#FF6B35" },
+                },
+                "& .MuiInputLabel-root.Mui-focused": { color: "#FF6B35" },
+              }}
+            />
 
             <TextField
               fullWidth

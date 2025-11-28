@@ -68,8 +68,17 @@ export const AccessoryProvider: React.FC<{ children: ReactNode }> = ({
   const deleteAccessory = useCallback(async (id: string) => {
     if (!window.confirm("Bạn có chắc chắn muốn xóa phụ kiện này?")) return;
 
-    await accessoryService.deleteAccessory(id);
-    setAccessories((prev) => prev.filter((item) => item.id !== id));
+    try {
+      await accessoryService.deleteAccessory(id);
+      setAccessories((prev) => prev.filter((item) => item.id !== id));
+      alert("Xóa phụ kiện thành công!");
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Có lỗi xảy ra khi xóa phụ kiện";
+      alert(`Lỗi: ${message}`);
+      console.error("Lỗi xóa phụ kiện:", err);
+      throw err;
+    }
   }, []);
 
   const updateAccessoryInList = useCallback(

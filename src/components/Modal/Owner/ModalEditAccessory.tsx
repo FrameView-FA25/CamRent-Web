@@ -106,15 +106,13 @@ export default function ModalEditAccessory({
     if (mediaItem?.id) return mediaItem.id;
     // Nếu không, thử extract từ URL (format: .../media/xxx-id.jpg hoặc .../xxx-id)
     if (typeof mediaItem === "string") {
-      const match = mediaItem.match(
-        /\/([^\/]+?)(?:\.(jpg|jpeg|png|gif|webp))?$/
-      );
+      const match = mediaItem.match(/([^/]+?)(?:\.(jpg|jpeg|png|gif|webp))?$/);
       if (match) return match[1];
       return mediaItem; // Fallback: dùng toàn bộ URL
     }
     if (mediaItem?.url) {
       const match = mediaItem.url.match(
-        /\/([^\/]+?)(?:\.(jpg|jpeg|png|gif|webp))?$/
+        /([^/]+?)(?:\.(jpg|jpeg|png|gif|webp))?$/
       );
       if (match) return match[1];
       return mediaItem.url; // Fallback: dùng toàn bộ URL
@@ -173,7 +171,7 @@ export default function ModalEditAccessory({
           try {
             URL.revokeObjectURL(url);
           } catch (e) {
-            // Ignore errors when revoking
+            console.error("Lỗi khi giải phóng object URL:", e);
           }
         });
         return [];
@@ -192,7 +190,7 @@ export default function ModalEditAccessory({
         try {
           URL.revokeObjectURL(url);
         } catch (e) {
-          // Ignore errors when revoking
+          console.error("Lỗi khi giải phóng object URL:", e);
         }
       });
     };
@@ -241,16 +239,7 @@ export default function ModalEditAccessory({
     if (formData.depositPercent < 0 || formData.depositPercent > 100) {
       newErrors.depositPercent = "Phần trăm đặt cọc phải từ 0 đến 100";
     }
-    if (formData.depositCapMinVnd < 0) {
-      newErrors.depositCapMinVnd = "Mức đặt cọc tối thiểu không hợp lệ";
-    }
-    if (
-      formData.depositCapMaxVnd < 0 ||
-      formData.depositCapMaxVnd < formData.depositCapMinVnd
-    ) {
-      newErrors.depositCapMaxVnd =
-        "Mức đặt cọc tối đa phải >= tối thiểu và không âm";
-    }
+
     setFieldErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -592,10 +581,12 @@ export default function ModalEditAccessory({
                 error={!!fieldErrors.estimatedValueVnd}
                 helperText={fieldErrors.estimatedValueVnd}
                 required
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">₫</InputAdornment>
-                  ),
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">₫</InputAdornment>
+                    ),
+                  },
                 }}
                 sx={{
                   "& .MuiOutlinedInput-root": {
@@ -608,89 +599,33 @@ export default function ModalEditAccessory({
               />
             </Box>
 
-            <Box
-              sx={{
-                display: "flex",
-                gap: 2,
-                flexDirection: { xs: "column", sm: "row" },
-              }}
-            >
-              <TextField
-                fullWidth
-                label="Phần trăm đặt cọc"
-                name="depositPercent"
-                type="number"
-                value={formData.depositPercent}
-                onChange={(e) =>
-                  handleNumberChange("depositPercent", e.target.value)
-                }
-                error={!!fieldErrors.depositPercent}
-                helperText={fieldErrors.depositPercent}
-                InputProps={{
+            <TextField
+              fullWidth
+              label="Phần trăm đặt cọc"
+              name="depositPercent"
+              type="number"
+              value={formData.depositPercent}
+              onChange={(e) =>
+                handleNumberChange("depositPercent", e.target.value)
+              }
+              error={!!fieldErrors.depositPercent}
+              helperText={fieldErrors.depositPercent}
+              slotProps={{
+                input: {
                   endAdornment: (
                     <InputAdornment position="end">%</InputAdornment>
                   ),
-                }}
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    borderRadius: 2,
-                    "&:hover fieldset": { borderColor: "#FF6B35" },
-                    "&.Mui-focused fieldset": { borderColor: "#FF6B35" },
-                  },
-                  "& .MuiInputLabel-root.Mui-focused": { color: "#FF6B35" },
-                }}
-              />
-              <TextField
-                fullWidth
-                label="Đặt cọc tối thiểu"
-                name="depositCapMinVnd"
-                type="number"
-                value={formData.depositCapMinVnd}
-                onChange={(e) =>
-                  handleNumberChange("depositCapMinVnd", e.target.value)
-                }
-                error={!!fieldErrors.depositCapMinVnd}
-                helperText={fieldErrors.depositCapMinVnd}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">₫</InputAdornment>
-                  ),
-                }}
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    borderRadius: 2,
-                    "&:hover fieldset": { borderColor: "#FF6B35" },
-                    "&.Mui-focused fieldset": { borderColor: "#FF6B35" },
-                  },
-                  "& .MuiInputLabel-root.Mui-focused": { color: "#FF6B35" },
-                }}
-              />
-              <TextField
-                fullWidth
-                label="Đặt cọc tối đa"
-                name="depositCapMaxVnd"
-                type="number"
-                value={formData.depositCapMaxVnd}
-                onChange={(e) =>
-                  handleNumberChange("depositCapMaxVnd", e.target.value)
-                }
-                error={!!fieldErrors.depositCapMaxVnd}
-                helperText={fieldErrors.depositCapMaxVnd}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">₫</InputAdornment>
-                  ),
-                }}
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    borderRadius: 2,
-                    "&:hover fieldset": { borderColor: "#FF6B35" },
-                    "&.Mui-focused fieldset": { borderColor: "#FF6B35" },
-                  },
-                  "& .MuiInputLabel-root.Mui-focused": { color: "#FF6B35" },
-                }}
-              />
-            </Box>
+                },
+              }}
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: 2,
+                  "&:hover fieldset": { borderColor: "#FF6B35" },
+                  "&.Mui-focused fieldset": { borderColor: "#FF6B35" },
+                },
+                "& .MuiInputLabel-root.Mui-focused": { color: "#FF6B35" },
+              }}
+            />
 
             <TextField
               fullWidth
