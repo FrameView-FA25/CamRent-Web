@@ -88,12 +88,6 @@ const PaymentFailed: React.FC = () => {
       navigate(`/checkout?orderId=${paymentInfo.orderId}`);
     }
   };
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-    }).format(amount);
-  };
 
   const formatDateTime = (dateString: string) => {
     return new Date(dateString).toLocaleString("vi-VN", {
@@ -280,20 +274,6 @@ const PaymentFailed: React.FC = () => {
                 </Typography>
                 <Typography variant="h5" sx={{ fontWeight: 700 }}>
                   {paymentInfo.orderId}
-                </Typography>
-              </Box>
-              <Box sx={{ textAlign: "right" }}>
-                <Typography
-                  variant="body2"
-                  sx={{ color: colors.text.secondary, mb: 0.5 }}
-                >
-                  Số tiền
-                </Typography>
-                <Typography
-                  variant="h5"
-                  sx={{ fontWeight: 700, color: colors.status.error }}
-                >
-                  {formatCurrency(paymentInfo.amount)}
                 </Typography>
               </Box>
             </Stack>

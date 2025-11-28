@@ -90,7 +90,7 @@ export default function VerificationManagement() {
   const [contractLoading, setContractLoading] = useState(false);
   const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-  const [currentContractId, setCurrentContractId] = useState("");
+  const [, setCurrentContractId] = useState("");
   const [currentFilename, setCurrentFilename] = useState("");
 
   /**
@@ -284,8 +284,9 @@ export default function VerificationManagement() {
         throw new Error("Không thể lấy file xem trước hợp đồng");
       }
 
-      const contentDisposition =
-        previewResponse.headers.get("content-disposition");
+      const contentDisposition = previewResponse.headers.get(
+        "content-disposition"
+      );
       let filename = `verification_contract_${contractId}.pdf`;
 
       if (contentDisposition) {
