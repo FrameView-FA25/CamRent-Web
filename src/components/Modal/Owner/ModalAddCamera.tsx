@@ -34,6 +34,10 @@ export interface CameraFormData {
   variant: string; // Phiên bản
   serialNumber: string; // Số serial
   estimatedValueVnd: number; // Giá trị ước tính
+  depositPercent: number; // Phần trăm đặt cọc
+  depositCapMinVnd: number; // Mức đặt cọc tối thiểu
+  depositCapMaxVnd: number; // Mức đặt cọc tối đa
+  baseDailyRate: number; // Giá thuê / ngày
   specsJson: string; // Thông số kỹ thuật
   mediaFiles?: File[]; // Danh sách file ảnh upload (nhiều ảnh)
 }
@@ -52,6 +56,10 @@ export default function ModalAddCamera({
     serialNumber: "",
     estimatedValueVnd: 0,
     specsJson: "",
+    depositPercent: 0,
+    depositCapMinVnd: 0,
+    depositCapMaxVnd: 0,
+    baseDailyRate: 0,
     mediaFiles: [],
   });
 
@@ -178,6 +186,20 @@ export default function ModalAddCamera({
       newErrors.estimatedValueVnd = "Giá trị ước tính phải lớn hơn 0";
     }
 
+    if (formData.depositPercent < 0 || formData.depositPercent > 100) {
+      newErrors.depositPercent = "Phần trăm đặt cọc phải từ 0 đến 100";
+    }
+    if (formData.depositCapMinVnd < 0) {
+      newErrors.depositCapMinVnd = "Mức đặt cọc tối thiểu không hợp lệ";
+    }
+    if (
+      formData.depositCapMaxVnd < 0 ||
+      formData.depositCapMaxVnd < formData.depositCapMinVnd
+    ) {
+      newErrors.depositCapMaxVnd =
+        "Mức đặt cọc tối đa phải >= tối thiểu và không âm";
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -241,6 +263,10 @@ export default function ModalAddCamera({
       serialNumber: "",
       estimatedValueVnd: 0,
       specsJson: "",
+      depositPercent: 0,
+      depositCapMinVnd: 0,
+      depositCapMaxVnd: 0,
+      baseDailyRate: 0,
       mediaFiles: [],
     });
     setImagePreviews([]);
@@ -459,26 +485,99 @@ export default function ModalAddCamera({
               }}
             />
           </Box>
+          <Box
+            sx={{
+              display: "flex",
+              gap: 2,
+              flexDirection: { xs: "column", sm: "row" },
+            }}
+          >
+            <TextField
+              fullWidth
+              label="Giá thuê / ngày"
+              name="baseDailyRate"
+              type="number"
+              value={formData.baseDailyRate || ""}
+              onChange={(e) =>
+                handleNumberChange("baseDailyRate", e.target.value)
+              }
+              error={!!errors.baseDailyRate}
+              helperText={errors.baseDailyRate}
+              required
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">₫</InputAdornment>
+                  ),
+                },
+              }}
+              placeholder="150000"
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: 2,
+                  "&:hover fieldset": {
+                    borderColor: "#FF6B35",
+                  },
+                  "&.Mui-focused fieldset": {
+                    borderColor: "#FF6B35",
+                  },
+                },
+                "& .MuiInputLabel-root.Mui-focused": {
+                  color: "#FF6B35",
+                },
+              }}
+            />
 
-          {/* Giá trị ước tính */}
+            {/* Giá trị ước tính */}
+            <TextField
+              fullWidth
+              label="Giá trị ước tính"
+              name="estimatedValueVnd"
+              type="number"
+              value={formData.estimatedValueVnd || ""}
+              onChange={(e) =>
+                handleNumberChange("estimatedValueVnd", e.target.value)
+              }
+              error={!!errors.estimatedValueVnd}
+              helperText={errors.estimatedValueVnd}
+              required
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">₫</InputAdornment>
+                ),
+              }}
+              placeholder="48000000"
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: 2,
+                  "&:hover fieldset": {
+                    borderColor: "#FF6B35",
+                  },
+                  "&.Mui-focused fieldset": {
+                    borderColor: "#FF6B35",
+                  },
+                },
+                "& .MuiInputLabel-root.Mui-focused": {
+                  color: "#FF6B35",
+                },
+              }}
+            />
+          </Box>
           <TextField
             fullWidth
-            label="Giá trị ước tính"
-            name="estimatedValueVnd"
+            label="Phần trăm đặt cọc"
+            name="depositPercent"
             type="number"
-            value={formData.estimatedValueVnd || ""}
+            value={formData.depositPercent || ""}
             onChange={(e) =>
-              handleNumberChange("estimatedValueVnd", e.target.value)
+              handleNumberChange("depositPercent", e.target.value)
             }
-            error={!!errors.estimatedValueVnd}
-            helperText={errors.estimatedValueVnd}
-            required
+            error={!!errors.depositPercent}
+            helperText={errors.depositPercent}
             InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">₫</InputAdornment>
-              ),
+              endAdornment: <InputAdornment position="end">%</InputAdornment>,
             }}
-            placeholder="48000000"
+            placeholder={`${formData.depositPercent || 0}%`}
             sx={{
               "& .MuiOutlinedInput-root": {
                 borderRadius: 2,
@@ -494,7 +593,6 @@ export default function ModalAddCamera({
               },
             }}
           />
-
           {/* Thông số kỹ thuật */}
           <TextField
             fullWidth
