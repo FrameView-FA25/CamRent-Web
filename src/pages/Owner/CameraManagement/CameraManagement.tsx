@@ -22,7 +22,11 @@ import {
   Tooltip,
   Dialog,
   DialogContent,
-  Stack,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
+  Divider,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -35,6 +39,7 @@ import {
   CancelRounded,
   TaskAltRounded,
   DoNotDisturbOnRounded,
+  MoreVert as MoreVertIcon,
 } from "@mui/icons-material";
 import ModalAddCamera from "../../../components/Modal/Owner/ModalAddCamera";
 import ModalEditCamera from "../../../components/Modal/Owner/ModalEditCamera";
@@ -66,6 +71,10 @@ export default function CameraManagement() {
   // State cho gallery preview: danh sách ảnh và index hiện tại (null = đóng)
   const [previewImages, setPreviewImages] = useState<string[]>([]);
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
+  const [actionMenuAnchor, setActionMenuAnchor] = useState<null | HTMLElement>(
+    null
+  );
+  const [menuCamera, setMenuCamera] = useState<Camera | null>(null);
 
   /**
    * useEffect: Gọi API lấy danh sách camera khi component được mount
@@ -84,6 +93,19 @@ export default function CameraManagement() {
     refreshCameras();
     // Reset về trang 1 khi thêm mới
     setCurrentPage(1);
+  };
+
+  const handleOpenActionMenu = (
+    event: React.MouseEvent<HTMLElement>,
+    camera: Camera
+  ) => {
+    setActionMenuAnchor(event.currentTarget);
+    setMenuCamera(camera);
+  };
+
+  const handleCloseActionMenu = () => {
+    setActionMenuAnchor(null);
+    setMenuCamera(null);
   };
 
   /**
@@ -959,72 +981,26 @@ export default function CameraManagement() {
                       return renderStatusChip(status.key, status.label);
                     })()}
                   </TableCell>
-                  <TableCell>
-                    <Stack
-                      direction="row"
-                      spacing={1}
-                      justifyContent="center"
-                      sx={{ minWidth: 180 }}
-                    >
-                      <Tooltip title="Xóa camera" arrow>
-                        <IconButton
-                          size="medium"
-                          onClick={() => handleDeleteCamera(camera.id)}
-                          sx={{
-                            ...actionButtonBaseSx,
-                            border: "1px solid rgba(239, 68, 68, 0.2)",
-                            color: "#B91C1C",
-                            bgcolor: "rgba(254, 226, 226, 0.7)",
-                            "&:hover": {
-                              bgcolor: "#FEE2E2",
-                              borderColor: "rgba(239, 68, 68, 0.4)",
-                            },
-                          }}
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Chỉnh sửa camera" arrow>
-                        <IconButton
-                          size="medium"
-                          onClick={() => handleOpenEdit(camera)}
-                          sx={{
-                            ...actionButtonBaseSx,
-                            border: "1px solid rgba(37, 99, 235, 0.25)",
-                            color: "#1D4ED8",
-                            bgcolor: "rgba(219, 234, 254, 0.8)",
-                            "&:hover": {
-                              bgcolor: "#DBEAFE",
-                              borderColor: "rgba(37, 99, 235, 0.4)",
-                            },
-                          }}
-                        >
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Quét QR kiểm tra" arrow>
-                        <IconButton
-                          size="medium"
-                          onClick={() =>
-                            navigate(
-                              `/owner/qr-inspection?cameraId=${camera.id}`
-                            )
-                          }
-                          sx={{
-                            ...actionButtonBaseSx,
-                            border: "1px solid rgba(255, 107, 53, 0.3)",
-                            color: "#C8501D",
-                            bgcolor: "rgba(255, 245, 240, 0.9)",
-                            "&:hover": {
-                              bgcolor: "#FFE7DD",
-                              borderColor: "rgba(255, 107, 53, 0.45)",
-                            },
-                          }}
-                        >
-                          <QrCodeScannerIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    </Stack>
+                  <TableCell align="center">
+                    <Tooltip title="Thao tác" arrow>
+                      <IconButton
+                        aria-label="more actions"
+                        size="medium"
+                        onClick={(event) => handleOpenActionMenu(event, camera)}
+                        sx={{
+                          ...actionButtonBaseSx,
+                          border: "1px solid rgba(148, 163, 184, 0.35)",
+                          color: "#0F172A",
+                          bgcolor: "#FFFFFF",
+                          "&:hover": {
+                            bgcolor: "#F8FAFC",
+                            borderColor: "#94A3B8",
+                          },
+                        }}
+                      >
+                        <MoreVertIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
                   </TableCell>
                 </TableRow>
               ))}
@@ -1074,6 +1050,59 @@ export default function CameraManagement() {
           />
         </Box>
       )}
+
+      <Menu
+        anchorEl={actionMenuAnchor}
+        open={Boolean(actionMenuAnchor)}
+        onClose={handleCloseActionMenu}
+        PaperProps={{
+          sx: {
+            minWidth: 220,
+            borderRadius: 2,
+            boxShadow: "0 8px 32px rgba(15, 23, 42, 0.18)",
+          },
+        }}
+      >
+        <MenuItem
+          onClick={() => {
+            if (!menuCamera) return;
+            handleOpenEdit(menuCamera);
+            handleCloseActionMenu();
+          }}
+        >
+          <ListItemIcon>
+            <EditIcon fontSize="small" sx={{ color: "#1D4ED8" }} />
+          </ListItemIcon>
+          <ListItemText primary="Chỉnh sửa camera" />
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            if (!menuCamera) return;
+            navigate(`/owner/qr-inspection?cameraId=${menuCamera.id}`);
+            handleCloseActionMenu();
+          }}
+        >
+          <ListItemIcon>
+            <QrCodeScannerIcon fontSize="small" sx={{ color: "#C8501D" }} />
+          </ListItemIcon>
+          <ListItemText primary="Quét QR kiểm tra" />
+        </MenuItem>
+        <Divider />
+        <MenuItem
+          onClick={async () => {
+            if (!menuCamera) return;
+            const cameraId = menuCamera.id;
+            handleCloseActionMenu();
+            await handleDeleteCamera(cameraId);
+          }}
+          sx={{ color: "#B91C1C" }}
+        >
+          <ListItemIcon>
+            <DeleteIcon fontSize="small" sx={{ color: "#B91C1C" }} />
+          </ListItemIcon>
+          <ListItemText primary="Xóa camera" />
+        </MenuItem>
+      </Menu>
 
       {/* Add Camera Modal */}
       <ModalAddCamera

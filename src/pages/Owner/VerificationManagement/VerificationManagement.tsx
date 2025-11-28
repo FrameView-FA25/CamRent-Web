@@ -19,6 +19,15 @@ import {
   CardContent,
   Stack,
   Pagination,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
+  Divider,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -31,6 +40,9 @@ import {
   CancelRounded,
   TaskAltRounded,
   DoNotDisturbOnRounded,
+  MoreVert as MoreVertIcon,
+  Description as DescriptionIcon,
+  FileDownload as FileDownloadIcon,
 } from "@mui/icons-material";
 import { branchService } from "../../../services/branch.service";
 import { verificationService } from "../../../services/verification.service";
@@ -68,6 +80,18 @@ export default function VerificationManagement() {
     type: "success" | "error";
     text: string;
   } | null>(null);
+  const [actionMenuAnchor, setActionMenuAnchor] = useState<null | HTMLElement>(
+    null
+  );
+  const [menuVerification, setMenuVerification] = useState<Verification | null>(
+    null
+  );
+  const [contractDialogOpen, setContractDialogOpen] = useState(false);
+  const [contractLoading, setContractLoading] = useState(false);
+  const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [currentContractId, setCurrentContractId] = useState("");
+  const [currentFilename, setCurrentFilename] = useState("");
 
   /**
    * useEffect: Gọi API lấy danh sách verification khi component được mount
@@ -185,6 +209,137 @@ export default function VerificationManagement() {
       type: "success",
       text: "Xoá yêu cầu xác minh thành công!",
     });
+  };
+
+  const handleOpenActionMenu = (
+    event: React.MouseEvent<HTMLElement>,
+    verification: Verification
+  ) => {
+    setActionMenuAnchor(event.currentTarget);
+    setMenuVerification(verification);
+  };
+
+  const handleCloseActionMenu = () => {
+    setActionMenuAnchor(null);
+    setMenuVerification(null);
+  };
+
+  const handleOpenContractDialog = (verification: Verification) => {
+    setMenuVerification(verification);
+    setContractDialogOpen(true);
+    setMessage(null);
+  };
+
+  const handleContractConfirm = async () => {
+    if (!menuVerification) return;
+    const token = localStorage.getItem("accessToken");
+
+    if (!token) {
+      setMessage({
+        type: "error",
+        text: "Vui lòng đăng nhập để tạo hợp đồng.",
+      });
+      return;
+    }
+
+    try {
+      setContractLoading(true);
+      const createResponse = await fetch(
+        `https://camrent-backend.up.railway.app/api/Contracts/verification/${menuVerification.id}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!createResponse.ok) {
+        throw new Error("Tạo hợp đồng thất bại");
+      }
+
+      const contractData = await createResponse.json();
+      const contractId =
+        contractData?.contractId ||
+        contractData?.id ||
+        contractData?.data?.id ||
+        "";
+
+      if (!contractId) {
+        throw new Error("Không xác định được mã hợp đồng");
+      }
+
+      const previewResponse = await fetch(
+        `https://camrent-backend.up.railway.app/api/Contracts/${contractId}/preview`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!previewResponse.ok) {
+        throw new Error("Không thể lấy file xem trước hợp đồng");
+      }
+
+      const contentDisposition =
+        previewResponse.headers.get("content-disposition");
+      let filename = `verification_contract_${contractId}.pdf`;
+
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(
+          /filename[^;=\n]*=(?:(["'])([^"'\n]*)\1|([^;\n]*));?/
+        );
+        if (filenameMatch) {
+          filename = filenameMatch[2] || filenameMatch[3] || filename;
+        }
+      }
+
+      const blob = await previewResponse.blob();
+      const pdfBlob = new Blob([blob], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(pdfBlob);
+
+      setPdfUrl(url);
+      setCurrentContractId(contractId);
+      setCurrentFilename(filename);
+      setPdfDialogOpen(true);
+      setContractDialogOpen(false);
+      setMessage({
+        type: "success",
+        text: "Tạo hợp đồng xác minh thành công!",
+      });
+    } catch (error) {
+      console.error(error);
+      setMessage({
+        type: "error",
+        text:
+          error instanceof Error
+            ? error.message
+            : "Có lỗi khi tạo hợp đồng xác minh.",
+      });
+    } finally {
+      setContractLoading(false);
+    }
+  };
+
+  const handleDownloadPdf = () => {
+    if (!pdfUrl) return;
+    const link = document.createElement("a");
+    link.href = pdfUrl;
+    link.download = currentFilename || "contract.pdf";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleClosePdfDialog = () => {
+    if (pdfUrl) {
+      window.URL.revokeObjectURL(pdfUrl);
+    }
+    setPdfDialogOpen(false);
+    setPdfUrl(null);
   };
   /**
    * Tính toán phân trang
@@ -956,78 +1111,29 @@ export default function VerificationManagement() {
                     </TableCell>
 
                     <TableCell align="center">
-                      <Stack
-                        direction="row"
-                        spacing={1}
-                        justifyContent="center"
-                        sx={{ minWidth: 160 }}
-                      >
-                        <Tooltip title="Xoá" arrow>
-                          <IconButton
-                            size="medium"
-                            onClick={() =>
-                              handleDeleteVerification(verification.id)
-                            }
-                            sx={{
-                              width: 42,
-                              height: 42,
-                              borderRadius: 2,
-                              border: "1px solid rgba(239, 68, 68, 0.2)",
-                              color: "#B91C1C",
-                              bgcolor: "rgba(254, 226, 226, 0.6)",
-                              boxShadow: "0 4px 10px rgba(239, 68, 68, 0.15)",
-                              "&:hover": {
-                                bgcolor: "#FEE2E2",
-                                borderColor: "rgba(239, 68, 68, 0.4)",
-                              },
-                            }}
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Chỉnh sửa" arrow>
-                          <IconButton
-                            size="medium"
-                            onClick={() => handleOpenEditModal(verification)}
-                            sx={{
-                              width: 42,
-                              height: 42,
-                              borderRadius: 2,
-                              border: "1px solid rgba(37, 99, 235, 0.25)",
-                              color: "#1D4ED8",
-                              bgcolor: "rgba(219, 234, 254, 0.6)",
-                              boxShadow: "0 4px 10px rgba(59, 130, 246, 0.15)",
-                              "&:hover": {
-                                bgcolor: "#DBEAFE",
-                                borderColor: "rgba(37, 99, 235, 0.4)",
-                              },
-                            }}
-                          >
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Xem chi tiết" arrow>
-                          <IconButton
-                            size="medium"
-                            onClick={() => handleOpenDetailModal(verification)}
-                            sx={{
-                              width: 42,
-                              height: 42,
-                              borderRadius: 2,
-                              border: "1px solid rgba(255, 107, 53, 0.3)",
-                              color: "#C8501D",
-                              bgcolor: "rgba(255, 245, 240, 0.9)",
-                              boxShadow: "0 4px 10px rgba(255, 107, 53, 0.15)",
-                              "&:hover": {
-                                bgcolor: "#FFE7DD",
-                                borderColor: "rgba(255, 107, 53, 0.45)",
-                              },
-                            }}
-                          >
-                            <VisibilityIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      </Stack>
+                      <Tooltip title="Thao tác" arrow>
+                        <IconButton
+                          aria-label="more actions"
+                          onClick={(event) =>
+                            handleOpenActionMenu(event, verification)
+                          }
+                          sx={{
+                            width: 42,
+                            height: 42,
+                            borderRadius: 2,
+                            border: "1px solid rgba(148, 163, 184, 0.4)",
+                            color: "#0F172A",
+                            bgcolor: "#FFFFFF",
+                            transition: "all 0.2s ease",
+                            "&:hover": {
+                              bgcolor: "#F8FAFC",
+                              borderColor: "#94A3B8",
+                            },
+                          }}
+                        >
+                          <MoreVertIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -1076,6 +1182,70 @@ export default function VerificationManagement() {
         </Box>
       )}
 
+      <Menu
+        anchorEl={actionMenuAnchor}
+        open={Boolean(actionMenuAnchor)}
+        onClose={handleCloseActionMenu}
+        PaperProps={{
+          sx: {
+            minWidth: 220,
+            borderRadius: 2,
+            boxShadow: "0 8px 32px rgba(15, 23, 42, 0.1)",
+          },
+        }}
+      >
+        <MenuItem
+          onClick={() => {
+            if (!menuVerification) return;
+            handleOpenDetailModal(menuVerification);
+            handleCloseActionMenu();
+          }}
+        >
+          <ListItemIcon>
+            <VisibilityIcon fontSize="small" sx={{ color: "#C8501D" }} />
+          </ListItemIcon>
+          <ListItemText primary="Xem chi tiết" />
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            if (!menuVerification) return;
+            handleOpenEditModal(menuVerification);
+            handleCloseActionMenu();
+          }}
+        >
+          <ListItemIcon>
+            <EditIcon fontSize="small" sx={{ color: "#1D4ED8" }} />
+          </ListItemIcon>
+          <ListItemText primary="Chỉnh sửa yêu cầu" />
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            if (!menuVerification) return;
+            handleCloseActionMenu();
+            handleOpenContractDialog(menuVerification);
+          }}
+        >
+          <ListItemIcon>
+            <DescriptionIcon fontSize="small" sx={{ color: "#F97316" }} />
+          </ListItemIcon>
+          <ListItemText primary="Tạo hợp đồng" />
+        </MenuItem>
+        <Divider />
+        <MenuItem
+          onClick={() => {
+            if (!menuVerification) return;
+            handleCloseActionMenu();
+            handleDeleteVerification(menuVerification.id);
+          }}
+          sx={{ color: "#B91C1C" }}
+        >
+          <ListItemIcon>
+            <DeleteIcon fontSize="small" sx={{ color: "#B91C1C" }} />
+          </ListItemIcon>
+          <ListItemText primary="Xoá yêu cầu" />
+        </MenuItem>
+      </Menu>
+
       {/* Modal tạo yêu cầu xác minh */}
       <ModalVerification
         open={openModal}
@@ -1101,6 +1271,146 @@ export default function VerificationManagement() {
         onClose={handleCloseDetailModal}
         verification={selectedVerification}
       />
+
+      <Dialog
+        open={contractDialogOpen}
+        onClose={() => !contractLoading && setContractDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 3 } }}
+      >
+        <DialogTitle sx={{ fontWeight: 600, color: "#1E293B" }}>
+          Tạo hợp đồng xác minh
+        </DialogTitle>
+        <DialogContent dividers sx={{ borderTop: "1px solid #E2E8F0" }}>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+            <Typography variant="body2" sx={{ color: "#475569" }}>
+              <strong>Yêu cầu:</strong> {menuVerification?.name}
+            </Typography>
+            <Typography variant="body2" sx={{ color: "#475569" }}>
+              <strong>Số điện thoại:</strong> {menuVerification?.phoneNumber}
+            </Typography>
+            <Typography variant="body2" sx={{ color: "#475569" }}>
+              <strong>Chi nhánh:</strong>{" "}
+              {menuVerification?.branchName || "Không xác định"}
+            </Typography>
+            <Typography variant="body2" sx={{ color: "#475569" }}>
+              <strong>Lịch kiểm tra:</strong>{" "}
+              {menuVerification
+                ? formatDate(menuVerification.inspectionDate)
+                : "--"}
+            </Typography>
+            <Typography variant="body2" sx={{ color: "#475569" }}>
+              <strong>Số lượng thiết bị:</strong>{" "}
+              {menuVerification?.items.length ?? 0}
+            </Typography>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button
+            onClick={() => setContractDialogOpen(false)}
+            disabled={contractLoading}
+            sx={{
+              color: "#64748B",
+              "&:hover": {
+                bgcolor: "#F1F5F9",
+              },
+            }}
+          >
+            Hủy
+          </Button>
+          <Button
+            onClick={handleContractConfirm}
+            variant="contained"
+            disabled={contractLoading}
+            sx={{
+              bgcolor: "#F97316",
+              "&:hover": { bgcolor: "#EA580C" },
+              "&:disabled": { bgcolor: "#FCDAD0" },
+            }}
+          >
+            {contractLoading ? (
+              <CircularProgress size={24} sx={{ color: "#FFFFFF" }} />
+            ) : (
+              <>
+                <DescriptionIcon sx={{ mr: 1 }} /> Tạo hợp đồng
+              </>
+            )}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={pdfDialogOpen}
+        onClose={handleClosePdfDialog}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            height: "90vh",
+          },
+        }}
+      >
+        <DialogTitle sx={{ fontWeight: 600, color: "#1E293B" }}>
+          Xem trước hợp đồng
+        </DialogTitle>
+        <DialogContent
+          dividers
+          sx={{ p: 0, position: "relative", bgcolor: "#000000", flex: 1 }}
+        >
+          {pdfUrl ? (
+            <iframe
+              src={pdfUrl}
+              title="Verification Contract Preview"
+              style={{ width: "100%", height: "100%", border: "none" }}
+            />
+          ) : (
+            <Box
+              sx={{
+                minHeight: 320,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#94A3B8",
+                fontStyle: "italic",
+              }}
+            >
+              Không có dữ liệu hợp đồng
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button
+            onClick={handleClosePdfDialog}
+            sx={{
+              color: "#64748B",
+              "&:hover": {
+                bgcolor: "#F1F5F9",
+              },
+            }}
+          >
+            Đóng
+          </Button>
+          <Button
+            onClick={handleDownloadPdf}
+            variant="contained"
+            disabled={!pdfUrl}
+            startIcon={<FileDownloadIcon />}
+            sx={{
+              bgcolor: "#F97316",
+              "&:hover": {
+                bgcolor: "#EA580C",
+              },
+              "&:disabled": {
+                bgcolor: "#FCDAD0",
+              },
+            }}
+          >
+            Tải về
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
