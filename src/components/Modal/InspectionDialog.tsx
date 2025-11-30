@@ -256,7 +256,7 @@ const InspectionDialog: React.FC<InspectionDialogProps> = ({
         {/* Removed Type field as it's not part of the form type */}
         {/* InspectionTypeId được giữ trong form nhưng không hiển thị trên giao diện */}
         <TextField
-          label="Section"
+          label="Phần kiểm tra"
           name="Section"
           value={form.Section}
           onChange={handleChange}
@@ -264,7 +264,7 @@ const InspectionDialog: React.FC<InspectionDialogProps> = ({
           sx={{ mb: 2 }}
         />
         <TextField
-          label="Label"
+          label="Tên kiểm tra"
           name="Label"
           value={form.Label}
           onChange={handleChange}
@@ -272,14 +272,18 @@ const InspectionDialog: React.FC<InspectionDialogProps> = ({
           sx={{ mb: 2 }}
         />
         <TextField
-          label="Value"
+          select
+          label="Giá trị"
           name="Value"
           value={form.Value}
           onChange={handleChange}
           fullWidth
           sx={{ mb: 2 }}
-        />
-
+        >
+          <MenuItem value="">-- Chọn giá trị --</MenuItem>
+          <MenuItem value="true">Đạt</MenuItem>
+          <MenuItem value="false">Không đạt</MenuItem>
+        </TextField>
         <TextField
           label="Ghi chú"
           name="Notes"

@@ -150,10 +150,10 @@ const OwnerLayout: React.FC = () => {
                       bgcolor: colors.primary.light,
                       color: "#FFFFFF",
                       "& .MuiListItemIcon-root": {
-                        color: "#FFFFFF",
+                        color: "#FFFFFF !important",
                       },
                       "& .MuiListItemText-primary": {
-                        color: "#FFFFFF",
+                        color: "#FFFFFF !important",
                       },
                     },
                     transition: "all 0.2s ease",

@@ -234,27 +234,28 @@ const CheckBookingDialog: React.FC<CheckBookingDialogProps> = ({
           fullWidth
           sx={{ mb: 2 }}
           InputProps={{ readOnly: true }}
-          inputProps={{
-            style: { backgroundColor: "#f3f4f6", cursor: "not-allowed" },
+          slotProps={{
+            input: {
+              style: { backgroundColor: "#f3f4f6", cursor: "not-allowed" },
+            },
           }}
           disabled
         />
         <TextField
-          select
           label="Type"
           name="Type"
           value={form.Type}
-          onChange={handleChange}
           fullWidth
           sx={{ mb: 2 }}
-        >
-          <MenuItem value="">--</MenuItem>
-          <MenuItem value="Booking">Booking</MenuItem>
-          <MenuItem value="Verification">Verification</MenuItem>
-        </TextField>
-        {/* Bỏ thông tin kiểm tra và Booking ID */}
-        {/* Removed Type field as it's not part of the form type */}
-        {/* InspectionTypeId được giữ trong form nhưng không hiển thị trên giao diện */}
+          slotProps={{
+            input: {
+              readOnly: true,
+              style: { backgroundColor: "#f3f4f6", cursor: "not-allowed" },
+            },
+          }}
+          disabled
+        />
+
         <TextField
           label="Section"
           name="Section"
@@ -272,13 +273,18 @@ const CheckBookingDialog: React.FC<CheckBookingDialogProps> = ({
           sx={{ mb: 2 }}
         />
         <TextField
+          select
           label="Value"
           name="Value"
           value={form.Value}
           onChange={handleChange}
           fullWidth
           sx={{ mb: 2 }}
-        />
+        >
+          <MenuItem value="">-- Chọn giá trị --</MenuItem>
+          <MenuItem value="true">Đạt</MenuItem>
+          <MenuItem value="false">Không đạt</MenuItem>
+        </TextField>
 
         <TextField
           label="Ghi chú"
