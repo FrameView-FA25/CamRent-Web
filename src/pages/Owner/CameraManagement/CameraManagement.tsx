@@ -36,8 +36,6 @@ import {
   QrCodeScanner as QrCodeScannerIcon,
   HourglassEmptyRounded,
   CheckCircleRounded,
-  CancelRounded,
-  TaskAltRounded,
   DoNotDisturbOnRounded,
   MoreVert as MoreVertIcon,
 } from "@mui/icons-material";
@@ -199,24 +197,6 @@ export default function CameraManagement() {
         />
       ),
     },
-    rejected: {
-      label: "Từ chối",
-      bg: "#FEF2F2",
-      color: "#B91C1C",
-      border: "1px solid rgba(239, 68, 68, 0.35)",
-      icon: (
-        <CancelRounded fontSize="small" sx={{ color: "#EF4444", mr: 0.5 }} />
-      ),
-    },
-    completed: {
-      label: "Hoàn thành",
-      bg: "#F0FDF4",
-      color: "#047857",
-      border: "1px solid rgba(16, 185, 129, 0.35)",
-      icon: (
-        <TaskAltRounded fontSize="small" sx={{ color: "#059669", mr: 0.5 }} />
-      ),
-    },
     cancelled: {
       label: "Đã hủy",
       bg: "#F4F4F5",
@@ -267,6 +247,18 @@ export default function CameraManagement() {
       return { key: "cancelled", label: "Tạm ngưng" };
     }
     return { key: "approved", label: "Sẵn sàng" };
+  };
+
+  // Tính toán thống kê dựa trên trạng thái camera
+  const stats = {
+    total: cameras?.length || 0,
+    available:
+      cameras?.filter((c) => c.isConfirmed && c.isAvailable).length || 0,
+    pending: cameras?.filter((c) => !c.isConfirmed).length || 0,
+    suspended:
+      cameras?.filter((c) => c.isConfirmed && !c.isAvailable).length || 0,
+    rented: 0, // Có thể tính từ dữ liệu booking nếu có
+    maintenance: 0, // Có thể tính từ dữ liệu maintenance nếu có
   };
 
   const actionButtonBaseSx = {
@@ -484,7 +476,7 @@ export default function CameraManagement() {
                   fontWeight={700}
                   sx={{ color: "#1E293B" }}
                 >
-                  {cameras?.length || 0}
+                  {stats.total}
                 </Typography>
               </Box>
               <Box
@@ -543,7 +535,7 @@ export default function CameraManagement() {
                   fontWeight={700}
                   sx={{ color: "#10B981" }}
                 >
-                  {cameras?.length || 0}
+                  {stats.available}
                 </Typography>
               </Box>
               <Box
@@ -595,19 +587,19 @@ export default function CameraManagement() {
                     fontSize: "0.75rem",
                   }}
                 >
-                  Đã Cho Thuê
+                  Chờ Xác Minh
                 </Typography>
                 <Typography
                   variant="h3"
                   fontWeight={700}
-                  sx={{ color: "#3B82F6" }}
+                  sx={{ color: "#FF6B35" }}
                 >
-                  0
+                  {stats.pending}
                 </Typography>
               </Box>
               <Box
                 sx={{
-                  bgcolor: "#EFF6FF",
+                  bgcolor: "#FFF5F0",
                   p: 1.5,
                   borderRadius: 2,
                   display: "flex",
@@ -615,7 +607,7 @@ export default function CameraManagement() {
                   justifyContent: "center",
                 }}
               >
-                <Typography sx={{ fontSize: "1.5rem" }}>🔒</Typography>
+                <Typography sx={{ fontSize: "1.5rem" }}>⏳</Typography>
               </Box>
             </Box>
           </CardContent>
@@ -654,19 +646,19 @@ export default function CameraManagement() {
                     fontSize: "0.75rem",
                   }}
                 >
-                  Bảo Trì
+                  Tạm Ngưng
                 </Typography>
                 <Typography
                   variant="h3"
                   fontWeight={700}
-                  sx={{ color: "#F59E0B" }}
+                  sx={{ color: "#64748B" }}
                 >
-                  0
+                  {stats.suspended}
                 </Typography>
               </Box>
               <Box
                 sx={{
-                  bgcolor: "#FFFBEB",
+                  bgcolor: "#F4F4F5",
                   p: 1.5,
                   borderRadius: 2,
                   display: "flex",
@@ -674,7 +666,7 @@ export default function CameraManagement() {
                   justifyContent: "center",
                 }}
               >
-                <Typography sx={{ fontSize: "1.5rem" }}>🔧</Typography>
+                <Typography sx={{ fontSize: "1.5rem" }}>⏸️</Typography>
               </Box>
             </Box>
           </CardContent>

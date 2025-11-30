@@ -119,9 +119,14 @@ const StaffLayout: React.FC = () => {
                     color: isActive ? "#f7f7f7ff" : "#6B7280",
                     bgcolor: isActive ? colors.primary.light : "transparent",
                     "&:hover": {
-                      bgcolor: isActive
-                        ? colors.primary.light
-                        : colors.primary.light,
+                      bgcolor: colors.primary.light,
+                      color: "#FFFFFF",
+                      "& .MuiListItemIcon-root": {
+                        color: "#FFFFFF",
+                      },
+                      "& .MuiListItemText-primary": {
+                        color: "#FFFFFF",
+                      },
                     },
                     transition: "all 0.2s ease",
                   }}
@@ -136,9 +141,16 @@ const StaffLayout: React.FC = () => {
                   </ListItemIcon>
                   <ListItemText
                     primary={item.text}
-                    primaryTypographyProps={{
-                      fontWeight: isActive ? 600 : 500,
-                      fontSize: "0.9375rem",
+                    sx={{
+                      "& .MuiListItemText-primary": {
+                        color: "inherit",
+                      },
+                    }}
+                    slotProps={{
+                      primary: {
+                        fontWeight: isActive ? 600 : 500,
+                        fontSize: "0.9375rem",
+                      },
                     }}
                   />
                 </ListItemButton>
@@ -218,9 +230,11 @@ const StaffLayout: React.FC = () => {
           </ListItemIcon>
           <ListItemText
             primary="Đăng xuất"
-            primaryTypographyProps={{
-              fontWeight: 500,
-              fontSize: "0.9375rem",
+            slotProps={{
+              primary: {
+                fontWeight: 500,
+                fontSize: "0.9375rem",
+              },
             }}
           />
         </ListItemButton>
