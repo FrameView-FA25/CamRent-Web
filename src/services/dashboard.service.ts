@@ -10,12 +10,20 @@ export interface TopRentedAsset {
   grossRevenue: number;
 }
 
+export interface TimeSeriesStat {
+  date: string;
+  bookingCount: number;
+  capturedRevenue: number;
+}
+
 export interface OwnerDashboardResponse {
   totalCameras: number;
   totalAccessories: number;
   totalBookingsForOwnerItems: number;
   totalGrossRevenue: number;
   topRentedAssets: TopRentedAsset[];
+  dailyStats?: TimeSeriesStat[];
+  monthlyStats?: TimeSeriesStat[];
 }
 
 /**
@@ -48,5 +56,3 @@ export const dashboardService = {
     return json;
   },
 };
-
-
