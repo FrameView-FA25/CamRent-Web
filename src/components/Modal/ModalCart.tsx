@@ -27,11 +27,28 @@ import { useNavigate } from "react-router-dom";
 import { colors } from "../../theme/colors";
 import { toast } from "react-toastify";
 import { useCartContext } from "../../context/CartContext/useCartContext";
+
+interface Media {
+  id: string;
+  url: string;
+  contentType: string;
+  sizeBytes: number;
+  label: string;
+}
+
+interface UnavailableRange {
+  startDate: string;
+  endDate: string;
+}
+
 interface CartItem {
   itemId: string;
   itemName: string;
   itemType: string;
   unitPrice: number;
+  depositAmount: number;
+  media: Media[];
+  unavailableRanges: UnavailableRange[];
 }
 
 interface CartResponse {
@@ -133,7 +150,6 @@ const CartModal: React.FC<CartModalProps> = ({ open, onClose }) => {
         throw new Error("Failed to remove item");
       }
 
-      // ✅ Remove item from local state
       setCartData((prev) => {
         if (!prev) return prev;
         return {
@@ -142,7 +158,6 @@ const CartModal: React.FC<CartModalProps> = ({ open, onClose }) => {
         };
       });
 
-      // ✅ Remove quantity tracking
       setItemQuantities((prev) => {
         const newQuantities = { ...prev };
         delete newQuantities[itemId];
@@ -151,7 +166,6 @@ const CartModal: React.FC<CartModalProps> = ({ open, onClose }) => {
 
       toast.success("Đã xoá sản phẩm khỏi giỏ hàng");
 
-      // ✅ Refresh cart to get updated data
       await fetchCart();
       await refreshCartCount();
     } catch (error) {
@@ -169,7 +183,6 @@ const CartModal: React.FC<CartModalProps> = ({ open, onClose }) => {
     }).format(amount);
   };
 
-  // ✅ Calculate total for ALL items (no selection needed)
   const calculateTotal = () => {
     if (!cartData?.items) return 0;
     return cartData.items.reduce((sum, item) => {
@@ -184,7 +197,6 @@ const CartModal: React.FC<CartModalProps> = ({ open, onClose }) => {
       return;
     }
 
-    // ✅ All items go to checkout
     const itemsWithQuantities: CartItemWithQuantity[] = cartData.items.map(
       (item) => ({
         ...item,
@@ -199,6 +211,20 @@ const CartModal: React.FC<CartModalProps> = ({ open, onClose }) => {
         cartId: cartData?.id,
       },
     });
+  };
+
+  // Get primary image from media array
+  const getPrimaryImage = (item: CartItem): string | null => {
+    if (!item.media || item.media.length === 0) return null;
+
+    // Find Primary_image or first image
+    const primaryImage = item.media.find(
+      (m) =>
+        m.label?.toLowerCase().includes("primary") ||
+        m.url?.toLowerCase().includes("primary")
+    );
+
+    return primaryImage?.url || item.media[0]?.url || null;
   };
 
   const cartItems = cartData?.items || [];
@@ -229,10 +255,10 @@ const CartModal: React.FC<CartModalProps> = ({ open, onClose }) => {
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
           <ShoppingCart size={24} color={colors.primary.main} />
           <Typography variant="h6" sx={{ fontWeight: 700 }}>
-            Shopping Cart
+            Giỏ Hàng
           </Typography>
           <Chip
-            label={`${cartItems.length} items`}
+            label={`${cartItems.length} vật phẩm`}
             size="small"
             sx={{
               bgcolor: colors.primary.lighter,
@@ -258,13 +284,13 @@ const CartModal: React.FC<CartModalProps> = ({ open, onClose }) => {
               variant="h6"
               sx={{ color: colors.text.secondary, mt: 2, mb: 1 }}
             >
-              Your cart is empty
+              Giỏ hàng của bạn đang trống
             </Typography>
             <Typography
               variant="body2"
               sx={{ color: colors.text.secondary, mb: 3 }}
             >
-              Start adding items to your cart
+              Bắt đầu thêm sản phẩm vào giỏ hàng
             </Typography>
             <Button
               variant="contained"
@@ -283,14 +309,13 @@ const CartModal: React.FC<CartModalProps> = ({ open, onClose }) => {
                 navigate("/products");
               }}
             >
-              Browse Products
+              Duyệt Sản Phẩm
             </Button>
           </Box>
         ) : (
           <Box sx={{ display: "flex", gap: 3 }}>
             {/* Left - Items List */}
             <Box sx={{ flex: 1 }}>
-              {/* Items List */}
               <Box
                 sx={{
                   maxHeight: "550px",
@@ -314,6 +339,7 @@ const CartModal: React.FC<CartModalProps> = ({ open, onClose }) => {
               >
                 {cartItems.map((item) => {
                   const quantity = itemQuantities[item.itemId] || 1;
+                  const primaryImage = getPrimaryImage(item);
 
                   return (
                     <Box
@@ -345,13 +371,45 @@ const CartModal: React.FC<CartModalProps> = ({ open, onClose }) => {
                             alignItems: "center",
                             justifyContent: "center",
                             flexShrink: 0,
+                            overflow: "hidden",
+                            border: `1px solid ${colors.border.light}`,
                           }}
                         >
-                          {item.itemType === "Camera" ? (
-                            <Camera size={40} color={colors.neutral[400]} />
-                          ) : (
-                            <Package size={40} color={colors.neutral[400]} />
-                          )}
+                          {primaryImage ? (
+                            <Box
+                              component="img"
+                              src={primaryImage}
+                              alt={item.itemName}
+                              sx={{
+                                width: "100%",
+                                height: "100%",
+                                objectFit: "cover",
+                              }}
+                              onError={(e) => {
+                                // Fallback to icon if image fails to load
+                                e.currentTarget.style.display = "none";
+                                e.currentTarget.nextElementSibling?.setAttribute(
+                                  "style",
+                                  "display: flex"
+                                );
+                              }}
+                            />
+                          ) : null}
+                          <Box
+                            sx={{
+                              display: primaryImage ? "none" : "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              width: "100%",
+                              height: "100%",
+                            }}
+                          >
+                            {item.itemType === "Camera" ? (
+                              <Camera size={40} color={colors.neutral[400]} />
+                            ) : (
+                              <Package size={40} color={colors.neutral[400]} />
+                            )}
+                          </Box>
                         </Box>
 
                         {/* Product Info */}
@@ -375,17 +433,37 @@ const CartModal: React.FC<CartModalProps> = ({ open, onClose }) => {
                               >
                                 {item.itemName}
                               </Typography>
-                              <Chip
-                                label={item.itemType}
-                                size="small"
+                              <Box
                                 sx={{
-                                  bgcolor: colors.primary.lighter,
-                                  color: colors.primary.main,
-                                  fontWeight: 600,
-                                  fontSize: "0.75rem",
-                                  height: 24,
+                                  display: "flex",
+                                  gap: 1,
+                                  alignItems: "center",
                                 }}
-                              />
+                              >
+                                <Chip
+                                  label={item.itemType}
+                                  size="small"
+                                  sx={{
+                                    bgcolor: colors.primary.lighter,
+                                    color: colors.primary.main,
+                                    fontWeight: 600,
+                                    fontSize: "0.75rem",
+                                    height: 24,
+                                  }}
+                                />
+                                {item.depositAmount > 0 && (
+                                  <Typography
+                                    variant="caption"
+                                    sx={{
+                                      color: colors.text.secondary,
+                                      fontSize: "0.75rem",
+                                    }}
+                                  >
+                                    Deposit:{" "}
+                                    {formatCurrency(item.depositAmount)}
+                                  </Typography>
+                                )}
+                              </Box>
                             </Box>
 
                             <IconButton
@@ -511,7 +589,7 @@ const CartModal: React.FC<CartModalProps> = ({ open, onClose }) => {
                 }}
               >
                 <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
-                  Order Summary
+                  Tóm Tắt Đơn Hàng
                 </Typography>
 
                 <Box
@@ -529,7 +607,7 @@ const CartModal: React.FC<CartModalProps> = ({ open, onClose }) => {
                       variant="body2"
                       sx={{ color: colors.text.secondary }}
                     >
-                      Subtotal ({cartItems.length} items)
+                      Tổng phụ ({cartItems.length} vật phẩm)
                     </Typography>
                     <Typography variant="body2" sx={{ fontWeight: 600 }}>
                       {formatCurrency(calculateTotal())}
@@ -549,7 +627,7 @@ const CartModal: React.FC<CartModalProps> = ({ open, onClose }) => {
                     }}
                   >
                     <Typography variant="body1" sx={{ fontWeight: 700 }}>
-                      Total
+                      Tổng Cộng
                     </Typography>
                     <Typography
                       variant="h5"
@@ -581,7 +659,7 @@ const CartModal: React.FC<CartModalProps> = ({ open, onClose }) => {
                   }}
                   onClick={handleCheckout}
                 >
-                  Proceed to Checkout
+                  Tiến Hành Thanh Toán
                 </Button>
 
                 <Button
@@ -603,7 +681,7 @@ const CartModal: React.FC<CartModalProps> = ({ open, onClose }) => {
                     navigate("/products");
                   }}
                 >
-                  Continue Shopping
+                  Tiếp Tục Mua Sắm
                 </Button>
 
                 <Box
@@ -631,13 +709,13 @@ const CartModal: React.FC<CartModalProps> = ({ open, onClose }) => {
                         mb: 0.5,
                       }}
                     >
-                      Rental Period
+                      Thời Gian Thuê
                     </Typography>
                     <Typography
                       variant="caption"
                       sx={{ color: colors.text.secondary }}
                     >
-                      You can select rental dates during checkout
+                      Bạn có thể chọn ngày thuê trong quá trình thanh toán
                     </Typography>
                   </Box>
                 </Box>

@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef } from "react";
+﻿import React, { useState, useRef, useEffect } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import CameraLoginModal from "../components/Modal/Auth/ModalLogin";
 import CameraRegisterModal from "../components/Modal/Auth/ModalRegister";
