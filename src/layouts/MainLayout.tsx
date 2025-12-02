@@ -3,13 +3,21 @@ import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import CameraLoginModal from "../components/Modal/Auth/ModalLogin";
 import CameraRegisterModal from "../components/Modal/Auth/ModalRegister";
 import { useAuth } from "@/hooks/useAuth";
-import { Button, Menu, MenuItem, IconButton, Badge, Box } from "@mui/material";
+import {
+  Button,
+  Menu,
+  MenuItem,
+  IconButton,
+  Badge,
+  Box,
+  Typography,
+} from "@mui/material";
 import { User, LogOut, ShoppingCart } from "lucide-react";
 import { getDefaultRouteByRole } from "@/utils/roleUtils";
 import { colors } from "../theme/colors";
 import CartModal from "../components/Modal/ModalCart";
 import { useCartContext } from "../context/CartContext";
-
+import Footer from "./Footer";
 const MainLayout: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -101,7 +109,16 @@ const MainLayout: React.FC = () => {
         {/* Logo */}
         <Link to="/" className="brand flex items-center gap-2">
           <img src="/logo.png" alt="CamRent Logo" width="65" height="65" />
-          <span className="font-bold text-lg text-gray-800">CamRent</span>
+          <Typography
+            variant="h6"
+            sx={{
+              fontWeight: 700,
+              color: colors.text.primary,
+              letterSpacing: "-0.5px",
+            }}
+          >
+            CamRent
+          </Typography>
         </Link>
 
         {/* Navigation - căn giữa */}
@@ -136,16 +153,7 @@ const MainLayout: React.FC = () => {
           >
             Hướng dẫn
           </Link>
-          <Link
-            to="/contract"
-            className={
-              isActive("/contract")
-                ? "active text-yellow-500 font-semibold"
-                : "text-gray-700 hover:text-yellow-500"
-            }
-          >
-            Contract
-          </Link>
+
           <Link
             to="/why-us"
             className={
@@ -311,7 +319,7 @@ const MainLayout: React.FC = () => {
       <main className="app-content">
         <Outlet />
       </main>
-
+      <Footer />
       {/* Modal Login */}
       <CameraLoginModal
         open={loginOpen}
