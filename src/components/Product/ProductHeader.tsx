@@ -65,7 +65,7 @@ const ProductHeader: React.FC<ProductHeaderProps> = ({
             sx={{
               fontWeight: 800,
               mb: 1,
-              fontFamily: "Times New Roman, serif",
+              fontSize: { xs: "2rem", md: "2.5rem" },
             }}
           >
             Khám phá thiết bị

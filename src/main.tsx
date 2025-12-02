@@ -8,13 +8,20 @@ import "./styles/global.css";
 import "react-toastify/dist/ReactToastify.css";
 import { CartProvider } from "./context/CartContext";
 import { CompareProvider } from "./context/CompareContext/CompareContext";
+import "./index.css";
+import { theme } from "./theme/theme";
+import { ThemeProvider, CssBaseline } from "@mui/material";
+
 createRoot(document.getElementById("root")!).render(
-  <StrictMode>
-    <CartProvider>
-      <CompareProvider>
-        <RouterProvider router={router} />
-        <ToastContainer />
-      </CompareProvider>
-    </CartProvider>
-  </StrictMode>
+  <ThemeProvider theme={theme}>
+    <CssBaseline />
+    <StrictMode>
+      <CartProvider>
+        <CompareProvider>
+          <RouterProvider router={router} />
+          <ToastContainer />
+        </CompareProvider>
+      </CartProvider>
+    </StrictMode>
+  </ThemeProvider>
 );
