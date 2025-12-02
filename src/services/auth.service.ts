@@ -248,4 +248,47 @@ export const authService = {
     const text = await response.text();
     return { success: true, message: text };
   },
+  async forgotPassword(email: string): Promise<void> {
+    const body = {
+      email,
+      continueUrl: `${window.location.origin}/reset-password`,
+    };
+
+    const response = await fetch(`${API_BASE_URL}/Auths/forgot-password`, {
+      method: "POST",
+      headers: {
+        accept: "*/*",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      const text = await response.text().catch(() => "");
+      throw new Error(text || "Gửi email đặt lại mật khẩu thất bại");
+    }
+  },
+
+  // === THÊM MỚI: Đặt lại mật khẩu ===
+  async resetPassword(
+    email: string,
+    token: string,
+    newPassword: string
+  ): Promise<void> {
+    const body = { email, token, newPassword };
+
+    const response = await fetch(`${API_BASE_URL}/Auths/reset-password`, {
+      method: "POST",
+      headers: {
+        accept: "*/*",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      const text = await response.text().catch(() => "");
+      throw new Error(text || "Đặt lại mật khẩu thất bại");
+    }
+  },
 };

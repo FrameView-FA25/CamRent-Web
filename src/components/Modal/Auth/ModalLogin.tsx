@@ -16,6 +16,7 @@ import { X, Eye, EyeOff, Camera } from "lucide-react";
 import { authService } from "../../../services/auth.service";
 import { colors } from "../../../theme/colors";
 import { decodeToken } from "../../../utils/decodeToken";
+import { ModalForgotPassword } from "./ModalForgotPassword";
 
 type Props = {
   open: boolean;
@@ -35,6 +36,7 @@ const ModalLogin: React.FC<Props> = ({
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [openForgot, setOpenForgot] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -215,6 +217,9 @@ const ModalLogin: React.FC<Props> = ({
               variant="text"
               size="small"
               sx={{ color: "text.secondary", "&:hover": { color: "#F59E0B" } }}
+              onClick={() => {
+                setOpenForgot(true);
+              }}
             >
               Forgot Password?
             </Button>
@@ -319,6 +324,13 @@ const ModalLogin: React.FC<Props> = ({
           </Box>
         </Box>
       </DialogContent>
+
+      {/* Modal quên mật khẩu */}
+      <ModalForgotPassword
+        open={openForgot}
+        onClose={() => setOpenForgot(false)}
+        initialEmail={email}
+      />
     </Dialog>
   );
 };

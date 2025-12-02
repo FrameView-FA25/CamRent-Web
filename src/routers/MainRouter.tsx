@@ -104,6 +104,10 @@ const routes: RouteObject[] = [
         element: <PaymentFailed />,
       },
       {
+        path: "reset-password",
+        element: <HomePage />,
+      },
+      {
         path: "*",
         element: <NotFoundPage />,
       },
