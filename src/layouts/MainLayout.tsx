@@ -24,6 +24,7 @@ import { colors } from "../theme/colors";
 import CartModal from "../components/Modal/ModalCart";
 import { useCartContext } from "../context/CartContext";
 import Footer from "./Footer";
+import { ModalResetPassword } from "@/components/Modal/Auth/ModalResetPassword";
 
 const MainLayout: React.FC = () => {
   const location = useLocation();
@@ -34,6 +35,9 @@ const MainLayout: React.FC = () => {
   const [registerOpen, setRegisterOpen] = useState(false);
   const [cartModalOpen, setCartModalOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetToken, setResetToken] = useState("");
   const [productMenuAnchor, setProductMenuAnchor] =
     useState<null | HTMLElement>(null);
 
@@ -147,6 +151,26 @@ const MainLayout: React.FC = () => {
       }
     }
   }, [isAuthenticated, role, location.pathname, navigate]);
+
+  // Mở modal đặt lại mật khẩu khi user truy cập /reset-password từ email
+  useEffect(() => {
+    if (location.pathname === "/reset-password") {
+      const params = new URLSearchParams(location.search);
+      const emailParam = params.get("email") || "";
+      const tokenParam = params.get("token") || "";
+      setResetEmail(emailParam);
+      setResetToken(tokenParam);
+      setResetOpen(true);
+    } else {
+      // Đảm bảo đóng modal khi rời route
+      setResetOpen(false);
+    }
+  }, [location.pathname, location.search]);
+
+  const handleResetClose = () => {
+    setResetOpen(false);
+    navigate("/", { replace: true });
+  };
 
   return (
     <div className="app-shell">
@@ -531,6 +555,14 @@ const MainLayout: React.FC = () => {
 
       {/* ✅ Cart Modal - Chỉ render nếu là RENTER */}
       {isRenter && <CartModal open={cartModalOpen} onClose={handleCartClose} />}
+
+      {/* Modal đặt lại mật khẩu từ link email */}
+      <ModalResetPassword
+        open={resetOpen}
+        onClose={handleResetClose}
+        email={resetEmail}
+        token={resetToken}
+      />
     </div>
   );
 };
