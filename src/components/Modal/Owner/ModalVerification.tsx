@@ -18,6 +18,7 @@ import {
   Add as AddIcon,
   Close as CloseIcon,
   Save as SaveIcon,
+  DeleteOutline as DeleteIcon,
 } from "@mui/icons-material";
 import type {
   CreateVerificationRequest,
@@ -41,6 +42,14 @@ interface DeviceOptionSource {
   brand?: string | null;
   model?: string | null;
   name?: string | null;
+}
+
+interface FormErrors {
+  name?: string;
+  phoneNumber?: string;
+  inspectionDate?: string;
+  branchId?: string;
+  items?: (string | undefined)[];
 }
 
 // Chuẩn hóa giá trị itemType từ API/tham số về "Camera" hoặc "Accessory"
@@ -130,6 +139,7 @@ export default function ModalVerification({
     type: "success" | "error";
     text: string;
   } | null>(null);
+  const [errors, setErrors] = useState<FormErrors>({});
 
   // Thử lấy context camera nếu có (useContext trả undefined nếu không có provider)
   const cameraCtx = useContext(CameraContext);
@@ -164,6 +174,56 @@ export default function ModalVerification({
     setFormData((prev: CreateVerificationRequest) => ({
       ...prev,
       [field]: value,
+    }));
+
+    // Validate realtime cho một số field cơ bản
+    setErrors((prev) => {
+      const next: FormErrors = { ...prev };
+
+      if (field === "name") {
+        const trimmed = value.trim();
+        if (!trimmed) {
+          next.name = "Vui lòng nhập tên";
+        } else if (trimmed.length < 3) {
+          next.name = "Tên phải có ít nhất 3 ký tự";
+        } else {
+          next.name = undefined;
+        }
+      } else if (field === "inspectionDate") {
+        next.inspectionDate = undefined;
+      } else if (field === "branchId") {
+        next.branchId = undefined;
+      } else if (field === "phoneNumber") {
+        next.phoneNumber = undefined;
+      }
+
+      return next;
+    });
+  };
+
+  // Xử lý riêng cho số điện thoại: chỉ cho nhập số, giới hạn độ dài
+  const handlePhoneNumberChange = (value: string) => {
+    // Loại bỏ mọi ký tự không phải số
+    const numeric = value.replace(/\D/g, "");
+    // Giới hạn 10 ký tự (đổi thành 11 nếu bạn dùng 11 số)
+    const limited = numeric.slice(0, 10);
+
+    setFormData((prev: CreateVerificationRequest) => ({
+      ...prev,
+      phoneNumber: limited,
+    }));
+
+    // Validate realtime cho số điện thoại
+    let phoneError: string | undefined;
+    if (!limited) {
+      phoneError = "Vui lòng nhập số điện thoại";
+    } else if (!/^0\d{9}$/.test(limited)) {
+      phoneError = "Số điện thoại phải có 10 số và bắt đầu bằng 0";
+    }
+
+    setErrors((prev) => ({
+      ...prev,
+      phoneNumber: phoneError,
     }));
   };
 
@@ -273,39 +333,68 @@ export default function ModalVerification({
       newItems[index] = item;
       return { ...prev, items: newItems };
     });
+
+    // Xóa lỗi item tương ứng khi người dùng đã chọn lại
+    if (field === "itemId") {
+      setErrors((prev) => {
+        if (!prev.items) return prev;
+        const nextItems = [...prev.items];
+        nextItems[index] = undefined;
+        return { ...prev, items: nextItems };
+      });
+    }
+  };
+
+  // Validate toàn bộ form, trả về true nếu hợp lệ
+  const validateForm = (): boolean => {
+    const newErrors: FormErrors = {};
+
+    if (!formData.name.trim()) {
+      newErrors.name = "Vui lòng nhập tên";
+    }
+
+    if (!formData.phoneNumber.trim()) {
+      newErrors.phoneNumber = "Vui lòng nhập số điện thoại";
+    } else if (!/^0\d{9}$/.test(formData.phoneNumber)) {
+      newErrors.phoneNumber = "Số điện thoại phải có 10 số và bắt đầu bằng 0";
+    }
+
+    if (!formData.inspectionDate) {
+      newErrors.inspectionDate = "Vui lòng chọn ngày kiểm tra";
+    }
+
+    if (!formData.branchId) {
+      newErrors.branchId = "Vui lòng chọn chi nhánh";
+    }
+
+    if (!formData.items || formData.items.length === 0) {
+      newErrors.items = ["Vui lòng thêm ít nhất một thiết bị"];
+    } else {
+      const itemErrors = formData.items.map((it) =>
+        !it.itemId ? "Vui lòng chọn tên thiết bị" : undefined
+      );
+      if (itemErrors.some((e) => e)) {
+        newErrors.items = itemErrors;
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   // Validate và submit form lên parent
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     setMessage(null);
 
+    const isValid = validateForm();
+    if (!isValid) {
+      return;
+    }
+
+    setIsLoading(true);
+
     try {
-      // Validate
-      if (!formData.name.trim()) {
-        throw new Error("Vui lòng nhập tên");
-      }
-      if (!formData.phoneNumber.trim()) {
-        throw new Error("Vui lòng nhập số điện thoại");
-      }
-      if (!formData.inspectionDate) {
-        throw new Error("Vui lòng chọn ngày kiểm tra");
-      }
-      if (!formData.branchId) {
-        throw new Error("Vui lòng chọn chi nhánh");
-      }
-
-      // Validate items
-      if (!formData.items || formData.items.length === 0) {
-        throw new Error("Vui lòng thêm ít nhất một thiết bị");
-      }
-      for (const it of formData.items) {
-        if (!it.itemId) {
-          throw new Error("Vui lòng chọn tên cho tất cả thiết bị");
-        }
-      }
-
       // Chuyển đổi inspectionDate sang định dạng ISO 8601
       const submitData: CreateVerificationRequest = {
         ...formData,
@@ -445,7 +534,8 @@ export default function ModalVerification({
               label="Tên người yêu cầu"
               value={formData.name}
               onChange={(e) => handleInputChange("name", e.target.value)}
-              required
+              error={Boolean(errors.name)}
+              helperText={errors.name || " "}
               disabled={isLoading}
               sx={{
                 "& .MuiOutlinedInput-root": {
@@ -469,10 +559,15 @@ export default function ModalVerification({
               fullWidth
               label="Số điện thoại"
               value={formData.phoneNumber}
-              onChange={(e) => handleInputChange("phoneNumber", e.target.value)}
-              required
+              onChange={(e) => handlePhoneNumberChange(e.target.value)}
+              error={Boolean(errors.phoneNumber)}
+              helperText={errors.phoneNumber || " "}
               disabled={isLoading}
               placeholder="0123456789"
+              inputProps={{
+                maxLength: 10,
+                inputMode: "numeric",
+              }}
               sx={{
                 "& .MuiOutlinedInput-root": {
                   borderRadius: 1.5,
@@ -499,7 +594,8 @@ export default function ModalVerification({
               onChange={(e) =>
                 handleInputChange("inspectionDate", e.target.value)
               }
-              required
+              error={Boolean(errors.inspectionDate)}
+              helperText={errors.inspectionDate || " "}
               disabled={isLoading}
               slotProps={{
                 inputLabel: {
@@ -530,10 +626,11 @@ export default function ModalVerification({
               label="Chi nhánh"
               value={formData.branchId}
               onChange={(e) => handleInputChange("branchId", e.target.value)}
-              required
+              error={Boolean(errors.branchId)}
               disabled={isLoading || isLoadingBranches}
               helperText={
-                isLoadingBranches ? "Đang tải danh sách chi nhánh..." : ""
+                errors.branchId ||
+                (isLoadingBranches ? "Đang tải danh sách chi nhánh..." : "")
               }
               sx={{
                 "& .MuiOutlinedInput-root": {
@@ -576,9 +673,22 @@ export default function ModalVerification({
                   size="small"
                   variant="outlined"
                   onClick={handleAddItem}
-                  startIcon={<AddIcon />}
+                  startIcon={<AddIcon sx={{ fontSize: 18 }} />}
+                  sx={{
+                    borderRadius: 999,
+                    px: 2.5,
+                    py: 0.5,
+                    fontWeight: 600,
+                    textTransform: "none",
+                    borderColor: "#2563EB",
+                    color: "#2563EB",
+                    "&:hover": {
+                      borderColor: "#1D4ED8",
+                      bgcolor: "#EFF6FF",
+                    },
+                  }}
                 >
-                  Thêm
+                  Thêm thiết bị
                 </Button>
               </Box>
 
@@ -630,7 +740,8 @@ export default function ModalVerification({
                       },
                     }}
                     helperText={
-                      it.itemType === "1" || it.itemType === "Camera"
+                      errors.items?.[idx] ||
+                      (it.itemType === "1" || it.itemType === "Camera"
                         ? cameraLoading
                           ? "Đang tải camera..."
                           : cameraError
@@ -644,7 +755,7 @@ export default function ModalVerification({
                         ? accessoryError
                         : accessoryOptions.length === 0
                         ? "Không có phụ kiện"
-                        : ""
+                        : "")
                     }
                   >
                     {it.itemType === "1" || it.itemType === "Camera"
@@ -675,7 +786,17 @@ export default function ModalVerification({
                   <Button
                     size="small"
                     color="error"
+                    variant="text"
+                    startIcon={<DeleteIcon sx={{ fontSize: 18 }} />}
                     onClick={() => handleRemoveItem(idx)}
+                    sx={{
+                      textTransform: "none",
+                      fontWeight: 500,
+                      px: 1,
+                      "&:hover": {
+                        bgcolor: "rgba(239,68,68,0.04)",
+                      },
+                    }}
                   >
                     Xóa
                   </Button>

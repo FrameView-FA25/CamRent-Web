@@ -17,6 +17,9 @@ export interface LoginResponse {
   refreshToken: string; // Refresh token để làm mới access token
   expiresAt: string; // Thời gian hết hạn của token
   fullName: string; // Tên đầy đủ của user
+  phoneNumber: string; // Số điện thoại của user
+  createdAt: string; // Ngày tạo tài khoản
+  address: string; // Địa chỉ của user
   email: string; // Email của user
   roles: string[]; // Danh sách vai trò của user (VD: ["Owner"], ["Renter"], ["BranchManager"])
 }
@@ -103,6 +106,9 @@ export const authService = {
         email: authData.email,
         fullName: authData.fullName,
         roles: authData.roles,
+        phoneNumber: authData.phoneNumber,
+        createdAt: authData.createdAt,
+        address: authData.address,
       })
     );
   },
@@ -127,7 +133,14 @@ export const authService = {
    * Lấy thông tin user từ localStorage
    * @returns Object chứa email, fullName, roles hoặc null nếu không tìm thấy
    */
-  getUserInfo(): { email: string; fullName: string; roles: string[] } | null {
+  getUserInfo(): {
+    email: string;
+    fullName: string;
+    roles: string[];
+    phoneNumber?: string;
+    createdAt?: string;
+    address?: string;
+  } | null {
     const userInfo = localStorage.getItem("userInfo");
     if (!userInfo) return null;
 

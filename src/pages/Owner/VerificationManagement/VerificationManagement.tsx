@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Box,
   Typography,
@@ -15,8 +15,6 @@ import {
   Chip,
   IconButton,
   Tooltip,
-  Card,
-  CardContent,
   Stack,
   Pagination,
   Menu,
@@ -24,10 +22,6 @@ import {
   ListItemIcon,
   ListItemText,
   Divider,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -42,17 +36,20 @@ import {
   DoNotDisturbOnRounded,
   MoreVert as MoreVertIcon,
   Description as DescriptionIcon,
-  FileDownload as FileDownloadIcon,
 } from "@mui/icons-material";
+import SignatureCanvas from "react-signature-canvas";
 import { branchService } from "../../../services/branch.service";
 import { verificationService } from "../../../services/verification.service";
 import type { CreateVerificationRequest } from "../../../services/verification.service";
+import { contractService } from "../../../services/contract.service";
 import type { Branch } from "../../../types/branch.types";
 import ModalVerification from "../../../components/Modal/Owner/ModalVerification";
 import VerificationDetailModal from "../../../components/Modal/VerificationDetailModal";
 import { useVerificationContext } from "../../../context/VerifiContext/useVerificationContext";
 import type { Verification } from "../../../types/verification.types";
-
+import { OwnerSignatureDialog } from "./SignatureDialog";
+import { ContractPreviewDialog } from "./ContractPreviewDialog";
+import { VerificationStats } from "./VerificationStats";
 export default function VerificationManagement() {
   // Sử dụng context thay vì state local
   const {
@@ -86,12 +83,14 @@ export default function VerificationManagement() {
   const [menuVerification, setMenuVerification] = useState<Verification | null>(
     null
   );
-  const [contractDialogOpen, setContractDialogOpen] = useState(false);
-  const [contractLoading, setContractLoading] = useState(false);
   const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-  const [, setCurrentContractId] = useState("");
+  const [currentContractId, setCurrentContractId] = useState<string | null>(
+    null
+  );
   const [currentFilename, setCurrentFilename] = useState("");
+  const [signatureDialogOpen, setSignatureDialogOpen] = useState(false);
+  const signatureRef = useRef<SignatureCanvas | null>(null);
 
   /**
    * useEffect: Gọi API lấy danh sách verification khi component được mount
@@ -224,81 +223,30 @@ export default function VerificationManagement() {
     setMenuVerification(null);
   };
 
-  const handleOpenContractDialog = (verification: Verification) => {
-    setMenuVerification(verification);
-    setContractDialogOpen(true);
-    setMessage(null);
-  };
-
-  const handleContractConfirm = async () => {
-    if (!menuVerification) return;
-    const token = localStorage.getItem("accessToken");
-
-    if (!token) {
-      setMessage({
-        type: "error",
-        text: "Vui lòng đăng nhập để tạo hợp đồng.",
-      });
-      return;
-    }
-
+  const handleContractConfirm = async (verification: Verification) => {
     try {
-      setContractLoading(true);
-      const createResponse = await fetch(
-        `https://camrent-backend.up.railway.app/api/Contracts/verification/${menuVerification.id}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      const token = localStorage.getItem("accessToken");
+
+      if (!token) {
+        setMessage({
+          type: "error",
+          text: "Vui lòng đăng nhập để tạo hợp đồng.",
+        });
+        return;
+      }
+
+      // 1. Tạo hợp đồng từ verification
+      const { contractId } = await contractService.createFromVerification(
+        verification.id,
+        token
       );
 
-      if (!createResponse.ok) {
-        throw new Error("Tạo hợp đồng thất bại");
-      }
+      // 2. Lấy file preview
+      const blob = await contractService.getPreview(contractId, token);
 
-      const contractData = await createResponse.json();
-      const contractId =
-        contractData?.contractId ||
-        contractData?.id ||
-        contractData?.data?.id ||
-        "";
+      // 3. Đặt tên file mặc định cho hợp đồng
+      const filename = `verification_contract_${contractId}.pdf`;
 
-      if (!contractId) {
-        throw new Error("Không xác định được mã hợp đồng");
-      }
-
-      const previewResponse = await fetch(
-        `https://camrent-backend.up.railway.app/api/Contracts/${contractId}/preview`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (!previewResponse.ok) {
-        throw new Error("Không thể lấy file xem trước hợp đồng");
-      }
-
-      const contentDisposition = previewResponse.headers.get(
-        "content-disposition"
-      );
-      let filename = `verification_contract_${contractId}.pdf`;
-
-      if (contentDisposition) {
-        const filenameMatch = contentDisposition.match(
-          /filename[^;=\n]*=(?:(["'])([^"'\n]*)\1|([^;\n]*));?/
-        );
-        if (filenameMatch) {
-          filename = filenameMatch[2] || filenameMatch[3] || filename;
-        }
-      }
-
-      const blob = await previewResponse.blob();
       const pdfBlob = new Blob([blob], { type: "application/pdf" });
       const url = window.URL.createObjectURL(pdfBlob);
 
@@ -306,7 +254,6 @@ export default function VerificationManagement() {
       setCurrentContractId(contractId);
       setCurrentFilename(filename);
       setPdfDialogOpen(true);
-      setContractDialogOpen(false);
       setMessage({
         type: "success",
         text: "Tạo hợp đồng xác minh thành công!",
@@ -321,7 +268,7 @@ export default function VerificationManagement() {
             : "Có lỗi khi tạo hợp đồng xác minh.",
       });
     } finally {
-      setContractLoading(false);
+      // no-op
     }
   };
 
@@ -341,6 +288,81 @@ export default function VerificationManagement() {
     }
     setPdfDialogOpen(false);
     setPdfUrl(null);
+  };
+
+  const handleOpenSignatureDialog = () => {
+    if (!currentContractId) {
+      setMessage({
+        type: "error",
+        text: "Không tìm thấy thông tin hợp đồng để ký.",
+      });
+      return;
+    }
+    setSignatureDialogOpen(true);
+  };
+
+  const handleCloseSignatureDialog = () => {
+    setSignatureDialogOpen(false);
+  };
+
+  const handleClearSignature = () => {
+    if (signatureRef.current) {
+      signatureRef.current.clear();
+    }
+  };
+
+  const handleSaveSignature = async () => {
+    if (!signatureRef.current) return;
+
+    const isEmpty = signatureRef.current.isEmpty();
+
+    if (isEmpty) {
+      setMessage({
+        type: "error",
+        text: "Vui lòng ký vào khung trước khi xác nhận!",
+      });
+      return;
+    }
+
+    if (!currentContractId) {
+      setMessage({
+        type: "error",
+        text: "Không tìm thấy thông tin hợp đồng để ký.",
+      });
+      return;
+    }
+
+    try {
+      const signatureData = signatureRef.current.toDataURL();
+      const base64Signature = signatureData.split(",")[1];
+
+      const token = localStorage.getItem("accessToken");
+
+      if (!token) {
+        setMessage({
+          type: "error",
+          text: "Vui lòng đăng nhập để ký hợp đồng.",
+        });
+        return;
+      }
+
+      await contractService.sign(currentContractId, base64Signature, token);
+
+      setMessage({
+        type: "success",
+        text: "Chữ ký đã được lưu thành công!",
+      });
+
+      setSignatureDialogOpen(false);
+      handleClosePdfDialog();
+      await refreshVerifications();
+    } catch (error) {
+      console.error("Signature error:", error);
+      setMessage({
+        type: "error",
+        text: error instanceof Error ? error.message : "Lỗi khi ký hợp đồng.",
+      });
+    }
   };
   /**
    * Tính toán phân trang
@@ -390,13 +412,13 @@ export default function VerificationManagement() {
     },
     approved: {
       label: "Đã duyệt",
-      bg: "#EEF4FF",
-      color: "#1D4ED8",
-      border: "1px solid rgba(59, 130, 246, 0.3)",
+      bg: "#F0FDF4",
+      color: "#10B981",
+      border: "1px solid rgba(16, 185, 129, 0.35)",
       icon: (
         <CheckCircleRounded
           fontSize="small"
-          sx={{ color: "#2563EB", mr: 0.5 }}
+          sx={{ color: "#10B981", mr: 0.5 }}
         />
       ),
     },
@@ -486,13 +508,6 @@ export default function VerificationManagement() {
       {error && (
         <Alert severity="error" sx={{ mb: 3 }}>
           {error}
-        </Alert>
-      )}
-
-      {/* Hiển thị message từ form */}
-      {message && (
-        <Alert severity={message.type} sx={{ mb: 3 }}>
-          {message.text}
         </Alert>
       )}
 
@@ -602,264 +617,7 @@ export default function VerificationManagement() {
       )}
 
       {/* Stats - Thống kê tổng quan */}
-      <Box
-        sx={{
-          display: "grid",
-          gridTemplateColumns: {
-            xs: "1fr",
-            sm: "repeat(2, 1fr)",
-            lg: "repeat(4, 1fr)",
-          },
-          gap: 3,
-          mb: 4,
-        }}
-      >
-        <Card
-          elevation={0}
-          sx={{
-            bgcolor: "#FFFFFF",
-            border: "1px solid #E2E8F0",
-            borderRadius: 2.5,
-            transition: "all 0.2s ease",
-            "&:hover": {
-              borderColor: "#FF6B35",
-              boxShadow: "0 4px 12px rgba(255, 107, 53, 0.08)",
-            },
-          }}
-        >
-          <CardContent sx={{ p: 3 }}>
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "flex-start",
-              }}
-            >
-              <Box>
-                <Typography
-                  variant="body2"
-                  sx={{
-                    color: "#64748B",
-                    fontWeight: 600,
-                    mb: 1,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.5px",
-                    fontSize: "0.75rem",
-                  }}
-                >
-                  Tổng Số Yêu Cầu
-                </Typography>
-                <Typography
-                  variant="h3"
-                  fontWeight={700}
-                  sx={{ color: "#1E293B" }}
-                >
-                  {verifications.length}
-                </Typography>
-              </Box>
-              <Box
-                sx={{
-                  bgcolor: "#FFF5F0",
-                  p: 1.5,
-                  borderRadius: 2,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Typography sx={{ fontSize: "1.5rem" }}>📦</Typography>
-              </Box>
-            </Box>
-          </CardContent>
-        </Card>
-
-        <Card
-          elevation={0}
-          sx={{
-            bgcolor: "#FFFFFF",
-            border: "1px solid #E2E8F0",
-            borderRadius: 2.5,
-            transition: "all 0.2s ease",
-            "&:hover": {
-              borderColor: "#3B82F6",
-              boxShadow: "0 4px 12px rgba(59, 130, 246, 0.08)",
-            },
-          }}
-        >
-          <CardContent sx={{ p: 3 }}>
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "flex-start",
-              }}
-            >
-              <Box>
-                <Typography
-                  variant="body2"
-                  sx={{
-                    color: "#64748B",
-                    fontWeight: 600,
-                    mb: 1,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.5px",
-                    fontSize: "0.75rem",
-                  }}
-                >
-                  Chờ Xử Lý
-                </Typography>
-                <Typography
-                  variant="h3"
-                  fontWeight={700}
-                  sx={{ color: "#3B82F6" }}
-                >
-                  {
-                    verifications.filter(
-                      (v) =>
-                        v.status === "Pending" ||
-                        v.status.toLowerCase() === "pending"
-                    ).length
-                  }
-                </Typography>
-              </Box>
-              <Box
-                sx={{
-                  bgcolor: "#EFF6FF",
-                  p: 1.5,
-                  borderRadius: 2,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Typography sx={{ fontSize: "1.5rem" }}>⏳</Typography>
-              </Box>
-            </Box>
-          </CardContent>
-        </Card>
-
-        <Card
-          elevation={0}
-          sx={{
-            bgcolor: "#FFFFFF",
-            border: "1px solid #E2E8F0",
-            borderRadius: 2.5,
-            transition: "all 0.2s ease",
-            "&:hover": {
-              borderColor: "#10B981",
-              boxShadow: "0 4px 12px rgba(16, 185, 129, 0.08)",
-            },
-          }}
-        >
-          <CardContent sx={{ p: 3 }}>
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "flex-start",
-              }}
-            >
-              <Box>
-                <Typography
-                  variant="body2"
-                  sx={{
-                    color: "#64748B",
-                    fontWeight: 600,
-                    mb: 1,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.5px",
-                    fontSize: "0.75rem",
-                  }}
-                >
-                  Đã Hoàn Thành
-                </Typography>
-                <Typography
-                  variant="h3"
-                  fontWeight={700}
-                  sx={{ color: "#10B981" }}
-                >
-                  {verifications.filter((v) => v.status === "Completed").length}
-                </Typography>
-              </Box>
-              <Box
-                sx={{
-                  bgcolor: "#F0FDF4",
-                  p: 1.5,
-                  borderRadius: 2,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Typography sx={{ fontSize: "1.5rem" }}>✅</Typography>
-              </Box>
-            </Box>
-          </CardContent>
-        </Card>
-
-        <Card
-          elevation={0}
-          sx={{
-            bgcolor: "#FFFFFF",
-            border: "1px solid #E2E8F0",
-            borderRadius: 2.5,
-            transition: "all 0.2s ease",
-            "&:hover": {
-              borderColor: "#EF4444",
-              boxShadow: "0 4px 12px rgba(239, 68, 68, 0.08)",
-            },
-          }}
-        >
-          <CardContent sx={{ p: 3 }}>
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "flex-start",
-              }}
-            >
-              <Box>
-                <Typography
-                  variant="body2"
-                  sx={{
-                    color: "#64748B",
-                    fontWeight: 600,
-                    mb: 1,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.5px",
-                    fontSize: "0.75rem",
-                  }}
-                >
-                  Đã Hủy/Từ Chối
-                </Typography>
-                <Typography
-                  variant="h3"
-                  fontWeight={700}
-                  sx={{ color: "#EF4444" }}
-                >
-                  {
-                    verifications.filter(
-                      (v) => v.status === "Cancelled" || v.status === "Rejected"
-                    ).length
-                  }
-                </Typography>
-              </Box>
-              <Box
-                sx={{
-                  bgcolor: "#FEF2F2",
-                  p: 1.5,
-                  borderRadius: 2,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Typography sx={{ fontSize: "1.5rem" }}>❌</Typography>
-              </Box>
-            </Box>
-          </CardContent>
-        </Card>
-      </Box>
+      <VerificationStats verifications={verifications} />
 
       {loading && !openModal ? (
         <Box display="flex" justifyContent="center" py={8}>
@@ -1187,11 +945,13 @@ export default function VerificationManagement() {
         anchorEl={actionMenuAnchor}
         open={Boolean(actionMenuAnchor)}
         onClose={handleCloseActionMenu}
-        PaperProps={{
-          sx: {
-            minWidth: 220,
-            borderRadius: 2,
-            boxShadow: "0 8px 32px rgba(15, 23, 42, 0.1)",
+        slotProps={{
+          paper: {
+            sx: {
+              minWidth: 220,
+              borderRadius: 2,
+              boxShadow: "0 8px 32px rgba(15, 23, 42, 0.1)",
+            },
           },
         }}
       >
@@ -1223,13 +983,13 @@ export default function VerificationManagement() {
           onClick={() => {
             if (!menuVerification) return;
             handleCloseActionMenu();
-            handleOpenContractDialog(menuVerification);
+            handleContractConfirm(menuVerification);
           }}
         >
           <ListItemIcon>
             <DescriptionIcon fontSize="small" sx={{ color: "#F97316" }} />
           </ListItemIcon>
-          <ListItemText primary="Tạo hợp đồng" />
+          <ListItemText primary="Xem hợp đồng" />
         </MenuItem>
         <Divider />
         <MenuItem
@@ -1272,146 +1032,22 @@ export default function VerificationManagement() {
         onClose={handleCloseDetailModal}
         verification={selectedVerification}
       />
-
-      <Dialog
-        open={contractDialogOpen}
-        onClose={() => !contractLoading && setContractDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
-        PaperProps={{ sx: { borderRadius: 3 } }}
-      >
-        <DialogTitle sx={{ fontWeight: 600, color: "#1E293B" }}>
-          Tạo hợp đồng xác minh
-        </DialogTitle>
-        <DialogContent dividers sx={{ borderTop: "1px solid #E2E8F0" }}>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-            <Typography variant="body2" sx={{ color: "#475569" }}>
-              <strong>Yêu cầu:</strong> {menuVerification?.name}
-            </Typography>
-            <Typography variant="body2" sx={{ color: "#475569" }}>
-              <strong>Số điện thoại:</strong> {menuVerification?.phoneNumber}
-            </Typography>
-            <Typography variant="body2" sx={{ color: "#475569" }}>
-              <strong>Chi nhánh:</strong>{" "}
-              {menuVerification?.branchName || "Không xác định"}
-            </Typography>
-            <Typography variant="body2" sx={{ color: "#475569" }}>
-              <strong>Lịch kiểm tra:</strong>{" "}
-              {menuVerification
-                ? formatDate(menuVerification.inspectionDate)
-                : "--"}
-            </Typography>
-            <Typography variant="body2" sx={{ color: "#475569" }}>
-              <strong>Số lượng thiết bị:</strong>{" "}
-              {menuVerification?.items.length ?? 0}
-            </Typography>
-          </Box>
-        </DialogContent>
-        <DialogActions sx={{ p: 3 }}>
-          <Button
-            onClick={() => setContractDialogOpen(false)}
-            disabled={contractLoading}
-            sx={{
-              color: "#64748B",
-              "&:hover": {
-                bgcolor: "#F1F5F9",
-              },
-            }}
-          >
-            Hủy
-          </Button>
-          <Button
-            onClick={handleContractConfirm}
-            variant="contained"
-            disabled={contractLoading}
-            sx={{
-              bgcolor: "#F97316",
-              "&:hover": { bgcolor: "#EA580C" },
-              "&:disabled": { bgcolor: "#FCDAD0" },
-            }}
-          >
-            {contractLoading ? (
-              <CircularProgress size={24} sx={{ color: "#FFFFFF" }} />
-            ) : (
-              <>
-                <DescriptionIcon sx={{ mr: 1 }} /> Tạo hợp đồng
-              </>
-            )}
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      <Dialog
+      <ContractPreviewDialog
         open={pdfDialogOpen}
         onClose={handleClosePdfDialog}
-        maxWidth="md"
-        fullWidth
-        PaperProps={{
-          sx: {
-            borderRadius: 3,
-            height: "90vh",
-          },
-        }}
-      >
-        <DialogTitle sx={{ fontWeight: 600, color: "#1E293B" }}>
-          Xem trước hợp đồng
-        </DialogTitle>
-        <DialogContent
-          dividers
-          sx={{ p: 0, position: "relative", bgcolor: "#000000", flex: 1 }}
-        >
-          {pdfUrl ? (
-            <iframe
-              src={pdfUrl}
-              title="Verification Contract Preview"
-              style={{ width: "100%", height: "100%", border: "none" }}
-            />
-          ) : (
-            <Box
-              sx={{
-                minHeight: 320,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#94A3B8",
-                fontStyle: "italic",
-              }}
-            >
-              Không có dữ liệu hợp đồng
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions sx={{ p: 3 }}>
-          <Button
-            onClick={handleClosePdfDialog}
-            sx={{
-              color: "#64748B",
-              "&:hover": {
-                bgcolor: "#F1F5F9",
-              },
-            }}
-          >
-            Đóng
-          </Button>
-          <Button
-            onClick={handleDownloadPdf}
-            variant="contained"
-            disabled={!pdfUrl}
-            startIcon={<FileDownloadIcon />}
-            sx={{
-              bgcolor: "#F97316",
-              "&:hover": {
-                bgcolor: "#EA580C",
-              },
-              "&:disabled": {
-                bgcolor: "#FCDAD0",
-              },
-            }}
-          >
-            Tải về
-          </Button>
-        </DialogActions>
-      </Dialog>
+        pdfUrl={pdfUrl}
+        currentContractId={currentContractId}
+        onDownload={handleDownloadPdf}
+        onOpenSignature={handleOpenSignatureDialog}
+      />
+
+      <OwnerSignatureDialog
+        open={signatureDialogOpen}
+        onClose={handleCloseSignatureDialog}
+        signatureRef={signatureRef}
+        onClear={handleClearSignature}
+        onSave={handleSaveSignature}
+      />
     </Box>
   );
 }

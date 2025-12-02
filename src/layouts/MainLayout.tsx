@@ -85,7 +85,7 @@ const MainLayout: React.FC = () => {
     if (role == "Renter") {
       navigate("/renter/dashboard");
     } else if (role == "Staff") {
-      navigate("/staff/dashboard");
+      navigate("/staff/check-booking");
     } else if (role == "BranchManager") {
       navigate("/manager/dashboard");
     } else if (role == "Owner") {
@@ -138,6 +138,15 @@ const MainLayout: React.FC = () => {
   const role = localStorage.getItem("role");
   const isRenter = role === "Renter";
   const productMenuOpen = Boolean(productMenuAnchor);
+
+  useEffect(() => {
+    if (isAuthenticated && role === "Staff") {
+      // luôn đưa về trang staff mà bạn muốn
+      if (!location.pathname.startsWith("/staff")) {
+        navigate("/staff/check-booking", { replace: true });
+      }
+    }
+  }, [isAuthenticated, role, location.pathname, navigate]);
 
   return (
     <div className="app-shell">

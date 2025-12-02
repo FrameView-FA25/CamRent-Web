@@ -8,6 +8,10 @@ import {
   InputAdornment,
   Chip,
   IconButton,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
   Table,
   TableBody,
   TableCell,
@@ -16,7 +20,6 @@ import {
   TableRow,
   TablePagination,
   CircularProgress,
-  Button,
   Tab,
   Tabs,
   Tooltip,
@@ -34,6 +37,7 @@ import {
   PlaylistAddCheck,
   Clear,
   Edit,
+  MoreVert,
 } from "@mui/icons-material";
 import {
   fetchStaffBookings,
@@ -96,6 +100,11 @@ const CheckBookings: React.FC = () => {
   const [currentInspectionItems, setCurrentInspectionItems] = useState<
     VerificationItem[]
   >([]);
+  const [actionMenuAnchorEl, setActionMenuAnchorEl] =
+    useState<null | HTMLElement>(null);
+  const [actionMenuBookingId, setActionMenuBookingId] = useState<string | null>(
+    null
+  );
   const navigate = useNavigate();
   useEffect(() => {
     loadAssignments();
@@ -128,6 +137,26 @@ const CheckBookings: React.FC = () => {
 
   const handleViewDetail = (booking: Booking) => {
     navigate(`/staff/booking/${booking.id}`);
+  };
+
+  // Chỉ cho phép tạo phiếu kiểm tra ở trạng thái mong muốn
+  const canCreateInspection = (booking: Booking) => {
+    // Ví dụ: chỉ cho phép khi đã nhận máy
+    return booking.status === "PickedUp";
+    // Nếu bạn muốn trạng thái khác, sửa lại điều kiện ở đây
+  };
+
+  const handleOpenActionMenu = (
+    event: React.MouseEvent<HTMLElement>,
+    bookingId: string
+  ) => {
+    setActionMenuAnchorEl(event.currentTarget);
+    setActionMenuBookingId(bookingId);
+  };
+
+  const handleCloseActionMenu = () => {
+    setActionMenuAnchorEl(null);
+    setActionMenuBookingId(null);
   };
 
   const handleOpenInspection = (bookingId: string) => {
@@ -436,10 +465,14 @@ const CheckBookings: React.FC = () => {
 
       const matchesTab =
         selectedTab === 0 ||
-        (selectedTab === 1 && booking.status === "0") ||
-        (selectedTab === 2 && booking.status === "1") ||
-        (selectedTab === 3 && booking.status === "2") ||
-        (selectedTab === 4 && booking.status === "3");
+        // Chờ duyệt
+        (selectedTab === 1 && booking.status === "PendingApproval") ||
+        // Đã xác nhận
+        (selectedTab === 2 && booking.status === "Confirmed") ||
+        // Đã nhận máy (và đang thuê)
+        (selectedTab === 3 && booking.status === "PickedUp") ||
+        // Hoàn tất
+        (selectedTab === 4 && booking.status === "Completed");
 
       return matchesSearch && matchesTab;
     });
@@ -452,14 +485,15 @@ const CheckBookings: React.FC = () => {
     );
   }, [filteredBookings, page, rowsPerPage]);
 
-  // Statistics
+  // Statistics theo các trạng thái mới
   const stats = useMemo(() => {
     return {
       total: bookings.length,
-      pending: bookings.filter((b) => b.status === "0").length,
-      confirmed: bookings.filter((b) => b.status === "1").length,
-      delivering: bookings.filter((b) => b.status === "2").length,
-      completed: bookings.filter((b) => b.status === "3").length,
+      pendingApproval: bookings.filter((b) => b.status === "PendingApproval")
+        .length,
+      confirmed: bookings.filter((b) => b.status === "Confirmed").length,
+      pickedUp: bookings.filter((b) => b.status === "PickedUp").length,
+      completed: bookings.filter((b) => b.status === "Completed").length,
     };
   }, [bookings]);
 
@@ -638,13 +672,13 @@ const CheckBookings: React.FC = () => {
                     fontSize: "0.75rem",
                   }}
                 >
-                  Chờ xác nhận
+                  Chờ duyệt
                 </Typography>
                 <Typography
                   variant="h5"
                   sx={{ fontWeight: 700, color: "#F59E0B", mt: 0.5 }}
                 >
-                  {stats.pending}
+                  {stats.pendingApproval}
                 </Typography>
               </Box>
               <Box
@@ -746,13 +780,13 @@ const CheckBookings: React.FC = () => {
                     fontSize: "0.75rem",
                   }}
                 >
-                  Đang giao
+                  Đã nhận máy
                 </Typography>
                 <Typography
                   variant="h5"
                   sx={{ fontWeight: 700, color: "#4F46E5", mt: 0.5 }}
                 >
-                  {stats.delivering}
+                  {stats.pickedUp}
                 </Typography>
               </Box>
               <Box
@@ -800,7 +834,7 @@ const CheckBookings: React.FC = () => {
                     fontSize: "0.75rem",
                   }}
                 >
-                  Hoàn thành
+                  Hoàn tất
                 </Typography>
                 <Typography
                   variant="h5"
@@ -931,23 +965,23 @@ const CheckBookings: React.FC = () => {
           >
             <Tab label={`Tất cả (${bookings.length})`} />
             <Tab
-              label={`Chờ xác nhận (${
-                bookings.filter((b) => b.status === "0").length
+              label={`Chờ duyệt (${
+                bookings.filter((b) => b.status === "PendingApproval").length
               })`}
             />
             <Tab
               label={`Đã xác nhận (${
-                bookings.filter((b) => b.status === "1").length
+                bookings.filter((b) => b.status === "Confirmed").length
               })`}
             />
             <Tab
-              label={`Đang giao (${
-                bookings.filter((b) => b.status === "2").length
+              label={`Đã nhận máy (${
+                bookings.filter((b) => b.status === "PickedUp").length
               })`}
             />
             <Tab
-              label={`Hoàn thành (${
-                bookings.filter((b) => b.status === "3").length
+              label={`Hoàn tất (${
+                bookings.filter((b) => b.status === "Completed").length
               })`}
             />
           </Tabs>
@@ -1190,84 +1224,17 @@ const CheckBookings: React.FC = () => {
                             }}
                           />
                         </TableCell>
-                        <TableCell>
-                          <Box
-                            sx={{
-                              display: "flex",
-                              gap: 1.25,
-                              justifyContent: "center",
-                              alignItems: "center",
-                            }}
-                          >
-                            <Tooltip title="Xem chi tiết">
-                              <IconButton
-                                onClick={() => handleViewDetail(booking)}
-                                size="small"
-                                sx={{
-                                  borderRadius: 2,
-                                  border: "1px solid #E5E7EB",
-                                  bgcolor: "#F3F4F6",
-                                  color: "#4B5563",
-                                  "&:hover": {
-                                    bgcolor: "#FFF7ED",
-                                    color: "#F97316",
-                                    borderColor: "#F97316",
-                                  },
-                                }}
-                              >
-                                <Visibility fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Chỉnh sửa phiếu kiểm tra">
-                              <IconButton
-                                onClick={() =>
-                                  handleManageInspections(booking.id)
-                                }
-                                size="small"
-                                sx={{
-                                  borderRadius: 2,
-                                  border: "1px solid #E5E7EB",
-                                  bgcolor: "#F3F4F6",
-                                  color: "#4B5563",
-                                  "&:hover": {
-                                    bgcolor: "#FFF7ED",
-                                    color: "#F97316",
-                                    borderColor: "#F97316",
-                                  },
-                                }}
-                              >
-                                <Edit fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Tạo phiếu kiểm tra">
-                              <Button
-                                variant="contained"
-                                size="small"
-                                onClick={() => handleOpenInspection(booking.id)}
-                                aria-label="Tạo phiếu kiểm tra"
-                                sx={{
-                                  borderRadius: 999,
-                                  textTransform: "none",
-                                  fontWeight: 600,
-                                  px: 1.25,
-                                  height: 34,
-                                  minWidth: 0,
-                                  background:
-                                    "linear-gradient(135deg, #F97316 0%, #EA580C 100%)",
-                                  boxShadow:
-                                    "0 6px 16px rgba(249, 115, 22, 0.25)",
-                                  "&:hover": {
-                                    background:
-                                      "linear-gradient(135deg, #EA580C 0%, #C2410C 100%)",
-                                    boxShadow:
-                                      "0 10px 20px rgba(234, 88, 12, 0.35)",
-                                  },
-                                }}
-                              >
-                                <PlaylistAddCheck fontSize="small" />
-                              </Button>
-                            </Tooltip>
-                          </Box>
+                        <TableCell align="center">
+                          <Tooltip title="Hành động">
+                            <IconButton
+                              size="small"
+                              onClick={(event) =>
+                                handleOpenActionMenu(event, booking.id)
+                              }
+                            >
+                              <MoreVert />
+                            </IconButton>
+                          </Tooltip>
                         </TableCell>
                       </TableRow>
                     );
@@ -1351,6 +1318,73 @@ const CheckBookings: React.FC = () => {
           }}
         />
       )}
+      <Menu
+        anchorEl={actionMenuAnchorEl}
+        open={Boolean(actionMenuAnchorEl)}
+        onClose={handleCloseActionMenu}
+        PaperProps={{
+          sx: {
+            minWidth: 220,
+            borderRadius: 2,
+            boxShadow: "0 8px 32px rgba(15, 23, 42, 0.1)",
+          },
+        }}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        transformOrigin={{ vertical: "top", horizontal: "right" }}
+      >
+        <MenuItem
+          onClick={() => {
+            const booking = bookings.find((b) => b.id === actionMenuBookingId);
+            if (booking) {
+              handleViewDetail(booking);
+            }
+            handleCloseActionMenu();
+          }}
+        >
+          <ListItemIcon>
+            <Visibility fontSize="small" sx={{ color: "#C8501D" }} />
+          </ListItemIcon>
+          <ListItemText primary="Xem chi tiết" />
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            if (actionMenuBookingId) {
+              handleManageInspections(actionMenuBookingId);
+            }
+            handleCloseActionMenu();
+          }}
+        >
+          <ListItemIcon>
+            <Edit fontSize="small" sx={{ color: "#1D4ED8" }} />
+          </ListItemIcon>
+          <ListItemText primary="Chỉnh sửa phiếu kiểm tra" />
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            const booking = bookings.find((b) => b.id === actionMenuBookingId);
+            if (!booking) {
+              handleCloseActionMenu();
+              return;
+            }
+
+            if (!canCreateInspection(booking)) {
+              toast.warn(
+                "Chỉ có thể tạo phiếu kiểm tra cho đơn ở trạng thái đang chờ xử lý."
+              );
+              handleCloseActionMenu();
+              return;
+            }
+
+            handleOpenInspection(booking.id);
+            handleCloseActionMenu();
+          }}
+        >
+          <ListItemIcon>
+            <PlaylistAddCheck fontSize="small" sx={{ color: "#F97316" }} />
+          </ListItemIcon>
+          <ListItemText primary="Tạo phiếu kiểm tra" />
+        </MenuItem>
+      </Menu>
       <InspectionListDialog
         open={inspectionListOpen}
         onClose={() => {

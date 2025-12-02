@@ -16,7 +16,6 @@ import {
 } from "@mui/material";
 import {
   Menu as MenuIcon,
-  Home as HomeIcon,
   People as PeopleIcon,
   ExitToApp as LogoutIcon,
   Person as PersonIcon,
@@ -27,7 +26,6 @@ import { colors } from "../../theme/colors";
 const DRAWER_WIDTH = 280;
 
 const menuItems = [
-  { text: "Trang chủ", icon: <HomeIcon />, path: "/staff/dashboard" },
   {
     text: "Kiểm tra đơn hàng",
     icon: <PeopleIcon />,

@@ -4,8 +4,10 @@ import { authService } from "../services/auth.service";
 interface User {
   email: string;
   fullName: string;
-  phone?: string;
+  phoneNumber?: string;
+  createdAt?: string;
   roles: string[];
+  address?: string;
 }
 
 export const useAuth = () => {
@@ -22,6 +24,9 @@ export const useAuth = () => {
         email: userInfo.email,
         fullName: userInfo.fullName,
         roles: userInfo.roles,
+        phoneNumber: userInfo.phoneNumber,
+        createdAt: userInfo.createdAt,
+        address: userInfo.address,
       });
     } else {
       setUser(null);
