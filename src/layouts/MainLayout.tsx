@@ -153,7 +153,7 @@ const MainLayout: React.FC = () => {
                 : "text-gray-700 hover:text-yellow-500"
             }
           >
-            Lý do
+            Chính Sách
           </Link>
           <Link
             to="/contact"

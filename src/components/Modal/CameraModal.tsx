@@ -9,7 +9,7 @@ interface CameraModelProps {
 
 function Model({ modelPath = "/camera.glb" }) {
   const { scene } = useGLTF(modelPath);
-  return <primitive object={scene} scale={2} />;
+  return <primitive object={scene} scale={16.5} />;
 }
 
 const CameraModel: React.FC<CameraModelProps> = ({ modelPath }) => {
@@ -18,22 +18,37 @@ const CameraModel: React.FC<CameraModelProps> = ({ modelPath }) => {
       sx={{
         width: "100%",
         height: "500px",
+        maxHeight: "500px",
+        minHeight: "500px",
         position: "relative",
+        overflow: "hidden",
       }}
     >
       <Canvas
-        camera={{ position: [0, 0, 5], fov: 50 }}
-        style={{ background: "transparent" }}
+        camera={{
+          position: [0, 0, 5],
+          fov: 50,
+        }}
+        style={{
+          background: "transparent",
+          width: "100%",
+          height: "100%",
+        }}
       >
         <Suspense fallback={null}>
           <ambientLight intensity={0.5} />
           <directionalLight position={[10, 10, 5]} intensity={1} />
           <Model modelPath={modelPath} />
           <OrbitControls
-            enableZoom={true}
+            enableZoom={false}
             enablePan={false}
+            enableRotate={true}
             autoRotate
             autoRotateSpeed={2}
+            minPolarAngle={Math.PI / 4}
+            maxPolarAngle={Math.PI / 1.5}
+            minAzimuthAngle={-Math.PI / 2}
+            maxAzimuthAngle={Math.PI / 2}
           />
           <Environment preset="studio" />
         </Suspense>
@@ -49,7 +64,7 @@ const CameraModel: React.FC<CameraModelProps> = ({ modelPath }) => {
           zIndex: -1,
         }}
       >
-        <CircularProgress />
+        <CircularProgress sx={{ color: "#F97316" }} />
       </Box>
     </Box>
   );

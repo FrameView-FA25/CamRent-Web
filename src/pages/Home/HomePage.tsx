@@ -13,15 +13,15 @@ import ThreeDCarousel from "../../components/ui/3d-carousel";
 
 const categories = [
   {
-    title: "Drones",
+    title: "Máy bay camera",
     img: "https://images.unsplash.com/photo-1473968512647-3e447244af8f?w=800",
   },
   {
-    title: "Lighting",
+    title: "Ánh sáng",
     img: "https://images.unsplash.com/photo-1535016120720-40c646be5580?w=800",
   },
   {
-    title: "Cameras",
+    title: "Máy ảnh",
     img: "https://thuvienmuasam.com/uploads/default/original/2X/8/82b7fef36a4202ca4dc7d22ead2892e5a924038c.jpeg",
   },
 ];
@@ -56,37 +56,32 @@ const testimonials = [
   },
   {
     name: "Hồng Nhung",
-    role: "Content Creator",
+    role: "Nhà sáng tạo nội dung",
     avatar: "https://i.pravatar.cc/150?img=5",
     rating: 5,
     comment:
-      "Giá cả hợp lý, quy trình thuê đơn giản và nhanh chóng. Tôi đặc biệt thích việc có thể thuê lens kèm theo. Chắc chắn sẽ quay lại!",
+      "Giá cả hợp lý, quy trình thuê đơn giản và nhanh chóng. Tôi đặc biệt thích việc có thể thuê ống kính kèm theo. Chắc chắn sẽ quay lại!",
   },
   {
     name: "Đức Anh",
-    role: "Filmmaker",
+    role: "Nhà làm phim",
     avatar: "https://i.pravatar.cc/150?img=33",
     rating: 5,
     comment:
-      "Từng thuê thiết bị ở nhiều nơi nhưng CamRent là tốt nhất. Máy móc mới, sạch sẽ và luôn có hướng dẫn chi tiết. Highly recommended!",
+      "Từng thuê thiết bị ở nhiều nơi nhưng CamRent là tốt nhất. Máy móc mới, sạch sẽ và luôn có hướng dẫn chi tiết. Rất đáng để giới thiệu!",
   },
 ];
 
 const HomePage: React.FC = () => {
   return (
     <section className="page home-page">
-      {/* ===== Hero Section ===== */}
       <div className="hero">
         <div className="hero-content">
-          <h1 className="hero-title">
-            Capture Without
-            <br />
-            Owning
-          </h1>
+          <h1 className="hero-title">Chụp Ảnh Chuyên Nghiệp</h1>
           <p className="hero-subtitle">
-            Because owning expensive gear is sooo last season.
+            Vì sở hữu thiết bị đắt tiền đã là quá khứ.
             <br />
-            Rent it, shoot it, slay it.
+            Thuê nó, chụp nó, tạo nên điều tuyệt vời.
           </p>
           <div className="hero-buttons">
             <a
@@ -94,10 +89,10 @@ const HomePage: React.FC = () => {
               className="btn btn-primary"
               style={{ color: "white" }}
             >
-              Explore Gears
+              Khám Phá Thiết Bị
             </a>
             <a href="/rent" className="btn btn-secondary">
-              Rent Now
+              Thuê Ngay
             </a>
           </div>
         </div>
@@ -124,7 +119,7 @@ const HomePage: React.FC = () => {
                 display: "block",
               }}
             >
-              EXPLORE OUR COLLECTION
+              KHÁM PHÁ BỘ SƯU TẬP
             </Typography>
             <Typography
               variant="h3"
@@ -135,7 +130,7 @@ const HomePage: React.FC = () => {
                 mb: 2,
               }}
             >
-              Categories
+              Danh Mục Sản Phẩm
             </Typography>
             <Typography
               variant="body1"
@@ -146,8 +141,8 @@ const HomePage: React.FC = () => {
                 mx: "auto",
               }}
             >
-              Discover our wide range of professional camera equipment and
-              accessories
+              Khám phá dòng thiết bị máy ảnh chuyên nghiệp và phụ kiện đa dạng
+              của chúng tôi
             </Typography>
           </Box>
 
@@ -184,7 +179,7 @@ const HomePage: React.FC = () => {
               <Box
                 component="img"
                 src="../../public/sony.jpg"
-                alt="Professional Camera"
+                alt="Máy ảnh chuyên nghiệp"
                 sx={{
                   width: "100%",
                   maxWidth: 400,
@@ -206,7 +201,7 @@ const HomePage: React.FC = () => {
                   display: "block",
                 }}
               >
-                EXPERIENCE MATTERS
+                TRẢI NGHIỆM LÀ QUAN TRỌNG
               </Typography>
               <Typography
                 variant="h3"
@@ -218,12 +213,12 @@ const HomePage: React.FC = () => {
                   lineHeight: 1.2,
                 }}
               >
-                Gear That Elevates
+                Thiết Bị Nâng Tầm
                 <br />
-                Your{" "}
                 <Box component="span" sx={{ fontStyle: "italic" }}>
-                  Creativity
-                </Box>
+                  Sáng Tạo
+                </Box>{" "}
+                Của Bạn
               </Typography>
               <Typography
                 variant="body1"
@@ -234,10 +229,11 @@ const HomePage: React.FC = () => {
                   maxWidth: 500,
                 }}
               >
-                Whether you're a filmmaker, content creator, or photographer we
-                make sure you always have access to the latest cameras and
-                lenses without breaking the bank. Our gear is professionally
-                maintained and curated for creators who care about quality.
+                Cho dù bạn là nhà làm phim, người sáng tạo nội dung hay nhiếp
+                ảnh gia, chúng tôi đảm bảo bạn luôn có quyền truy cập vào máy
+                ảnh và ống kính mới nhất mà không tốn kém. Thiết bị của chúng
+                tôi được bảo trì chuyên nghiệp và được tuyển chọn cho những
+                người sáng tạo quan tâm đến chất lượng.
               </Typography>
             </Box>
           </Box>
@@ -273,7 +269,7 @@ const HomePage: React.FC = () => {
                   display: "block",
                 }}
               >
-                PREMIUM EQUIPMENT
+                THIẾT BỊ CAO CẤP
               </Typography>
               <Typography
                 variant="h3"
@@ -285,9 +281,9 @@ const HomePage: React.FC = () => {
                   lineHeight: 1.2,
                 }}
               >
-                Trusted Brands.
+                Thương Hiệu Uy Tín.
                 <br />
-                Zero Compromises.
+                Không Thỏa Hiệp.
               </Typography>
               <Typography
                 variant="body1"
@@ -298,10 +294,11 @@ const HomePage: React.FC = () => {
                   maxWidth: 500,
                 }}
               >
-                We partner with the best. Canon, Sony, RED, DJI so you can shoot
-                with industry-standard equipment, without the upfront cost.
-                Every rental goes through a strict quality check before it
-                reaches you.
+                Chúng tôi hợp tác với những thương hiệu tốt nhất. Canon, Sony,
+                RED, DJI để bạn có thể chụp với thiết bị tiêu chuẩn ngành, mà
+                không phải trả chi phí ban đầu. Mọi thiết bị cho thuê đều trải
+                qua quy trình kiểm tra chất lượng nghiêm ngặt trước khi đến tay
+                bạn.
               </Typography>
             </Box>
 
@@ -316,7 +313,7 @@ const HomePage: React.FC = () => {
               <Box
                 component="img"
                 src="../../public/sony1.png"
-                alt="Professional Camera Equipment"
+                alt="Thiết bị máy ảnh chuyên nghiệp"
                 sx={{
                   width: "100%",
                   maxWidth: 500,
@@ -360,7 +357,7 @@ const HomePage: React.FC = () => {
                 mb: 2,
               }}
             >
-              Đánh giá từ Khách hàng
+              Đánh Giá Từ Khách Hàng
             </Typography>
             <Typography
               variant="body1"
@@ -489,7 +486,7 @@ const HomePage: React.FC = () => {
                 display: "block",
               }}
             >
-              OUR PARTNER
+              ĐỐI TÁC CỦA CHÚNG TÔI
             </Typography>
           </Box>
 

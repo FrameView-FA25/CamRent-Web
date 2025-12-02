@@ -235,7 +235,7 @@ const ModalLogin: React.FC<Props> = ({
               "&:hover": { bgcolor: colors.primary.light },
               "&:disabled": {
                 bgcolor: colors.primary.light,
-                color: colors.neutral[400],
+                color: "#000000",
               },
             }}
           >
