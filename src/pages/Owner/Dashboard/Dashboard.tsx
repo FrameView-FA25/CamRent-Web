@@ -64,8 +64,8 @@ const COMPACT_CURRENCY_FORMATTER = new Intl.NumberFormat("vi-VN", {
 
 const formatCurrency = (value: number) => CURRENCY_FORMATTER.format(value);
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const formatCurrencyCompact = (value: number) =>
-  COMPACT_CURRENCY_FORMATTER.format(value);
+// const formatCurrencyCompact = (value: number) =>
+//   COMPACT_CURRENCY_FORMATTER.format(value);
 
 const formatChartLabel = (dateString: string, period: ChartPeriod) => {
   const date = new Date(dateString);
