@@ -145,7 +145,7 @@ const ProductPage: React.FC = () => {
         })
         .slice(0, 5)
         .map((camera, index) => {
-          let matchScore = 85 - index * 5;
+          const matchScore = 85 - index * 5;
 
           const reasons: string[] = [
             "Đánh giá cao từ người dùng",
