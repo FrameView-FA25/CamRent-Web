@@ -184,7 +184,7 @@ const ProductHeader: React.FC<ProductHeaderProps> = ({
           {/* Search Box - Centered */}
           <Box
             sx={{
-              maxWidth: 800,
+              maxWidth: 600,
               mx: "auto",
               position: "relative",
             }}
@@ -213,21 +213,25 @@ const ProductHeader: React.FC<ProductHeaderProps> = ({
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
-                        <SearchIcon sx={{ color: grey[500], fontSize: 28 }} />
+                        <SearchIcon sx={{ color: grey[500], fontSize: 24 }} />
                       </InputAdornment>
                     ),
                   }}
                   sx={{
                     "& .MuiOutlinedInput-root": {
                       borderRadius: "12px 0 0 12px",
-                      py: 0.75,
-                      fontSize: "1rem",
+                      py: 0.5,
+                      fontSize: "0.95rem",
+                      height: "48px",
                       "&:hover .MuiOutlinedInput-notchedOutline": {
                         borderColor: "transparent",
                       },
                       "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
                         borderColor: "transparent",
                       },
+                    },
+                    "& .MuiOutlinedInput-input": {
+                      py: 1,
                     },
                     "& .MuiOutlinedInput-notchedOutline": {
                       border: "none",
@@ -243,13 +247,13 @@ const ProductHeader: React.FC<ProductHeaderProps> = ({
                   sx={{
                     bgcolor: "black",
                     color: "white",
-                    minWidth: 180,
-                    py: 2,
-                    px: 4,
+                    minWidth: 140,
+                    height: "48px",
+                    px: 3,
                     borderRadius: "0 12px 12px 0",
                     textTransform: "none",
                     fontWeight: 700,
-                    fontSize: "1rem",
+                    fontSize: "0.75rem",
                     boxShadow: "none",
                     position: "relative",
                     overflow: "hidden",
@@ -276,14 +280,14 @@ const ProductHeader: React.FC<ProductHeaderProps> = ({
                   {isAISearching ? (
                     <>
                       <CircularProgress
-                        size={20}
+                        size={18}
                         sx={{ color: "white", mr: 1 }}
                       />
                       Đang tìm...
                     </>
                   ) : (
                     <>
-                      <Sparkles size={20} style={{ marginRight: 8 }} />
+                      <Sparkles size={18} style={{ marginRight: 8 }} />
                       AI Search
                     </>
                   )}
