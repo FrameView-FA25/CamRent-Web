@@ -10,10 +10,11 @@ import {
   Tab,
   Chip,
   Stack,
-  Tooltip,
   CircularProgress,
+  Paper,
+  Fade,
 } from "@mui/material";
-import { amber, grey } from "@mui/material/colors";
+import { grey } from "@mui/material/colors";
 import SearchIcon from "@mui/icons-material/Search";
 import { Sparkles } from "lucide-react";
 import { colors } from "../../theme/colors";
@@ -44,6 +45,7 @@ const ProductHeader: React.FC<ProductHeaderProps> = ({
   isAISearching = false,
 }) => {
   const [openAISearch, setOpenAISearch] = useState(false);
+  const [showSearchTip, setShowSearchTip] = useState(false);
 
   const handleAISearch = (criteria: AISearchCriteria) => {
     setOpenAISearch(false);
@@ -54,125 +56,211 @@ const ProductHeader: React.FC<ProductHeaderProps> = ({
     <>
       <Box
         sx={{
-          py: 10,
-          background: `linear-gradient(135deg, ${grey[100]}, ${grey[200]})`,
+          py: 12,
           position: "relative",
+          overflow: "hidden",
+          background: colors.primary.dark,
+          "&::before": {
+            content: '""',
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundImage: "url('/bg-product.jpg')",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            opacity: 0.15,
+            zIndex: 0,
+          },
         }}
       >
-        <Container maxWidth="lg">
-          <Typography
-            variant="h3"
-            sx={{
-              fontWeight: 800,
-              mb: 1,
-              fontSize: { xs: "2rem", md: "2.5rem" },
-            }}
-          >
-            Khám phá thiết bị
-          </Typography>
-          <Typography variant="h6" sx={{ color: grey[600], mb: 1 }}>
-            Cho thuê thiết bị camera chuyên nghiệp cho dự án của bạn
-          </Typography>
-          <Typography variant="body2" sx={{ color: grey[500], mb: 4 }}>
-            {currentTab === 0
-              ? `${totalCameras} camera có sẵn`
-              : `${totalAccessories} phụ kiện có sẵn`}
-            {compareCount > 0 && (
-              <Chip
-                label={`${compareCount} in compare list`}
-                size="small"
-                sx={{
-                  ml: 2,
-                  bgcolor: amber[100],
-                  color: amber[800],
-                  fontWeight: 600,
-                }}
-              />
-            )}
-          </Typography>
-
-          {/* Tabs */}
-          <Box sx={{ mb: 3 }}>
-            <Tabs
-              value={currentTab}
-              onChange={(_, newValue) => onTabChange(newValue)}
+        <Container maxWidth="lg" sx={{ position: "relative", zIndex: 1 }}>
+          {/* Title Section */}
+          <Box sx={{ textAlign: "center", mb: 6 }}>
+            <Typography
+              variant="h3"
               sx={{
-                "& .MuiTab-root": {
-                  textTransform: "none",
-                  fontWeight: 600,
-                  fontSize: 16,
-                  minWidth: 120,
-                },
-                "& .Mui-selected": {
-                  color: "black !important",
-                },
-                "& .MuiTabs-indicator": {
-                  bgcolor: colors.primary.main,
-                  height: 3,
-                },
+                fontWeight: 800,
+                mb: 2,
+                fontSize: { xs: "2rem", md: "2.5rem" },
+                color: "white",
+                textShadow: "2px 2px 4px rgba(0,0,0,0.2)",
               }}
             >
-              <Tab label={`Cameras (${totalCameras})`} />
-              <Tab label={`Phụ kiện (${totalAccessories})`} />
-            </Tabs>
+              Khám phá thiết bị
+            </Typography>
+            <Typography
+              variant="h6"
+              sx={{
+                color: "rgba(255,255,255,0.95)",
+                mb: 1,
+                fontWeight: 500,
+              }}
+            >
+              Cho thuê thiết bị camera chuyên nghiệp cho dự án của bạn
+            </Typography>
+            <Typography
+              variant="body2"
+              sx={{
+                color: "rgba(255,255,255,0.85)",
+                fontWeight: 500,
+              }}
+            >
+              {currentTab === 0
+                ? `${totalCameras} camera có sẵn`
+                : `${totalAccessories} phụ kiện có sẵn`}
+              {compareCount > 0 && (
+                <Chip
+                  label={`${compareCount} trong danh sách so sánh`}
+                  size="small"
+                  sx={{
+                    ml: 2,
+                    bgcolor: "rgba(255,255,255,0.2)",
+                    color: "white",
+                    fontWeight: 700,
+                    backdropFilter: "blur(10px)",
+                  }}
+                />
+              )}
+            </Typography>
           </Box>
 
-          {/* Search Box with AI */}
-          <Box sx={{ maxWidth: 720 }}>
-            <Stack direction="row" spacing={2} alignItems="center">
-              <TextField
-                fullWidth
-                placeholder="Tìm kiếm camera, ống kính, phụ kiện..."
-                value={searchQuery}
-                onChange={(e) => onSearchChange(e.target.value)}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon sx={{ color: grey[500] }} />
-                    </InputAdornment>
-                  ),
-                }}
+          {/* Tabs - Centered */}
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              mb: 4,
+            }}
+          >
+            <Paper
+              elevation={0}
+              sx={{
+                bgcolor: "rgba(255,255,255,0.15)",
+                backdropFilter: "blur(10px)",
+                borderRadius: 3,
+                p: 0.5,
+                display: "inline-flex",
+              }}
+            >
+              <Tabs
+                value={currentTab}
+                onChange={(_, newValue) => onTabChange(newValue)}
                 sx={{
-                  "& .MuiOutlinedInput-root": {
+                  minHeight: "auto",
+                  "& .MuiTab-root": {
+                    textTransform: "none",
+                    fontWeight: 700,
+                    fontSize: 16,
+                    minWidth: 160,
+                    color: "rgba(255,255,255,0.8)",
+                    py: 1.5,
+                    px: 3,
                     borderRadius: 2,
-                    py: 0.25,
-                    bgcolor: "white",
-                  },
-                  "& .MuiOutlinedInput-notchedOutline": {
-                    borderColor: grey[300],
-                    borderWidth: 2,
-                  },
-                  "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline":
-                    {
-                      borderColor: colors.primary.main,
+                    transition: "all 0.3s ease",
+                    bgcolor: "#000000",
+                    "&:hover": {
+                      bgcolor: "white",
+                      color: colors.primary.main,
                     },
+                  },
+                  "& .Mui-selected": {
+                    bgcolor: "white !important",
+                    color: `${colors.primary.main} !important`,
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                  },
+                  "& .MuiTabs-indicator": {
+                    display: "none",
+                  },
                 }}
-              />
+              >
+                <Tab label={`Cameras (${totalCameras})`} />
+                <Tab label={`Phụ kiện (${totalAccessories})`} />
+              </Tabs>
+            </Paper>
+          </Box>
 
-              {/* AI Search Button */}
-              <Tooltip title="Tìm kiếm thông minh với AI">
+          {/* Search Box - Centered */}
+          <Box
+            sx={{
+              maxWidth: 600,
+              mx: "auto",
+              position: "relative",
+            }}
+          >
+            <Paper
+              elevation={4}
+              sx={{
+                borderRadius: 3,
+                overflow: "visible",
+                bgcolor: "white",
+              }}
+            >
+              <Stack
+                direction="row"
+                spacing={0}
+                alignItems="stretch"
+                sx={{ position: "relative" }}
+              >
+                <TextField
+                  fullWidth
+                  placeholder="Tìm kiếm camera, ống kính, phụ kiện..."
+                  value={searchQuery}
+                  onChange={(e) => onSearchChange(e.target.value)}
+                  onFocus={() => setShowSearchTip(true)}
+                  onBlur={() => setTimeout(() => setShowSearchTip(false), 200)}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon sx={{ color: grey[500], fontSize: 24 }} />
+                      </InputAdornment>
+                    ),
+                  }}
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: "12px 0 0 12px",
+                      py: 0.5,
+                      fontSize: "0.95rem",
+                      height: "48px",
+                      "&:hover .MuiOutlinedInput-notchedOutline": {
+                        borderColor: "transparent",
+                      },
+                      "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                        borderColor: "transparent",
+                      },
+                    },
+                    "& .MuiOutlinedInput-input": {
+                      py: 1,
+                    },
+                    "& .MuiOutlinedInput-notchedOutline": {
+                      border: "none",
+                    },
+                  }}
+                />
+
+                {/* AI Search Button */}
                 <Button
                   variant="contained"
                   onClick={() => setOpenAISearch(true)}
                   disabled={isAISearching}
                   sx={{
-                    bgcolor: colors.primary.main,
+                    bgcolor: "black",
                     color: "white",
-                    minWidth: 160,
-                    py: 1.5,
+                    minWidth: 140,
+                    height: "48px",
                     px: 3,
-                    borderRadius: 2,
+                    borderRadius: "0 12px 12px 0",
                     textTransform: "none",
                     fontWeight: 700,
-                    boxShadow: 3,
+                    fontSize: "0.75rem",
+                    boxShadow: "none",
                     position: "relative",
                     overflow: "hidden",
                     "&:hover": {
-                      bgcolor: colors.primary.dark,
-                      boxShadow: 4,
-                      transform: "translateY(-2px)",
+                      bgcolor: "black",
+                      boxShadow: "none",
                     },
-                    transition: "all 0.2s ease",
                     "&::before": {
                       content: '""',
                       position: "absolute",
@@ -190,37 +278,80 @@ const ProductHeader: React.FC<ProductHeaderProps> = ({
                   }}
                 >
                   {isAISearching ? (
-                    <CircularProgress
-                      size={20}
-                      sx={{ color: "black", mr: 1 }}
-                    />
+                    <>
+                      <CircularProgress
+                        size={18}
+                        sx={{ color: "white", mr: 1 }}
+                      />
+                      Đang tìm...
+                    </>
                   ) : (
-                    <Sparkles size={20} style={{ marginRight: 8 }} />
+                    <>
+                      <Sparkles size={18} style={{ marginRight: 8 }} />
+                      AI Search
+                    </>
                   )}
-                  {isAISearching ? "Đang tìm..." : "AI Search"}
                 </Button>
-              </Tooltip>
-            </Stack>
+              </Stack>
 
-            {/* AI Search Info Banner */}
-            <Box
-              sx={{
-                mt: 2,
-                p: 2,
-                bgcolor: colors.primary.lighter,
-                borderRadius: 2,
-                border: `1px solid ${colors.primary.main}`,
-                display: "flex",
-                alignItems: "center",
-                gap: 1,
-              }}
-            >
-              <Sparkles size={18} color={colors.primary.main} />
-              <Typography variant="body2" sx={{ color: grey[700] }}>
-                <strong>Mẹo:</strong> Sử dụng AI Search để tìm camera phù hợp
-                nhất với nhu cầu, ngân sách và trình độ của bạn!
-              </Typography>
-            </Box>
+              {/* Search Tip - Appears below when focused */}
+              <Fade in={showSearchTip}>
+                <Box
+                  sx={{
+                    position: "absolute",
+                    top: "calc(100% + 8px)",
+                    left: 0,
+                    right: 0,
+                    zIndex: 10,
+                  }}
+                >
+                  <Paper
+                    elevation={3}
+                    sx={{
+                      p: 2.5,
+                      bgcolor: "white",
+                      borderRadius: 2,
+                      border: `2px solid ${colors.primary.main}`,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1.5,
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        bgcolor: colors.primary.lighter,
+                        borderRadius: "50%",
+                        p: 1,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Sparkles size={20} color={colors.primary.main} />
+                    </Box>
+                    <Box>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: grey[800],
+                          fontWeight: 600,
+                          mb: 0.5,
+                        }}
+                      >
+                        💡 Mẹo tìm kiếm thông minh
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        sx={{ color: grey[600], lineHeight: 1.5 }}
+                      >
+                        Sử dụng <strong>AI Search</strong> để tìm camera phù hợp
+                        nhất với nhu cầu, ngân sách và trình độ của bạn!
+                      </Typography>
+                    </Box>
+                  </Paper>
+                </Box>
+              </Fade>
+            </Paper>
           </Box>
         </Container>
       </Box>

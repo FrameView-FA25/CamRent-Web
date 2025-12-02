@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
@@ -42,42 +42,72 @@ const ProductCard: React.FC<ProductCardProps> = ({ camera }) => {
   const { compareIds, addToCompare, removeFromCompare, canAddMore } =
     useCompare();
 
+  const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
+  const [isHovering, setIsHovering] = useState(false);
+
   const isVerified = camera.isConfirmed ?? false;
   const isInCompare = compareIds.includes(camera.id);
   const ownerName = camera.branchName || camera.ownerName;
 
-  const getMediaUrl = () => {
+  // Tính toán giá đặt cọc
+  const depositAmount = (camera.baseDailyRate * camera.depositPercent) / 100;
+
+  const getMediaUrls = (): string[] => {
     if (
       "media" in camera &&
       Array.isArray(camera.media) &&
       camera.media.length > 0
     ) {
-      if (typeof camera.media[0] === "string") {
-        return camera.media[0];
-      }
-      if (typeof camera.media[0] === "object" && camera.media[0] !== null) {
-        return (camera.media[0] as { url?: string }).url || null;
-      }
+      return camera.media
+        .map((item) => {
+          if (typeof item === "string") {
+            return item;
+          }
+          if (typeof item === "object" && item !== null) {
+            return (item as { url?: string }).url || null;
+          }
+          return null;
+        })
+        .filter((url): url is string => url !== null);
     }
-    return null;
+    return [];
   };
 
-  const mediaUrl = getMediaUrl();
+  const mediaUrls = getMediaUrls();
+  const hasMultipleMedia = mediaUrls.length > 1;
+  const currentMediaUrl = mediaUrls[currentMediaIndex] || null;
 
   const handleToggleCompare = (e: React.MouseEvent) => {
     e.stopPropagation();
 
     if (isInCompare) {
       removeFromCompare(camera.id);
-      toast.info("Removed from compare list");
+      toast.info("Đã xóa khỏi danh sách so sánh");
     } else {
       if (!canAddMore) {
-        toast.warning("Maximum 3 cameras can be compared");
+        toast.warning("Tối đa 3 sản phẩm có thể so sánh");
         return;
       }
       addToCompare(camera.id);
-      toast.success("Added to compare list!");
+      toast.success("Đã thêm vào danh sách so sánh!");
     }
+  };
+
+  const handleMouseEnter = () => {
+    setIsHovering(true);
+    if (hasMultipleMedia) {
+      setCurrentMediaIndex(1);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovering(false);
+    setCurrentMediaIndex(0);
+  };
+
+  const handleDotClick = (e: React.MouseEvent, index: number) => {
+    e.stopPropagation();
+    setCurrentMediaIndex(index);
   };
 
   return (
@@ -104,7 +134,11 @@ const ProductCard: React.FC<ProductCardProps> = ({ camera }) => {
       onClick={() => navigate(`/products/${camera.id}`)}
     >
       {/* Image Section */}
-      <Box sx={{ position: "relative", bgcolor: grey[100] }}>
+      <Box
+        sx={{ position: "relative", bgcolor: grey[100] }}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+      >
         <Box sx={{ pt: "70%" }} />
         <Box
           sx={{
@@ -116,21 +150,83 @@ const ProductCard: React.FC<ProductCardProps> = ({ camera }) => {
             color: grey[300],
           }}
         >
-          {mediaUrl ? (
+          {currentMediaUrl ? (
             <img
-              src={mediaUrl}
+              src={currentMediaUrl}
               alt={`${camera.brand} ${camera.model}`}
               style={{
                 width: "100%",
                 height: "100%",
                 objectFit: "cover",
                 display: "block",
+                transition: "opacity 0.3s ease",
               }}
             />
           ) : (
             <CameraAltOutlinedIcon sx={{ fontSize: 64 }} />
           )}
         </Box>
+
+        {/* Media Indicator Dots */}
+        {hasMultipleMedia && (
+          <Box
+            sx={{
+              position: "absolute",
+              bottom: 8,
+              left: "50%",
+              transform: "translateX(-50%)",
+              display: "flex",
+              gap: 0.5,
+              bgcolor: "rgba(0,0,0,0.4)",
+              backdropFilter: "blur(4px)",
+              borderRadius: 999,
+              px: 1,
+              py: 0.5,
+              zIndex: 2,
+            }}
+          >
+            {mediaUrls.map((_, index) => (
+              <Box
+                key={index}
+                onClick={(e) => handleDotClick(e, index)}
+                sx={{
+                  width: currentMediaIndex === index ? 16 : 6,
+                  height: 6,
+                  borderRadius: 999,
+                  bgcolor:
+                    currentMediaIndex === index
+                      ? "white"
+                      : "rgba(255,255,255,0.5)",
+                  cursor: "pointer",
+                  transition: "all 0.3s ease",
+                  "&:hover": {
+                    bgcolor: "white",
+                  },
+                }}
+              />
+            ))}
+          </Box>
+        )}
+
+        {/* Media Count Badge */}
+        {hasMultipleMedia && (
+          <Chip
+            label={`${mediaUrls.length} ảnh`}
+            size="small"
+            sx={{
+              position: "absolute",
+              top: 12,
+              left: 12,
+              borderRadius: 999,
+              fontSize: 11,
+              fontWeight: 600,
+              bgcolor: "rgba(0,0,0,0.6)",
+              backdropFilter: "blur(4px)",
+              color: "white",
+              height: 24,
+            }}
+          />
+        )}
 
         <Chip
           icon={
@@ -140,7 +236,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ camera }) => {
               <CancelIcon sx={{ fontSize: 14 }} />
             )
           }
-          label={isVerified ? "Verified" : "Unverified"}
+          label={isVerified ? "Đã xác minh" : "Chưa xác minh"}
           size="small"
           sx={{
             position: "absolute",
@@ -161,12 +257,12 @@ const ProductCard: React.FC<ProductCardProps> = ({ camera }) => {
         />
 
         {/* Compare Button */}
-        <Tooltip title={isInCompare ? "Remove from compare" : "Add to compare"}>
+        <Tooltip title={isInCompare ? "Xóa khỏi so sánh" : "Thêm để so sánh"}>
           <IconButton
             onClick={handleToggleCompare}
             sx={{
               position: "absolute",
-              bottom: 12,
+              bottom: hasMultipleMedia ? 40 : 12,
               right: 12,
               bgcolor: isInCompare ? amber[600] : "rgba(255,255,255,0.95)",
               color: isInCompare ? "white" : grey[800],
@@ -194,7 +290,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ camera }) => {
           <Box
             sx={{
               position: "absolute",
-              bottom: 12,
+              bottom: hasMultipleMedia ? 40 : 12,
               left: 12,
               bgcolor: amber[600],
               color: "white",
@@ -210,7 +306,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ camera }) => {
             }}
           >
             <CompareArrowsIcon sx={{ fontSize: 14 }} />
-            In Compare
+            Đang so sánh
           </Box>
         )}
       </Box>
@@ -287,7 +383,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ camera }) => {
           {/* Owner */}
           <Box sx={{ mb: 1 }}>
             <Typography variant="caption" sx={{ color: grey[500], mr: 0.5 }}>
-              Owner:
+              Chủ sở hữu:
             </Typography>
             <Typography
               variant="body2"
@@ -316,7 +412,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ camera }) => {
               sx={{
                 display: "flex",
                 justifyContent: "space-between",
-                mb: 0.5,
+                mb: 1,
               }}
             >
               <Typography variant="caption" sx={{ color: grey[600] }}>
@@ -324,7 +420,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ camera }) => {
               </Typography>
               <Typography
                 variant="body2"
-                sx={{ fontWeight: 700, color: amber[800] }}
+                sx={{ fontWeight: 700, color: amber[800], fontSize: "1rem" }}
               >
                 {formatCurrency(camera.baseDailyRate)}
               </Typography>
@@ -332,6 +428,12 @@ const ProductCard: React.FC<ProductCardProps> = ({ camera }) => {
             <Box sx={{ display: "flex", justifyContent: "space-between" }}>
               <Typography variant="caption" sx={{ color: grey[600] }}>
                 Đặt cọc ({camera.depositPercent}%):
+              </Typography>
+              <Typography
+                variant="caption"
+                sx={{ fontWeight: 700, color: amber[700] }}
+              >
+                {formatCurrency(depositAmount)}
               </Typography>
             </Box>
           </Box>
@@ -367,7 +469,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ camera }) => {
             variant="contained"
             onClick={(e) => {
               e.stopPropagation();
-              // Handle rental flow
+              navigate(`/products/${camera.id}`);
             }}
             sx={{
               bgcolor: colors.primary.main,

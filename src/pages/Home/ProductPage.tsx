@@ -228,33 +228,6 @@ const ProductPage: React.FC = () => {
         />
       </Container>
 
-      {/* Footer CTA */}
-      <Box sx={{ bgcolor: "black", color: "white", py: 8, mt: 6 }}>
-        <Container maxWidth="lg" sx={{ textAlign: "center" }}>
-          <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>
-            Sẵn sàng bắt đầu chụp?
-          </Typography>
-          <Typography variant="h6" sx={{ color: grey[400], mb: 4 }}>
-            Thuê thiết bị chuyên nghiệp mà không cần cam kết sở hữu
-          </Typography>
-          <Button
-            variant="contained"
-            sx={{
-              bgcolor: colors.primary.main,
-              color: "black",
-              textTransform: "none",
-              fontWeight: 700,
-              borderRadius: 2,
-              px: 4,
-              py: 1.25,
-              "&:hover": { bgcolor: amber[500] },
-            }}
-          >
-            Xem tất cả thiết bị
-          </Button>
-        </Container>
-      </Box>
-
       {/* AI Results Dialog */}
       <AIResultsDialog
         open={openAIResults}
