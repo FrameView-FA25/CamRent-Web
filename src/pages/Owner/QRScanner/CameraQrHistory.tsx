@@ -183,19 +183,6 @@ const CameraQrHistory = () => {
             Quét QR code để xem chi tiết camera cùng lịch sử booking/inspection
           </Typography>
         </Box>
-        <Chip
-          icon={<Inventory />}
-          label="Dành cho Owner/Admin"
-          sx={{
-            bgcolor: "#FFF7ED",
-            color: "#C2410C",
-            fontWeight: 600,
-            borderRadius: 2,
-            "& .MuiChip-icon": {
-              color: "#EA580C",
-            },
-          }}
-        />
       </Box>
 
       <Paper

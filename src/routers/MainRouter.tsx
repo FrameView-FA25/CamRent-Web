@@ -49,6 +49,7 @@ import RenterProfile from "@/pages/Renter/RenterProfile";
 import ContractTemplateManagement from "@/pages/Manager/ContractTemplateManagement";
 import PaymentSuccess from "@/components/Payment/PaymentSuccess";
 import PaymentFailed from "@/components/Payment/PaymentFailed";
+import StaffProfile from "@/pages/Staff/StaffProfile";
 const routes: RouteObject[] = [
   {
     path: "/",
@@ -231,10 +232,6 @@ const routes: RouteObject[] = [
     ),
     children: [
       {
-        path: "dashboard",
-        element: <DashboardManager />,
-      },
-      {
         path: "check-booking",
         element: <CheckBooking />,
       },
@@ -252,7 +249,7 @@ const routes: RouteObject[] = [
       },
       {
         path: "profile",
-        element: <AdminProfile />,
+        element: <StaffProfile />,
       },
     ],
   },

@@ -16,10 +16,13 @@ import {
   TextField,
   InputAdornment,
   IconButton,
-  Button,
   TablePagination,
   Tooltip,
   alpha,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
 } from "@mui/material";
 import {
   Assignment,
@@ -35,6 +38,7 @@ import {
   PlaylistAddCheck,
   Clear,
   Edit,
+  MoreVert,
 } from "@mui/icons-material";
 import {
   createInspection,
@@ -71,7 +75,8 @@ const verificationStatusMap: Record<
   { label: string; palette: StatusPaletteKey }
 > = {
   pending: { label: "Chờ xử lý", palette: "warning" },
-  approved: { label: "Đã duyệt", palette: "info" },
+  // Đã duyệt: dùng màu xanh lá cho đồng bộ với card thống kê
+  approved: { label: "Đã duyệt", palette: "success" },
   completed: { label: "Hoàn thành", palette: "success" },
   rejected: { label: "Từ chối", palette: "error" },
   cancelled: { label: "Đã hủy", palette: "error" },
@@ -182,6 +187,11 @@ const Inspections: React.FC = () => {
   const [currentVerificationItems, setCurrentVerificationItems] = useState<
     VerificationItem[]
   >([]);
+  const [actionMenuAnchorEl, setActionMenuAnchorEl] =
+    useState<null | HTMLElement>(null);
+  const [actionMenuVerificationId, setActionMenuVerificationId] = useState<
+    string | null
+  >(null);
 
   // Mở dialog với row tương ứng
   const openInspectionDialog = (row: Verification) => {
@@ -191,6 +201,19 @@ const Inspections: React.FC = () => {
 
   const handleViewDetail = (row: Verification) => {
     navigate(`/staff/verification/${row.id}`);
+  };
+
+  const handleOpenActionMenu = (
+    event: React.MouseEvent<HTMLElement>,
+    verificationId: string
+  ) => {
+    setActionMenuAnchorEl(event.currentTarget);
+    setActionMenuVerificationId(verificationId);
+  };
+
+  const handleCloseActionMenu = () => {
+    setActionMenuAnchorEl(null);
+    setActionMenuVerificationId(null);
   };
 
   const getItemTypeNumber = (value?: string | number): number | undefined => {
@@ -1069,93 +1092,17 @@ const Inspections: React.FC = () => {
                             }}
                           />
                         </TableCell>
-                        <TableCell>
-                          <Box
-                            sx={{
-                              display: "flex",
-                              gap: 1.25,
-                              justifyContent: "center",
-                              alignItems: "center",
-                            }}
-                          >
-                            <Tooltip title="Xem chi tiết">
-                              <IconButton
-                                onClick={() => handleViewDetail(row)}
-                                size="small"
-                                sx={{
-                                  borderRadius: 2,
-                                  border: "1px solid #E5E7EB",
-                                  bgcolor: "#F3F4F6",
-                                  color: "#4B5563",
-                                  "&:hover": {
-                                    bgcolor: "#FFF7ED",
-                                    color: "#F97316",
-                                    borderColor: "#F97316",
-                                  },
-                                }}
-                              >
-                                <Visibility fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Chỉnh sửa phiếu kiểm tra">
-                              <IconButton
-                                onClick={() =>
-                                  handleManageVerificationInspections(row.id)
-                                }
-                                size="small"
-                                sx={{
-                                  borderRadius: 2,
-                                  border: "1px solid #E5E7EB",
-                                  bgcolor: "#F3F4F6",
-                                  color: "#4B5563",
-                                  "&:hover": {
-                                    bgcolor: "#FFF7ED",
-                                    color: "#F97316",
-                                    borderColor: "#F97316",
-                                  },
-                                }}
-                              >
-                                <Edit fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Tạo phiếu kiểm tra">
-                              <Button
-                                variant="contained"
-                                size="small"
-                                onClick={() => openInspectionDialog(row)}
-                                disabled={
-                                  row.status.toLowerCase() !== "pending"
-                                }
-                                aria-label="Tạo phiếu kiểm tra"
-                                sx={{
-                                  borderRadius: 999,
-                                  textTransform: "none",
-                                  fontWeight: 600,
-                                  px: 1.25,
-                                  height: 34,
-                                  minWidth: 0,
-                                  whiteSpace: "nowrap",
-                                  background:
-                                    "linear-gradient(135deg, #F97316 0%, #EA580C 100%)",
-                                  boxShadow:
-                                    "0 6px 16px rgba(249, 115, 22, 0.25)",
-                                  "&:hover": {
-                                    background:
-                                      "linear-gradient(135deg, #EA580C 0%, #C2410C 100%)",
-                                    boxShadow:
-                                      "0 10px 20px rgba(234, 88, 12, 0.35)",
-                                  },
-                                  "&:disabled": {
-                                    background: "#E5E7EB",
-                                    color: "#9CA3AF",
-                                    boxShadow: "none",
-                                  },
-                                }}
-                              >
-                                <PlaylistAddCheck fontSize="small" />
-                              </Button>
-                            </Tooltip>
-                          </Box>
+                        <TableCell align="center">
+                          <Tooltip title="Hành động">
+                            <IconButton
+                              size="small"
+                              onClick={(event) =>
+                                handleOpenActionMenu(event, row.id)
+                              }
+                            >
+                              <MoreVert />
+                            </IconButton>
+                          </Tooltip>
                         </TableCell>
                       </TableRow>
                     );
@@ -1236,6 +1183,66 @@ const Inspections: React.FC = () => {
         onClose={handleCloseEditInspection}
         onSubmit={handleSubmitEditInspection}
       />
+      <Menu
+        anchorEl={actionMenuAnchorEl}
+        open={Boolean(actionMenuAnchorEl)}
+        onClose={handleCloseActionMenu}
+        PaperProps={{
+          sx: {
+            minWidth: 220,
+            borderRadius: 2,
+            boxShadow: "0 8px 32px rgba(15, 23, 42, 0.1)",
+          },
+        }}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        transformOrigin={{ vertical: "top", horizontal: "right" }}
+      >
+        <MenuItem
+          onClick={() => {
+            const row = data.find((d) => d.id === actionMenuVerificationId);
+            if (row) {
+              handleViewDetail(row);
+            }
+            handleCloseActionMenu();
+          }}
+        >
+          <ListItemIcon>
+            <Visibility fontSize="small" sx={{ color: "#C8501D" }} />
+          </ListItemIcon>
+          <ListItemText primary="Xem chi tiết" />
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            if (actionMenuVerificationId) {
+              handleManageVerificationInspections(actionMenuVerificationId);
+            }
+            handleCloseActionMenu();
+          }}
+        >
+          <ListItemIcon>
+            <Edit fontSize="small" sx={{ color: "#1D4ED8" }} />
+          </ListItemIcon>
+          <ListItemText primary="Chỉnh sửa phiếu kiểm tra" />
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            const row = data.find((d) => d.id === actionMenuVerificationId);
+            if (row && row.status.toLowerCase() === "pending") {
+              openInspectionDialog(row);
+            } else if (row) {
+              toast.warn(
+                "Chỉ có thể tạo phiếu kiểm tra cho yêu cầu đang chờ xử lý"
+              );
+            }
+            handleCloseActionMenu();
+          }}
+        >
+          <ListItemIcon>
+            <PlaylistAddCheck fontSize="small" sx={{ color: "#F97316" }} />
+          </ListItemIcon>
+          <ListItemText primary="Tạo phiếu kiểm tra" />
+        </MenuItem>
+      </Menu>
     </Box>
   );
 };

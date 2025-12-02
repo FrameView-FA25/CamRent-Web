@@ -257,7 +257,7 @@ const CheckBookingDialog: React.FC<CheckBookingDialogProps> = ({
         />
 
         <TextField
-          label="Section"
+          label="Phần kiểm tra"
           name="Section"
           value={form.Section}
           onChange={handleChange}
@@ -265,7 +265,7 @@ const CheckBookingDialog: React.FC<CheckBookingDialogProps> = ({
           sx={{ mb: 2 }}
         />
         <TextField
-          label="Label"
+          label="Tên kiểm tra"
           name="Label"
           value={form.Label}
           onChange={handleChange}
@@ -274,7 +274,7 @@ const CheckBookingDialog: React.FC<CheckBookingDialogProps> = ({
         />
         <TextField
           select
-          label="Value"
+          label="Giá trị"
           name="Value"
           value={form.Value}
           onChange={handleChange}

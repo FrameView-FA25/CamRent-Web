@@ -2,6 +2,8 @@ export interface User {
   email: string;
   fullName: string;
   roles: string[];
+  phoneNumber?: string;
+  createdAt?: string;
 }
 
 export interface AuthState {
@@ -21,6 +23,9 @@ export interface LoginResponse {
   expiresAt: string;
   fullName: string;
   email: string;
+  createdAt: string;
+  phoneNumber?: string;
+  address?: string;
   roles: string[];
 }
 
