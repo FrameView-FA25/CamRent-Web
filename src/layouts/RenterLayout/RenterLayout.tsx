@@ -31,7 +31,7 @@ const DRAWER_WIDTH = 280;
 
 const menuItems = [
   { text: "Trang Chủ", icon: <HomeIcon />, path: "/renter/dashboard" },
-  { text: "Sản Phẩm", icon: <CameraIcon />, path: "/renter/products" },
+  { text: "Sản Phẩm", icon: <CameraIcon />, path: "/products" },
   { text: "Đơn Hàng", icon: <OrdersIcon />, path: "/renter/my-orders" },
   {
     text: "Sản Phẩm Yêu Thích",

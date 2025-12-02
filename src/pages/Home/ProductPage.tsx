@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useMemo, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Box, Container } from "@mui/material";
 import { grey } from "@mui/material/colors";
 import { useCameras, useAccessories } from "../../hooks/useProducts";
@@ -17,9 +17,14 @@ import type {
 
 const ProductPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Get defaultTab from navigation state
+  const defaultTab = (location.state as { defaultTab?: number })?.defaultTab;
+
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
-  const [currentTab, setCurrentTab] = useState(0);
+  const [currentTab, setCurrentTab] = useState(defaultTab || 0);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(20);
 
@@ -29,6 +34,24 @@ const ProductPage: React.FC = () => {
   const [isAISearching, setIsAISearching] = useState(false);
 
   const { compareIds } = useCompare();
+
+  // Set tab from navigation state on mount or when it changes
+  useEffect(() => {
+    if (defaultTab !== undefined && defaultTab !== currentTab) {
+      setCurrentTab(defaultTab);
+      setSelectedCategory("All");
+      setSearchQuery("");
+      setCurrentPage(1);
+    }
+  }, [defaultTab]);
+
+  // Clear location state after reading it
+  useEffect(() => {
+    if (location.state?.defaultTab !== undefined) {
+      // Clear the state to prevent re-triggering on back navigation
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   const {
     cameras,
@@ -122,7 +145,7 @@ const ProductPage: React.FC = () => {
         })
         .slice(0, 5)
         .map((camera, index) => {
-          let matchScore = 85 - index * 5;
+          const matchScore = 85 - index * 5;
 
           const reasons: string[] = [
             "Đánh giá cao từ người dùng",

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from "react";
+﻿import React, { useState, useRef, useEffect } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import CameraLoginModal from "../components/Modal/Auth/ModalLogin";
 import CameraRegisterModal from "../components/Modal/Auth/ModalRegister";
@@ -11,14 +11,21 @@ import {
   Badge,
   Box,
   Typography,
+  Popover,
+  Paper,
+  List,
+  ListItem,
+  ListItemText,
+  Divider,
 } from "@mui/material";
-import { User, LogOut, ShoppingCart } from "lucide-react";
+import { User, LogOut, ShoppingCart, Camera, Package } from "lucide-react";
 import { getDefaultRouteByRole } from "@/utils/roleUtils";
 import { colors } from "../theme/colors";
 import CartModal from "../components/Modal/ModalCart";
 import { useCartContext } from "../context/CartContext";
 import Footer from "./Footer";
 import { ModalResetPassword } from "@/components/Modal/Auth/ModalResetPassword";
+
 const MainLayout: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -31,6 +38,10 @@ const MainLayout: React.FC = () => {
   const [resetOpen, setResetOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [resetToken, setResetToken] = useState("");
+  const [productMenuAnchor, setProductMenuAnchor] =
+    useState<null | HTMLElement>(null);
+
+  const closeTimeoutRef = useRef<number | null>(null);
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -95,8 +106,42 @@ const MainLayout: React.FC = () => {
     refreshCart();
   };
 
+  const handleProductMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    // Clear any pending close timeout
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
+    setProductMenuAnchor(event.currentTarget);
+  };
+
+  const handleProductMenuClose = () => {
+    // Add delay before closing
+    closeTimeoutRef.current = setTimeout(() => {
+      setProductMenuAnchor(null);
+    }, 150);
+  };
+
+  const handleProductMenuEnter = () => {
+    // Cancel close when entering menu
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
+  };
+
+  const handleNavigateToProducts = (tab: number) => {
+    navigate("/products", { state: { defaultTab: tab } });
+    setProductMenuAnchor(null);
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
+  };
+
   const role = localStorage.getItem("role");
   const isRenter = role === "Renter";
+  const productMenuOpen = Boolean(productMenuAnchor);
 
   useEffect(() => {
     if (isAuthenticated && role === "Staff") {
@@ -157,16 +202,165 @@ const MainLayout: React.FC = () => {
           >
             Trang Chủ
           </Link>
-          <Link
-            to="/products"
-            className={
-              isActive("/products")
-                ? "active text-yellow-500 font-semibold"
-                : "text-gray-700 hover:text-yellow-500"
-            }
+
+          {/* Product Link with Dropdown */}
+          <Box
+            sx={{ position: "relative" }}
+            onMouseEnter={handleProductMenuOpen}
+            onMouseLeave={handleProductMenuClose}
           >
-            Sản Phẩm
-          </Link>
+            <Link
+              to="/products"
+              className={
+                isActive("/products")
+                  ? "active text-yellow-500 font-semibold"
+                  : "text-gray-700 hover:text-yellow-500"
+              }
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+              }}
+            >
+              Sản Phẩm
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="currentColor"
+                style={{
+                  transition: "transform 0.2s",
+                  transform: productMenuOpen
+                    ? "rotate(180deg)"
+                    : "rotate(0deg)",
+                }}
+              >
+                <path d="M4 6l4 4 4-4H4z" />
+              </svg>
+            </Link>
+
+            {/* Dropdown Menu */}
+            <Popover
+              open={productMenuOpen}
+              anchorEl={productMenuAnchor}
+              onClose={() => {
+                setProductMenuAnchor(null);
+                if (closeTimeoutRef.current) {
+                  clearTimeout(closeTimeoutRef.current);
+                  closeTimeoutRef.current = null;
+                }
+              }}
+              anchorOrigin={{
+                vertical: "bottom",
+                horizontal: "left",
+              }}
+              transformOrigin={{
+                vertical: "top",
+                horizontal: "left",
+              }}
+              disableRestoreFocus
+              slotProps={{
+                paper: {
+                  onMouseEnter: handleProductMenuEnter,
+                  onMouseLeave: handleProductMenuClose,
+                  sx: {
+                    mt: 1,
+                    borderRadius: 2,
+                    boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
+                    minWidth: 200,
+                  },
+                },
+              }}
+            >
+              <Paper
+                elevation={0}
+                sx={{
+                  overflow: "hidden",
+                }}
+              >
+                <List sx={{ py: 0.5 }}>
+                  <ListItem
+                    onClick={() => handleNavigateToProducts(0)}
+                    sx={{
+                      cursor: "pointer",
+                      py: 1.5,
+                      px: 2.5,
+                      transition: "all 0.2s",
+                      "&:hover": {
+                        bgcolor: colors.primary.lighter,
+                        "& .MuiListItemText-primary": {
+                          color: colors.primary.main,
+                          fontWeight: 600,
+                        },
+                        "& svg": {
+                          color: colors.primary.main,
+                        },
+                      },
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1.5,
+                        width: "100%",
+                      }}
+                    >
+                      <Camera size={18} />
+                      <ListItemText
+                        primary="Máy Ảnh"
+                        primaryTypographyProps={{
+                          fontSize: "0.95rem",
+                          fontWeight: 500,
+                        }}
+                      />
+                    </Box>
+                  </ListItem>
+
+                  <Divider sx={{ my: 0.5 }} />
+
+                  <ListItem
+                    onClick={() => handleNavigateToProducts(1)}
+                    sx={{
+                      cursor: "pointer",
+                      py: 1.5,
+                      px: 2.5,
+                      transition: "all 0.2s",
+                      "&:hover": {
+                        bgcolor: colors.primary.lighter,
+                        "& .MuiListItemText-primary": {
+                          color: colors.primary.main,
+                          fontWeight: 600,
+                        },
+                        "& svg": {
+                          color: colors.primary.main,
+                        },
+                      },
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1.5,
+                        width: "100%",
+                      }}
+                    >
+                      <Package size={18} />
+                      <ListItemText
+                        primary="Phụ Kiện"
+                        primaryTypographyProps={{
+                          fontSize: "0.95rem",
+                          fontWeight: 500,
+                        }}
+                      />
+                    </Box>
+                  </ListItem>
+                </List>
+              </Paper>
+            </Popover>
+          </Box>
+
           <Link
             to="/how-it-works"
             className={
