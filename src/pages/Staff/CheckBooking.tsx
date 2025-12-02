@@ -436,10 +436,14 @@ const CheckBookings: React.FC = () => {
 
       const matchesTab =
         selectedTab === 0 ||
-        (selectedTab === 1 && booking.status === "0") ||
-        (selectedTab === 2 && booking.status === "1") ||
-        (selectedTab === 3 && booking.status === "2") ||
-        (selectedTab === 4 && booking.status === "3");
+        // Chờ duyệt
+        (selectedTab === 1 && booking.status === "PendingApproval") ||
+        // Đã xác nhận
+        (selectedTab === 2 && booking.status === "Confirmed") ||
+        // Đã nhận máy (và đang thuê)
+        (selectedTab === 3 && booking.status === "PickedUp") ||
+        // Hoàn tất
+        (selectedTab === 4 && booking.status === "Completed");
 
       return matchesSearch && matchesTab;
     });
@@ -452,14 +456,15 @@ const CheckBookings: React.FC = () => {
     );
   }, [filteredBookings, page, rowsPerPage]);
 
-  // Statistics
+  // Statistics theo các trạng thái mới
   const stats = useMemo(() => {
     return {
       total: bookings.length,
-      pending: bookings.filter((b) => b.status === "0").length,
-      confirmed: bookings.filter((b) => b.status === "1").length,
-      delivering: bookings.filter((b) => b.status === "2").length,
-      completed: bookings.filter((b) => b.status === "3").length,
+      pendingApproval: bookings.filter((b) => b.status === "PendingApproval")
+        .length,
+      confirmed: bookings.filter((b) => b.status === "Confirmed").length,
+      pickedUp: bookings.filter((b) => b.status === "PickedUp").length,
+      completed: bookings.filter((b) => b.status === "Completed").length,
     };
   }, [bookings]);
 
@@ -638,13 +643,13 @@ const CheckBookings: React.FC = () => {
                     fontSize: "0.75rem",
                   }}
                 >
-                  Chờ xác nhận
+                  Chờ duyệt
                 </Typography>
                 <Typography
                   variant="h5"
                   sx={{ fontWeight: 700, color: "#F59E0B", mt: 0.5 }}
                 >
-                  {stats.pending}
+                  {stats.pendingApproval}
                 </Typography>
               </Box>
               <Box
@@ -746,13 +751,13 @@ const CheckBookings: React.FC = () => {
                     fontSize: "0.75rem",
                   }}
                 >
-                  Đang giao
+                  Đã nhận máy
                 </Typography>
                 <Typography
                   variant="h5"
                   sx={{ fontWeight: 700, color: "#4F46E5", mt: 0.5 }}
                 >
-                  {stats.delivering}
+                  {stats.pickedUp}
                 </Typography>
               </Box>
               <Box
@@ -931,23 +936,23 @@ const CheckBookings: React.FC = () => {
           >
             <Tab label={`Tất cả (${bookings.length})`} />
             <Tab
-              label={`Chờ xác nhận (${
-                bookings.filter((b) => b.status === "0").length
+              label={`Chờ duyệt (${
+                bookings.filter((b) => b.status === "PendingApproval").length
               })`}
             />
             <Tab
               label={`Đã xác nhận (${
-                bookings.filter((b) => b.status === "1").length
+                bookings.filter((b) => b.status === "Confirmed").length
               })`}
             />
             <Tab
-              label={`Đang giao (${
-                bookings.filter((b) => b.status === "2").length
+              label={`Đã nhận máy (${
+                bookings.filter((b) => b.status === "PickedUp").length
               })`}
             />
             <Tab
-              label={`Hoàn thành (${
-                bookings.filter((b) => b.status === "3").length
+              label={`Hoàn tất (${
+                bookings.filter((b) => b.status === "Completed").length
               })`}
             />
           </Tabs>

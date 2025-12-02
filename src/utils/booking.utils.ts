@@ -22,7 +22,8 @@ export const getStatusInfo = (statusText: string) => {
     { label: string; color: "warning" | "info" | "primary" | "success" | "error" | "default" }
   > = {
     "Chờ xác nhận": { label: "Chờ xác nhận", color: "warning" },
-    "Đã xác nhận": { label: "Đã xác nhận", color: "info" },
+    // Đã xác nhận: dùng màu xanh lá cho thống nhất với UI
+    "Đã xác nhận": { label: "Đã xác nhận", color: "success" },
     "Đang thuê": { label: "Đang thuê", color: "primary" },
     "Hoàn thành": { label: "Hoàn thành", color: "success" },
     "Đã hủy": { label: "Đã hủy", color: "error" },

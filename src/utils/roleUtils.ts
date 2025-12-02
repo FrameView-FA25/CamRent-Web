@@ -29,7 +29,7 @@ export const getDefaultRouteByRole = (role: string): string => {
   } else if (role === "BranchManager") {
     return "/manager/dashboard";
   } else if (role === "Staff") {
-    return "/staff/dashboard";
+    return "/staff/check-booking";
   } else if (role === "Renter") {
     return "/";
   }

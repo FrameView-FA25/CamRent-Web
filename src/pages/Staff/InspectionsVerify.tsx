@@ -71,7 +71,8 @@ const verificationStatusMap: Record<
   { label: string; palette: StatusPaletteKey }
 > = {
   pending: { label: "Chờ xử lý", palette: "warning" },
-  approved: { label: "Đã duyệt", palette: "info" },
+  // Đã duyệt: dùng màu xanh lá cho đồng bộ với card thống kê
+  approved: { label: "Đã duyệt", palette: "success" },
   completed: { label: "Hoàn thành", palette: "success" },
   rejected: { label: "Từ chối", palette: "error" },
   cancelled: { label: "Đã hủy", palette: "error" },
