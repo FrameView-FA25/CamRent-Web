@@ -1,8 +1,8 @@
 import { toast } from "react-toastify";
-import type { Booking } from "@/types/booking.types";
+import type { Verification } from "@/types/verification.types";
 
 export const handleContractConfirm = async (
-  selectedBooking: Booking | null,
+  selectedVerification: Verification | null,
   setContractLoading: (loading: boolean) => void,
   setPdfUrl: (url: string) => void,
   setCurrentContractId: (id: string) => void,
@@ -10,13 +10,14 @@ export const handleContractConfirm = async (
   setPdfDialogOpen: (open: boolean) => void,
   setContractDialogOpen: (open: boolean) => void
 ) => {
-  if (!selectedBooking) return;
+  if (!selectedVerification) return;
   const token = localStorage.getItem("accessToken");
+  
   try {
     setContractLoading(true);
 
     const createResponse = await fetch(
-      `https://camrent-backend.up.railway.app/api/Contracts/booking/${selectedBooking.id}`,
+      `https://camrent-backend.up.railway.app/api/Contracts/verification/${selectedVerification.id}`,
       {
         method: "POST",
         headers: {
@@ -27,11 +28,12 @@ export const handleContractConfirm = async (
     );
 
     if (!createResponse.ok) {
-      throw new Error("Tạo hợp đồng thất bại");
+      const errorData = await createResponse.json();
+      throw new Error(errorData.message || errorData.title || "Tạo hợp đồng thất bại");
     }
 
     const contractData = await createResponse.json();
-    const contractId = contractData.contractId;
+    const contractId = contractData.id;
 
     const previewResponse = await fetch(
       `https://camrent-backend.up.railway.app/api/Contracts/${contractId}/preview`,
@@ -69,6 +71,8 @@ export const handleContractConfirm = async (
     setPdfDialogOpen(true);
     setContractDialogOpen(false);
     setContractLoading(false);
+
+    toast.success("Tạo hợp đồng thành công!");
   } catch (error) {
     console.error("Contract error:", error);
     toast.error(error instanceof Error ? error.message : "Lỗi khi tạo hợp đồng");
@@ -76,7 +80,12 @@ export const handleContractConfirm = async (
   }
 };
 
-export const handleDownloadPdf = (pdfUrl: string | null, currentFilename: string, setPdfDialogOpen: (open: boolean) => void, setPdfUrl: (url: string | null) => void) => {
+export const handleDownloadPdf = (
+  pdfUrl: string | null,
+  currentFilename: string,
+  setPdfDialogOpen: (open: boolean) => void,
+  setPdfUrl: (url: string | null) => void
+) => {
   if (!pdfUrl) return;
 
   const link = document.createElement("a");

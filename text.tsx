@@ -18,6 +18,7 @@ import {
   TableRow,
   IconButton,
   Modal,
+  CircularProgress,
 } from "@mui/material";
 import {
   Close as CloseIcon,
@@ -34,9 +35,9 @@ import {
   handleDownloadPdf,
 } from "@/pages/Manager/Verification/handlers/handleContractConfirm";
 import { handleSaveSignature } from "@/pages/Manager/Verification/handlers/handleSaveSignature";
-import { CreateContractDialog } from "@/pages/Manager/Verification/components/dialogs/CreateContractDialog";
-import { PdfPreviewDialog } from "@/pages/Manager/Verification/components/dialogs/PdfPreviewDialog";
-import { SignatureDialog } from "@/pages/Manager/Verification/components/dialogs/SignatureDialog";
+import { CreateContractDialog } from "./Verification/CreateContractDialog";
+import { PdfPreviewDialog } from "./Verification/PdfPreviewDialog";
+import { SignatureDialog } from "./Verification/SignatureDialog";
 
 interface VerificationDetailModalProps {
   open: boolean;
@@ -108,6 +109,13 @@ export default function VerificationDetailModal({
       hour: "2-digit",
       minute: "2-digit",
     });
+  };
+
+  const formatCurrency = (amount: number): string => {
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+    }).format(amount);
   };
 
   // Nhóm inspections theo itemName

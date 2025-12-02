@@ -40,7 +40,7 @@ import RenterDashboard from "@/pages/Renter/Dashboard";
 import OrderPage from "@/pages/Renter/OrderPage";
 import OrderDetailPage from "@/pages/Renter/OrderDetailPage";
 import ProductManagementPage from "@/pages/Manager/ProductManagement";
-import VerifyManagement from "@/pages/Manager/VerifyManagement";
+import VerifyManagement from "@/pages/Manager/Verification/VerifyManagement";
 import CheckoutPage from "@/pages/Renter/CheckoutPage";
 import { ChatPage } from "@/pages/Renter/ChatPage";
 import ComparePage from "@/pages/Home/ComparePage";
