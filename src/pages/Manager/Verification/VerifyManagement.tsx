@@ -12,12 +12,12 @@ import {
   Chip,
 } from "@mui/material";
 import { Search, FileText } from "lucide-react";
-import { colors } from "../../theme/colors";
-import { useVerifications } from "../../hooks/useVerifications";
-import VerificationStats from "../../components/Verification/VerificationStats";
-import VerificationListItem from "../../components/Verification/VerificationListItem";
-import VerificationDetailDialog from "../../components/Verification/VerificationDetailDialog";
-import type { Verification } from "../../types/verification.types";
+import { colors } from "../../../theme/colors";
+import { useVerifications } from "../../../hooks/useVerifications";
+import VerificationStats from "../../../components/Verification/VerificationStats";
+import VerificationListItem from "../../../components/Verification/VerificationListItem";
+import VerificationDetailDialog from "../../../components/Verification/VerificationDetailDialog";
+import type { Verification } from "../../../types/verification.types";
 
 const VerifyManagement: React.FC = () => {
   const { verifications, loading, refreshVerifications } = useVerifications();
