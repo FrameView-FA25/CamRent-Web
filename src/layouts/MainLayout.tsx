@@ -1,4 +1,4 @@
-﻿import React, { useState } from "react";
+﻿import React, { useState, useEffect } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import CameraLoginModal from "../components/Modal/Auth/ModalLogin";
 import CameraRegisterModal from "../components/Modal/Auth/ModalRegister";
@@ -66,7 +66,7 @@ const MainLayout: React.FC = () => {
     if (role == "Renter") {
       navigate("/renter/dashboard");
     } else if (role == "Staff") {
-      navigate("/staff/dashboard");
+      navigate("/staff/check-booking");
     } else if (role == "BranchManager") {
       navigate("/manager/dashboard");
     } else if (role == "Owner") {
@@ -85,6 +85,15 @@ const MainLayout: React.FC = () => {
 
   const role = localStorage.getItem("role");
   const isRenter = role === "Renter";
+
+  useEffect(() => {
+    if (isAuthenticated && role === "Staff") {
+      // luôn đưa về trang staff mà bạn muốn
+      if (!location.pathname.startsWith("/staff")) {
+        navigate("/staff/check-booking", { replace: true });
+      }
+    }
+  }, [isAuthenticated, role, location.pathname, navigate]);
 
   return (
     <div className="app-shell">
