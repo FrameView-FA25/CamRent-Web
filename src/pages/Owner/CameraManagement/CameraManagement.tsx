@@ -595,7 +595,7 @@ export default function CameraManagement() {
                     fontSize: "0.75rem",
                   }}
                 >
-                  Đã Cho Thuê
+                  Chờ Xác Minh
                 </Typography>
                 <Typography
                   variant="h3"
