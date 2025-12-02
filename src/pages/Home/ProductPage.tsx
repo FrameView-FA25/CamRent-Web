@@ -1,8 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Box, Container, Button, Typography } from "@mui/material";
-import { amber, grey } from "@mui/material/colors";
-import { colors } from "../../theme/colors";
+import { Box, Container } from "@mui/material";
+import { grey } from "@mui/material/colors";
 import { useCameras, useAccessories } from "../../hooks/useProducts";
 import { useCompare } from "../../context/CompareContext/CompareContext";
 import { toast } from "react-toastify";
