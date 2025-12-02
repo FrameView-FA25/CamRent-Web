@@ -254,7 +254,7 @@ const OrderDetailPage: React.FC = () => {
               }}
               onClick={() => navigate("/renter/my-orders")}
             >
-              Back to Orders
+              Quay trở lại đơn hàng
             </Button>
           </Paper>
         </Container>
@@ -336,7 +336,7 @@ const OrderDetailPage: React.FC = () => {
           }}
           onClick={() => navigate("/renter/my-orders")}
         >
-          Back to Orders
+          Quay trở lại đơn hàng
         </Button>
 
         {/* Header */}
@@ -412,7 +412,7 @@ const OrderDetailPage: React.FC = () => {
                 }}
                 onClick={handleViewContract}
               >
-                View Contract
+                Xem hợp đồng
               </Button>
 
               <Button
@@ -1286,7 +1286,7 @@ const OrderDetailPage: React.FC = () => {
               }}
             >
               <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                Rental Contract
+                Hợp đồng thuê
               </Typography>
               <IconButton onClick={() => setOpenContractDialog(false)}>
                 <XCircle size={20} />

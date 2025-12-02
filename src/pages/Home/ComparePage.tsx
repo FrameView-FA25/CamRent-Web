@@ -121,7 +121,7 @@ const ComparePage: React.FC = () => {
               },
             }}
           >
-            Back to Products
+            Quay lại sản phẩm
           </Button>
 
           <Box
@@ -138,18 +138,18 @@ const ComparePage: React.FC = () => {
                 variant="h4"
                 sx={{ fontWeight: 700, color: colors.text.primary, mb: 1 }}
               >
-                Compare Cameras
+                So sánh máy ảnh
               </Typography>
               <Typography variant="body1" sx={{ color: colors.text.secondary }}>
-                Compare up to 3 cameras side by side
+                So sánh tối đa 3 máy ảnh cùng lúc
               </Typography>
             </Box>
 
             <Stack direction="row" spacing={2}>
               <Chip
-                label={`${cameras.length} camera${
+                label={`${cameras.length} máy ảnh${
                   cameras.length > 1 ? "s" : ""
-                } selected`}
+                } được chọn`}
                 color="primary"
                 sx={{ fontWeight: 600 }}
               />
@@ -165,7 +165,7 @@ const ComparePage: React.FC = () => {
                   },
                 }}
               >
-                Clear All
+                Xóa tất cả
               </Button>
             </Stack>
           </Box>
@@ -195,7 +195,7 @@ const ComparePage: React.FC = () => {
                     width: 200,
                   }}
                 >
-                  Features
+                  Tính năng
                 </TableCell>
                 {cameras.map((camera) => (
                   <TableCell key={camera.id} align="center">
@@ -286,7 +286,7 @@ const ComparePage: React.FC = () => {
               {/* Price */}
               <TableRow>
                 <TableCell sx={{ fontWeight: 600, color: colors.text.primary }}>
-                  Daily Rate
+                  Giá thuê theo ngày
                 </TableCell>
                 {cameras.map((camera) => (
                   <TableCell key={camera.id} align="center">
@@ -303,7 +303,7 @@ const ComparePage: React.FC = () => {
               {/* Estimated Value */}
               <TableRow sx={{ bgcolor: colors.neutral[50] }}>
                 <TableCell sx={{ fontWeight: 600, color: colors.text.primary }}>
-                  Estimated Value
+                  Giá trị ước tính
                 </TableCell>
                 {cameras.map((camera) => (
                   <TableCell key={camera.id} align="center">
@@ -317,7 +317,7 @@ const ComparePage: React.FC = () => {
               {/* Deposit */}
               <TableRow>
                 <TableCell sx={{ fontWeight: 600, color: colors.text.primary }}>
-                  Deposit
+                  Tiền đặt cọc
                 </TableCell>
                 {cameras.map((camera) => {
                   const calculated =
@@ -348,12 +348,12 @@ const ComparePage: React.FC = () => {
               {/* Availability */}
               <TableRow sx={{ bgcolor: colors.neutral[50] }}>
                 <TableCell sx={{ fontWeight: 600, color: colors.text.primary }}>
-                  Availability
+                  Tình trạng
                 </TableCell>
                 {cameras.map((camera) => (
                   <TableCell key={camera.id} align="center">
                     <Chip
-                      label={camera.isAvailable ? "Available" : "Unavailable"}
+                      label={camera.isAvailable ? "Có sẵn" : "Không có sẵn"}
                       size="small"
                       sx={{
                         bgcolor: camera.isAvailable
@@ -372,12 +372,12 @@ const ComparePage: React.FC = () => {
               {/* Location */}
               <TableRow>
                 <TableCell sx={{ fontWeight: 600, color: colors.text.primary }}>
-                  Location
+                  Vị trí
                 </TableCell>
                 {cameras.map((camera) => (
                   <TableCell key={camera.id} align="center">
                     <Typography variant="body2">
-                      {camera.branchName || "No branch"}
+                      {camera.branchName || "Chi nhánh trung tâm"}
                     </Typography>
                     <Typography
                       variant="caption"
@@ -392,16 +392,16 @@ const ComparePage: React.FC = () => {
               {/* Owner */}
               <TableRow sx={{ bgcolor: colors.neutral[50] }}>
                 <TableCell sx={{ fontWeight: 600, color: colors.text.primary }}>
-                  Owner
+                  Chủ sở hữu
                 </TableCell>
                 {cameras.map((camera) => (
                   <TableCell key={camera.id} align="center">
                     <Typography variant="body2">
-                      {camera.ownerName || "Unknown"}
+                      {camera.ownerName || "Không rõ"}
                     </Typography>
                     {camera.isConfirmed && (
                       <Chip
-                        label="Verified"
+                        label="Đã xác minh"
                         size="small"
                         sx={{
                           bgcolor: colors.status.successLight,
@@ -418,7 +418,7 @@ const ComparePage: React.FC = () => {
               {/* Serial Number */}
               <TableRow>
                 <TableCell sx={{ fontWeight: 600, color: colors.text.primary }}>
-                  Serial Number
+                  Số Serial
                 </TableCell>
                 {cameras.map((camera) => (
                   <TableCell key={camera.id} align="center">
@@ -471,7 +471,7 @@ const ComparePage: React.FC = () => {
               {/* Actions */}
               <TableRow>
                 <TableCell sx={{ fontWeight: 600, color: colors.text.primary }}>
-                  Actions
+                  Hành động
                 </TableCell>
                 {cameras.map((camera) => (
                   <TableCell key={camera.id} align="center">
@@ -485,7 +485,7 @@ const ComparePage: React.FC = () => {
                           "&:hover": { bgcolor: colors.primary.dark },
                         }}
                       >
-                        View Details
+                        Xem chi tiết
                       </Button>
                       {camera.isAvailable && (
                         <Button

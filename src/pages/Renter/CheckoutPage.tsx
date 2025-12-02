@@ -274,7 +274,7 @@ const CheckoutPage: React.FC = () => {
                 },
               }}
             >
-              Back to Cart
+              Quay lại giỏ hàng
             </Button>
 
             <Typography
@@ -289,10 +289,10 @@ const CheckoutPage: React.FC = () => {
               }}
             >
               <CreditCard size={32} />
-              Checkout
+              Thanh Toán
             </Typography>
             <Typography variant="body1" sx={{ color: colors.text.secondary }}>
-              Complete your rental booking
+              Hoàn tất đặt thuê thiết bị của bạn
             </Typography>
           </Box>
 
@@ -328,14 +328,14 @@ const CheckoutPage: React.FC = () => {
                   >
                     <MapPin size={24} color={colors.primary.main} />
                     <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                      Pickup Location
+                      Chọn Nơi Nhận Thiết Bị
                     </Typography>
                   </Box>
 
                   <Stack spacing={2}>
                     <TextField
                       fullWidth
-                      label="Country"
+                      label="Quốc gia"
                       value={country}
                       disabled
                       sx={{
@@ -349,7 +349,7 @@ const CheckoutPage: React.FC = () => {
                       fullWidth
                       select
                       required
-                      label="Province/City"
+                      label="Tỉnh/Thành phố"
                       value={province}
                       onChange={(e) => setProvince(e.target.value)}
                       sx={{
@@ -373,10 +373,10 @@ const CheckoutPage: React.FC = () => {
                     <TextField
                       fullWidth
                       required
-                      label="District/Ward"
+                      label="Quận/Huyện"
                       value={district}
                       onChange={(e) => setDistrict(e.target.value)}
-                      placeholder="Enter district or ward"
+                      placeholder="Nhập quận hoặc huyện"
                       sx={{
                         "& .MuiOutlinedInput-root": {
                           "&:hover fieldset": {
@@ -405,13 +405,13 @@ const CheckoutPage: React.FC = () => {
                   >
                     <Calendar size={24} color={colors.primary.main} />
                     <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                      Rental Period
+                      Thời gian thuê
                     </Typography>
                   </Box>
 
                   <Stack spacing={3}>
                     <DateTimePicker
-                      label="Pickup Date & Time"
+                      label="Chọn Ngày & Giờ Nhận"
                       value={pickupAt}
                       onChange={(newValue) => setPickupAt(newValue)}
                       minDateTime={dayjs()}
@@ -434,7 +434,7 @@ const CheckoutPage: React.FC = () => {
                     />
 
                     <DateTimePicker
-                      label="Return Date & Time"
+                      label="Chọn Ngày & Giờ Trả"
                       value={returnAt}
                       onChange={(newValue) => setReturnAt(newValue)}
                       minDateTime={pickupAt || dayjs()}
@@ -467,7 +467,7 @@ const CheckoutPage: React.FC = () => {
                         }}
                       >
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          Rental Duration: {calculateRentalDays()} days
+                          Thời gian thuê: {calculateRentalDays()} ngày
                         </Typography>
                       </Alert>
                     )}
@@ -496,7 +496,7 @@ const CheckoutPage: React.FC = () => {
                     },
                   }}
                 >
-                  {loading ? "Processing..." : "Confirm Booking"}
+                  {loading ? "Đang xử lý..." : "Xác nhận đặt thuê"}
                 </Button>
               </Paper>
             </Box>
@@ -514,7 +514,7 @@ const CheckoutPage: React.FC = () => {
                 }}
               >
                 <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
-                  Order Summary
+                  Tóm tắt đơn hàng
                 </Typography>
 
                 {/* Items List */}
@@ -621,7 +621,7 @@ const CheckoutPage: React.FC = () => {
                       variant="body2"
                       sx={{ color: colors.text.secondary }}
                     >
-                      Subtotal ({cartItems.length} items)
+                      Tổng phụ ({cartItems.length} sản phẩm)
                     </Typography>
                     <Typography variant="body2" sx={{ fontWeight: 600 }}>
                       {formatCurrency(calculateSubtotal())}
@@ -640,7 +640,7 @@ const CheckoutPage: React.FC = () => {
                         variant="body2"
                         sx={{ color: colors.text.secondary }}
                       >
-                        Rental Days
+                        Ngày thuê
                       </Typography>
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>
                         {calculateRentalDays()} days
@@ -661,7 +661,7 @@ const CheckoutPage: React.FC = () => {
                     }}
                   >
                     <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                      Total
+                      Tổng
                     </Typography>
                     <Typography
                       variant="h5"
@@ -685,8 +685,8 @@ const CheckoutPage: React.FC = () => {
                     variant="caption"
                     sx={{ color: colors.text.secondary, display: "block" }}
                   >
-                    💡 Please review your rental details carefully before
-                    confirming
+                    💡Vui lòng xem xét kỹ thông tin thuê nhà của bạn trước khi
+                    xác nhận
                   </Typography>
                 </Box>
               </Paper>

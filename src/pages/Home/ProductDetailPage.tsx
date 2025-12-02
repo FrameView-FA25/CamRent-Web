@@ -136,17 +136,17 @@ const ProductDetailPage: React.FC = () => {
     if (!id) return;
 
     if (isInCompare) {
-      toast.info("This camera is already in compare list");
+      toast.info("Máy ảnh này đã có trong danh sách so sánh");
       return;
     }
 
     if (!canAddMore) {
-      toast.warning("Maximum 3 cameras can be compared");
+      toast.warning("Tối đa 3 máy ảnh có thể được so sánh");
       return;
     }
 
     addToCompare(id);
-    toast.success("Added to compare list!");
+    toast.success("Đã thêm vào danh sách so sánh");
 
     // Navigate back to products page
     setTimeout(() => {
@@ -175,7 +175,7 @@ const ProductDetailPage: React.FC = () => {
     return (
       <Container sx={{ py: 10 }}>
         <Alert severity="error" sx={{ mb: 2 }}>
-          {error || "Camera not found"}
+          {error || "Không tìm thấy máy ảnh"}
         </Alert>
         <Button
           variant="contained"
@@ -186,7 +186,7 @@ const ProductDetailPage: React.FC = () => {
             "&:hover": { bgcolor: amber[500] },
           }}
         >
-          Back to Products
+          Quay lại sản phẩm
         </Button>
       </Container>
     );
@@ -235,7 +235,7 @@ const ProductDetailPage: React.FC = () => {
                 },
               }}
             >
-              Back to Products
+              Quay lại sản phẩm
             </Button>
 
             {/* ✅ Compare Badge */}
@@ -383,7 +383,7 @@ const ProductDetailPage: React.FC = () => {
               <Stack direction="row" spacing={2} alignItems="center" mb={3}>
                 <PersonIcon sx={{ color: ACCENT }} />
                 <Typography fontWeight={600}>
-                  Owner: {camera.ownerName || "Unknown"}
+                  Chủ sở hữu: {camera.ownerName || "Camrent Platform"}
                 </Typography>
                 {camera.isConfirmed && (
                   <Chip
@@ -404,10 +404,10 @@ const ProductDetailPage: React.FC = () => {
                 {formatVnd(camera.baseDailyRate)}
               </Typography>
               <Typography color="text.secondary" mb={1}>
-                per day
+                một ngày
               </Typography>
               <Typography variant="body2" color="text.secondary" mb={3}>
-                Estimated value: {formatVnd(camera.estimatedValueVnd)}
+                Giá ước tính: {formatVnd(camera.estimatedValueVnd)}
               </Typography>
 
               {/* Location */}
@@ -415,11 +415,12 @@ const ProductDetailPage: React.FC = () => {
                 <LocationOnIcon sx={{ color: ACCENT }} />
                 <Box>
                   <Typography fontWeight={600}>
-                    {camera.branchName || "No branch assigned"}
+                    {camera.branchName || "Thủ Đức"}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    {camera.branchAddress || "Address not available"}
+                    {camera.branchAddress || "Địa chỉ không có sẵn"}
                   </Typography>
+                  s
                 </Box>
               </Stack>
 
@@ -427,7 +428,7 @@ const ProductDetailPage: React.FC = () => {
 
               {/* Security Deposit */}
               <Typography variant="h6" fontWeight={700} mb={1}>
-                Security Deposit
+                Tiền đặt cọc
               </Typography>
               <Typography
                 variant="h5"
@@ -438,11 +439,11 @@ const ProductDetailPage: React.FC = () => {
                 {formatVnd(deposit)}
               </Typography>
               <Typography variant="body2" color="text.secondary" mb={3}>
-                {camera.depositPercent}% of estimated value
+                {camera.depositPercent}% giá trị ước tính
                 {camera.depositCapMinVnd &&
-                  ` (min: ${formatVnd(camera.depositCapMinVnd)})`}
+                  ` (tối thiểu: ${formatVnd(camera.depositCapMinVnd)})`}
                 {camera.depositCapMaxVnd &&
-                  ` (max: ${formatVnd(camera.depositCapMaxVnd)})`}
+                  ` (tối đa: ${formatVnd(camera.depositCapMaxVnd)})`}
               </Typography>
 
               <Divider sx={{ my: 3 }} />
@@ -470,7 +471,7 @@ const ProductDetailPage: React.FC = () => {
                   },
                 }}
               >
-                {camera.isAvailable ? "Rent Now" : "Currently Unavailable"}
+                {camera.isAvailable ? "Thuê ngay" : "Hiện không có sẵn"}
               </Button>
 
               <Stack direction="row" spacing={1}>
@@ -501,7 +502,7 @@ const ProductDetailPage: React.FC = () => {
                     },
                   }}
                 >
-                  {addingToCart ? "Adding..." : "Add To Cart"}
+                  {addingToCart ? "Đang thêm..." : "Thêm vào giỏ hàng"}
                 </Button>
 
                 <IconButton
@@ -542,15 +543,15 @@ const ProductDetailPage: React.FC = () => {
                 }}
               >
                 {isInCompare
-                  ? "Already in Compare"
+                  ? "Đã có trong so sánh"
                   : canAddMore
-                  ? `Compare with others (${compareIds.length}/3)`
-                  : "Maximum 3 cameras"}
+                  ? `So sánh với các sản phẩm khác (${compareIds.length}/3)`
+                  : "Tối đa 3 máy ảnh"}
               </Button>
               {/* Platform Fee Notice */}
               {camera.platformFeePercent > 0 && (
                 <Alert severity="info" sx={{ mt: 3, borderRadius: 2 }}>
-                  Platform fee: {(camera.platformFeePercent * 100).toFixed(1)}%
+                  Phí nền tảng: {(camera.platformFeePercent * 100).toFixed(1)}%
                 </Alert>
               )}
             </Box>

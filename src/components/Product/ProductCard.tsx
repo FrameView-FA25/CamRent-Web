@@ -43,7 +43,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ camera }) => {
     useCompare();
 
   const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
-  const [isHovering, setIsHovering] = useState(false);
+  const [, setIsHovering] = useState(false);
 
   const isVerified = camera.isConfirmed ?? false;
   const isInCompare = compareIds.includes(camera.id);
