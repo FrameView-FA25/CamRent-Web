@@ -190,7 +190,11 @@ const InspectionDialog: React.FC<InspectionDialogProps> = ({
       onClose={onClose}
       maxWidth="sm"
       fullWidth
-      PaperProps={{ sx: { borderRadius: 4, p: 1 } }}
+      slotProps={{
+        paper: {
+          sx: { borderRadius: 4, p: 1 },
+        },
+      }}
     >
       <DialogTitle
         sx={{ fontWeight: 700, fontSize: 22, textAlign: "center", pb: 0 }}
@@ -233,25 +237,27 @@ const InspectionDialog: React.FC<InspectionDialogProps> = ({
           value={form.ItemType}
           fullWidth
           sx={{ mb: 2 }}
+          slotProps={{
+            input: {
+              readOnly: true,
+              style: { backgroundColor: "#f3f4f6", cursor: "not-allowed" },
+            },
+          }}
+          disabled
+        />
+        <TextField
+          label="Loại "
+          name="Type"
+          value={form.Type}
+          onChange={handleChange}
           InputProps={{ readOnly: true }}
           inputProps={{
             style: { backgroundColor: "#f3f4f6", cursor: "not-allowed" },
           }}
           disabled
-        />
-        <TextField
-          select
-          label="Type"
-          name="Type"
-          value={form.Type}
-          onChange={handleChange}
           fullWidth
           sx={{ mb: 2 }}
-        >
-          <MenuItem value="">--</MenuItem>
-          <MenuItem value="Booking">Booking</MenuItem>
-          <MenuItem value="Verification">Verification</MenuItem>
-        </TextField>
+        />
         {/* Bỏ thông tin kiểm tra và Booking ID */}
         {/* Removed Type field as it's not part of the form type */}
         {/* InspectionTypeId được giữ trong form nhưng không hiển thị trên giao diện */}
