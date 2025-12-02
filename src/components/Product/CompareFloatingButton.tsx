@@ -56,7 +56,7 @@ const CompareFloatingButton: React.FC<CompareFloatingButtonProps> = ({
           }}
         >
           <Typography sx={{ fontWeight: 700, mr: 1 }}>
-            Compare Cameras
+            So sánh máy ảnh
           </Typography>
         </Badge>
       </Button>
