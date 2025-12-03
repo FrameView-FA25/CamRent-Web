@@ -12,6 +12,10 @@ interface ContextMenuProps {
   onClose: () => void;
   onAssignStaff: () => void;
   onCreateContract: () => void;
+  onConfirmBooking: () => void;
+  onCancelBooking: () => void;
+  onViewDetails: () => void;
+  bookingStatus?: string;
 }
 
 export const ContextMenu: React.FC<ContextMenuProps> = ({
@@ -19,7 +23,14 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
   onClose,
   onAssignStaff,
   onCreateContract,
+  onConfirmBooking,
+  onCancelBooking,
+  onViewDetails,
+  bookingStatus = "Pending",
 }) => {
+  const canConfirm = bookingStatus === "PendingApproval";
+  const canCancel = !["Cancelled", "Completed"].includes(bookingStatus);
+  const canCreateContract = bookingStatus === "Confirmed";
   return (
     <Menu
       anchorEl={anchorEl}
@@ -45,32 +56,36 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
       >
         <Assignment sx={{ mr: 1.5, fontSize: 20 }} /> Phân công nhân viên
       </MenuItem>
+      {canCreateContract && (
+        <MenuItem
+          onClick={onCreateContract}
+          sx={{
+            py: 1.5,
+            "&:hover": {
+              bgcolor: "#FFF7ED",
+              color: "#F97316",
+            },
+          }}
+        >
+          <Description sx={{ mr: 1.5, fontSize: 20 }} /> Tạo hợp đồng
+        </MenuItem>
+      )}
+      {canConfirm && (
+        <MenuItem
+          onClick={onConfirmBooking}
+          sx={{
+            py: 1.5,
+            "&:hover": {
+              bgcolor: "#FFF7ED",
+              color: "#F97316",
+            },
+          }}
+        >
+          <CheckCircle sx={{ mr: 1.5, fontSize: 20 }} /> Xác nhận đơn
+        </MenuItem>
+      )}
       <MenuItem
-        onClick={onCreateContract}
-        sx={{
-          py: 1.5,
-          "&:hover": {
-            bgcolor: "#FFF7ED",
-            color: "#F97316",
-          },
-        }}
-      >
-        <Description sx={{ mr: 1.5, fontSize: 20 }} /> Tạo hợp đồng
-      </MenuItem>
-      <MenuItem
-        onClick={onClose}
-        sx={{
-          py: 1.5,
-          "&:hover": {
-            bgcolor: "#FFF7ED",
-            color: "#F97316",
-          },
-        }}
-      >
-        <CheckCircle sx={{ mr: 1.5, fontSize: 20 }} /> Xác nhận đơn
-      </MenuItem>
-      <MenuItem
-        onClick={onClose}
+        onClick={onViewDetails}
         sx={{
           py: 1.5,
           "&:hover": {
@@ -81,18 +96,20 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
       >
         Xem chi tiết
       </MenuItem>
-      <MenuItem
-        onClick={onClose}
-        sx={{
-          py: 1.5,
-          color: "#EF4444",
-          "&:hover": {
-            bgcolor: "#FEE2E2",
-          },
-        }}
-      >
-        <Cancel sx={{ mr: 1.5, fontSize: 20 }} /> Hủy đơn
-      </MenuItem>
+      {canCancel && (
+        <MenuItem
+          onClick={onCancelBooking}
+          sx={{
+            py: 1.5,
+            color: "#EF4444",
+            "&:hover": {
+              bgcolor: "#FEE2E2",
+            },
+          }}
+        >
+          <Cancel sx={{ mr: 1.5, fontSize: 20 }} /> Hủy đơn
+        </MenuItem>
+      )}
     </Menu>
   );
 };
