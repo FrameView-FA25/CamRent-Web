@@ -50,16 +50,47 @@ const ModalRegister: React.FC<Props> = ({
       setError("Vui lòng nhập họ tên");
       return;
     }
+    if (fullName.trim().length < 2) {
+      setError("Họ tên phải có ít nhất 2 ký tự");
+      return;
+    }
+    if (fullName.trim().length > 100) {
+      setError("Họ tên không được vượt quá 100 ký tự");
+      return;
+    }
+
     if (!email.trim()) {
       setError("Vui lòng nhập email");
+      return;
+    }
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      setError("Email không hợp lệ. Vui lòng nhập đúng định dạng email");
       return;
     }
     if (!phone.trim()) {
       setError("Vui lòng nhập số điện thoại");
       return;
     }
+    // Validate Vietnamese phone number format (10 digits starting with 0)
+    const phoneRegex = /^0\d{9}$/;
+    if (!phoneRegex.test(phone.trim())) {
+      setError("Số điện thoại phải có 10 số và bắt đầu bằng 0");
+      return;
+    }
+
     if (!password) {
       setError("Vui lòng nhập mật khẩu");
+      return;
+    }
+    // Validate password strength
+    if (password.length < 6) {
+      setError("Mật khẩu phải có ít nhất 6 ký tự");
+      return;
+    }
+    if (password.length > 50) {
+      setError("Mật khẩu không được vượt quá 50 ký tự");
       return;
     }
     if (password !== confirm) {
