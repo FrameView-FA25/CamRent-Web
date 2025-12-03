@@ -3,12 +3,13 @@ import type { Booking } from "@/types/booking.types";
 import SignatureCanvas from "react-signature-canvas";
 
 export const useBookingDialogs = () => {
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [contextMenu, setContextMenu] = useState<null | HTMLElement>(null);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [contractDialogOpen, setContractDialogOpen] = useState(false);
   const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
   const [signatureDialogOpen, setSignatureDialogOpen] = useState(false);
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState("");
   const [assignLoading, setAssignLoading] = useState(false);
   const [contractLoading, setContractLoading] = useState(false);
@@ -17,13 +18,16 @@ export const useBookingDialogs = () => {
   const [currentFilename, setCurrentFilename] = useState<string>("");
   const signatureRef = useRef<SignatureCanvas>(null);
 
-  const handleMenuClick = (event: React.MouseEvent<HTMLElement>, booking: Booking) => {
-    setAnchorEl(event.currentTarget);
+  const handleMenuClick = (
+    event: React.MouseEvent<HTMLElement>,
+    booking: Booking
+  ) => {
+    setContextMenu(event.currentTarget);
     setSelectedBooking(booking);
   };
 
   const handleMenuClose = () => {
-    setAnchorEl(null);
+    setContextMenu(null);
   };
 
   const handleAssignStaff = () => {
@@ -62,8 +66,11 @@ export const useBookingDialogs = () => {
   };
 
   return {
-    anchorEl,
+    // States
+    contextMenu,
+    setContextMenu,
     selectedBooking,
+    setSelectedBooking,
     assignDialogOpen,
     setAssignDialogOpen,
     contractDialogOpen,
@@ -71,6 +78,9 @@ export const useBookingDialogs = () => {
     pdfDialogOpen,
     setPdfDialogOpen,
     signatureDialogOpen,
+    setSignatureDialogOpen,
+    detailDialogOpen,
+    setDetailDialogOpen,
     selectedStaff,
     setSelectedStaff,
     assignLoading,
@@ -84,6 +94,8 @@ export const useBookingDialogs = () => {
     currentFilename,
     setCurrentFilename,
     signatureRef,
+    
+    // Handlers
     handleMenuClick,
     handleMenuClose,
     handleAssignStaff,

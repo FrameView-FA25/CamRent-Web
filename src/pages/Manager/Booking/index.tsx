@@ -22,17 +22,25 @@ import { AssignStaffDialog } from "./components/dialogs/AssignStaffDialog";
 import { CreateContractDialog } from "./components/dialogs/CreateContractDialog";
 import { PdfPreviewDialog } from "./components/dialogs/PdfPreviewDialog";
 import { SignatureDialog } from "./components/dialogs/SignatureDialog";
+import { ConfirmBookingDialog } from "./components/dialogs/ConfirmBookingDialog";
 import { handleAssignConfirm } from "./handlers/assignHandlers";
 import {
   handleContractConfirm,
   handleDownloadPdf,
 } from "./handlers/contractHandlers";
 import { handleSaveSignature } from "./handlers/signatureHandlers";
+import {
+  handleConfirmBooking,
+  handleCancelBooking,
+} from "./handlers/bookingStatusHandlers";
 import { DEFAULT_ROWS_PER_PAGE } from "./constants";
 
 const BookingManagement: React.FC = () => {
+  // Data hooks
   const { bookings, staffList, loading, error, setError, loadBookings } =
     useBookingData();
+
+  // Filter hooks
   const {
     searchQuery,
     setSearchQuery,
@@ -40,10 +48,71 @@ const BookingManagement: React.FC = () => {
     setSelectedTab,
     filteredBookings,
   } = useBookingFilters(bookings);
+
+  // Dialog hooks
   const dialogState = useBookingDialogs();
+
+  // Pagination state
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(DEFAULT_ROWS_PER_PAGE);
 
+  // Confirm/Cancel dialog state
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [confirmDialogType, setConfirmDialogType] = useState<
+    "confirm" | "cancel"
+  >("confirm");
+  const [statusLoading, setStatusLoading] = useState(false);
+
+  // Handlers for confirm/cancel booking
+  const handleConfirmBookingClick = () => {
+    setConfirmDialogType("confirm");
+    setConfirmDialogOpen(true);
+  };
+
+  const handleCancelBookingClick = () => {
+    setConfirmDialogType("cancel");
+    setConfirmDialogOpen(true);
+  };
+
+  const handleConfirmBookingSubmit = async () => {
+    setStatusLoading(true);
+    await handleConfirmBooking(dialogState.selectedBooking, () => {
+      loadBookings();
+      setConfirmDialogOpen(false);
+      dialogState.setSelectedBooking(null);
+    });
+    setStatusLoading(false);
+  };
+
+  const handleCancelBookingSubmit = async () => {
+    setStatusLoading(true);
+    await handleCancelBooking(dialogState.selectedBooking, () => {
+      loadBookings();
+      setConfirmDialogOpen(false);
+      dialogState.setSelectedBooking(null);
+    });
+    setStatusLoading(false);
+  };
+
+  // Handler for assign staff
+  const handleAssignStaff = () => {
+    dialogState.setAssignDialogOpen(true);
+    dialogState.setContextMenu(null);
+  };
+
+  // Handler for create contract
+  const handleCreateContract = () => {
+    dialogState.setContractDialogOpen(true);
+    dialogState.setContextMenu(null);
+  };
+
+  // Handler for view details
+  const handleViewDetails = () => {
+    dialogState.setDetailDialogOpen(true);
+    dialogState.setContextMenu(null);
+  };
+
+  // Loading state
   if (loading) {
     return (
       <Box
@@ -97,6 +166,7 @@ const BookingManagement: React.FC = () => {
           </Typography>
         </Box>
 
+        {/* Error Alert */}
         {error && (
           <Alert
             severity="error"
@@ -107,18 +177,25 @@ const BookingManagement: React.FC = () => {
           </Alert>
         )}
 
+        {/* Stats Cards */}
         <StatsCards bookings={bookings} />
+
+        {/* Search Bar */}
         <SearchBar
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           onRefresh={loadBookings}
           loading={loading}
         />
+
+        {/* Tabs */}
         <BookingTabs
           selectedTab={selectedTab}
           setSelectedTab={setSelectedTab}
           bookings={bookings}
         />
+
+        {/* Table */}
         <BookingTable
           filteredBookings={filteredBookings}
           page={page}
@@ -132,13 +209,33 @@ const BookingManagement: React.FC = () => {
           loading={loading}
         />
 
+        {/* Context Menu */}
         <ContextMenu
-          anchorEl={dialogState.anchorEl}
-          onClose={dialogState.handleMenuClose}
-          onAssignStaff={dialogState.handleAssignStaff}
-          onCreateContract={dialogState.handleCreateContract}
+          anchorEl={dialogState.contextMenu}
+          onClose={() => dialogState.setContextMenu(null)}
+          onAssignStaff={handleAssignStaff}
+          onCreateContract={handleCreateContract}
+          onConfirmBooking={handleConfirmBookingClick}
+          onCancelBooking={handleCancelBookingClick}
+          onViewDetails={handleViewDetails}
+          bookingStatus={dialogState.selectedBooking?.status}
         />
 
+        {/* Confirm/Cancel Booking Dialog */}
+        <ConfirmBookingDialog
+          open={confirmDialogOpen}
+          onClose={() => setConfirmDialogOpen(false)}
+          booking={dialogState.selectedBooking}
+          onConfirm={
+            confirmDialogType === "confirm"
+              ? handleConfirmBookingSubmit
+              : handleCancelBookingSubmit
+          }
+          loading={statusLoading}
+          type={confirmDialogType}
+        />
+
+        {/* Assign Staff Dialog */}
         <AssignStaffDialog
           open={dialogState.assignDialogOpen}
           onClose={() => dialogState.setAssignDialogOpen(false)}
@@ -153,11 +250,12 @@ const BookingManagement: React.FC = () => {
               dialogState.selectedStaff,
               dialogState.setAssignLoading,
               dialogState.setAssignDialogOpen,
-              dialogState.setSelectedStaff
+              loadBookings
             )
           }
         />
 
+        {/* Create Contract Dialog */}
         <CreateContractDialog
           open={dialogState.contractDialogOpen}
           onClose={() => dialogState.setContractDialogOpen(false)}
@@ -176,6 +274,7 @@ const BookingManagement: React.FC = () => {
           }
         />
 
+        {/* PDF Preview Dialog */}
         <PdfPreviewDialog
           open={dialogState.pdfDialogOpen}
           onClose={dialogState.handleClosePdfDialog}
@@ -191,6 +290,7 @@ const BookingManagement: React.FC = () => {
           }
         />
 
+        {/* Signature Dialog */}
         <SignatureDialog
           open={dialogState.signatureDialogOpen}
           onClose={dialogState.handleCloseSignature}
