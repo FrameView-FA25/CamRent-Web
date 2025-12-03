@@ -41,14 +41,14 @@ const CameraModel: React.FC<CameraModelProps> = ({ modelPath }) => {
           <Model modelPath={modelPath} />
           <OrbitControls
             enableZoom={false}
-            enablePan={false}
+            enablePan={true}
             enableRotate={true}
             autoRotate
             autoRotateSpeed={2}
             minPolarAngle={Math.PI / 4}
             maxPolarAngle={Math.PI / 1.5}
-            minAzimuthAngle={-Math.PI / 2}
-            maxAzimuthAngle={Math.PI / 2}
+            minAzimuthAngle={-Math.PI}
+            maxAzimuthAngle={Math.PI}
           />
           <Environment preset="studio" />
         </Suspense>

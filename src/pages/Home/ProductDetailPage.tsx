@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Box,
@@ -11,10 +11,6 @@ import {
   CircularProgress,
   Alert,
   IconButton,
-  Table,
-  TableBody,
-  TableCell,
-  TableRow,
 } from "@mui/material";
 import { amber, grey } from "@mui/material/colors";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -54,7 +50,39 @@ const ProductDetailPage: React.FC = () => {
 
   // ✅ Check if current camera is already in compare list
   const isInCompare = id ? compareIds.includes(id) : false;
+  const SPEC_LABELS: Record<string, string> = {
+    sensor: "Cảm biến",
+    isoRange: "Dải ISO",
+    video: "Quay video",
+    stabilization: "Chống rung",
+    weight: "Trọng lượng",
+  };
+  const parseSpecs = (
+    rawSpecs: string | Record<string, string> | null | undefined
+  ): Record<string, string> | null => {
+    if (!rawSpecs) return null;
 
+    try {
+      // Nếu backend trả về đã là object rồi
+      if (typeof rawSpecs === "object") return rawSpecs;
+
+      let text = rawSpecs.trim();
+
+      // Nếu chỉ là fragment không có { } → bọc lại
+      if (!text.startsWith("{")) {
+        text = `{${text}}`;
+      }
+
+      return JSON.parse(text);
+    } catch (error) {
+      console.error("Không parse được specsJson:", error);
+      return null;
+    }
+  };
+  const specs = useMemo(
+    () => parseSpecs(camera?.specsJson),
+    [camera?.specsJson]
+  );
   useEffect(() => {
     const fetchDetail = async () => {
       if (!id) {
@@ -192,14 +220,6 @@ const ProductDetailPage: React.FC = () => {
     );
   }
 
-  // Parse specifications
-  let specs: Record<string, string> | null = null;
-  try {
-    specs = camera.specsJson ? JSON.parse(camera.specsJson) : null;
-  } catch {
-    specs = null;
-  }
-
   // Gallery images
   const gallery = camera.media?.length
     ? camera.media.map((m) => m.url)
@@ -293,12 +313,12 @@ const ProductDetailPage: React.FC = () => {
 
               {/* Availability Badge */}
               <Chip
-                label={camera.isAvailable ? "Available" : "Unavailable"}
+                label={camera.isConfirmed ? "Đã xác minh" : "Chưa xác minh"}
                 sx={{
                   position: "absolute",
                   top: 16,
                   right: 16,
-                  bgcolor: camera.isAvailable ? "#b6ffb0" : "#ffc4c4",
+                  bgcolor: camera.isConfirmed ? "#b6ffb0" : "#ffc4c4",
                   fontWeight: 700,
                   fontSize: "0.875rem",
                 }}
@@ -428,7 +448,7 @@ const ProductDetailPage: React.FC = () => {
 
               {/* Security Deposit */}
               <Typography variant="h6" fontWeight={700} mb={1}>
-                Tiền đặt cọc
+                Tiền đặt cọc thiết bị
               </Typography>
               <Typography
                 variant="h5"
@@ -452,7 +472,6 @@ const ProductDetailPage: React.FC = () => {
               <Button
                 fullWidth
                 variant="contained"
-                disabled={!camera.isAvailable}
                 sx={{
                   bgcolor: colors.primary.main,
                   color: "white",
@@ -471,7 +490,7 @@ const ProductDetailPage: React.FC = () => {
                   },
                 }}
               >
-                {camera.isAvailable ? "Thuê ngay" : "Hiện không có sẵn"}
+                Thuê ngay
               </Button>
 
               <Stack direction="row" spacing={1}>
@@ -569,41 +588,49 @@ const ProductDetailPage: React.FC = () => {
           }}
         >
           <Typography variant="h5" fontWeight={700} mb={3}>
-            Technical Specifications
+            Thông số kỹ thuật
           </Typography>
 
           {specs ? (
-            <Table>
-              <TableBody>
+            <Box>
+              {/* Alert giới thiệu */}
+              <Alert severity="info" sx={{ borderRadius: 2, mb: 2 }}>
+                Thông số dưới đây chỉ mang tính tham khảo.
+              </Alert>
+
+              {/* Container 2 cột */}
+              <Box
+                sx={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 2,
+                }}
+              >
                 {Object.entries(specs).map(([key, value]) => (
-                  <TableRow
+                  <Box
                     key={key}
                     sx={{
-                      "&:hover": {
-                        bgcolor: grey[50],
-                      },
+                      width: { xs: "100%", sm: "48%" }, // 2 cột trên desktop, 1 cột mobile
+                      p: 2,
+                      borderRadius: 2,
+                      border: "1px solid #e5e7eb",
+                      bgcolor: "#fafafa",
                     }}
                   >
-                    <TableCell
-                      sx={{
-                        fontWeight: 600,
-                        width: 200,
-                        color: grey[700],
-                        textTransform: "capitalize",
-                      }}
-                    >
-                      {key}
-                    </TableCell>
-                    <TableCell sx={{ color: grey[800] }}>
-                      {String(value)}
-                    </TableCell>
-                  </TableRow>
+                    <Typography variant="body2" color="text.secondary" mb={0.5}>
+                      {SPEC_LABELS[key] ?? key}
+                    </Typography>
+
+                    <Typography variant="body1" fontWeight={600}>
+                      {value as string}
+                    </Typography>
+                  </Box>
                 ))}
-              </TableBody>
-            </Table>
+              </Box>
+            </Box>
           ) : (
-            <Alert severity="warning" sx={{ borderRadius: 2 }}>
-              No specifications available for this product.
+            <Alert severity="info" sx={{ borderRadius: 2 }}>
+              Chưa có thông số kỹ thuật cho máy này.
             </Alert>
           )}
         </Box>
@@ -619,21 +646,21 @@ const ProductDetailPage: React.FC = () => {
           }}
         >
           <Typography variant="h6" fontWeight={700} mb={2}>
-            Rental Information
+            Thông tin chủ sở hữu
           </Typography>
           <Stack spacing={1}>
             <Typography variant="body2" color="text.secondary">
-              📍 Location: {camera.location || "Platform"}
+              📍 Địa chỉ: {camera.location || "Platform"}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              ✅ Status:{" "}
-              {camera.isConfirmed ? "Verified" : "Pending verification"}
+              ✅ Trạng thái:{" "}
+              {camera.isConfirmed ? "Đã xác minh" : "Chờ xác minh"}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              🔒 Security deposit required upon rental
+              🔒 Yêu cầu đặt cọc bảo đảm khi thuê
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              ⏰ Daily rental rate applies
+              ⏰ Áp dụng mức giá thuê theo ngày
             </Typography>
           </Stack>
         </Box>
