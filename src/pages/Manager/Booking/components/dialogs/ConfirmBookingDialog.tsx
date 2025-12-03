@@ -104,13 +104,15 @@ export const ConfirmBookingDialog: React.FC<ConfirmBookingDialogProps> = ({
                 <strong>Mã đơn:</strong> {booking.id.slice(0, 8)}
               </Typography>
               <Typography variant="body2" sx={{ mb: 1, color: "#1F2937" }}>
-                <strong>Khách hàng:</strong> {booking.renterName}
+                <strong>Khách hàng:</strong>{" "}
+                {booking.renter?.fullName || booking.renter?.email || "N/A"}
               </Typography>
               <Typography variant="body2" sx={{ mb: 1, color: "#1F2937" }}>
-                <strong>Tổng tiền:</strong> {formatCurrency(booking.totalPrice)}
+                <strong>Tổng tiền:</strong>{" "}
+                {formatCurrency(booking.snapshotRentalTotal)}
               </Typography>
               <Typography variant="body2" sx={{ mb: 1, color: "#1F2937" }}>
-                <strong>Ngày đặt:</strong> {formatDate(booking.bookingDate)}
+                <strong>Ngày đặt:</strong> {formatDate(booking.pickupAt)}
               </Typography>
               <Typography variant="body2" sx={{ color: "#1F2937" }}>
                 <strong>Trạng thái hiện tại:</strong>{" "}
