@@ -146,7 +146,7 @@ const ProductDetailPage: React.FC = () => {
       }
 
       // ✅ Success
-      toast.success("Added to cart successfully!", {
+      toast.success("Đã thêm vào giỏ hàng thành công!", {
         position: "top-right",
         autoClose: 2000,
       });
@@ -155,7 +155,7 @@ const ProductDetailPage: React.FC = () => {
       await refreshCart();
     } catch (error) {
       console.error("Error adding to cart:", error);
-      toast.error("Failed to add to cart. Please try again.");
+      toast.error("Sản phẩm không tồn tại");
     } finally {
       setAddingToCart(false);
     }

@@ -15,7 +15,7 @@ import {
 } from "@mui/material";
 import { X, Eye, EyeOff, Camera, User, Store } from "lucide-react";
 import { authService } from "../../../services/auth.service";
-
+import { colors } from "@/theme/colors";
 type Props = {
   open: boolean;
   onClose: () => void;
@@ -207,16 +207,16 @@ const ModalRegister: React.FC<Props> = ({
               "& .MuiToggleButton-root": {
                 px: 3,
                 py: 1,
-                border: "2px solid #E5E7EB",
+
                 borderRadius: 2,
                 textTransform: "none",
                 fontWeight: 600,
                 "&.Mui-selected": {
-                  bgcolor: "#FACC15",
+                  bgcolor: colors.primary.main,
                   color: "#111827",
-                  borderColor: "#FACC15",
+                  borderColor: colors.primary.main,
                   "&:hover": {
-                    bgcolor: "#EAB308",
+                    bgcolor: colors.primary.dark,
                   },
                 },
                 "&:not(.Mui-selected)": {
@@ -353,12 +353,12 @@ const ModalRegister: React.FC<Props> = ({
             disableElevation
             disabled={loading}
             sx={{
-              bgcolor: "#FACC15",
+              bgcolor: colors.primary.main,
               color: "#111827",
               fontWeight: 700,
               py: 1.25,
               borderRadius: 999,
-              "&:hover": { bgcolor: "#EAB308" },
+              "&:hover": { bgcolor: colors.primary.dark },
               "&:disabled": { bgcolor: "#E5E7EB", color: "#9CA3AF" },
             }}
           >

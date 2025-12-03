@@ -139,10 +139,10 @@ const ModalLogin: React.FC<Props> = ({
             color="text.primary"
             gutterBottom
           >
-            Welcome Back
+            Chào mừng trở lại
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Login to rent premium camera gear
+            Đăng nhập để thuê thiết bị cao cấp
           </Typography>
         </Box>
 
@@ -221,7 +221,7 @@ const ModalLogin: React.FC<Props> = ({
                 setOpenForgot(true);
               }}
             >
-              Forgot Password?
+              Quên mật khẩu
             </Button>
           </Box>
 
@@ -247,7 +247,7 @@ const ModalLogin: React.FC<Props> = ({
             {loading ? (
               <CircularProgress size={24} sx={{ color: "#111827" }} />
             ) : (
-              "Login"
+              "Đăng nhập"
             )}
           </Button>
 
@@ -298,12 +298,12 @@ const ModalLogin: React.FC<Props> = ({
               </Box>
             }
           >
-            Continue with Google
+            Đăng nhập với Google
           </Button>
 
           <Box sx={{ textAlign: "center", mt: 2 }}>
             <Typography variant="body2" color="text.secondary">
-              Don&apos;t have an account?{" "}
+              Bạn chưa có tài khoản?{" "}
               <Typography
                 component="button"
                 type="button"
@@ -318,7 +318,7 @@ const ModalLogin: React.FC<Props> = ({
                   "&:hover": { color: "#F59E0B" },
                 }}
               >
-                Sign Up
+                Đăng ký
               </Typography>
             </Typography>
           </Box>
