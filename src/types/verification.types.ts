@@ -72,6 +72,7 @@ export interface Verification {
   createdByUserId: string;
   inspections?: Inspection[];
   items: VerificationItem[];
+  contracts?: Contract[];
   createdAt: string;
 }
 export interface Inspection {
@@ -91,4 +92,21 @@ export interface Inspection {
   images?: string[];
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface ContractSignature {
+  role: string;
+  fullName: string | null;
+  isSigned: boolean;
+  signedAt: string | null;
+}
+
+export interface Contract {
+  id: string;
+  status: string;
+  branchName: string | null;
+  branchAddress: string | null;
+  createdAt: string;
+  signedAt: string | null;
+  signatures: ContractSignature[];
 }

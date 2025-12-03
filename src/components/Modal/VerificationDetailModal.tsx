@@ -25,8 +25,11 @@ import {
   Cancel as CancelIcon,
   CameraAlt as CameraIcon,
   ZoomIn as ZoomInIcon,
+  Visibility as VisibilityIcon,
 } from "@mui/icons-material";
-import type { Verification } from "../../types/verification.types";
+import { Tooltip } from "@mui/material";
+import type { Verification, Contract } from "../../types/verification.types";
+import { contractService } from "../../services/contract.service";
 
 interface VerificationDetailModalProps {
   open: boolean;
@@ -40,8 +43,41 @@ export default function VerificationDetailModal({
   verification,
 }: VerificationDetailModalProps) {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState<string | null>(null);
 
   if (!verification) return null;
+
+  const handlePreviewContract = async (contractId: string) => {
+    setPreviewLoading(contractId);
+    try {
+      const token = localStorage.getItem("accessToken");
+      if (!token) {
+        alert("Vui lòng đăng nhập để xem hợp đồng.");
+        return;
+      }
+
+      const blob = await contractService.getPreview(contractId, token);
+      const pdfBlob = new Blob([blob], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(pdfBlob);
+      
+      // Mở PDF trong tab mới
+      window.open(url, "_blank");
+      
+      // Cleanup sau 1 phút
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+      }, 60000);
+    } catch (error) {
+      console.error("Error previewing contract:", error);
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Có lỗi khi xem trước hợp đồng."
+      );
+    } finally {
+      setPreviewLoading(null);
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -86,6 +122,32 @@ export default function VerificationDetailModal({
       hour: "2-digit",
       minute: "2-digit",
     });
+  };
+
+  /**
+   * Tính toán trạng thái hợp đồng dựa trên status từ API và chữ ký thực tế
+   * - status: "Signed" → "Đã ký"
+   * - status: "PendingSignatures" + có ít nhất 1 bên đã ký → "Đang ký"
+   * - status: "PendingSignatures" + chưa ai ký → "Chờ ký"
+   */
+  const getContractStatus = (contract: Contract) => {
+    if (contract.status === "Signed") {
+      return { label: "Đã ký", color: "#10B981", bg: "#F0FDF4" };
+    } else if (contract.status === "PendingSignatures") {
+      // Kiểm tra có bất kỳ ai đã ký chưa
+      const anySigned = contract.signatures?.some((s: { isSigned: boolean }) => s.isSigned === true) || false;
+      
+      if (anySigned) {
+        // Có ít nhất 1 bên đã ký → "Đang ký"
+        return { label: "Đang ký", color: "#F59E0B", bg: "#FEF3C7" };
+      } else {
+        // Chưa ai ký → "Chờ ký"
+        return { label: "Chờ ký", color: "#C8501D", bg: "#FFF4ED" };
+      }
+    } else {
+      // Trạng thái khác hoặc không xác định
+      return { label: contract.status || "Chờ ký", color: "#64748B", bg: "#F1F5F9" };
+    }
   };
 
   // Nhóm inspections theo itemName
@@ -670,6 +732,239 @@ export default function VerificationDetailModal({
               </Typography>
             </Paper>
           )}
+
+          {/* Danh sách hợp đồng */}
+          <Paper
+            elevation={0}
+            sx={{
+              p: 3,
+              mb: 3,
+              border: "1px solid #E2E8F0",
+              borderRadius: 2,
+            }}
+          >
+            <Typography
+              variant="h6"
+              fontWeight={600}
+              sx={{ color: "#1E293B", mb: 2 }}
+            >
+              Danh Sách Hợp Đồng ({verification.contracts?.length || 0})
+            </Typography>
+            {verification.contracts && verification.contracts.length > 0 ? (
+              <TableContainer>
+                <Table>
+                  <TableHead>
+                    <TableRow sx={{ bgcolor: "#F8FAFC" }}>
+                      <TableCell
+                        sx={{
+                          fontWeight: 700,
+                          color: "#475569",
+                          fontSize: "0.875rem",
+                        }}
+                      >
+                        Mã hợp đồng
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          fontWeight: 700,
+                          color: "#475569",
+                          fontSize: "0.875rem",
+                        }}
+                      >
+                        Trạng thái
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          fontWeight: 700,
+                          color: "#475569",
+                          fontSize: "0.875rem",
+                        }}
+                      >
+                        Ngày tạo
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          fontWeight: 700,
+                          color: "#475569",
+                          fontSize: "0.875rem",
+                        }}
+                      >
+                        Chữ ký
+                      </TableCell>
+                      <TableCell
+                        align="center"
+                        sx={{
+                          fontWeight: 700,
+                          color: "#475569",
+                          fontSize: "0.875rem",
+                        }}
+                      >
+                        Thao tác
+                      </TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {verification.contracts.map((contract, index) => {
+                      const contractStatus = getContractStatus(contract);
+                      return (
+                        <TableRow
+                          key={contract.id}
+                          sx={{
+                            bgcolor: index % 2 === 0 ? "#FFFFFF" : "#FAFAFA",
+                          }}
+                        >
+                          <TableCell>
+                            <Typography
+                              sx={{
+                                fontWeight: 600,
+                                color: "#1E293B",
+                                fontSize: "0.875rem",
+                              }}
+                            >
+                              {contract.id.substring(0, 8)}...
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Chip
+                              label={contractStatus.label}
+                              size="small"
+                              sx={{
+                                bgcolor: contractStatus.bg,
+                                color: contractStatus.color,
+                                fontWeight: 600,
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Typography
+                              sx={{
+                                color: "#64748B",
+                                fontSize: "0.875rem",
+                              }}
+                            >
+                              {formatDate(contract.createdAt)}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+                              {contract.signatures && contract.signatures.length > 0 ? (
+                                contract.signatures.map((signature, sigIdx) => (
+                                  <Tooltip
+                                    key={sigIdx}
+                                    title={
+                                      signature.isSigned && signature.signedAt
+                                        ? `Đã ký lúc: ${formatDate(signature.signedAt)}`
+                                        : signature.isSigned
+                                        ? "Đã ký"
+                                        : "Chưa ký"
+                                    }
+                                    arrow
+                                  >
+                                    <Box
+                                      sx={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: 0.5,
+                                        cursor: "pointer",
+                                      }}
+                                    >
+                                      <Chip
+                                        label={
+                                          signature.role === "Owner"
+                                            ? "Chủ sở hữu"
+                                            : signature.role === "Platform"
+                                            ? "Nền tảng"
+                                            : signature.role === "Renter"
+                                            ? "Người thuê"
+                                            : signature.role
+                                        }
+                                        size="small"
+                                        sx={{
+                                          bgcolor: signature.isSigned
+                                            ? "#F0FDF4"
+                                            : "#FEF2F2",
+                                          color: signature.isSigned
+                                            ? "#10B981"
+                                            : "#EF4444",
+                                          fontWeight: 600,
+                                          fontSize: "0.7rem",
+                                          height: 20,
+                                        }}
+                                      />
+                                      {signature.isSigned ? (
+                                        <CheckCircleIcon
+                                          sx={{
+                                            color: "#10B981",
+                                            fontSize: 16,
+                                          }}
+                                        />
+                                      ) : (
+                                        <CancelIcon
+                                          sx={{
+                                            color: "#EF4444",
+                                            fontSize: 16,
+                                          }}
+                                        />
+                                      )}
+                                    </Box>
+                                  </Tooltip>
+                                ))
+                              ) : (
+                                <Typography
+                                  sx={{
+                                    color: "#94A3B8",
+                                    fontSize: "0.75rem",
+                                    fontStyle: "italic",
+                                  }}
+                                >
+                                  Chưa có chữ ký
+                                </Typography>
+                              )}
+                            </Box>
+                          </TableCell>
+                          <TableCell align="center">
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              startIcon={<VisibilityIcon />}
+                              onClick={() => handlePreviewContract(contract.id)}
+                              disabled={previewLoading === contract.id}
+                              sx={{
+                                borderColor: "#FF6B35",
+                                color: "#FF6B35",
+                                fontWeight: 600,
+                                fontSize: "0.75rem",
+                                textTransform: "none",
+                                "&:hover": {
+                                  borderColor: "#E85D2A",
+                                  bgcolor: "#FFF5F0",
+                                },
+                                "&:disabled": {
+                                  borderColor: "#FCDAD0",
+                                  color: "#FCDAD0",
+                                },
+                              }}
+                            >
+                              {previewLoading === contract.id
+                                ? "Đang tải..."
+                                : "Xem trước"}
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            ) : (
+              <Typography
+                variant="body2"
+                sx={{ color: "#94A3B8", fontStyle: "italic" }}
+              >
+                Chưa có hợp đồng nào
+              </Typography>
+            )}
+          </Paper>
         </Box>
       </DialogContent>
 

@@ -989,7 +989,7 @@ export default function VerificationManagement() {
           <ListItemIcon>
             <DescriptionIcon fontSize="small" sx={{ color: "#F97316" }} />
           </ListItemIcon>
-          <ListItemText primary="Xem hợp đồng" />
+          <ListItemText primary="Tạo hợp đồng" />
         </MenuItem>
         <Divider />
         <MenuItem
