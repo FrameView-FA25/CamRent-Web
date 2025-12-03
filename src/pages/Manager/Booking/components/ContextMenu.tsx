@@ -26,7 +26,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
   onConfirmBooking,
   onCancelBooking,
   onViewDetails,
-  bookingStatus = "Pending",
+  bookingStatus = "PendingApproval",
 }) => {
   const canConfirm = bookingStatus === "PendingApproval";
   const canCancel = !["Cancelled", "Completed"].includes(bookingStatus);

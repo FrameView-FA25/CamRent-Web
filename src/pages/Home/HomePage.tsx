@@ -91,7 +91,7 @@ const HomePage: React.FC = () => {
             >
               Khám Phá Thiết Bị
             </a>
-            <a href="/rent" className="btn btn-secondary">
+            <a href="/products" className="btn btn-secondary">
               Thuê Ngay
             </a>
           </div>
