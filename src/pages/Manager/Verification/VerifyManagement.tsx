@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Container,
@@ -18,6 +18,10 @@ import VerificationStats from "../../../components/Verification/VerificationStat
 import VerificationListItem from "../../../components/Verification/VerificationListItem";
 import VerificationDetailDialog from "../../../components/Verification/VerificationDetailDialog";
 import type { Verification } from "../../../types/verification.types";
+import type { Staff } from "../../../types/booking.types";
+import { fetchStaffList } from "../../../services/booking.service";
+import { verificationService } from "../../../services/verification.service";
+import { toast } from "react-toastify";
 
 const VerifyManagement: React.FC = () => {
   const { verifications, loading, refreshVerifications } = useVerifications();
@@ -27,6 +31,31 @@ const VerifyManagement: React.FC = () => {
   const [selectedVerification, setSelectedVerification] =
     useState<Verification | null>(null);
   const [openDetailDialog, setOpenDetailDialog] = useState(false);
+  const [staffList, setStaffList] = useState<Staff[]>([]);
+  const [, setLoadingStaff] = useState(false);
+
+  // Load staff list
+  useEffect(() => {
+    const loadStaff = async () => {
+      setLoadingStaff(true);
+      try {
+        const { staff, error } = await fetchStaffList();
+        if (error) {
+          console.error("Error loading staff:", error);
+          toast.error("Không thể tải danh sách nhân viên");
+        } else {
+          setStaffList(staff);
+        }
+      } catch (error) {
+        console.error("Error loading staff:", error);
+        toast.error("Không thể tải danh sách nhân viên");
+      } finally {
+        setLoadingStaff(false);
+      }
+    };
+
+    loadStaff();
+  }, []);
 
   // Filter verifications
   const filteredVerifications = verifications.filter((v) => {
@@ -44,6 +73,24 @@ const VerifyManagement: React.FC = () => {
   const handleViewDetails = (verification: Verification) => {
     setSelectedVerification(verification);
     setOpenDetailDialog(true);
+  };
+
+  const handleAssignStaff = async (
+    verificationId: string,
+    staffId: string
+  ): Promise<boolean> => {
+    try {
+      await verificationService.assignStaff(verificationId, staffId);
+      toast.success("Đã gán nhân viên thành công");
+      await refreshVerifications();
+      return true;
+    } catch (error) {
+      console.error("Error assigning staff:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Không thể gán nhân viên";
+      toast.error(errorMessage);
+      return false;
+    }
   };
 
   const statusCounts = {
@@ -258,6 +305,8 @@ const VerifyManagement: React.FC = () => {
           }}
           verification={selectedVerification}
           onRefresh={refreshVerifications}
+          staffList={staffList}
+          onAssignStaff={handleAssignStaff}
         />
       </Container>
     </Box>

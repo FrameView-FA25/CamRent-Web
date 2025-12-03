@@ -232,6 +232,52 @@ export const verificationService = {
     }
   },
   /**
+   * Cập nhật trạng thái của một yêu cầu xác minh
+   * Quyền: BranchManager
+   * @param id - ID của verification cần cập nhật trạng thái
+   * @param status - Trạng thái mới (Pending, Verified, Approved, Rejected)
+   * @param note - Ghi chú kèm theo (tùy chọn)
+   * @returns Promise<void>
+   */
+  async updateVerificationStatus(
+    id: string,
+    status: string,
+    note?: string
+  ): Promise<void> {
+    const token = localStorage.getItem("accessToken");
+
+    if (!token) {
+      throw new Error("Vui lòng đăng nhập để thực hiện thao tác này");
+    }
+
+    const url = new URL(`${API_BASE_URL}/Verifications/${id}/update-status`);
+    url.searchParams.append("status", status);
+    if (note) {
+      url.searchParams.append("note", note);
+    }
+
+    const response = await fetch(url.toString(), {
+      method: "PUT",
+      headers: {
+        accept: "*/*",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      let errorMessage = `Cập nhật trạng thái thất bại với mã lỗi ${response.status}`;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorMessage;
+      } catch {
+        const errorText = await response.text().catch(() => "");
+        if (errorText) errorMessage = errorText;
+      }
+      throw new Error(errorMessage);
+    }
+  },
+
+  /**
    * Xóa yêu cầu xác minh
    * Quyền: Owner, Admin
    * @param verificationId - ID của verification cần xóa

@@ -18,6 +18,9 @@ import {
   TableRow,
   IconButton,
   Modal,
+  Menu,
+  MenuItem,
+  TextField,
 } from "@mui/material";
 import {
   Close as CloseIcon,
@@ -26,9 +29,12 @@ import {
   CameraAlt as CameraIcon,
   ZoomIn as ZoomInIcon,
   Description as DescriptionIcon,
+  PersonAdd as PersonAddIcon,
+  MoreVert as MoreVertIcon,
 } from "@mui/icons-material";
 import SignatureCanvas from "react-signature-canvas";
 import type { Verification } from "../../types/verification.types";
+import type { Staff } from "../../types/booking.types";
 import {
   handleContractConfirm,
   handleDownloadPdf,
@@ -37,12 +43,17 @@ import { handleSaveSignature } from "@/pages/Manager/Verification/handlers/handl
 import { CreateContractDialog } from "@/pages/Manager/Verification/components/dialogs/CreateContractDialog";
 import { PdfPreviewDialog } from "@/pages/Manager/Verification/components/dialogs/PdfPreviewDialog";
 import { SignatureDialog } from "@/pages/Manager/Verification/components/dialogs/SignatureDialog";
+import AssignStaffDialog from "./AssignStaffDialog";
+import { verificationService } from "../../services/verification.service";
+import { toast } from "react-toastify";
 
 interface VerificationDetailModalProps {
   open: boolean;
   onClose: () => void;
   verification: Verification | null;
   onRefresh?: () => void;
+  staffList?: Staff[];
+  onAssignStaff?: (verificationId: string, staffId: string) => Promise<boolean>;
 }
 
 export default function VerificationDetailModal({
@@ -50,6 +61,8 @@ export default function VerificationDetailModal({
   onClose,
   verification,
   onRefresh,
+  staffList = [],
+  onAssignStaff,
 }: VerificationDetailModalProps) {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [contractDialogOpen, setContractDialogOpen] = useState(false);
@@ -61,6 +74,13 @@ export default function VerificationDetailModal({
   );
   const [currentFilename, setCurrentFilename] = useState<string>("");
   const [signatureDialogOpen, setSignatureDialogOpen] = useState(false);
+  const [assignStaffDialogOpen, setAssignStaffDialogOpen] = useState(false);
+  const [statusMenuAnchor, setStatusMenuAnchor] = useState<null | HTMLElement>(
+    null
+  );
+  const [statusNote, setStatusNote] = useState<string>("");
+  const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState<string>("");
   const signatureRef = useRef<SignatureCanvas | null>(null);
 
   if (!verification) return null;
@@ -124,6 +144,8 @@ export default function VerificationDetailModal({
     verification.status.toLowerCase()
   );
 
+  // const canAssignStaff = verification.status.toLowerCase() === "pending";
+
   const handleCreateContract = () => {
     setContractDialogOpen(true);
   };
@@ -182,6 +204,69 @@ export default function VerificationDetailModal({
 
   const handleDownload = () => {
     handleDownloadPdf(pdfUrl, currentFilename, setPdfDialogOpen, setPdfUrl);
+  };
+
+  const handleOpenAssignStaff = () => {
+    setAssignStaffDialogOpen(true);
+  };
+
+  const handleCloseAssignStaff = () => {
+    setAssignStaffDialogOpen(false);
+  };
+
+  const handleAssignStaff = async (staffId: string) => {
+    if (!onAssignStaff || !verification) return false;
+
+    const success = await onAssignStaff(verification.id, staffId);
+    if (success && onRefresh) {
+      onRefresh();
+    }
+    return success;
+  };
+
+  const handleOpenStatusMenu = (event: React.MouseEvent<HTMLElement>) => {
+    setStatusMenuAnchor(event.currentTarget);
+  };
+
+  const handleCloseStatusMenu = () => {
+    setStatusMenuAnchor(null);
+  };
+
+  const handleSelectStatus = (status: string) => {
+    setSelectedStatus(status);
+    setStatusMenuAnchor(null);
+    setStatusDialogOpen(true);
+  };
+
+  const handleCloseStatusDialog = () => {
+    setStatusDialogOpen(false);
+    setSelectedStatus("");
+    setStatusNote("");
+  };
+
+  const handleConfirmStatusUpdate = async () => {
+    if (!selectedStatus || !verification) return;
+
+    try {
+      await verificationService.updateVerificationStatus(
+        verification.id,
+        selectedStatus,
+        statusNote || undefined
+      );
+      toast.success("Cập nhật trạng thái thành công");
+      handleCloseStatusDialog();
+      onClose(); // Đóng modal chính
+      if (onRefresh) {
+        onRefresh(); // Refresh danh sách verification
+      }
+    } catch (error) {
+      console.error("Error updating status:", error);
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Không thể cập nhật trạng thái";
+      toast.error(errorMessage);
+    }
   };
 
   return (
@@ -264,25 +349,81 @@ export default function VerificationDetailModal({
                   Thông Tin Yêu Cầu
                 </Typography>
 
-                {canCreateContract && (
-                  <Button
-                    variant="contained"
-                    startIcon={<DescriptionIcon />}
-                    onClick={handleCreateContract}
+                <Box sx={{ display: "flex", gap: 2 }}>
+                  {/* Update Status Button */}
+                  <IconButton
+                    onClick={handleOpenStatusMenu}
                     sx={{
-                      bgcolor: "#10B981",
-                      color: "white",
+                      border: "1px solid #E2E8F0",
+                      borderRadius: 2,
+                      "&:hover": {
+                        bgcolor: "#F8FAFC",
+                      },
+                    }}
+                  >
+                    <MoreVertIcon />
+                  </IconButton>
+
+                  <Menu
+                    anchorEl={statusMenuAnchor}
+                    open={Boolean(statusMenuAnchor)}
+                    onClose={handleCloseStatusMenu}
+                  >
+                    <MenuItem onClick={() => handleSelectStatus("Pending")}>
+                      Chờ xử lý
+                    </MenuItem>
+                    <MenuItem onClick={() => handleSelectStatus("Verified")}>
+                      Đã xác minh
+                    </MenuItem>
+                    <MenuItem onClick={() => handleSelectStatus("Approved")}>
+                      Đã duyệt
+                    </MenuItem>
+                    <MenuItem onClick={() => handleSelectStatus("Rejected")}>
+                      Từ chối
+                    </MenuItem>
+                  </Menu>
+
+                  {/* {canAssignStaff && onAssignStaff && ( */}
+                  <Button
+                    variant="outlined"
+                    startIcon={<PersonAddIcon />}
+                    onClick={handleOpenAssignStaff}
+                    sx={{
+                      borderColor: "#3B82F6",
+                      color: "#3B82F6",
                       fontWeight: 600,
                       textTransform: "none",
                       px: 3,
                       "&:hover": {
-                        bgcolor: "#059669",
+                        borderColor: "#2563EB",
+                        bgcolor: "#EFF6FF",
                       },
                     }}
                   >
-                    Tạo Hợp Đồng
+                    Gán Nhân Viên
                   </Button>
-                )}
+                  {/* )} */}
+
+                  {canCreateContract && (
+                    <Button
+                      variant="contained"
+                      startIcon={<DescriptionIcon />}
+                      onClick={handleCreateContract}
+                      sx={{
+                        bgcolor: "#10B981",
+                        color: "white",
+                        fontWeight: 600,
+                        textTransform: "none",
+                        px: 3,
+                        "&:hover": {
+                          bgcolor: "#059669",
+                        },
+                      }}
+                    >
+                      Tạo Hợp Đồng
+                    </Button>
+                  )}
+                </Box>
               </Box>
 
               <Grid container spacing={2}>
@@ -899,6 +1040,74 @@ export default function VerificationDetailModal({
         onClear={handleClearSignature}
         onSave={handleConfirmSignature}
       />
+
+      {/* Assign Staff Dialog */}
+      <AssignStaffDialog
+        open={assignStaffDialogOpen}
+        onClose={handleCloseAssignStaff}
+        staffList={staffList}
+        onAssign={handleAssignStaff}
+      />
+
+      {/* Status Update Dialog */}
+      <Dialog
+        open={statusDialogOpen}
+        onClose={handleCloseStatusDialog}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          <Typography variant="h6" sx={{ fontWeight: 700 }}>
+            Cập nhật trạng thái
+          </Typography>
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 2 }}>
+            <Typography variant="body2" sx={{ mb: 2, color: "#64748B" }}>
+              Bạn đang cập nhật trạng thái thành:{" "}
+              <strong>{selectedStatus}</strong>
+            </Typography>
+            <TextField
+              fullWidth
+              multiline
+              rows={4}
+              label="Ghi chú (tùy chọn)"
+              value={statusNote}
+              onChange={(e) => setStatusNote(e.target.value)}
+              placeholder="Nhập ghi chú về việc cập nhật trạng thái..."
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button
+            variant="outlined"
+            onClick={handleCloseStatusDialog}
+            sx={{
+              borderColor: "#E2E8F0",
+              color: "#1E293B",
+              textTransform: "none",
+              fontWeight: 600,
+            }}
+          >
+            Hủy
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleConfirmStatusUpdate}
+            sx={{
+              bgcolor: "#FF6B35",
+              color: "white",
+              textTransform: "none",
+              fontWeight: 600,
+              "&:hover": {
+                bgcolor: "#E85D2A",
+              },
+            }}
+          >
+            Xác nhận
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }
