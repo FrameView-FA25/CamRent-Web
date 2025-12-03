@@ -50,7 +50,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ camera }) => {
   const ownerName = camera.branchName || camera.ownerName;
 
   // Tính toán giá đặt cọc
-  const depositAmount = (camera.baseDailyRate * camera.depositPercent) / 100;
+  const depositAmount =
+    (camera.estimatedValueVnd * camera.depositPercent) / 100;
 
   const getMediaUrls = (): string[] => {
     if (
@@ -393,6 +394,18 @@ const ProductCard: React.FC<ProductCardProps> = ({ camera }) => {
               {ownerName}
             </Typography>
           </Box>
+          <Box sx={{ mb: 1 }}>
+            <Typography variant="caption" sx={{ color: grey[500], mr: 0.5 }}>
+              Giá trị ước tính
+            </Typography>
+            <Typography
+              variant="body2"
+              component="span"
+              sx={{ fontWeight: 600, color: grey[800] }}
+            >
+              {formatCurrency(camera.estimatedValueVnd)}
+            </Typography>
+          </Box>
 
           {/* Pricing Box */}
           <Box
@@ -427,7 +440,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ camera }) => {
             </Box>
             <Box sx={{ display: "flex", justifyContent: "space-between" }}>
               <Typography variant="caption" sx={{ color: grey[600] }}>
-                Đặt cọc ({camera.depositPercent}%):
+                Đặt cọc thiết bị ({camera.depositPercent}%):
               </Typography>
               <Typography
                 variant="caption"
