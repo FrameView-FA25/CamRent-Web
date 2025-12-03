@@ -178,7 +178,7 @@ const HomePage: React.FC = () => {
             >
               <Box
                 component="img"
-                src="../../public/sony.jpg"
+                src="/sony.jpg"
                 alt="Máy ảnh chuyên nghiệp"
                 sx={{
                   width: "100%",
@@ -312,7 +312,7 @@ const HomePage: React.FC = () => {
             >
               <Box
                 component="img"
-                src="../../public/sony1.png"
+                src="/sony1.png"
                 alt="Thiết bị máy ảnh chuyên nghiệp"
                 sx={{
                   width: "100%",
