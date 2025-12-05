@@ -35,20 +35,18 @@ import { getRoleLabel } from "../../../utils/roleUtils";
 import { toast } from "react-toastify";
 import { userService, type User } from "../../../services/user.service";
 import CreateUserDialog from "../../../components/Modal/Admin/CreateUserDialog";
+import UpdateUserDialog from "../../../components/Modal/Admin/UpdateUserDialog";
 
 const STATUS_LABELS: Record<string, string> = {
   Active: "Hoạt động",
-  Inactive: "Tạm ngưng",
-  Blocked: "Đã khóa",
+  Ban: "Đã khóa",
 };
 
 const getStatusColor = (status: string) => {
   switch (status) {
     case "Active":
       return "success";
-    case "Inactive":
-      return "warning";
-    case "Blocked":
+    case "Ban":
       return "error";
     default:
       return "default";
@@ -108,6 +106,7 @@ const AccountManagement: React.FC = () => {
   const [total, setTotal] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
 
   const fetchUsers = async (pageNum: number = 1, pageSize: number = 50) => {
     try {
@@ -141,8 +140,52 @@ const AccountManagement: React.FC = () => {
   };
 
   const handleCreateSuccess = () => {
-    // Reload users list after creating new user
     fetchUsers(currentPage, rowsPerPage);
+  };
+
+  // Cập nhật user
+  const handleUpdateSuccess = () => {
+    // Reload users list after updating user
+    fetchUsers(currentPage, rowsPerPage);
+  };
+
+  const handleEditClick = () => {
+    if (selectedUser) {
+      setUpdateDialogOpen(true);
+      // Đóng menu nhưng giữ selectedUser để modal có thể sử dụng
+      setAnchorEl(null);
+    }
+  };
+
+  const handleToggleStatus = async () => {
+    if (!selectedUser) return;
+
+    try {
+      const newStatus = selectedUser.status === "Active" ? "Ban" : "Active";
+
+      await userService.updateUser(selectedUser.id, {
+        phone: selectedUser.phone,
+        fullName: selectedUser.fullName,
+        status: newStatus,
+      });
+
+      toast.success(
+        newStatus === "Ban"
+          ? "Đã khóa tài khoản thành công"
+          : "Đã kích hoạt tài khoản thành công"
+      );
+
+      // Reload users list
+      fetchUsers(currentPage, rowsPerPage);
+      handleMenuClose();
+    } catch (err) {
+      console.error("Error toggling user status:", err);
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : "Không thể cập nhật trạng thái tài khoản";
+      toast.error(errorMessage);
+    }
   };
 
   const handleMenuClick = (
@@ -406,7 +449,13 @@ const AccountManagement: React.FC = () => {
                           <Chip
                             label={STATUS_LABELS[user.status] || user.status}
                             size="small"
-                            color={getStatusColor(user.status) as any}
+                            color={
+                              getStatusColor(user.status) as
+                                | "success"
+                                | "warning"
+                                | "error"
+                                | "default"
+                            }
                           />
                         </TableCell>
                         <TableCell>
@@ -471,11 +520,11 @@ const AccountManagement: React.FC = () => {
         open={Boolean(anchorEl)}
         onClose={handleMenuClose}
       >
-        <MenuItem onClick={handleMenuClose}>
+        <MenuItem onClick={handleEditClick}>
           <EditIcon sx={{ mr: 1, fontSize: 20 }} />
           Chỉnh sửa
         </MenuItem>
-        <MenuItem onClick={handleMenuClose}>
+        <MenuItem onClick={handleToggleStatus}>
           {selectedUser?.status === "Active" ? (
             <>
               <BlockIcon sx={{ mr: 1, fontSize: 20 }} />
@@ -493,6 +542,15 @@ const AccountManagement: React.FC = () => {
         open={createDialogOpen}
         onClose={() => setCreateDialogOpen(false)}
         onSuccess={handleCreateSuccess}
+      />
+      <UpdateUserDialog
+        open={updateDialogOpen}
+        onClose={() => {
+          setUpdateDialogOpen(false);
+          setSelectedUser(null); // Reset selectedUser khi đóng modal
+        }}
+        onSuccess={handleUpdateSuccess}
+        user={selectedUser}
       />
     </Box>
   );
