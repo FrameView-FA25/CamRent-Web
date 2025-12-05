@@ -19,6 +19,7 @@ import {
   StepLabel,
   Paper,
   IconButton,
+  CircularProgress,
 } from "@mui/material";
 import {
   X,
@@ -32,11 +33,13 @@ import {
 } from "lucide-react";
 import { colors } from "../../theme/colors";
 import type { AISearchCriteria } from "../../types/aiSearch.type";
+import { aiService } from "../../services/ai.service";
+import { toast } from "react-toastify";
 
 interface AISearchDialogProps {
   open: boolean;
   onClose: () => void;
-  onSearch: (criteria: AISearchCriteria) => void;
+  onSearch: (results: any[]) => void;
 }
 
 const AISearchDialog: React.FC<AISearchDialogProps> = ({
@@ -45,6 +48,7 @@ const AISearchDialog: React.FC<AISearchDialogProps> = ({
   onSearch,
 }) => {
   const [activeStep, setActiveStep] = useState(0);
+  const [loading, setLoading] = useState(false);
   const [criteria, setCriteria] = useState<AISearchCriteria>({
     budget: { min: 0, max: 5000000 },
     purpose: [],
@@ -109,9 +113,89 @@ const AISearchDialog: React.FC<AISearchDialogProps> = ({
     setActiveStep((prev) => prev - 1);
   };
 
-  const handleSearch = () => {
-    onSearch(criteria);
-    onClose();
+  const buildQueryString = (): string => {
+    const parts: string[] = [];
+
+    // Purpose
+    if (criteria.purpose.length > 0) {
+      const purposeText = criteria.purpose.join(", ");
+      parts.push(`Mục đích: ${purposeText}`);
+    }
+
+    // Experience
+    const experienceMap: { [key: string]: string } = {
+      Beginner: "Người mới bắt đầu",
+      Intermediate: "Trung cấp",
+      Professional: "Chuyên nghiệp",
+    };
+    parts.push(`Trình độ: ${experienceMap[criteria.experience]}`);
+
+    // Budget
+    if (criteria.budget) {
+      const minFormatted = new Intl.NumberFormat("vi-VN").format(
+        criteria.budget.min
+      );
+      const maxFormatted = new Intl.NumberFormat("vi-VN").format(
+        criteria.budget.max
+      );
+      parts.push(`Ngân sách: ${minFormatted}đ - ${maxFormatted}đ`);
+    }
+
+    // Rental Duration
+    if (criteria.rentalDuration) {
+      parts.push(`Thuê ${criteria.rentalDuration.days} ngày`);
+    }
+
+    // Location
+    if (criteria.location) {
+      parts.push(`Khu vực: ${criteria.location}`);
+    }
+
+    // Features
+    if (criteria.features && criteria.features.length > 0) {
+      parts.push(`Tính năng cần: ${criteria.features.join(", ")}`);
+    }
+
+    // Accessories
+    if (criteria.accessories && criteria.accessories.length > 0) {
+      parts.push(`Phụ kiện: ${criteria.accessories.join(", ")}`);
+    }
+
+    // Additional Requirements
+    if (criteria.additionalRequirements) {
+      parts.push(criteria.additionalRequirements);
+    }
+
+    return parts.join(". ");
+  };
+
+  const handleSearch = async () => {
+    if (criteria.purpose.length === 0) {
+      toast.error("Vui lòng chọn ít nhất một mục đích sử dụng");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const queryString = buildQueryString();
+      const results = await aiService.recommend(queryString, 5);
+
+      if (results.length === 0) {
+        toast.info(
+          "Không tìm thấy kết quả phù hợp. Vui lòng thử lại với tiêu chí khác."
+        );
+      } else {
+        onSearch(results);
+        onClose();
+      }
+    } catch (error) {
+      console.error("AI search error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Không thể tìm kiếm với AI";
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const renderStepContent = (step: number) => {
@@ -940,7 +1024,14 @@ const AISearchDialog: React.FC<AISearchDialogProps> = ({
           <Button
             variant="contained"
             onClick={handleSearch}
-            startIcon={<Search size={18} />}
+            disabled={loading}
+            startIcon={
+              loading ? (
+                <CircularProgress size={18} color="inherit" />
+              ) : (
+                <Search size={18} />
+              )
+            }
             sx={{
               bgcolor: colors.primary.main,
               color: "black",
@@ -950,9 +1041,13 @@ const AISearchDialog: React.FC<AISearchDialogProps> = ({
               "&:hover": {
                 bgcolor: colors.primary.dark,
               },
+              "&:disabled": {
+                bgcolor: colors.neutral[300],
+                color: colors.neutral[500],
+              },
             }}
           >
-            Tìm kiếm với AI
+            {loading ? "Đang tìm kiếm..." : "Tìm kiếm với AI"}
           </Button>
         )}
       </DialogActions>

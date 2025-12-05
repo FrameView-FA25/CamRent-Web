@@ -10,10 +10,7 @@ import ProductFilters from "../../components/Product/ProductFilters";
 import ProductGrid from "../../components/Product/ProductGrid";
 import CompareFloatingButton from "../../components/Product/CompareFloatingButton";
 import AIResultsDialog from "../../components/Product/AIResultsDialog";
-import type {
-  AISearchCriteria,
-  AISearchResponse,
-} from "../../types/aiSearch.type";
+import type { AISearchResult } from "../../services/ai.service";
 
 const ProductPage: React.FC = () => {
   const navigate = useNavigate();
@@ -30,8 +27,7 @@ const ProductPage: React.FC = () => {
 
   // AI Search States
   const [openAIResults, setOpenAIResults] = useState(false);
-  const [aiResults, setAiResults] = useState<AISearchResponse | null>(null);
-  const [isAISearching, setIsAISearching] = useState(false);
+  const [aiResults, setAiResults] = useState<AISearchResult[]>([]);
 
   const { compareIds } = useCompare();
 
@@ -120,92 +116,11 @@ const ProductPage: React.FC = () => {
     setCurrentPage(1);
   };
 
-  // Mock AI Search Handler
-  const handleAISearch = async (criteria: AISearchCriteria) => {
-    try {
-      setIsAISearching(true);
-
-      // Simulate AI processing
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      // Mock AI recommendations
-      const mockRecommendations = cameras
-        .filter((camera) => {
-          if (criteria.budget) {
-            const estimatedCost =
-              camera.baseDailyRate * (criteria.rentalDuration?.days || 3);
-            if (
-              estimatedCost < criteria.budget.min ||
-              estimatedCost > criteria.budget.max
-            ) {
-              return false;
-            }
-          }
-          return true;
-        })
-        .slice(0, 5)
-        .map((camera, index) => {
-          const matchScore = 85 - index * 5;
-
-          const reasons: string[] = [
-            "Đánh giá cao từ người dùng",
-            "Giá thuê hợp lý trong tầm ngân sách",
-            "Thiết bị được bảo dưỡng tốt",
-          ];
-
-          if (criteria.purpose.includes("Portrait")) {
-            reasons.push("Chất lượng ảnh chân dung xuất sắc");
-          }
-
-          const suggestedAccessories: string[] = [];
-          if (criteria.accessories?.includes("Lens")) {
-            suggestedAccessories.push("Ống kính 50mm f/1.8");
-          }
-
-          const estimatedTotalCost =
-            camera.baseDailyRate * (criteria.rentalDuration?.days || 3) +
-            suggestedAccessories.length * 100000;
-
-          return {
-            camera: camera.id,
-            matchScore,
-            reasons,
-            suggestedAccessories,
-            estimatedTotalCost,
-          };
-        });
-
-      const formatCurrency = (value: number) =>
-        new Intl.NumberFormat("vi-VN", {
-          style: "currency",
-          currency: "VND",
-        }).format(value);
-
-      const response: AISearchResponse = {
-        recommendations: mockRecommendations,
-        searchSummary: `Dựa trên yêu cầu ${criteria.purpose
-          .join(", ")
-          .toLowerCase()} với ngân sách ${formatCurrency(
-          criteria.budget?.min || 0
-        )} - ${formatCurrency(criteria.budget?.max || 0)}, chúng tôi tìm thấy ${
-          mockRecommendations.length
-        } camera phù hợp nhất cho bạn.`,
-        tips: [
-          "Đặt thuê sớm để có giá tốt hơn",
-          "Xem xét thuê thêm pin dự phòng",
-          "Kiểm tra kỹ thiết bị trước khi nhận",
-        ],
-      };
-
-      setAiResults(response);
-      setOpenAIResults(true);
-      toast.success("AI đã tìm được camera phù hợp!");
-    } catch (error) {
-      console.error("AI Search error:", error);
-      toast.error("Có lỗi xảy ra khi tìm kiếm với AI");
-    } finally {
-      setIsAISearching(false);
-    }
+  // Handle AI Search Results
+  const handleAISearch = (results: AISearchResult[]) => {
+    setAiResults(results);
+    setOpenAIResults(true);
+    toast.success(`AI đã tìm được ${results.length} kết quả phù hợp!`);
   };
 
   return (
@@ -226,9 +141,7 @@ const ProductPage: React.FC = () => {
         onSearchChange={setSearchQuery}
         compareCount={compareIds.length}
         onAISearch={handleAISearch}
-        isAISearching={isAISearching}
       />
-
       {/* Main Content */}
       <Container maxWidth="lg" sx={{ py: 4 }}>
         {/* Filters */}
@@ -255,7 +168,6 @@ const ProductPage: React.FC = () => {
         open={openAIResults}
         onClose={() => setOpenAIResults(false)}
         results={aiResults}
-        cameras={cameras}
       />
     </Box>
   );

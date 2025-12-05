@@ -19,7 +19,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import { Sparkles } from "lucide-react";
 import { colors } from "../../theme/colors";
 import AISearchDialog from "./AISearchDialog";
-import type { AISearchCriteria } from "../../types/aiSearch.type";
+import type { AISearchResult } from "../../services/ai.service";
 
 interface ProductHeaderProps {
   currentTab: number;
@@ -29,7 +29,7 @@ interface ProductHeaderProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
   compareCount: number;
-  onAISearch: (criteria: AISearchCriteria) => void;
+  onAISearch: (results: AISearchResult[]) => void;
   isAISearching?: boolean;
 }
 
@@ -47,9 +47,9 @@ const ProductHeader: React.FC<ProductHeaderProps> = ({
   const [openAISearch, setOpenAISearch] = useState(false);
   const [showSearchTip, setShowSearchTip] = useState(false);
 
-  const handleAISearch = (criteria: AISearchCriteria) => {
+  const handleAISearch = (results: AISearchResult[]) => {
     setOpenAISearch(false);
-    onAISearch(criteria);
+    onAISearch(results);
   };
 
   return (
