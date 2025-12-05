@@ -1,9 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Box,
   Paper,
   Typography,
-  Button,
   Table,
   TableBody,
   TableCell,
@@ -16,127 +15,180 @@ import {
   InputAdornment,
   Menu,
   MenuItem,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  FormControl,
-  InputLabel,
-  Select,
+  CircularProgress,
+  Alert,
+  TablePagination,
+  Avatar,
+  Button,
 } from "@mui/material";
 import {
-  Add as AddIcon,
   Search as SearchIcon,
   MoreVert as MoreVertIcon,
   Edit as EditIcon,
-  Delete as DeleteIcon,
   Block as BlockIcon,
   CheckCircle as CheckCircleIcon,
+  People as PeopleIcon,
+  Refresh as RefreshIcon,
+  Add as AddIcon,
 } from "@mui/icons-material";
+import { getRoleLabel } from "../../../utils/roleUtils";
+import { toast } from "react-toastify";
+import { userService, type User } from "../../../services/user.service";
+import CreateUserDialog from "../../../components/Modal/Admin/CreateUserDialog";
 
-interface Account {
-  id: number;
-  username: string;
-  email: string;
-  role: string;
-  status: "Active" | "Inactive" | "Blocked";
-  createdAt: string;
-}
-
-const mockAccounts: Account[] = [
-  {
-    id: 1,
-    username: "manager1",
-    email: "manager1@camrent.com",
-    role: "Manager",
-    status: "Active",
-    createdAt: "2024-01-15",
-  },
-  {
-    id: 2,
-    username: "manager2",
-    email: "manager2@camrent.com",
-    role: "Manager",
-    status: "Active",
-    createdAt: "2024-02-20",
-  },
-  {
-    id: 3,
-    username: "staff1",
-    email: "staff1@camrent.com",
-    role: "Staff",
-    status: "Inactive",
-    createdAt: "2024-03-10",
-  },
-];
-
-const STATUS_LABELS: Record<Account["status"], string> = {
+const STATUS_LABELS: Record<string, string> = {
   Active: "Hoạt động",
   Inactive: "Tạm ngưng",
   Blocked: "Đã khóa",
 };
 
-const ROLE_LABELS: Record<string, string> = {
-  Manager: "Quản lý",
-  Staff: "Nhân viên",
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case "Active":
+      return "success";
+    case "Inactive":
+      return "warning";
+    case "Blocked":
+      return "error";
+    default:
+      return "default";
+  }
 };
 
-const getLabel = (map: Record<string, string>, key: string): string =>
-  map[key] || key;
+const formatDate = (dateString: string) => {
+  try {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat("vi-VN", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(date);
+  } catch {
+    return dateString;
+  }
+};
+
+const getInitials = (name: string): string => {
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+};
+
+const getAvatarColor = (userId: string): string => {
+  const colors = [
+    "#FF6B6B",
+    "#4ECDC4",
+    "#45B7D1",
+    "#FFA07A",
+    "#98D8C8",
+    "#F7DC6F",
+    "#BB8FCE",
+    "#85C1E2",
+  ];
+  const index =
+    userId.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0) %
+    colors.length;
+  return colors[index];
+};
 
 const AccountManagement: React.FC = () => {
-  const [accounts] = useState<Account[]>(mockAccounts);
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
-  const [openDialog, setOpenDialog] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(50);
+  const [total, setTotal] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+
+  const fetchUsers = async (pageNum: number = 1, pageSize: number = 50) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const data = await userService.getUsers(pageNum, pageSize);
+      setUsers(data.items);
+      setTotal(data.total);
+      setCurrentPage(data.page);
+    } catch (err) {
+      console.error("Error fetching users:", err);
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : "Không thể tải danh sách người dùng";
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers(1, rowsPerPage);
+  }, []);
+
+  // Tạo user mới
+  const handleRefresh = () => {
+    fetchUsers(currentPage, rowsPerPage);
+  };
+
+  const handleCreateSuccess = () => {
+    // Reload users list after creating new user
+    fetchUsers(currentPage, rowsPerPage);
+  };
 
   const handleMenuClick = (
     event: React.MouseEvent<HTMLElement>,
-    account: Account
+    user: User
   ) => {
     setAnchorEl(event.currentTarget);
-    setSelectedAccount(account);
+    setSelectedUser(user);
   };
 
   const handleMenuClose = () => {
     setAnchorEl(null);
-    setSelectedAccount(null);
+    setSelectedUser(null);
   };
 
-  const handleOpenDialog = () => {
-    setOpenDialog(true);
+  const handleChangePage = (_event: unknown, newPage: number) => {
+    setPage(newPage);
+    fetchUsers(newPage + 1, rowsPerPage);
   };
 
-  const handleCloseDialog = () => {
-    setOpenDialog(false);
+  const handleChangeRowsPerPage = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const newRowsPerPage = parseInt(event.target.value, 10);
+    setRowsPerPage(newRowsPerPage);
+    setPage(0);
+    fetchUsers(1, newRowsPerPage);
   };
 
-  const filteredAccounts = accounts.filter(
-    (account) =>
-      account.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      account.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredUsers = useMemo(() => {
+    if (!searchTerm) return users;
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Active":
-        return "success";
-      case "Inactive":
-        return "warning";
-      case "Blocked":
-        return "error";
-      default:
-        return "default";
-    }
-  };
+    const query = searchTerm.toLowerCase();
+    return users.filter(
+      (user) =>
+        user.fullName.toLowerCase().includes(query) ||
+        user.email.toLowerCase().includes(query) ||
+        user.phone.toLowerCase().includes(query) ||
+        user.roles.some((role) =>
+          getRoleLabel(role).toLowerCase().includes(query)
+        )
+    );
+  }, [users, searchTerm]);
 
   return (
-    <Box
-      sx={{
-        p: { xs: 2, sm: 3 },
-      }}
-    >
+    <Box sx={{ bgcolor: "#F5F5F5", minHeight: "100vh", p: 3 }}>
       <Box
         sx={{
           display: "flex",
@@ -145,30 +197,73 @@ const AccountManagement: React.FC = () => {
           mb: 3,
         }}
       >
-        <Typography
-          variant="h4"
-          sx={{
-            fontWeight: 700,
-            color: "#1F2937",
-          }}
-        >
-          Quản lý tài khoản
-        </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleOpenDialog}
-          sx={{
-            bgcolor: "#DC2626",
-            "&:hover": { bgcolor: "#B91C1C" },
-            textTransform: "none",
-            borderRadius: 2,
-            px: 3,
-          }}
-        >
-          Tạo tài khoản
-        </Button>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <Box
+            sx={{
+              width: 50,
+              height: 50,
+              borderRadius: 2,
+              bgcolor: "#DC2626",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <PeopleIcon sx={{ color: "white", fontSize: 30 }} />
+          </Box>
+          <Box>
+            <Typography
+              variant="h4"
+              sx={{
+                fontWeight: 700,
+                color: "#1F2937",
+              }}
+            >
+              Quản lý người dùng
+            </Typography>
+            <Typography variant="body2" sx={{ color: "#6B7280", mt: 0.5 }}>
+              Quản lý tất cả người dùng trong hệ thống
+            </Typography>
+          </Box>
+        </Box>
+        <Box sx={{ display: "flex", gap: 2 }}>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => setCreateDialogOpen(true)}
+            sx={{
+              bgcolor: "#DC2626",
+              "&:hover": { bgcolor: "#B91C1C" },
+              textTransform: "none",
+              borderRadius: 2,
+              px: 3,
+            }}
+          >
+            Tạo người dùng mới
+          </Button>
+          <IconButton
+            onClick={handleRefresh}
+            disabled={loading}
+            sx={{
+              bgcolor: "white",
+              border: "1px solid #E5E7EB",
+              "&:hover": { bgcolor: "#F9FAFB" },
+            }}
+          >
+            <RefreshIcon />
+          </IconButton>
+        </Box>
       </Box>
+
+      {error && (
+        <Alert
+          severity="error"
+          sx={{ mb: 3, borderRadius: 2 }}
+          onClose={() => setError(null)}
+        >
+          {error}
+        </Alert>
+      )}
 
       <Paper
         elevation={0}
@@ -176,12 +271,13 @@ const AccountManagement: React.FC = () => {
           borderRadius: 2,
           border: "1px solid #E5E7EB",
           overflow: "hidden",
+          bgcolor: "white",
         }}
       >
         <Box sx={{ p: 3, borderBottom: "1px solid #E5E7EB" }}>
           <TextField
             fullWidth
-            placeholder="Tìm theo tên tài khoản hoặc email..."
+            placeholder="Tìm kiếm theo tên, email, số điện thoại hoặc vai trò..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             InputProps={{
@@ -199,57 +295,174 @@ const AccountManagement: React.FC = () => {
           />
         </Box>
 
-        <TableContainer>
-          <Table>
-            <TableHead sx={{ bgcolor: "#F9FAFB" }}>
-              <TableRow>
-                <TableCell sx={{ fontWeight: 600 }}>ID</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Tên tài khoản</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Email</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Vai trò</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Trạng thái</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Ngày tạo</TableCell>
-                <TableCell sx={{ fontWeight: 600 }} align="right">
-                  Thao tác
-                </TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {filteredAccounts.map((account) => (
-                <TableRow key={account.id} hover>
-                  <TableCell>{account.id}</TableCell>
-                  <TableCell sx={{ fontWeight: 500 }}>
-                    {account.username}
-                  </TableCell>
-                  <TableCell>{account.email}</TableCell>
-                  <TableCell>
-                    <Chip
-                      label={getLabel(ROLE_LABELS, account.role)}
-                      size="small"
-                      sx={{ bgcolor: "#EFF6FF", color: "#3B82F6" }}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      label={STATUS_LABELS[account.status]}
-                      size="small"
-                      color={getStatusColor(account.status)}
-                    />
-                  </TableCell>
-                  <TableCell>{account.createdAt}</TableCell>
-                  <TableCell align="right">
-                    <IconButton
-                      onClick={(e) => handleMenuClick(e, account)}
-                      size="small"
-                    >
-                      <MoreVertIcon />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+        {loading ? (
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              minHeight: 400,
+            }}
+          >
+            <CircularProgress sx={{ color: "#DC2626" }} />
+          </Box>
+        ) : (
+          <>
+            <TableContainer>
+              <Table>
+                <TableHead sx={{ bgcolor: "#F9FAFB" }}>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 600 }}>Người dùng</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Email</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>
+                      Số điện thoại
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Vai trò</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Trạng thái</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Ngày tạo</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }} align="right">
+                      Thao tác
+                    </TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {filteredUsers.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} align="center" sx={{ py: 8 }}>
+                        <PeopleIcon
+                          sx={{ fontSize: 60, color: "#E5E7EB", mb: 2 }}
+                        />
+                        <Typography
+                          variant="h6"
+                          sx={{ color: "#6B7280", mb: 1 }}
+                        >
+                          {searchTerm
+                            ? "Không tìm thấy người dùng nào"
+                            : "Chưa có người dùng nào"}
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          sx={{ color: "#9CA3AF", fontSize: "0.875rem" }}
+                        >
+                          {searchTerm
+                            ? "Thử tìm kiếm với từ khóa khác"
+                            : "Danh sách người dùng sẽ hiển thị ở đây"}
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredUsers.map((user) => (
+                      <TableRow key={user.id} hover>
+                        <TableCell>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 2,
+                            }}
+                          >
+                            <Avatar
+                              sx={{
+                                bgcolor: getAvatarColor(user.id),
+                                width: 40,
+                                height: 40,
+                                fontSize: "0.875rem",
+                                fontWeight: 600,
+                              }}
+                            >
+                              {getInitials(user.fullName)}
+                            </Avatar>
+                            <Box>
+                              <Typography sx={{ fontWeight: 500 }}>
+                                {user.fullName}
+                              </Typography>
+                              <Typography
+                                variant="caption"
+                                sx={{ color: "#6B7280", fontSize: "0.75rem" }}
+                              >
+                                ID: {user.id.slice(0, 8)}...
+                              </Typography>
+                            </Box>
+                          </Box>
+                        </TableCell>
+                        <TableCell>{user.email}</TableCell>
+                        <TableCell>{user.phone}</TableCell>
+                        <TableCell>
+                          {user.roles.map((role, index) => (
+                            <Chip
+                              key={index}
+                              label={getRoleLabel(role)}
+                              size="small"
+                              sx={{
+                                bgcolor: "#EFF6FF",
+                                color: "#3B82F6",
+                                mr: 0.5,
+                                mb: 0.5,
+                              }}
+                            />
+                          ))}
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={STATUS_LABELS[user.status] || user.status}
+                            size="small"
+                            color={getStatusColor(user.status) as any}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2">
+                            {formatDate(user.createdAt)}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="right">
+                          <IconButton
+                            onClick={(e) => handleMenuClick(e, user)}
+                            size="small"
+                          >
+                            <MoreVertIcon />
+                          </IconButton>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+
+            {!searchTerm && filteredUsers.length > 0 && (
+              <TablePagination
+                component="div"
+                count={total}
+                page={page}
+                onPageChange={handleChangePage}
+                rowsPerPage={rowsPerPage}
+                onRowsPerPageChange={handleChangeRowsPerPage}
+                rowsPerPageOptions={[10, 25, 50, 100]}
+                labelRowsPerPage="Số hàng mỗi trang:"
+                labelDisplayedRows={({ from, to, count }) =>
+                  `${from}-${to} của ${
+                    count !== -1 ? count : `nhiều hơn ${to}`
+                  }`
+                }
+                sx={{
+                  borderTop: "1px solid #E5E7EB",
+                  "& .MuiTablePagination-select": {
+                    borderRadius: 1,
+                  },
+                  "& .MuiTablePagination-selectIcon": {
+                    color: "#DC2626",
+                  },
+                  "& .MuiTablePagination-actions button": {
+                    color: "#DC2626",
+                    "&:disabled": {
+                      color: "#9CA3AF",
+                    },
+                  },
+                }}
+              />
+            )}
+          </>
+        )}
       </Paper>
 
       {/* Action Menu */}
@@ -263,7 +476,7 @@ const AccountManagement: React.FC = () => {
           Chỉnh sửa
         </MenuItem>
         <MenuItem onClick={handleMenuClose}>
-          {selectedAccount?.status === "Active" ? (
+          {selectedUser?.status === "Active" ? (
             <>
               <BlockIcon sx={{ mr: 1, fontSize: 20 }} />
               Khóa tài khoản
@@ -275,71 +488,12 @@ const AccountManagement: React.FC = () => {
             </>
           )}
         </MenuItem>
-        <MenuItem onClick={handleMenuClose} sx={{ color: "#EF4444" }}>
-          <DeleteIcon sx={{ mr: 1, fontSize: 20 }} />
-          Xóa
-        </MenuItem>
       </Menu>
-
-      {/* Create Account Dialog */}
-      <Dialog
-        open={openDialog}
-        onClose={handleCloseDialog}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle sx={{ fontWeight: 600 }}>Tạo tài khoản mới</DialogTitle>
-        <DialogContent>
-          <Box sx={{ pt: 2, display: "flex", flexDirection: "column", gap: 2 }}>
-            <TextField
-              fullWidth
-              label="Tên tài khoản"
-              placeholder="Nhập tên tài khoản"
-            />
-            <TextField
-              fullWidth
-              label="Email"
-              type="email"
-              placeholder="Nhập địa chỉ email"
-            />
-            <TextField
-              fullWidth
-              label="Mật khẩu"
-              type="password"
-              placeholder="Nhập mật khẩu"
-            />
-            <FormControl fullWidth>
-              <InputLabel>Vai trò</InputLabel>
-              <Select label="Vai trò" defaultValue="Manager">
-                <MenuItem value="Manager">Quản lý</MenuItem>
-                <MenuItem value="Staff">Nhân viên</MenuItem>
-              </Select>
-            </FormControl>
-          </Box>
-        </DialogContent>
-        <DialogActions sx={{ p: 2.5 }}>
-          <Button
-            onClick={handleCloseDialog}
-            sx={{
-              textTransform: "none",
-              color: "#6B7280",
-            }}
-          >
-            Hủy
-          </Button>
-          <Button
-            variant="contained"
-            onClick={handleCloseDialog}
-            sx={{
-              bgcolor: "#DC2626",
-              "&:hover": { bgcolor: "#B91C1C" },
-              textTransform: "none",
-            }}
-          >
-            Tạo tài khoản
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <CreateUserDialog
+        open={createDialogOpen}
+        onClose={() => setCreateDialogOpen(false)}
+        onSuccess={handleCreateSuccess}
+      />
     </Box>
   );
 };
