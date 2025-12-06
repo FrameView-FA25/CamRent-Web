@@ -1,8 +1,4 @@
-import {
-  Search,
-  HourglassEmpty,
-  CheckCircle,
-} from "@mui/icons-material";
+import { Search, HourglassEmpty, CheckCircle } from "@mui/icons-material";
 
 export const BOOKING_STATS = [
   {

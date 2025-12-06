@@ -17,6 +17,7 @@ import {
   PhotoCamera as CameraIcon,
   AttachMoney as MoneyIcon,
   People as PeopleIcon,
+  AccountBalanceWallet as WalletIcon,
 } from "@mui/icons-material";
 import {
   Area,
@@ -35,6 +36,10 @@ import type {
   TopRentedAsset,
 } from "../../../services/dashboard.service";
 import { dashboardService } from "../../../services/dashboard.service";
+import {
+  walletService,
+  type WalletResponse,
+} from "../../../services/wallet.service";
 // ===== TYPES =====
 
 type StatAccent = "teal" | "indigo" | "amber" | "purple";
@@ -63,7 +68,6 @@ const COMPACT_CURRENCY_FORMATTER = new Intl.NumberFormat("vi-VN", {
 });
 
 const formatCurrency = (value: number) => CURRENCY_FORMATTER.format(value);
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 // const formatCurrencyCompact = (value: number) =>
 //   COMPACT_CURRENCY_FORMATTER.format(value);
 
@@ -515,6 +519,7 @@ const ColumnChartCard = ({
  */
 export default function Dashboard() {
   const [data, setData] = useState<OwnerDashboardResponse | null>(null);
+  const [wallet, setWallet] = useState<WalletResponse | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   // Mặc định hiển thị thống kê theo tháng ngay khi vào dashboard
@@ -539,32 +544,51 @@ export default function Dashboard() {
       }
     };
 
+    // Lấy thông tin ví
+    const fetchWallet = async () => {
+      try {
+        const walletData = await walletService.getMyWallet();
+        setWallet(walletData);
+      } catch (err) {
+        console.error("Lỗi khi tải thông tin ví:", err);
+        // Không hiển thị lỗi nếu không load được ví, chỉ log
+      }
+    };
+
     fetchDashboard();
+    fetchWallet();
   }, []);
 
   const stats: StatItem[] = useMemo(
     // Chuẩn hóa dữ liệu để truyền vào danh sách thẻ thống kê nhỏ
     () => [
       {
+        title: "Số dư ví",
+        value: formatCurrency(wallet?.balance ?? 0),
+        description: "Số dư khả dụng trong ví của bạn.",
+        icon: <WalletIcon />,
+        accent: "teal",
+      },
+      {
         title: "Tổng camera",
         value: (data?.totalCameras ?? 0).toString(),
         description: "Số lượng camera bạn đang cho thuê.",
         icon: <CameraIcon />,
-        accent: "teal",
+        accent: "indigo",
       },
       {
         title: "Tổng phụ kiện",
         value: (data?.totalAccessories ?? 0).toString(),
         description: "Số lượng phụ kiện bạn đang cho thuê.",
         icon: <PeopleIcon />,
-        accent: "indigo",
+        accent: "purple",
       },
       {
         title: "Tổng lượt booking",
         value: (data?.totalBookingsForOwnerItems ?? 0).toString(),
         description: "Tổng số đơn thuê liên quan tới thiết bị của bạn.",
         icon: <PeopleIcon />,
-        accent: "purple",
+        accent: "amber",
       },
       {
         title: "Tổng doanh thu ước tính",
@@ -575,6 +599,7 @@ export default function Dashboard() {
       },
     ],
     [
+      wallet?.balance,
       data?.totalAccessories,
       data?.totalBookingsForOwnerItems,
       data?.totalCameras,

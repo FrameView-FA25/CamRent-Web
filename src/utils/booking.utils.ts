@@ -19,18 +19,23 @@ export const formatDate = (dateString: string): string => {
 export const getStatusInfo = (statusText: string) => {
   const statusMap: Record<
     string,
-    { label: string; color: "warning" | "info" | "primary" | "success" | "error" | "default" }
+    {
+      label: string;
+      color: "warning" | "info" | "primary" | "success" | "error" | "default";
+    }
   > = {
-    "Chờ xác nhận": { label: "Chờ xác nhận", color: "warning" },
     // Đã xác nhận: dùng màu xanh lá cho thống nhất với UI
-    "Đã xác nhận": { label: "Đã xác nhận", color: "success" },
+    "Đã xác nhận": { label: "Đã thanh toán", color: "success" },
     "Đang thuê": { label: "Đang thuê", color: "primary" },
     "Hoàn thành": { label: "Hoàn thành", color: "success" },
+    "Đã trả": { label: "Đã trả", color: "info" },
     "Đã hủy": { label: "Đã hủy", color: "error" },
     "Giỏ hàng": { label: "Giỏ hàng", color: "default" },
   };
 
-  return statusMap[statusText] || { label: statusText, color: "default" as const };
+  return (
+    statusMap[statusText] || { label: statusText, color: "default" as const }
+  );
 };
 
 export const getBookingType = (type: string): string => {
