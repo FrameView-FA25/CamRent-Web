@@ -50,6 +50,7 @@ import ContractTemplateManagement from "@/pages/Manager/ContractTemplateManageme
 import PaymentSuccess from "@/components/Payment/PaymentSuccess";
 import PaymentFailed from "@/components/Payment/PaymentFailed";
 import StaffProfile from "@/pages/Staff/StaffProfile";
+import MyWallet from "@/pages/Renter/MyWallet";
 const routes: RouteObject[] = [
   {
     path: "/",
@@ -284,6 +285,10 @@ const routes: RouteObject[] = [
       {
         path: "chat",
         element: <ChatPage />,
+      },
+      {
+        path: "my-wallet",
+        element: <MyWallet />,
       },
 
       // ...other routes
