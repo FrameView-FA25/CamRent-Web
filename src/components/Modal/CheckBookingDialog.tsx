@@ -7,6 +7,12 @@ import {
   Button,
   TextField,
   MenuItem,
+  FormControl,
+  FormLabel,
+  RadioGroup,
+  FormControlLabel,
+  Radio,
+  Box,
 } from "@mui/material";
 
 import type { VerificationItem } from "../../types/verification.types";
@@ -19,6 +25,7 @@ type CheckBookingDefaultValues = {
   Section?: string;
   Label?: string;
   Value?: string;
+  Passed?: boolean | null;
   Notes?: string;
 };
 
@@ -48,7 +55,7 @@ const CheckBookingDialog: React.FC<CheckBookingDialogProps> = ({
     Section: string;
     Label: string;
     Value: string;
-    // Đã loại bỏ trường Passed
+    Passed: boolean | null;
     Notes: string;
     files: FileList | undefined;
     images: FileList | undefined;
@@ -62,7 +69,7 @@ const CheckBookingDialog: React.FC<CheckBookingDialogProps> = ({
     Section: defaultValues?.Section || "",
     Label: defaultValues?.Label || "",
     Value: defaultValues?.Value || "",
-    // Đã loại bỏ trường Passed
+    Passed: defaultValues?.Passed ?? null,
     Notes: defaultValues?.Notes || "",
     files: undefined,
     images: undefined,
@@ -78,6 +85,7 @@ const CheckBookingDialog: React.FC<CheckBookingDialogProps> = ({
         Section: defaultValues?.Section || "",
         Label: defaultValues?.Label || "",
         Value: defaultValues?.Value || "",
+        Passed: defaultValues?.Passed ?? null,
         Notes: defaultValues?.Notes || "",
         files: undefined,
         images: undefined,
@@ -90,6 +98,12 @@ const CheckBookingDialog: React.FC<CheckBookingDialogProps> = ({
     const { name, value, type, checked, files } = e.target;
     console.log("Change:", name, value);
     setForm((f: FormState) => {
+      // Xử lý Passed là boolean
+      if (name === "Passed") {
+        if (value === "true") return { ...f, Passed: true };
+        if (value === "false") return { ...f, Passed: false };
+        return { ...f, Passed: null };
+      }
       if (type === "file" && files && name === "images") {
         // Cộng dồn các ảnh đã chọn trước đó
         const oldFiles = f.images ? Array.from(f.images) : [];
@@ -227,34 +241,34 @@ const CheckBookingDialog: React.FC<CheckBookingDialogProps> = ({
             </MenuItem>
           ))}
         </TextField>
-        <TextField
-          label="Loại thiết bị"
-          name="ItemType"
-          value={form.ItemType}
-          fullWidth
-          sx={{ mb: 2 }}
-          InputProps={{ readOnly: true }}
-          slotProps={{
-            input: {
-              style: { backgroundColor: "#f3f4f6", cursor: "not-allowed" },
-            },
-          }}
-          disabled
-        />
-        <TextField
-          label="Type"
-          name="Type"
-          value={form.Type}
-          fullWidth
-          sx={{ mb: 2 }}
-          slotProps={{
-            input: {
-              readOnly: true,
-              style: { backgroundColor: "#f3f4f6", cursor: "not-allowed" },
-            },
-          }}
-          disabled
-        />
+        <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
+          <TextField
+            label="Loại thiết bị"
+            name="ItemType"
+            value={form.ItemType}
+            fullWidth
+            InputProps={{ readOnly: true }}
+            slotProps={{
+              input: {
+                style: { backgroundColor: "#f3f4f6", cursor: "not-allowed" },
+              },
+            }}
+            disabled
+          />
+          <TextField
+            label="Type"
+            name="Type"
+            value={form.Type}
+            fullWidth
+            slotProps={{
+              input: {
+                readOnly: true,
+                style: { backgroundColor: "#f3f4f6", cursor: "not-allowed" },
+              },
+            }}
+            disabled
+          />
+        </Box>
 
         <TextField
           label="Phần kiểm tra"
@@ -273,19 +287,35 @@ const CheckBookingDialog: React.FC<CheckBookingDialogProps> = ({
           sx={{ mb: 2 }}
         />
         <TextField
-          select
           label="Giá trị"
           name="Value"
           value={form.Value}
           onChange={handleChange}
           fullWidth
           sx={{ mb: 2 }}
-        >
-          <MenuItem value="">-- Chọn giá trị --</MenuItem>
-          <MenuItem value="true">Đạt</MenuItem>
-          <MenuItem value="false">Không đạt</MenuItem>
-        </TextField>
-
+        />
+        <FormControl fullWidth sx={{ mb: 2 }}>
+          <FormLabel>Kết quả</FormLabel>
+          <RadioGroup
+            row
+            name="Passed"
+            value={
+              form.Passed === null
+                ? ""
+                : form.Passed === true
+                  ? "true"
+                  : "false"
+            }
+            onChange={handleChange}
+          >
+            <FormControlLabel value="true" control={<Radio />} label="Đạt" />
+            <FormControlLabel
+              value="false"
+              control={<Radio />}
+              label="Không đạt"
+            />
+          </RadioGroup>
+        </FormControl>
         <TextField
           label="Ghi chú"
           name="Notes"

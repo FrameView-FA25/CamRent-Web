@@ -25,6 +25,7 @@ import DeviceManagement from "../pages/Admin/DeviceManagement/DeviceManagement";
 import AdminProfile from "../pages/Admin/Profile/AdminProfile";
 import OwnerProfile from "../pages/Owner/Profile/OwnerProfile";
 import VerificationManagement from "../pages/Owner/VerificationManagement/VerificationManagement";
+import Wallet from "../pages/Owner/Wallet/Wallet";
 import ManagerLayout from "../layouts/ManagerLayout/ManagerLayout";
 import DashboardManager from "@/pages/Manager/Dashboard";
 import BookingManagement from "@/pages/Manager/Booking";
@@ -152,6 +153,10 @@ const routes: RouteObject[] = [
       {
         path: "qr-inspection",
         element: <CameraQrHistory />,
+      },
+      {
+        path: "wallet",
+        element: <Wallet />,
       },
     ],
   },

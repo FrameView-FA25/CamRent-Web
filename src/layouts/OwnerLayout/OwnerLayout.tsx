@@ -23,6 +23,7 @@ import {
   CameraAlt as CameraIcon,
   Backpack as AccessoryIcon,
   QrCodeScanner as QrCodeIcon,
+  AccountBalanceWallet as WalletIcon,
 } from "@mui/icons-material";
 import { useAuth } from "../../hooks/useAuth";
 import { colors } from "../../theme/colors";
@@ -54,6 +55,11 @@ const menuItems = [
     text: "Kiểm tra thiết bị",
     icon: <QrCodeIcon />,
     path: "/owner/qr-inspection",
+  },
+  {
+    text: "Ví",
+    icon: <WalletIcon />,
+    path: "/owner/wallet",
   },
   { text: "Hồ sơ", icon: <PersonIcon />, path: "/owner/profile" },
 ];

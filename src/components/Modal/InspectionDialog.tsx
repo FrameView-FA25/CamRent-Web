@@ -7,6 +7,12 @@ import {
   Button,
   TextField,
   MenuItem,
+  FormControl,
+  FormLabel,
+  RadioGroup,
+  FormControlLabel,
+  Radio,
+  Box,
 } from "@mui/material";
 
 import type { VerificationItem } from "../../types/verification.types";
@@ -19,7 +25,7 @@ type InspectionDefaultValues = {
   Section?: string;
   Label?: string;
   Value?: string;
-  Passed?: boolean;
+  Passed?: boolean | null;
   Notes?: string;
 };
 
@@ -49,7 +55,7 @@ const InspectionDialog: React.FC<InspectionDialogProps> = ({
     Section: string;
     Label: string;
     Value: string;
-    // Đã loại bỏ trường Passed
+    Passed: boolean | null;
     Notes: string;
     files: FileList | undefined;
     images: FileList | undefined;
@@ -63,7 +69,7 @@ const InspectionDialog: React.FC<InspectionDialogProps> = ({
     Section: defaultValues?.Section || "",
     Label: defaultValues?.Label || "",
     Value: defaultValues?.Value || "",
-    // Đã loại bỏ trường Passed
+    Passed: defaultValues?.Passed ?? null,
     Notes: defaultValues?.Notes || "",
     files: undefined,
     images: undefined,
@@ -80,7 +86,7 @@ const InspectionDialog: React.FC<InspectionDialogProps> = ({
       Section: defaultValues?.Section || "",
       Label: defaultValues?.Label || "",
       Value: defaultValues?.Value || "",
-      // Đã loại bỏ trường Passed
+      Passed: defaultValues?.Passed ?? null,
       Notes: defaultValues?.Notes || "",
       files: undefined,
       images: undefined,
@@ -90,6 +96,12 @@ const InspectionDialog: React.FC<InspectionDialogProps> = ({
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked, files } = e.target;
     setForm((f: FormState) => {
+      // Xử lý Passed là boolean
+      if (name === "Passed") {
+        if (value === "true") return { ...f, Passed: true };
+        if (value === "false") return { ...f, Passed: false };
+        return { ...f, Passed: null };
+      }
       if (type === "file" && files && name === "images") {
         // Cộng dồn các ảnh đã chọn trước đó
         const oldFiles = f.images ? Array.from(f.images) : [];
@@ -231,33 +243,33 @@ const InspectionDialog: React.FC<InspectionDialogProps> = ({
             </MenuItem>
           ))}
         </TextField>
-        <TextField
-          label="Loại thiết bị"
-          name="ItemType"
-          value={form.ItemType}
-          fullWidth
-          sx={{ mb: 2 }}
-          slotProps={{
-            input: {
-              readOnly: true,
+        <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
+          <TextField
+            label="Loại thiết bị"
+            name="ItemType"
+            value={form.ItemType}
+            fullWidth
+            slotProps={{
+              input: {
+                readOnly: true,
+                style: { backgroundColor: "#f3f4f6", cursor: "not-allowed" },
+              },
+            }}
+            disabled
+          />
+          <TextField
+            label="Loại "
+            name="Type"
+            value={form.Type}
+            onChange={handleChange}
+            InputProps={{ readOnly: true }}
+            inputProps={{
               style: { backgroundColor: "#f3f4f6", cursor: "not-allowed" },
-            },
-          }}
-          disabled
-        />
-        <TextField
-          label="Loại "
-          name="Type"
-          value={form.Type}
-          onChange={handleChange}
-          InputProps={{ readOnly: true }}
-          inputProps={{
-            style: { backgroundColor: "#f3f4f6", cursor: "not-allowed" },
-          }}
-          disabled
-          fullWidth
-          sx={{ mb: 2 }}
-        />
+            }}
+            disabled
+            fullWidth
+          />
+        </Box>
         {/* Bỏ thông tin kiểm tra và Booking ID */}
         {/* Removed Type field as it's not part of the form type */}
         {/* InspectionTypeId được giữ trong form nhưng không hiển thị trên giao diện */}
@@ -278,18 +290,35 @@ const InspectionDialog: React.FC<InspectionDialogProps> = ({
           sx={{ mb: 2 }}
         />
         <TextField
-          select
           label="Giá trị"
           name="Value"
           value={form.Value}
           onChange={handleChange}
           fullWidth
           sx={{ mb: 2 }}
-        >
-          <MenuItem value="">-- Chọn giá trị --</MenuItem>
-          <MenuItem value="true">Đạt</MenuItem>
-          <MenuItem value="false">Không đạt</MenuItem>
-        </TextField>
+        />
+        <FormControl fullWidth sx={{ mb: 2 }}>
+          <FormLabel>Kết quả</FormLabel>
+          <RadioGroup
+            row
+            name="Passed"
+            value={
+              form.Passed === null
+                ? ""
+                : form.Passed === true
+                  ? "true"
+                  : "false"
+            }
+            onChange={handleChange}
+          >
+            <FormControlLabel value="true" control={<Radio />} label="Đạt" />
+            <FormControlLabel
+              value="false"
+              control={<Radio />}
+              label="Không đạt"
+            />
+          </RadioGroup>
+        </FormControl>
         <TextField
           label="Ghi chú"
           name="Notes"
