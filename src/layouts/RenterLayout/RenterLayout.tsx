@@ -22,7 +22,7 @@ import {
   Person as PersonIcon,
   Settings as SettingsIcon,
   ExitToApp as LogoutIcon,
-  Favorite as FavoriteIcon,
+  Wallet as WalletIcon,
 } from "@mui/icons-material";
 import { useAuth } from "../../hooks/useAuth";
 import { colors } from "../../theme/colors";
@@ -34,9 +34,9 @@ const menuItems = [
   { text: "Sản Phẩm", icon: <CameraIcon />, path: "/products" },
   { text: "Đơn Hàng", icon: <OrdersIcon />, path: "/renter/my-orders" },
   {
-    text: "Sản Phẩm Yêu Thích",
-    icon: <FavoriteIcon />,
-    path: "/renter/favorites",
+    text: "Ví của tôi ",
+    icon: <WalletIcon />,
+    path: "/renter/my-wallet",
   },
   { text: "Thông Tin Cá Nhân", icon: <PersonIcon />, path: "/renter/profile" },
   { text: "Cài Đặt", icon: <SettingsIcon />, path: "/renter/settings" },
