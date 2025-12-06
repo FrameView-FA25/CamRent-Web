@@ -1227,12 +1227,8 @@ const Inspections: React.FC = () => {
         <MenuItem
           onClick={() => {
             const row = data.find((d) => d.id === actionMenuVerificationId);
-            if (row && row.status.toLowerCase() === "pending") {
+            if (row) {
               openInspectionDialog(row);
-            } else if (row) {
-              toast.warn(
-                "Chỉ có thể tạo phiếu kiểm tra cho yêu cầu đang chờ xử lý"
-              );
             }
             handleCloseActionMenu();
           }}

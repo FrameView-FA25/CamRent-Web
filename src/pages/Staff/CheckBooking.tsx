@@ -105,6 +105,11 @@ const CheckBookings: React.FC = () => {
   const [actionMenuBookingId, setActionMenuBookingId] = useState<string | null>(
     null
   );
+  const [deviceMenuAnchorEl, setDeviceMenuAnchorEl] =
+    useState<null | HTMLElement>(null);
+  const [deviceMenuBookingId, setDeviceMenuBookingId] = useState<string | null>(
+    null
+  );
   const navigate = useNavigate();
   useEffect(() => {
     loadAssignments();
@@ -139,13 +144,6 @@ const CheckBookings: React.FC = () => {
     navigate(`/staff/booking/${booking.id}`);
   };
 
-  // Chỉ cho phép tạo phiếu kiểm tra ở trạng thái mong muốn
-  const canCreateInspection = (booking: Booking) => {
-    // Ví dụ: chỉ cho phép khi đã nhận máy
-    return booking.status === "PickedUp";
-    // Nếu bạn muốn trạng thái khác, sửa lại điều kiện ở đây
-  };
-
   const handleOpenActionMenu = (
     event: React.MouseEvent<HTMLElement>,
     bookingId: string
@@ -157,6 +155,19 @@ const CheckBookings: React.FC = () => {
   const handleCloseActionMenu = () => {
     setActionMenuAnchorEl(null);
     setActionMenuBookingId(null);
+  };
+
+  const handleOpenDeviceMenu = (
+    event: React.MouseEvent<HTMLElement>,
+    bookingId: string
+  ) => {
+    setDeviceMenuAnchorEl(event.currentTarget);
+    setDeviceMenuBookingId(bookingId);
+  };
+
+  const handleCloseDeviceMenu = () => {
+    setDeviceMenuAnchorEl(null);
+    setDeviceMenuBookingId(null);
   };
 
   const handleOpenInspection = (bookingId: string) => {
@@ -465,12 +476,12 @@ const CheckBookings: React.FC = () => {
 
       const matchesTab =
         selectedTab === 0 ||
-        // Chờ duyệt
-        (selectedTab === 1 && booking.status === "PendingApproval") ||
         // Đã xác nhận
-        (selectedTab === 2 && booking.status === "Confirmed") ||
+        (selectedTab === 1 && booking.status === "Confirmed") ||
         // Đã nhận máy (và đang thuê)
-        (selectedTab === 3 && booking.status === "PickedUp") ||
+        (selectedTab === 2 && booking.status === "PickedUp") ||
+        // Đã trả
+        (selectedTab === 3 && booking.status === "Returned") ||
         // Hoàn tất
         (selectedTab === 4 && booking.status === "Completed");
 
@@ -489,10 +500,9 @@ const CheckBookings: React.FC = () => {
   const stats = useMemo(() => {
     return {
       total: bookings.length,
-      pendingApproval: bookings.filter((b) => b.status === "PendingApproval")
-        .length,
       confirmed: bookings.filter((b) => b.status === "Confirmed").length,
       pickedUp: bookings.filter((b) => b.status === "PickedUp").length,
+      returned: bookings.filter((b) => b.status === "Returned").length,
       completed: bookings.filter((b) => b.status === "Completed").length,
     };
   }, [bookings]);
@@ -642,60 +652,7 @@ const CheckBookings: React.FC = () => {
               </Box>
             </Box>
           </Paper>
-          <Paper
-            elevation={0}
-            sx={{
-              borderRadius: 3,
-              bgcolor: "white",
-              border: "1px solid #E5E7EB",
-              transition: "all 0.3s ease",
-              p: 2.5,
-              "&:hover": {
-                boxShadow: "0 8px 24px rgba(0,0,0,0.1)",
-                transform: "translateY(-2px)",
-              },
-            }}
-          >
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-              }}
-            >
-              <Box>
-                <Typography
-                  variant="caption"
-                  sx={{
-                    color: "#6B7280",
-                    fontWeight: 500,
-                    fontSize: "0.75rem",
-                  }}
-                >
-                  Chờ duyệt
-                </Typography>
-                <Typography
-                  variant="h5"
-                  sx={{ fontWeight: 700, color: "#F59E0B", mt: 0.5 }}
-                >
-                  {stats.pendingApproval}
-                </Typography>
-              </Box>
-              <Box
-                sx={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: 2,
-                  bgcolor: alpha("#F59E0B", 0.1),
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <HourglassEmpty sx={{ color: "#F59E0B", fontSize: 24 }} />
-              </Box>
-            </Box>
-          </Paper>
+
           <Paper
             elevation={0}
             sx={{
@@ -834,11 +791,65 @@ const CheckBookings: React.FC = () => {
                     fontSize: "0.75rem",
                   }}
                 >
+                  Đã trả
+                </Typography>
+                <Typography
+                  variant="h5"
+                  sx={{ fontWeight: 700, color: "#0284C7", mt: 0.5 }}
+                >
+                  {stats.returned}
+                </Typography>
+              </Box>
+              <Box
+                sx={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 2,
+                  bgcolor: alpha("#0284C7", 0.1),
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <CheckCircleOutline sx={{ color: "#0284C7", fontSize: 24 }} />
+              </Box>
+            </Box>
+          </Paper>
+          <Paper
+            elevation={0}
+            sx={{
+              borderRadius: 3,
+              bgcolor: "white",
+              border: "1px solid #E5E7EB",
+              transition: "all 0.3s ease",
+              p: 2.5,
+              "&:hover": {
+                boxShadow: "0 8px 24px rgba(0,0,0,0.1)",
+                transform: "translateY(-2px)",
+              },
+            }}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <Box>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: "#6B7280",
+                    fontWeight: 500,
+                    fontSize: "0.75rem",
+                  }}
+                >
                   Hoàn tất
                 </Typography>
                 <Typography
                   variant="h5"
-                  sx={{ fontWeight: 700, color: "#3B82F6", mt: 0.5 }}
+                  sx={{ fontWeight: 700, color: "#F59E0B", mt: 0.5 }}
                 >
                   {stats.completed}
                 </Typography>
@@ -848,13 +859,13 @@ const CheckBookings: React.FC = () => {
                   width: 48,
                   height: 48,
                   borderRadius: 2,
-                  bgcolor: alpha("#3B82F6", 0.1),
+                  bgcolor: alpha("#F59E0B", 0.1),
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                <TaskAlt sx={{ color: "#3B82F6", fontSize: 24 }} />
+                <TaskAlt sx={{ color: "#F59E0B", fontSize: 24 }} />
               </Box>
             </Box>
           </Paper>
@@ -965,11 +976,6 @@ const CheckBookings: React.FC = () => {
           >
             <Tab label={`Tất cả (${bookings.length})`} />
             <Tab
-              label={`Chờ duyệt (${
-                bookings.filter((b) => b.status === "PendingApproval").length
-              })`}
-            />
-            <Tab
               label={`Đã xác nhận (${
                 bookings.filter((b) => b.status === "Confirmed").length
               })`}
@@ -977,6 +983,11 @@ const CheckBookings: React.FC = () => {
             <Tab
               label={`Đã nhận máy (${
                 bookings.filter((b) => b.status === "PickedUp").length
+              })`}
+            />
+            <Tab
+              label={`Đã trả (${
+                bookings.filter((b) => b.status === "Returned").length
               })`}
             />
             <Tab
@@ -1143,34 +1154,63 @@ const CheckBookings: React.FC = () => {
                         </TableCell>
                         <TableCell>
                           <Box
-                            sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 0.5,
+                            }}
                           >
-                            {booking.items.slice(0, 2).map((item, idx) => (
-                              <Chip
-                                key={idx}
-                                label={item.itemName || getItemName(item)}
-                                size="small"
-                                sx={{
-                                  bgcolor: "#F3F4F6",
-                                  color: "#374151",
-                                  fontWeight: 500,
-                                  fontSize: "0.75rem",
-                                  height: 24,
-                                }}
-                              />
-                            ))}
-                            {booking.items.length > 2 && (
-                              <Chip
-                                label={`+${booking.items.length - 2}`}
-                                size="small"
-                                sx={{
-                                  bgcolor: "#DBEAFE",
-                                  color: "#3B82F6",
-                                  fontWeight: 600,
-                                  fontSize: "0.75rem",
-                                  height: 24,
-                                }}
-                              />
+                            {booking.items.length > 0 && (
+                              <>
+                                <Chip
+                                  label={
+                                    booking.items[0].itemName ||
+                                    getItemName(booking.items[0])
+                                  }
+                                  size="small"
+                                  sx={{
+                                    bgcolor: "#F3F4F6",
+                                    color: "#374151",
+                                    fontWeight: 500,
+                                    fontSize: "0.75rem",
+                                    height: 28,
+                                    cursor:
+                                      booking.items.length > 1
+                                        ? "pointer"
+                                        : "default",
+                                    "&:hover":
+                                      booking.items.length > 1
+                                        ? {
+                                            bgcolor: "#E5E7EB",
+                                          }
+                                        : {},
+                                    "& .MuiChip-icon": {
+                                      color: "#374151",
+                                      ml: 0.5,
+                                    },
+                                  }}
+                                />
+                                {booking.items.length > 1 && (
+                                  <Chip
+                                    label={`+${booking.items.length - 1}`}
+                                    size="small"
+                                    onClick={(e) =>
+                                      handleOpenDeviceMenu(e, booking.id)
+                                    }
+                                    sx={{
+                                      bgcolor: "#DBEAFE",
+                                      color: "#3B82F6",
+                                      fontWeight: 600,
+                                      fontSize: "0.75rem",
+                                      height: 28,
+                                      cursor: "pointer",
+                                      "&:hover": {
+                                        bgcolor: "#BFDBFE",
+                                      },
+                                    }}
+                                  />
+                                )}
+                              </>
                             )}
                           </Box>
                         </TableCell>
@@ -1178,9 +1218,8 @@ const CheckBookings: React.FC = () => {
                           <Typography
                             variant="body2"
                             sx={{
-                              color: "#111827",
-                              fontSize: "0.875rem",
-                              fontWeight: 500,
+                              color: "#6B7280",
+                              fontSize: "0.8125rem",
                             }}
                           >
                             {formatDate(booking.pickupAt)}
@@ -1189,7 +1228,7 @@ const CheckBookings: React.FC = () => {
                             variant="body2"
                             sx={{ color: "#6B7280", fontSize: "0.8125rem" }}
                           >
-                            đến {formatDate(booking.returnAt)}
+                            - {formatDate(booking.returnAt)}
                           </Typography>
                         </TableCell>
                         <TableCell>
@@ -1367,14 +1406,6 @@ const CheckBookings: React.FC = () => {
               return;
             }
 
-            if (!canCreateInspection(booking)) {
-              toast.warn(
-                "Chỉ có thể tạo phiếu kiểm tra cho đơn ở trạng thái đang chờ xử lý."
-              );
-              handleCloseActionMenu();
-              return;
-            }
-
             handleOpenInspection(booking.id);
             handleCloseActionMenu();
           }}
@@ -1384,6 +1415,52 @@ const CheckBookings: React.FC = () => {
           </ListItemIcon>
           <ListItemText primary="Tạo phiếu kiểm tra" />
         </MenuItem>
+      </Menu>
+      <Menu
+        anchorEl={deviceMenuAnchorEl}
+        open={Boolean(deviceMenuAnchorEl)}
+        onClose={handleCloseDeviceMenu}
+        PaperProps={{
+          sx: {
+            minWidth: 280,
+            maxWidth: 400,
+            maxHeight: 400,
+            borderRadius: 2,
+            boxShadow: "0 8px 32px rgba(15, 23, 42, 0.1)",
+            mt: 1,
+          },
+        }}
+        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+        transformOrigin={{ vertical: "top", horizontal: "left" }}
+      >
+        {deviceMenuBookingId &&
+          bookings
+            .find((b) => b.id === deviceMenuBookingId)
+            ?.items.map((item, idx) => {
+              const itemName = item.itemName || getItemName(item);
+              return (
+                <MenuItem
+                  key={idx}
+                  onClick={handleCloseDeviceMenu}
+                  sx={{
+                    py: 1.5,
+                    px: 2,
+                    "&:hover": {
+                      bgcolor: "#F9FAFB",
+                    },
+                  }}
+                >
+                  <ListItemText
+                    primary={itemName}
+                    primaryTypographyProps={{
+                      fontSize: "0.875rem",
+                      fontWeight: 500,
+                      color: "#111827",
+                    }}
+                  />
+                </MenuItem>
+              );
+            })}
       </Menu>
       <InspectionListDialog
         open={inspectionListOpen}
