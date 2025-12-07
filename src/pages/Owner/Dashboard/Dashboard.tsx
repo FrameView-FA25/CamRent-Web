@@ -36,10 +36,7 @@ import type {
   TopRentedAsset,
 } from "../../../services/dashboard.service";
 import { dashboardService } from "../../../services/dashboard.service";
-import {
-  walletService,
-  type WalletResponse,
-} from "../../../services/wallet.service";
+// import { walletService, type WalletResponse } from "@/services/wallet.service";
 // ===== TYPES =====
 
 type StatAccent = "teal" | "indigo" | "amber" | "purple";

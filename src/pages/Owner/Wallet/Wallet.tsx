@@ -12,7 +12,6 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Chip,
   IconButton,
   Tooltip,
   alpha,
@@ -24,10 +23,8 @@ import {
   TrendingDown as TrendingDownIcon,
   Lock as LockIcon,
 } from "@mui/icons-material";
-import {
-  walletService,
-  type WalletResponse,
-} from "../../../services/wallet.service";
+import { getWallet } from "../../../services/wallet.service";
+import type { Wallet as WalletType } from "../../../types/wallet.types";
 import { toast } from "react-toastify";
 
 const formatCurrency = (amount: number): string => {
@@ -50,7 +47,7 @@ const formatDate = (dateString: string): string => {
 };
 
 const Wallet: React.FC = () => {
-  const [wallet, setWallet] = useState<WalletResponse | null>(null);
+  const [wallet, setWallet] = useState<WalletType | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -58,7 +55,7 @@ const Wallet: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const walletData = await walletService.getMyWallet();
+      const walletData = await getWallet();
       setWallet(walletData);
     } catch (err) {
       const errorMessage =
@@ -74,16 +71,20 @@ const Wallet: React.FC = () => {
     loadWallet();
   }, []);
 
-  const getTransactionIcon = (amount: number) => {
-    return amount >= 0 ? (
+  const getTransactionIcon = (isCredit: boolean) => {
+    return isCredit ? (
       <TrendingUpIcon sx={{ color: "#10B981", fontSize: 20 }} />
     ) : (
       <TrendingDownIcon sx={{ color: "#EF4444", fontSize: 20 }} />
     );
   };
 
-  const getTransactionColor = (amount: number) => {
-    return amount >= 0 ? "#10B981" : "#EF4444";
+  const getTransactionColor = (isCredit: boolean) => {
+    return isCredit ? "#10B981" : "#EF4444";
+  };
+
+  const getTransactionSign = (isCredit: boolean) => {
+    return isCredit ? "+" : "-";
   };
 
   return (
@@ -392,22 +393,12 @@ const Wallet: React.FC = () => {
                   >
                     Số tiền
                   </TableCell>
-                  <TableCell
-                    sx={{
-                      fontWeight: 700,
-                      color: "#374151",
-                      fontSize: "0.875rem",
-                      borderBottom: "2px solid #E5E7EB",
-                    }}
-                  >
-                    Trạng thái
-                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={5} sx={{ textAlign: "center", py: 8 }}>
+                    <TableCell colSpan={4} sx={{ textAlign: "center", py: 8 }}>
                       <CircularProgress sx={{ color: "#0D9488" }} />
                       <Typography
                         sx={{ mt: 2, color: "#6B7280", fontSize: "0.875rem" }}
@@ -419,7 +410,7 @@ const Wallet: React.FC = () => {
                 ) : !wallet?.recentTransactions ||
                   wallet.recentTransactions.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} sx={{ textAlign: "center", py: 8 }}>
+                    <TableCell colSpan={4} sx={{ textAlign: "center", py: 8 }}>
                       <WalletIcon
                         sx={{ fontSize: 64, color: "#E5E7EB", mb: 2 }}
                       />
@@ -453,7 +444,7 @@ const Wallet: React.FC = () => {
                         <Box
                           sx={{ display: "flex", alignItems: "center", gap: 1 }}
                         >
-                          {getTransactionIcon(transaction.amount)}
+                          {getTransactionIcon(transaction.isCredit)}
                           <Typography
                             sx={{
                               fontSize: "0.875rem",
@@ -491,25 +482,12 @@ const Wallet: React.FC = () => {
                           sx={{
                             fontSize: "0.875rem",
                             fontWeight: 600,
-                            color: getTransactionColor(transaction.amount),
+                            color: getTransactionColor(transaction.isCredit),
                           }}
                         >
-                          {transaction.amount >= 0 ? "+" : ""}
-                          {formatCurrency(transaction.amount)}
+                          {getTransactionSign(transaction.isCredit)}
+                          {formatCurrency(Math.abs(transaction.amount))}
                         </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={transaction.status || "Thành công"}
-                          size="small"
-                          sx={{
-                            bgcolor: alpha("#10B981", 0.12),
-                            color: "#10B981",
-                            fontWeight: 600,
-                            fontSize: "0.75rem",
-                            height: 24,
-                          }}
-                        />
                       </TableCell>
                     </TableRow>
                   ))

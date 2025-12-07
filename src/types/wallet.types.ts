@@ -1,58 +1,36 @@
 /**
  * Wallet Types
- * Types and interfaces for wallet management
+ * Type definitions for wallet-related data
  */
 
-export interface Wallet {
-  userId: string;
-  accountId: string;
-  balance: number;
-  currency: string;
-  status: "Active" | "Suspended" | "Closed";
-  createdDate: string;
-  updatedDate: string;
-}
-
 export interface Transaction {
-  transactionId: string;
-  accountId: string;
+  id: string;
+  type: string;
   amount: number;
-  type: "Deposit" | "Withdraw" | "Payment" | "Refund" | "Rental" | "Return";
-  status: "Pending" | "Completed" | "Failed" | "Cancelled";
+  isCredit: boolean;
+  paymentId?: string;
+  bookingId?: string;
   description: string;
-  createdDate: string;
-  updatedDate: string;
-  relatedId?: string; // booking ID hoặc payment ID
+  createdAt: string;
+  status?: string;
 }
 
-export interface DepositRequest {
-  amount: number;
-  returnUrl: string;
-  cancelUrl: string;
+export interface Wallet {
+  balance: number;
+  frozenBalance: number;
+  recentTransactions: Transaction[];
 }
 
-export interface DepositResponse {
-  transactionId: string;
-  checkoutUrl: string;
-  qrCode?: string;
-}
-
-export interface WithdrawRequest {
-  amount: number;
-  bankAccountNumber: string;
-  bankName: string;
-  accountHolderName: string;
-}
-
-export interface WithdrawResponse {
-  transactionId: string;
-  status: string;
-  message: string;
+export interface WalletStats {
+  totalDeposit: number;
+  totalWithdraw: number;
+  totalSpent: number;
+  pendingAmount: number;
 }
 
 export interface TransactionFilter {
-  type?: Transaction["type"];
-  status?: Transaction["status"];
+  type?: string;
+  status?: string;
   fromDate?: string;
   toDate?: string;
   page?: number;
@@ -67,10 +45,28 @@ export interface TransactionListResponse {
   totalPages: number;
 }
 
-export interface WalletStats {
-  totalDeposit: number;
-  totalWithdraw: number;
-  totalSpent: number;
-  pendingAmount: number;
-  transactionCount: number;
+export interface DepositRequest {
+  amount: number;
+  returnUrl: string;
+  cancelUrl: string;
+}
+
+export interface DepositResponse {
+  checkoutUrl: string;
+  orderId: string;
+  amount: number;
+}
+
+export interface WithdrawRequest {
+  amount: number;
+  bankName: string;
+  accountNumber: string;
+  accountHolder: string;
+}
+
+export interface WithdrawResponse {
+  transactionId: string;
+  amount: number;
+  status: string;
+  message: string;
 }
