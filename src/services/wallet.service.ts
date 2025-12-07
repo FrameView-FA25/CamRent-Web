@@ -26,7 +26,7 @@ export async function getWallet(): Promise<Wallet> {
     throw new Error("Vui lòng đăng nhập");
   }
 
-  const response = await fetch(`${API_BASE_URL}/Wallets/my-wallet`, {
+  const response = await fetch(`${API_BASE_URL}/Wallets/me`, {
     method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,
