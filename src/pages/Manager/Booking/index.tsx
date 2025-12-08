@@ -34,6 +34,7 @@ import {
   handleCancelBooking,
 } from "./handlers/bookingStatusHandlers";
 import { DEFAULT_ROWS_PER_PAGE } from "./constants";
+import { BookingDetailDialog } from "./components/dialogs/BookingDetailDialog";
 
 const BookingManagement: React.FC = () => {
   // Data hooks
@@ -306,6 +307,12 @@ const BookingManagement: React.FC = () => {
               loadBookings
             )
           }
+        />
+        {/* Booking Detail Dialog */}
+        <BookingDetailDialog
+          open={dialogState.detailDialogOpen}
+          onClose={() => dialogState.setDetailDialogOpen(false)}
+          booking={dialogState.selectedBooking}
         />
       </Container>
     </Box>

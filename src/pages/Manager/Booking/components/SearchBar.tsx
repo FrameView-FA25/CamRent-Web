@@ -7,7 +7,7 @@ import {
   InputAdornment,
   CircularProgress,
 } from "@mui/material";
-import { Search, Refresh, FilterList, FileDownload } from "@mui/icons-material";
+import { Search, Refresh, FilterList } from "@mui/icons-material";
 
 interface SearchBarProps {
   searchQuery: string;
@@ -94,17 +94,6 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         }}
       >
         LỌC
-      </Button>
-      <Button
-        variant="contained"
-        startIcon={<FileDownload />}
-        sx={{
-          minWidth: 150,
-          bgcolor: "#F97316",
-          "&:hover": { bgcolor: "#EA580C" },
-        }}
-      >
-        XUẤT BÁO CÁO
       </Button>
     </Paper>
   );

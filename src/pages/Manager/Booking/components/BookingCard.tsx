@@ -88,7 +88,7 @@ export const BookingCard: React.FC<BookingCardProps> = ({
                   fontSize: "0.95rem",
                 }}
               >
-                ID: {booking.id.slice(0, 8)}...
+                ID: {booking.id}
               </Typography>
               <Chip
                 label={statusInfo.label}
@@ -233,7 +233,7 @@ export const BookingCard: React.FC<BookingCardProps> = ({
                           mb: 0.5,
                         }}
                       >
-                        ID: {item.itemId.slice(0, 8)}...
+                        ID: {item.itemId}
                       </Typography>
                       <Typography
                         variant="body2"
