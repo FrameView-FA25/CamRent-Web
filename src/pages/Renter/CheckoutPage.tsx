@@ -11,6 +11,10 @@ import {
   Stack,
   Chip,
   Alert,
+  Radio,
+  RadioGroup,
+  FormControlLabel,
+  FormControl,
 } from "@mui/material";
 import {
   ArrowLeft,
@@ -19,6 +23,8 @@ import {
   Camera,
   Package,
   CreditCard,
+  Wallet,
+  Building2,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
@@ -27,6 +33,7 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs, { Dayjs } from "dayjs";
 import { colors } from "../../theme/colors";
 import { toast } from "react-toastify";
+import { getBalance } from "@/services/wallet.service";
 
 interface CartItemWithQuantity {
   itemId: string;
@@ -117,7 +124,10 @@ const CheckoutPage: React.FC = () => {
   const [pickupAt, setPickupAt] = useState<Dayjs | null>(null);
   const [returnAt, setReturnAt] = useState<Dayjs | null>(null);
   const [loading, setLoading] = useState(false);
-
+  const [paymentMethod, setPaymentMethod] = useState<"wallet" | "transfer">(
+    "wallet"
+  );
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
   // Redirect if no items
   useEffect(() => {
     if (!items || items.length === 0) {
@@ -125,7 +135,20 @@ const CheckoutPage: React.FC = () => {
       navigate("/");
     }
   }, [items, navigate]);
+  // Fetch wallet balance on component mount
+  useEffect(() => {
+    const fetchWalletBalance = async () => {
+      try {
+        const balanceData = await getBalance();
+        setWalletBalance(balanceData.balance);
+      } catch (error) {
+        console.error("Failed to fetch wallet balance:", error);
+        setWalletBalance(0);
+      }
+    };
 
+    fetchWalletBalance();
+  }, []);
   const cartItems: CartItemWithQuantity[] = items || [];
 
   const formatCurrency = (amount: number) => {
@@ -157,18 +180,27 @@ const CheckoutPage: React.FC = () => {
 
     // Validation
     if (!province || !district) {
-      toast.error("Please fill in pickup location");
+      toast.error("Vui lòng điền địa điểm nhận hàng");
       return;
     }
 
     if (!pickupAt || !returnAt) {
-      toast.error("Please select pickup and return dates");
+      toast.error("Vui lòng chọn ngày nhận và ngày trả");
       return;
     }
 
     if (returnAt.isBefore(pickupAt)) {
-      toast.error("Return date must be after pickup date");
+      toast.error("Ngày trả phải sau ngày nhận");
       return;
+    }
+    if (paymentMethod === "wallet" && walletBalance !== null) {
+      const totalAmount = calculateTotal();
+      if (walletBalance < totalAmount) {
+        toast.error(
+          "Số dư ví không đủ. Vui lòng nạp thêm tiền hoặc chọn chuyển khoản."
+        );
+        return;
+      }
     }
 
     try {
@@ -184,8 +216,6 @@ const CheckoutPage: React.FC = () => {
         pickupAt: pickupAt.toISOString(),
         returnAt: returnAt.toISOString(),
       };
-
-      console.log("Sending booking data:", bookingData);
 
       const response = await fetch(`${API_BASE_URL}/Bookings`, {
         method: "POST",
@@ -221,13 +251,19 @@ const CheckoutPage: React.FC = () => {
 
       // ✅ Check response status after reading body
       if (!response.ok) {
-        throw new Error(result?.message || `Server error: ${response.status}`);
+        throw new Error(result?.message || `Máy ảnh đã có người đặt thuê.`);
       }
 
-      console.log("Booking created successfully:", result);
+      console.log("Đặt thuê thành công:", result);
 
-      toast.success("Booking created successfully!");
-
+      toast.success("Đặt thuê thành công!");
+      if (paymentMethod === "wallet") {
+        toast.success("Đặt thuê và thanh toán thành công!");
+      } else {
+        toast.success(
+          "Đặt thuê thành công! Vui lòng chuyển khoản để hoàn tất."
+        );
+      }
       // Navigate to orders page
       setTimeout(() => {
         navigate("/renter/orders");
@@ -238,7 +274,7 @@ const CheckoutPage: React.FC = () => {
       if (error instanceof Error) {
         toast.error(error.message);
       } else {
-        toast.error("Failed to create booking. Please try again.");
+        toast.error("Không thể tạo đơn thuê. Vui lòng thử lại");
       }
     } finally {
       setLoading(false);
@@ -473,13 +509,194 @@ const CheckoutPage: React.FC = () => {
                     )}
                   </Stack>
                 </Box>
+                <Divider sx={{ my: 4 }} />
 
+                {/* Payment Method */}
+                <Box>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1.5,
+                      mb: 3,
+                    }}
+                  >
+                    <CreditCard size={24} color={colors.primary.main} />
+                    <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                      Phương thức thanh toán
+                    </Typography>
+                  </Box>
+
+                  <FormControl component="fieldset" fullWidth>
+                    <RadioGroup
+                      value={paymentMethod}
+                      onChange={(e) =>
+                        setPaymentMethod(
+                          e.target.value as "wallet" | "transfer"
+                        )
+                      }
+                    >
+                      {/* Wallet Payment */}
+                      <Paper
+                        elevation={0}
+                        sx={{
+                          p: 2.5,
+                          mb: 2,
+                          border: `2px solid ${
+                            paymentMethod === "wallet"
+                              ? colors.primary.main
+                              : colors.border.light
+                          }`,
+                          borderRadius: 2,
+                          cursor: "pointer",
+                          transition: "all 0.2s",
+                          "&:hover": {
+                            borderColor: colors.primary.main,
+                            bgcolor: colors.primary.lighter,
+                          },
+                        }}
+                        onClick={() => setPaymentMethod("wallet")}
+                      >
+                        <FormControlLabel
+                          value="wallet"
+                          control={
+                            <Radio
+                              sx={{
+                                color: colors.primary.main,
+                                "&.Mui-checked": {
+                                  color: colors.primary.main,
+                                },
+                              }}
+                            />
+                          }
+                          label={
+                            <Box sx={{ ml: 1 }}>
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 1.5,
+                                  mb: 0.5,
+                                }}
+                              >
+                                <Wallet size={20} color={colors.primary.main} />
+                                <Typography
+                                  variant="body1"
+                                  sx={{ fontWeight: 700 }}
+                                >
+                                  Thanh toán qua Ví
+                                </Typography>
+                              </Box>
+                              <Typography
+                                variant="body2"
+                                sx={{ color: colors.text.secondary, ml: 3.5 }}
+                              >
+                                Số dư hiện tại:{" "}
+                                <strong>
+                                  {walletBalance !== null
+                                    ? walletBalance.toLocaleString("vi-VN") +
+                                      " ₫"
+                                    : "Đang tải..."}
+                                </strong>
+                              </Typography>
+                              {walletBalance !== null &&
+                                walletBalance < calculateTotal() && (
+                                  <Alert
+                                    severity="warning"
+                                    sx={{ mt: 1.5, ml: 3.5 }}
+                                  >
+                                    Số dư không đủ. Cần thêm{" "}
+                                    {(
+                                      calculateTotal() - walletBalance
+                                    ).toLocaleString("vi-VN")}{" "}
+                                    ₫
+                                  </Alert>
+                                )}
+                            </Box>
+                          }
+                          sx={{ m: 0, width: "100%" }}
+                        />
+                      </Paper>
+
+                      {/* Bank Transfer */}
+                      <Paper
+                        elevation={0}
+                        sx={{
+                          p: 2.5,
+                          border: `2px solid ${
+                            paymentMethod === "transfer"
+                              ? colors.primary.main
+                              : colors.border.light
+                          }`,
+                          borderRadius: 2,
+                          cursor: "pointer",
+                          transition: "all 0.2s",
+                          "&:hover": {
+                            borderColor: colors.primary.main,
+                            bgcolor: colors.primary.lighter,
+                          },
+                        }}
+                        onClick={() => setPaymentMethod("transfer")}
+                      >
+                        <FormControlLabel
+                          value="transfer"
+                          control={
+                            <Radio
+                              sx={{
+                                color: colors.primary.main,
+                                "&.Mui-checked": {
+                                  color: colors.primary.main,
+                                },
+                              }}
+                            />
+                          }
+                          label={
+                            <Box sx={{ ml: 1 }}>
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 1.5,
+                                  mb: 0.5,
+                                }}
+                              >
+                                <Building2
+                                  size={20}
+                                  color={colors.primary.main}
+                                />
+                                <Typography
+                                  variant="body1"
+                                  sx={{ fontWeight: 700 }}
+                                >
+                                  Chuyển khoản ngân hàng
+                                </Typography>
+                              </Box>
+                              <Typography
+                                variant="body2"
+                                sx={{ color: colors.text.secondary, ml: 3.5 }}
+                              >
+                                Bạn sẽ nhận thông tin chuyển khoản sau khi đặt
+                                thuê
+                              </Typography>
+                            </Box>
+                          }
+                          sx={{ m: 0, width: "100%" }}
+                        />
+                      </Paper>
+                    </RadioGroup>
+                  </FormControl>
+                </Box>
                 {/* Submit Button */}
                 <Button
                   type="submit"
                   fullWidth
                   variant="contained"
-                  disabled={loading}
+                  disabled={
+                    loading ||
+                    (paymentMethod === "wallet" &&
+                      walletBalance !== null &&
+                      walletBalance < calculateTotal())
+                  }
                   sx={{
                     mt: 4,
                     py: 1.5,

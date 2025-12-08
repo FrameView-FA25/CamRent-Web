@@ -409,7 +409,7 @@ const ProductDetailPage: React.FC = () => {
                   <Chip
                     size="small"
                     icon={<VerifiedIcon sx={{ fontSize: 16 }} />}
-                    label="Verified"
+                    label="Đã xác minh"
                     sx={{
                       bgcolor: "#dfffe0",
                       color: "#2e7d32",
@@ -440,7 +440,6 @@ const ProductDetailPage: React.FC = () => {
                   <Typography variant="body2" color="text.secondary">
                     {camera.branchAddress || "Địa chỉ không có sẵn"}
                   </Typography>
-                  s
                 </Box>
               </Stack>
 
