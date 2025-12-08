@@ -106,8 +106,7 @@ const MainLayout: React.FC = () => {
     const storedRole = localStorage.getItem("role");
     const roleFromUser = Array.isArray(user?.roles) ? user?.roles[0] : null;
     const role = storedRole || roleFromUser || "";
-    const target = getDefaultRouteByRole(role);
-    navigate(target || "/");
+    navigate(`/${role}/dashboard`);
   };
 
   const handleCartOpen = () => {
