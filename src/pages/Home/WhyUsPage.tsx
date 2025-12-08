@@ -13,65 +13,65 @@ const WhyUsPage: React.FC = () => {
   const features = [
     {
       icon: <Verified sx={{ fontSize: 60 }} />,
-      title: "Premium Quality Equipment",
+      title: "Thiết bị cao cấp",
       description:
-        "All our camera equipment is regularly maintained and tested to ensure optimal performance. We only stock professional-grade gear from top manufacturers.",
+        "Tất cả thiết bị được bảo dưỡng, kiểm tra định kỳ để đảm bảo hiệu suất tối ưu. Chúng tôi chỉ cung cấp gear chuyên nghiệp từ các hãng uy tín.",
     },
     {
       icon: <Support sx={{ fontSize: 60 }} />,
-      title: "Expert Support Team",
+      title: "Đội ngũ hỗ trợ chuyên môn",
       description:
-        "Our knowledgeable staff is available to help you choose the right equipment and provide technical support throughout your rental period.",
+        "Nhân sự am hiểu giúp bạn chọn đúng thiết bị và hỗ trợ kỹ thuật xuyên suốt thời gian thuê.",
     },
     {
       icon: <Inventory sx={{ fontSize: 60 }} />,
-      title: "Extensive Inventory",
+      title: "Kho thiết bị phong phú",
       description:
-        "From cameras and lenses to lighting and audio equipment, we have everything you need for any production, all in one place.",
+        "Từ body, ống kính đến ánh sáng và âm thanh — đầy đủ cho mọi nhu cầu sản xuất tại một nơi.",
     },
     {
       icon: <LocalOffer sx={{ fontSize: 60 }} />,
-      title: "Competitive Pricing",
+      title: "Giá linh hoạt, cạnh tranh",
       description:
-        "We offer flexible rental packages with competitive rates. Daily, weekly, and monthly options available to fit your budget and timeline.",
+        "Gói thuê theo ngày, tuần, tháng với mức giá hợp lý, phù hợp ngân sách và tiến độ của bạn.",
     },
     {
       icon: <Engineering sx={{ fontSize: 60 }} />,
-      title: "Professional Service",
+      title: "Dịch vụ chuyên nghiệp",
       description:
-        "We understand the demands of professional production. Our streamlined process ensures you get your equipment when you need it.",
+        "Hiểu nhu cầu sản xuất chuyên nghiệp, quy trình tinh gọn đảm bảo bạn nhận thiết bị đúng lúc.",
     },
     {
       icon: <Speed sx={{ fontSize: 60 }} />,
-      title: "Quick & Easy Process",
+      title: "Nhanh & đơn giản",
       description:
-        "Reserve online, pick up or get delivery, and return when done. No complicated paperwork or hidden fees. Simple and transparent.",
+        "Đặt online, nhận tại quầy hoặc giao tận nơi, trả khi xong. Không giấy tờ rườm rà, không phí ẩn.",
     },
   ];
 
   const testimonials = [
     {
       name: "John Smith",
-      role: "Film Director",
-      text: "Outstanding service and top-quality equipment. The team is incredibly knowledgeable and always goes above and beyond to ensure we have everything we need for our shoots.",
+      role: "Đạo diễn phim",
+      text: "Dịch vụ xuất sắc, thiết bị chất lượng cao. Đội ngũ rất am hiểu và luôn hỗ trợ vượt mong đợi để chúng tôi có đủ mọi thứ cho buổi quay.",
     },
     {
       name: "Sarah Johnson",
-      role: "Photography Studio Owner",
-      text: "I've been renting from them for years. Their inventory is extensive, prices are fair, and the equipment is always in perfect condition. Highly recommended!",
+      role: "Chủ studio nhiếp ảnh",
+      text: "Tôi thuê ở đây nhiều năm. Kho thiết bị rất lớn, giá hợp lý, thiết bị luôn trong tình trạng hoàn hảo. Rất đáng tin cậy!",
     },
     {
       name: "Mike Chen",
-      role: "Independent Filmmaker",
-      text: "The convenience and reliability are unmatched. From reservation to return, everything is smooth and professional. They've become my go-to rental house.",
+      role: "Nhà làm phim độc lập",
+      text: "Tiện lợi và ổn định hiếm có. Từ đặt đến trả đều trơn tru, chuyên nghiệp. Đây là nơi thuê thiết bị quen thuộc của tôi.",
     },
   ];
 
   const stats = [
-    { number: "10+", label: "Years Experience" },
-    { number: "5000+", label: "Happy Clients" },
-    { number: "500+", label: "Equipment Items" },
-    { number: "24/7", label: "Support Available" },
+    { number: "10+", label: "Năm kinh nghiệm" },
+    { number: "5000+", label: "Khách hàng hài lòng" },
+    { number: "500+", label: "Hạng mục thiết bị" },
+    { number: "24/7", label: "Hỗ trợ liên tục" },
   ];
 
   return (
@@ -83,7 +83,7 @@ const WhyUsPage: React.FC = () => {
             variant="h2"
             sx={{ mb: 3, fontWeight: 300, color: "#000" }}
           >
-            Why Choose Us
+            Vì sao chọn chúng tôi
           </Typography>
           <Typography
             variant="body1"
@@ -94,8 +94,7 @@ const WhyUsPage: React.FC = () => {
               fontSize: "1.1rem",
             }}
           >
-            We're committed to providing the best camera rental experience in
-            Southern California. Here's what sets us apart from the competition.
+            Chúng tôi cam kết mang lại trải nghiệm thuê thiết bị tốt nhất. Đây là những điểm khác biệt của chúng tôi.
           </Typography>
         </Box>
 
@@ -145,7 +144,7 @@ const WhyUsPage: React.FC = () => {
               color: "#000",
             }}
           >
-            What Makes Us Different
+            Điểm khác biệt của chúng tôi
           </Typography>
 
           <Box
@@ -211,7 +210,7 @@ const WhyUsPage: React.FC = () => {
               color: "#000",
             }}
           >
-            What Our Clients Say
+            Khách hàng nói gì
           </Typography>
 
           <Box
@@ -279,11 +278,10 @@ const WhyUsPage: React.FC = () => {
             variant="h5"
             sx={{ mb: 2, fontWeight: 400, color: "#000" }}
           >
-            Ready to Experience the Difference?
+            Sẵn sàng trải nghiệm sự khác biệt?
           </Typography>
           <Typography sx={{ mb: 4, color: "#666", fontSize: "1.1rem" }}>
-            Join thousands of satisfied filmmakers and photographers who trust
-            us with their equipment needs.
+            Hãy gia nhập hàng nghìn nhà làm phim và nhiếp ảnh tin dùng dịch vụ của chúng tôi.
           </Typography>
           <Box sx={{ display: "flex", gap: 2, justifyContent: "center" }}>
             <Box
@@ -305,7 +303,7 @@ const WhyUsPage: React.FC = () => {
                 },
               }}
             >
-              Browse Equipment
+              Xem thiết bị
             </Box>
             <Box
               component="a"
@@ -325,7 +323,7 @@ const WhyUsPage: React.FC = () => {
                 },
               }}
             >
-              Contact Us
+              Liên hệ
             </Box>
           </Box>
         </Box>

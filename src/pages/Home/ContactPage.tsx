@@ -38,18 +38,16 @@ const ContactPage: React.FC = () => {
         {/* Header */}
         <Box sx={{ textAlign: "center", mb: 8 }}>
           <Typography variant="h2" sx={{ mb: 3, fontWeight: 300 }}>
-            Contact
+            Liên lạc
           </Typography>
           <Typography
             variant="body1"
             sx={{ color: "#666", maxWidth: 600, mx: "auto" }}
           >
-            With our office located in Glendale, CA, our of-site. We are proudly
-            serve southern California with our amazing rentals, and you're
-            viewing our inventory just like that Our knowledgeable staff are
-            accessible to answer questions about our rental products, cleaning
-            services, technical questions and everything else related to the
-            film/video production industry
+            Văn phòng đặt tại Glendale, CA. Chúng tôi phục vụ khu vực miền Nam
+            California với dịch vụ cho thuê thiết bị vượt trội. Đội ngũ giàu kinh
+            nghiệm sẵn sàng giải đáp mọi thắc mắc về sản phẩm, vệ sinh, kỹ thuật
+            và các nhu cầu liên quan đến sản xuất phim/ảnh.
           </Typography>
         </Box>
 
@@ -64,16 +62,16 @@ const ContactPage: React.FC = () => {
           {/* Left Side - Contact Form */}
           <Box sx={{ flex: 1 }}>
             <Typography variant="h6" sx={{ color: "#d4af37", mb: 3 }}>
-              Please feel free to contact us
+              Vui lòng liên hệ với chúng tôi
               <br />
-              via the form below:
+              qua biểu mẫu dưới đây:
             </Typography>
 
             <Box component="form" onSubmit={handleSubmit}>
               <TextField
                 fullWidth
                 name="name"
-                placeholder="Name*"
+                placeholder="Họ tên*"
                 value={formData.name}
                 onChange={handleChange}
                 required
@@ -110,7 +108,7 @@ const ContactPage: React.FC = () => {
               <TextField
                 fullWidth
                 name="subject"
-                placeholder="Subject"
+                placeholder="Tiêu đề"
                 value={formData.subject}
                 onChange={handleChange}
                 sx={{
@@ -127,7 +125,7 @@ const ContactPage: React.FC = () => {
               <TextField
                 fullWidth
                 name="message"
-                placeholder="Your message"
+                placeholder="Nội dung"
                 value={formData.message}
                 onChange={handleChange}
                 multiline
@@ -163,7 +161,7 @@ const ContactPage: React.FC = () => {
                 </Paper>
                 <TextField
                   name="captcha"
-                  placeholder="Anti-Spam (Type what you see)"
+                  placeholder="Mã xác thực (nhập lại chuỗi trên)"
                   value={formData.captcha}
                   onChange={handleChange}
                   sx={{
@@ -194,7 +192,7 @@ const ContactPage: React.FC = () => {
                   },
                 }}
               >
-                SEND
+                GỬI
               </Button>
             </Box>
           </Box>
@@ -203,7 +201,7 @@ const ContactPage: React.FC = () => {
           <Box sx={{ flex: 1 }}>
             <Box sx={{ mb: 4 }}>
               <Typography sx={{ mb: 1 }}>
-                Phone:{" "}
+                Điện thoại:{" "}
                 <Box component="span" sx={{ color: "#d4af37" }}>
                   818-500-7559
                 </Box>
