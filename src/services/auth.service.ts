@@ -10,6 +10,8 @@ import type {
   ResetPasswordRequest,
 } from "../types/auth.types";
 
+import { decodeToken } from "@/utils/decodeToken";
+
 /**
  * Service quản lý xác thực (Authentication)
  * Bao gồm: đăng nhập, đăng ký, quản lý token, kiểm tra trạng thái đăng nhập
@@ -60,17 +62,53 @@ export const authService = {
    * @param authData - Dữ liệu xác thực từ API sau khi đăng nhập
    */
   saveAuthData(authData: LoginResponse): void {
+    const decoded = authData.token ? decodeToken(authData.token) : null;
+    const roleFromToken =
+      (decoded?.[
+        "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
+      ] as string | undefined) ||
+      (decoded?.role as string | undefined) ||
+      (decoded?.Role as string | undefined);
+    const roles: string[] = (authData as { roles?: string[] })?.roles?.length
+      ? (authData as { roles: string[] }).roles
+      : roleFromToken
+      ? [roleFromToken]
+      : [];
+
+    const emailFromToken =
+      (decoded?.[
+        "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"
+      ] as string | undefined) ||
+      (decoded?.email as string | undefined) ||
+      (decoded?.Email as string | undefined);
+    const nameFromToken =
+      (decoded?.[
+        "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"
+      ] as string | undefined) ||
+      (decoded?.unique_name as string | undefined) ||
+      (decoded?.name as string | undefined) ||
+      (decoded?.Name as string | undefined);
+
     localStorage.setItem("accessToken", authData.token);
-    localStorage.setItem("role", authData.roles[0]); // Lấy role đầu tiên
+    if (roles[0]) {
+      localStorage.setItem("role", roles[0]);
+    } else {
+      localStorage.removeItem("role");
+    }
+
     localStorage.setItem(
       "userInfo",
       JSON.stringify({
-        email: authData.email,
-        fullName: authData.fullName,
-        roles: authData.roles,
-        phoneNumber: authData.phoneNumber,
-        createdAt: authData.createdAt,
-        address: authData.address,
+        email: (authData as { email?: string }).email || emailFromToken || "",
+        fullName:
+          (authData as { fullName?: string }).fullName ||
+          nameFromToken ||
+          (authData as { name?: string }).name ||
+          "",
+        roles,
+        phoneNumber: (authData as { phoneNumber?: string }).phoneNumber || "",
+        createdAt: (authData as { createdAt?: string }).createdAt || "",
+        address: (authData as { address?: string }).address || "",
       })
     );
   },

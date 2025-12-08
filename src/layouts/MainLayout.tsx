@@ -103,16 +103,11 @@ const MainLayout: React.FC = () => {
 
   const handleProfile = () => {
     handleMenuClose();
-    const role = localStorage.getItem("role");
-    if (role == "Renter") {
-      navigate("/renter/dashboard");
-    } else if (role == "Staff") {
-      navigate("/staff/check-booking");
-    } else if (role == "BranchManager") {
-      navigate("/manager/dashboard");
-    } else if (role == "Owner") {
-      navigate("/owner/dashboard");
-    }
+    const storedRole = localStorage.getItem("role");
+    const roleFromUser = Array.isArray(user?.roles) ? user?.roles[0] : null;
+    const role = storedRole || roleFromUser || "";
+    const target = getDefaultRouteByRole(role);
+    navigate(target || "/");
   };
 
   const handleCartOpen = () => {
