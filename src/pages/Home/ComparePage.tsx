@@ -350,23 +350,27 @@ const ComparePage: React.FC = () => {
                 <TableCell sx={{ fontWeight: 600, color: colors.text.primary }}>
                   Tình trạng
                 </TableCell>
-                {cameras.map((camera) => (
-                  <TableCell key={camera.id} align="center">
-                    <Chip
-                      label={camera.isAvailable ? "Có sẵn" : "Không có sẵn"}
-                      size="small"
-                      sx={{
-                        bgcolor: camera.isAvailable
-                          ? colors.status.successLight
-                          : colors.status.errorLight,
-                        color: camera.isAvailable
-                          ? colors.status.success
-                          : colors.status.error,
-                        fontWeight: 600,
-                      }}
-                    />
-                  </TableCell>
-                ))}
+                {cameras.map((camera) => {
+                  const available =
+                    !camera.location || camera.location === "Platform";
+                  return (
+                    <TableCell key={camera.id} align="center">
+                      <Chip
+                        label={available ? "Có sẵn" : "Không có sẵn"}
+                        size="small"
+                        sx={{
+                          bgcolor: available
+                            ? colors.status.successLight
+                            : colors.status.errorLight,
+                          color: available
+                            ? colors.status.success
+                            : colors.status.error,
+                          fontWeight: 600,
+                        }}
+                      />
+                    </TableCell>
+                  );
+                })}
               </TableRow>
 
               {/* Location */}
@@ -487,7 +491,7 @@ const ComparePage: React.FC = () => {
                       >
                         Xem chi tiết
                       </Button>
-                      {camera.isAvailable && (
+                      {(!camera.location || camera.location === "Platform") && (
                         <Button
                           variant="outlined"
                           size="small"

@@ -12,7 +12,6 @@ import {
   Box,
   Typography,
   Tooltip,
-  Switch,
 } from "@mui/material";
 import { Eye, Edit } from "lucide-react";
 import type { Accessory } from "../../types/product.types";
@@ -22,14 +21,12 @@ interface AccessoryTableProps {
   accessories: Accessory[];
   onView: (accessory: Accessory) => void;
   onEdit: (accessory: Accessory) => void;
-  onToggleAvailability: (accessory: Accessory) => void;
 }
 
 export const AccessoryTable: React.FC<AccessoryTableProps> = ({
   accessories,
   onView,
   onEdit,
-  onToggleAvailability,
 }) => {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("vi-VN", {
@@ -84,9 +81,6 @@ export const AccessoryTable: React.FC<AccessoryTableProps> = ({
             </TableCell>
             <TableCell sx={{ fontWeight: 700, color: colors.text.primary }}>
               Trạng thái xác minh
-            </TableCell>
-            <TableCell sx={{ fontWeight: 700, color: colors.text.primary }}>
-              Còn hàng
             </TableCell>
             <TableCell
               sx={{ fontWeight: 700, color: colors.text.primary }}
@@ -161,20 +155,6 @@ export const AccessoryTable: React.FC<AccessoryTableProps> = ({
                   </Typography>
                 </TableCell>
                 <TableCell>{getStatusChip(accessory.isConfirmed)}</TableCell>
-                <TableCell>
-                  <Tooltip
-                    title={
-                      accessory.isAvailable ? "Đang có sẵn" : "Không có sẵn"
-                    }
-                  >
-                    <Switch
-                      checked={accessory.isAvailable}
-                      onChange={() => onToggleAvailability(accessory)}
-                      color="success"
-                      size="small"
-                    />
-                  </Tooltip>
-                </TableCell>
                 <TableCell align="center">
                   <Box
                     sx={{ display: "flex", gap: 1, justifyContent: "center" }}

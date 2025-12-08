@@ -151,6 +151,10 @@ const CameraQrHistory = () => {
   };
 
   const camera = historyData?.camera;
+  const hasActiveBooking = historyData?.bookings?.some(
+    (b) => b.status && b.status !== "Completed" && b.status !== "Cancelled"
+  );
+  const cameraAvailable = !hasActiveBooking;
   const specs = useMemo(
     () => parseSpecs(camera?.specsJson),
     [camera?.specsJson]
@@ -378,10 +382,10 @@ const CameraQrHistory = () => {
                     <Stack direction="row" spacing={1}>
                       <Chip
                         icon={<CheckCircle />}
-                        label={camera.isAvailable ? "Đang rảnh" : "Đã đặt"}
+                      label={cameraAvailable ? "Đang rảnh" : "Đã đặt"}
                         sx={{
-                          bgcolor: camera.isAvailable ? "#DCFCE7" : "#FEE2E2",
-                          color: camera.isAvailable ? "#166534" : "#991B1B",
+                        bgcolor: cameraAvailable ? "#DCFCE7" : "#FEE2E2",
+                        color: cameraAvailable ? "#166534" : "#991B1B",
                           fontWeight: 600,
                           borderRadius: 2,
                         }}

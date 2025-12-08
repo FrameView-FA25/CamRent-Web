@@ -1,8 +1,8 @@
 import { toast } from "react-toastify";
-import type { Verification } from "@/types/verification.types";
+import type { Booking } from "@/types/booking.types";
 
 export const handleContractConfirm = async (
-  selectedVerification: Verification | null,
+  selectedBooking: Booking | null,
   setContractLoading: (loading: boolean) => void,
   setPdfUrl: (url: string) => void,
   setCurrentContractId: (id: string) => void,
@@ -10,13 +10,14 @@ export const handleContractConfirm = async (
   setPdfDialogOpen: (open: boolean) => void,
   setContractDialogOpen: (open: boolean) => void
 ) => {
-  if (!selectedVerification) return;
+  if (!selectedBooking) return;
   const token = localStorage.getItem("accessToken");
   try {
     setContractLoading(true);
 
     const createResponse = await fetch(
-      `https://camrent-backend.up.railway.app/api/Contracts/verification/${selectedVerification.id}`,
+      // TODO: xác nhận endpoint hợp đồng cho booking; tạm thời dùng cùng pattern
+      `https://camrent-backend.up.railway.app/api/Contracts/verification/${selectedBooking.id}`,
       {
         method: "POST",
         headers: {
@@ -47,7 +48,9 @@ export const handleContractConfirm = async (
       throw new Error("Không thể lấy preview hợp đồng");
     }
 
-    const contentDisposition = previewResponse.headers.get("content-disposition");
+    const contentDisposition = previewResponse.headers.get(
+      "content-disposition"
+    );
     let filename = `contract_${contractId}.pdf`;
 
     if (contentDisposition) {
@@ -71,7 +74,9 @@ export const handleContractConfirm = async (
     setContractLoading(false);
   } catch (error) {
     console.error("Contract error:", error);
-    toast.error(error instanceof Error ? error.message : "Lỗi khi tạo hợp đồng");
+    toast.error(
+      error instanceof Error ? error.message : "Lỗi khi tạo hợp đồng"
+    );
     setContractLoading(false);
   }
 };
