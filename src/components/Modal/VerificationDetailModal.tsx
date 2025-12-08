@@ -59,10 +59,10 @@ export default function VerificationDetailModal({
       const blob = await contractService.getPreview(contractId, token);
       const pdfBlob = new Blob([blob], { type: "application/pdf" });
       const url = window.URL.createObjectURL(pdfBlob);
-      
+
       // Mở PDF trong tab mới
       window.open(url, "_blank");
-      
+
       // Cleanup sau 1 phút
       setTimeout(() => {
         window.URL.revokeObjectURL(url);
@@ -135,8 +135,11 @@ export default function VerificationDetailModal({
       return { label: "Đã ký", color: "#10B981", bg: "#F0FDF4" };
     } else if (contract.status === "PendingSignatures") {
       // Kiểm tra có bất kỳ ai đã ký chưa
-      const anySigned = contract.signatures?.some((s: { isSigned: boolean }) => s.isSigned === true) || false;
-      
+      const anySigned =
+        contract.signatures?.some(
+          (s: { isSigned: boolean }) => s.isSigned === true
+        ) || false;
+
       if (anySigned) {
         // Có ít nhất 1 bên đã ký → "Đang ký"
         return { label: "Đang ký", color: "#F59E0B", bg: "#FEF3C7" };
@@ -146,7 +149,11 @@ export default function VerificationDetailModal({
       }
     } else {
       // Trạng thái khác hoặc không xác định
-      return { label: contract.status || "Chờ ký", color: "#64748B", bg: "#F1F5F9" };
+      return {
+        label: contract.status || "Chờ ký",
+        color: "#64748B",
+        bg: "#F1F5F9",
+      };
     }
   };
 
@@ -846,14 +853,23 @@ export default function VerificationDetailModal({
                             </Typography>
                           </TableCell>
                           <TableCell>
-                            <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
-                              {contract.signatures && contract.signatures.length > 0 ? (
+                            <Box
+                              sx={{
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: 0.5,
+                              }}
+                            >
+                              {contract.signatures &&
+                              contract.signatures.length > 0 ? (
                                 contract.signatures.map((signature, sigIdx) => (
                                   <Tooltip
                                     key={sigIdx}
                                     title={
                                       signature.isSigned && signature.signedAt
-                                        ? `Đã ký lúc: ${formatDate(signature.signedAt)}`
+                                        ? `Đã ký lúc: ${formatDate(
+                                            signature.signedAt
+                                          )}`
                                         : signature.isSigned
                                         ? "Đã ký"
                                         : "Chưa ký"

@@ -60,7 +60,7 @@ export interface Booking {
   renterId: string;
   renter: Renter | null;
   staffId?: string;
-  staff?: Staff | null;
+  staffName?: string | null;
   pickupAt: string;
   returnAt: string;
   location: Location;

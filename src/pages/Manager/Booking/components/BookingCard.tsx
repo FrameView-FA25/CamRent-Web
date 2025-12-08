@@ -16,6 +16,9 @@ import {
   AccessTime,
   LocationOn,
   Camera,
+  Business,
+  Person,
+  Inventory,
 } from "@mui/icons-material";
 import type { Booking } from "@/types/booking.types";
 import {
@@ -66,98 +69,151 @@ export const BookingCard: React.FC<BookingCardProps> = ({
       <Box
         sx={{
           p: 2.5,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          cursor: "pointer",
           bgcolor: expanded ? "#FFF7ED" : "white",
           transition: "background-color 0.3s ease",
         }}
-        onClick={handleExpandClick}
       >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2, flex: 1 }}>
-          {/* ID & Status */}
-          <Box>
-            <Box
-              sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}
+        {/* First Row - ID, Status, Type, Actions */}
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            mb: 1.5,
+          }}
+        >
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            {/* ID */}
+            <Typography
+              sx={{
+                fontWeight: 700,
+                color: "#1F2937",
+                fontSize: "0.95rem",
+              }}
             >
-              <Typography
-                sx={{
-                  fontWeight: 700,
-                  color: "#1F2937",
-                  fontSize: "0.95rem",
-                }}
-              >
-                ID: {booking.id}
-              </Typography>
-              <Chip
-                label={statusInfo.label}
-                color={statusInfo.color}
-                size="small"
-                icon={
-                  statusInfo.label === "Đã xác nhận" ? (
-                    <CheckCircleOutline
-                      sx={{
-                        fontSize: 16,
-                        color: "#10B981 !important",
-                      }}
-                    />
-                  ) : undefined
-                }
-                sx={{
-                  fontWeight: 600,
-                  fontSize: "0.7rem",
-                  height: 24,
-                  ...(statusInfo.label === "Đã xác nhận"
-                    ? {
-                        bgcolor: "#10B981",
-                        color: "#FFFFFF",
-                      }
-                    : {}),
-                }}
-              />
-              <Chip
-                label={getBookingType(booking.type)}
-                size="small"
-                sx={{
-                  bgcolor: "#FFF7ED",
+              ID: {booking.id.substring(0, 18)}...
+            </Typography>
+
+            {/* Status */}
+            <Chip
+              label={statusInfo.label}
+              color={statusInfo.color}
+              size="small"
+              icon={
+                statusInfo.label === "Đã xác nhận" ? (
+                  <CheckCircleOutline
+                    sx={{
+                      fontSize: 16,
+                      color: "#10B981 !important",
+                    }}
+                  />
+                ) : undefined
+              }
+              sx={{
+                fontWeight: 600,
+                fontSize: "0.7rem",
+                height: 24,
+                ...(statusInfo.label === "Đã xác nhận"
+                  ? {
+                      bgcolor: "#10B981",
+                      color: "#FFFFFF",
+                    }
+                  : {}),
+              }}
+            />
+
+            {/* Type */}
+            <Chip
+              label={getBookingType(booking.type)}
+              size="small"
+              sx={{
+                bgcolor: "#FFF7ED",
+                color: "#F97316",
+                fontWeight: 600,
+                fontSize: "0.7rem",
+                height: 24,
+              }}
+            />
+          </Box>
+
+          {/* Action buttons */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <IconButton
+              onClick={(e) => {
+                e.stopPropagation();
+                onMenuClick(e, booking);
+              }}
+              sx={{
+                color: "#6B7280",
+                "&:hover": {
                   color: "#F97316",
-                  fontWeight: 600,
-                  fontSize: "0.7rem",
-                  height: 24,
-                }}
-              />
-            </Box>
+                  bgcolor: "#FFF7ED",
+                },
+              }}
+            >
+              <MoreVert />
+            </IconButton>
+            <IconButton
+              onClick={handleExpandClick}
+              sx={{
+                transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
+                transition: "transform 0.3s ease",
+                color: "#F97316",
+              }}
+            >
+              <ExpandMore />
+            </IconButton>
           </Box>
         </Box>
 
-        {/* Action buttons */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <IconButton
-            onClick={(e) => {
-              e.stopPropagation();
-              onMenuClick(e, booking);
-            }}
-            sx={{
-              color: "#6B7280",
-              "&:hover": {
-                color: "#F97316",
-                bgcolor: "#FFF7ED",
-              },
-            }}
-          >
-            <MoreVert />
-          </IconButton>
-          <IconButton
-            onClick={handleExpandClick}
-            sx={{
-              transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
-              transition: "transform 0.3s ease",
-              color: "#F97316",
-            }}
-          >
-            <ExpandMore />
-          </IconButton>
+        {/* Second Row - Items Count, Staff, Phone, Branch */}
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 3,
+            flexWrap: "wrap",
+          }}
+        >
+          {/* Items Count */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+            <Inventory sx={{ fontSize: 16, color: "#6B7280" }} />
+            <Typography variant="body2" sx={{ color: "#6B7280" }}>
+              Số lượng sản phẩm:{" "}
+              <Box component="span" sx={{ fontWeight: 600, color: "#1F2937" }}>
+                {booking.items.length}
+              </Box>
+            </Typography>
+          </Box>
+
+          {/* Staff */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+            <Person sx={{ fontSize: 16, color: "#6B7280" }} />
+            <Typography variant="body2" sx={{ color: "#6B7280" }}>
+              Nhân viên phụ trách:{" "}
+              <Box component="span" sx={{ fontWeight: 600, color: "#1F2937" }}>
+                {booking.staffName || "Chưa phân công"}
+              </Box>
+            </Typography>
+          </Box>
+
+          {/* Branch (if available) */}
+          {booking.contracts &&
+            booking.contracts.length > 0 &&
+            booking.contracts[0].branchName && (
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                <Business sx={{ fontSize: 16, color: "#6B7280" }} />
+                <Typography variant="body2" sx={{ color: "#6B7280" }}>
+                  Chi nhánh:{" "}
+                  <Box
+                    component="span"
+                    sx={{ fontWeight: 600, color: "#1F2937" }}
+                  >
+                    {booking.contracts[0].branchName}
+                  </Box>
+                </Typography>
+              </Box>
+            )}
         </Box>
       </Box>
 
@@ -223,7 +279,7 @@ export const BookingCard: React.FC<BookingCardProps> = ({
                           mb: 0.5,
                         }}
                       >
-                        {item.itemType || "Camera"}
+                        {item.itemName || item.itemType || "Camera"}
                       </Typography>
                       <Typography
                         variant="caption"
@@ -233,7 +289,7 @@ export const BookingCard: React.FC<BookingCardProps> = ({
                           mb: 0.5,
                         }}
                       >
-                        ID: {item.itemId}
+                        {item.itemType} • ID: {item.itemId.substring(0, 8)}...
                       </Typography>
                       <Typography
                         variant="body2"
@@ -419,7 +475,7 @@ export const BookingCard: React.FC<BookingCardProps> = ({
                     variant="body2"
                     sx={{ fontWeight: 600, color: "#1F2937" }}
                   >
-                    0 đ
+                    {formatCurrency(booking.snapshotDepositAmount)}
                   </Typography>
                 </Box>
 
@@ -431,16 +487,16 @@ export const BookingCard: React.FC<BookingCardProps> = ({
                   }}
                 >
                   <Typography variant="body2" sx={{ color: "#6B7280" }}>
-                    Phí nền tảng ({booking.snapshotPlatformFeePercent}%)
+                    Phí nền tảng (
+                    {(booking.snapshotPlatformFeePercent * 100).toFixed(0)}%)
                   </Typography>
                   <Typography
                     variant="body2"
                     sx={{ fontWeight: 600, color: "#1F2937" }}
                   >
                     {formatCurrency(
-                      (booking.snapshotRentalTotal *
-                        booking.snapshotPlatformFeePercent) /
-                        100
+                      booking.snapshotRentalTotal *
+                        booking.snapshotPlatformFeePercent
                     )}
                   </Typography>
                 </Box>
@@ -466,9 +522,9 @@ export const BookingCard: React.FC<BookingCardProps> = ({
                   >
                     {formatCurrency(
                       booking.snapshotRentalTotal +
-                        (booking.snapshotRentalTotal *
-                          booking.snapshotPlatformFeePercent) /
-                          100
+                        booking.snapshotDepositAmount +
+                        booking.snapshotRentalTotal *
+                          booking.snapshotPlatformFeePercent
                     )}
                   </Typography>
                 </Box>
@@ -483,7 +539,7 @@ export const BookingCard: React.FC<BookingCardProps> = ({
                   }}
                 >
                   Giá thuê cơ bản:{" "}
-                  {formatCurrency(booking.snapshotRentalTotal / diffDays)}/ngày
+                  {formatCurrency(booking.snapshotBaseDailyRate)}/ngày
                 </Typography>
               </Box>
             </Box>

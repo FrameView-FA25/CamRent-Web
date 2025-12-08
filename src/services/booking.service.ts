@@ -430,6 +430,7 @@ export const fetchBookingById = async (
 
     // Chuyển đổi dữ liệu từ API để khớp với interface Booking
     const booking: Booking = {
+      contracts: data.contracts,
       id: data.id,
       type: data.type || "Rental",
       renterId: data.renterId,
