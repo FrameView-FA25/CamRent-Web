@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { authService } from "../services/auth.service";
 
 interface User {
+  id?: string;
   email: string;
   fullName: string;
   phoneNumber?: string;

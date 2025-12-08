@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Box,
   Container,
@@ -15,6 +15,7 @@ import {
   Snackbar,
   Tab,
   Tabs,
+  CircularProgress,
 } from "@mui/material";
 import {
   Edit as EditIcon,
@@ -24,8 +25,14 @@ import {
   Lock as LockIcon,
   Person as PersonIcon,
   Security as SecurityIcon,
+  Draw as DrawIcon,
 } from "@mui/icons-material";
 import { useAuth } from "../../hooks/useAuth";
+import { SignatureDialog } from "./Verification/components/dialogs/SignatureDialog";
+import SignatureCanvas from "react-signature-canvas";
+import { toast } from "react-toastify";
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -40,6 +47,22 @@ interface FormField {
   multiline?: boolean;
   rows?: number;
   disabled?: boolean;
+}
+
+interface UserProfileData {
+  email: string;
+  phone: string;
+  fullName: string;
+  address: string | null;
+  bankAccountNumber: string | null;
+  bankName: string | null;
+  bankAccountName: string | null;
+  signatureAssetId: string | null;
+  avatarId: string | null;
+  id: string;
+  roles: Array<{
+    role: string;
+  }>;
 }
 
 const TabPanel: React.FC<TabPanelProps> = ({ children, value, index }) => (
@@ -58,16 +81,23 @@ const ManagerProfile: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [showNotification, setShowNotification] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [signatureDialogOpen, setSignatureDialogOpen] = useState(false);
+  const signatureRef = useRef<SignatureCanvas | null>(null);
   const { user } = useAuth();
 
-  // Local state for editable user data
   const [userData, setUserData] = useState({
-    fullName: user?.fullName || "",
-    email: user?.email || "",
+    fullName: "",
+    email: "",
     phone: "",
-    role: Array.isArray(user?.roles) ? user.roles.join(", ") : "",
+    role: "",
     address: "",
+    bankAccountNumber: "",
+    bankName: "",
+    bankAccountName: "",
   });
+
+  const [profileData, setProfileData] = useState<UserProfileData | null>(null);
 
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
@@ -75,40 +105,181 @@ const ManagerProfile: React.FC = () => {
     confirmPassword: "",
   });
 
-  // Update userData when user data is available
   useEffect(() => {
-    if (user) {
-      setUserData({
-        fullName: user.fullName || "",
-        email: user.email || "",
-        phone: "",
-        role: Array.isArray(user.roles) ? user.roles.join(", ") : "",
-        address: "",
-      });
+    let cancelled = false;
+
+    const fetchUserProfile = async () => {
+      // nếu API base không cấu hình, dừng sớm
+      if (!API_BASE_URL) {
+        console.error("VITE_API_BASE_URL is not set");
+        if (!cancelled) setLoading(false);
+        return;
+      }
+
+      if (!user?.id) {
+        // không có user -> không cần fetch, tắt loading
+        if (!cancelled) setLoading(false);
+        return;
+      }
+
+      try {
+        if (!cancelled) setLoading(true);
+        const token = localStorage.getItem("accessToken");
+
+        const response = await fetch(
+          `${API_BASE_URL}/UserProfiles/${user.id}`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (!response.ok) {
+          const errText = await response.text().catch(() => null);
+          throw new Error(
+            errText || `Fetch profile failed: ${response.status}`
+          );
+        }
+
+        const data: UserProfileData = await response.json();
+        if (cancelled) return;
+
+        setProfileData(data);
+
+        // Update form data (defensive fallbacks)
+        setUserData({
+          fullName: data.fullName || "",
+          email: data.email || "",
+          phone: data.phone || "",
+          role: (data.roles || []).map((r) => r.role).join(", ") || "",
+          address: data.address || "",
+          bankAccountNumber: data.bankAccountNumber || "",
+          bankName: data.bankName || "",
+          bankAccountName: data.bankAccountName || "",
+        });
+      } catch (error) {
+        console.error("Error fetching user profile:", error);
+        toast.error("Không thể tải thông tin người dùng");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    fetchUserProfile();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
+
+  // const showSuccess = (message: string) => {
+  //   setNotificationMessage(message);
+  //   setShowNotification(true);
+  // };
+
+  const handleSave = async () => {
+    try {
+      const token = localStorage.getItem("accessToken");
+
+      const response = await fetch(
+        `${API_BASE_URL}/UserProfiles/${profileData?.id}`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            fullName: userData.fullName,
+            phone: userData.phone,
+            address: userData.address,
+            bankAccountNumber: userData.bankAccountNumber,
+            bankName: userData.bankName,
+            bankAccountName: userData.bankAccountName,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Không thể cập nhật thông tin");
+      }
+
+      setIsEditing(false);
+      toast.success("Cập nhật thông tin thành công!");
+
+      // Refresh profile data
+      if (user?.id) {
+        const profileResponse = await fetch(
+          `${API_BASE_URL}/UserProfiles/${user.id}`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (profileResponse.ok) {
+          const data = await profileResponse.json();
+          setProfileData(data);
+        }
+      }
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Không thể cập nhật thông tin"
+      );
     }
-  }, [user]);
-
-  const showSuccess = (message: string) => {
-    setNotificationMessage(message);
-    setShowNotification(true);
   };
 
-  const handleSave = () => {
-    setIsEditing(false);
-    showSuccess("Cập nhật thông tin thành công!");
-  };
-
-  const handlePasswordUpdate = () => {
+  const handlePasswordUpdate = async () => {
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      showSuccess("Mật khẩu xác nhận không khớp!");
+      toast.error("Mật khẩu xác nhận không khớp!");
       return;
     }
-    showSuccess("Cập nhật mật khẩu thành công!");
-    setPasswordData({
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: "",
-    });
+
+    if (passwordData.newPassword.length < 6) {
+      toast.error("Mật khẩu phải có ít nhất 6 ký tự!");
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("accessToken");
+
+      const response = await fetch(`${API_BASE_URL}/Auth/change-password`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          currentPassword: passwordData.currentPassword,
+          newPassword: passwordData.newPassword,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(errorData || "Không thể cập nhật mật khẩu");
+      }
+
+      toast.success("Cập nhật mật khẩu thành công!");
+      setPasswordData({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+    } catch (error) {
+      console.error("Error updating password:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Không thể cập nhật mật khẩu"
+      );
+    }
   };
 
   const handleFieldChange = <T,>(
@@ -118,12 +289,109 @@ const ManagerProfile: React.FC = () => {
     value: string
   ) => setter({ ...data, [field]: value });
 
+  const handleOpenSignature = () => {
+    setSignatureDialogOpen(true);
+  };
+
+  const handleCloseSignature = () => {
+    setSignatureDialogOpen(false);
+  };
+
+  const handleClearSignature = () => {
+    if (signatureRef.current) {
+      signatureRef.current.clear();
+    }
+  };
+
+  const handleConfirmSignature = async () => {
+    try {
+      if (
+        !signatureRef.current ||
+        typeof signatureRef.current.isEmpty !== "function" ||
+        signatureRef.current.isEmpty()
+      ) {
+        toast.error("Vui lòng ký tên trước khi xác nhận");
+        return;
+      }
+
+      const token = localStorage.getItem("accessToken");
+
+      // Get signature as base64
+      let signatureDataUrl: string;
+      try {
+        signatureDataUrl = signatureRef.current.toDataURL("image/png");
+      } catch (err) {
+        console.error("Cannot get signature dataURL:", err);
+        toast.error("Không thể lấy dữ liệu chữ ký, thử lại.");
+        return;
+      }
+
+      // Extract base64 string (remove data:image/png;base64, prefix)
+      const base64Data = signatureDataUrl.split(",")[1] || "";
+      if (!base64Data) {
+        throw new Error("Dữ liệu chữ ký không hợp lệ");
+      }
+
+      // POST as JSON with signatureBase64
+      const response = await fetch(`${API_BASE_URL}/UserProfiles/sign`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          signatureBase64: base64Data,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Không thể cập nhật chữ ký");
+      }
+
+      toast.success("Cập nhật chữ ký thành công!");
+      handleCloseSignature();
+
+      // Refresh profile data
+      if (user?.id) {
+        const profileResponse = await fetch(
+          `${API_BASE_URL}/UserProfiles/${user.id}`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (profileResponse.ok) {
+          const data = await profileResponse.json();
+          setProfileData(data);
+        }
+      }
+    } catch (error) {
+      console.error("Error updating signature:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Không thể cập nhật chữ ký"
+      );
+    }
+  };
+
   const renderEditButtons = () =>
     !isEditing ? (
       <Button
         variant="outlined"
         startIcon={<EditIcon />}
         onClick={() => setIsEditing(true)}
+        sx={{
+          borderColor: "#DC2626",
+          color: "#DC2626",
+          "&:hover": {
+            borderColor: "#B91C1C",
+            bgcolor: "#FEF2F2",
+          },
+        }}
       >
         Chỉnh Sửa
       </Button>
@@ -141,6 +409,14 @@ const ManagerProfile: React.FC = () => {
           variant="outlined"
           startIcon={<CancelIcon />}
           onClick={() => setIsEditing(false)}
+          sx={{
+            borderColor: "#6B7280",
+            color: "#6B7280",
+            "&:hover": {
+              borderColor: "#4B5563",
+              bgcolor: "#F9FAFB",
+            },
+          }}
         >
           Hủy
         </Button>
@@ -165,18 +441,46 @@ const ManagerProfile: React.FC = () => {
           fullWidth
           label={field.label}
           type={field.type || "text"}
-          value={data[field.field]}
+          value={data[field.field] || ""}
           onChange={(e) =>
             handleFieldChange(setter, data, field.field, e.target.value)
           }
-          disabled={field.disabled || !isEditing}
+          disabled={field.disabled || (!isEditing && tabValue === 0)}
           variant="outlined"
           multiline={field.multiline}
           rows={field.rows}
+          sx={{
+            "& .MuiOutlinedInput-root": {
+              "&:hover fieldset": {
+                borderColor: isEditing ? "#DC2626" : undefined,
+              },
+              "&.Mui-focused fieldset": {
+                borderColor: "#DC2626",
+              },
+            },
+            "& .MuiInputLabel-root.Mui-focused": {
+              color: "#DC2626",
+            },
+          }}
         />
       ))}
     </Box>
   );
+
+  if (loading) {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "80vh",
+        }}
+      >
+        <CircularProgress sx={{ color: "#DC2626" }} />
+      </Box>
+    );
+  }
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -266,9 +570,6 @@ const ManagerProfile: React.FC = () => {
                 >
                   {userData.role}
                 </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  Tham gia từ:
-                </Typography>
               </Box>
 
               <Box>
@@ -284,10 +585,62 @@ const ManagerProfile: React.FC = () => {
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     <SecurityIcon fontSize="small" color="action" />
                     <Typography variant="body2" color="text.secondary">
-                      {userData.phone}
+                      {userData.phone || "Chưa cập nhật"}
                     </Typography>
                   </Box>
                 </Stack>
+
+                {/* Signature Section */}
+                <Divider sx={{ my: 3 }} />
+                <Box>
+                  <Typography
+                    variant="body2"
+                    sx={{ mb: 2, fontWeight: 600, color: "#1F2937" }}
+                  >
+                    Chữ ký
+                  </Typography>
+                  {profileData?.signatureAssetId ? (
+                    <Box>
+                      <Alert severity="success" sx={{ mb: 2 }}>
+                        Đã có chữ ký
+                      </Alert>
+                      <Button
+                        variant="outlined"
+                        startIcon={<DrawIcon />}
+                        onClick={handleOpenSignature}
+                        fullWidth
+                        sx={{
+                          borderColor: "#DC2626",
+                          color: "#DC2626",
+                          "&:hover": {
+                            borderColor: "#B91C1C",
+                            bgcolor: "#FEF2F2",
+                          },
+                        }}
+                      >
+                        Cập nhật chữ ký
+                      </Button>
+                    </Box>
+                  ) : (
+                    <Box>
+                      <Alert severity="warning" sx={{ mb: 2 }}>
+                        Chưa có chữ ký
+                      </Alert>
+                      <Button
+                        variant="contained"
+                        startIcon={<DrawIcon />}
+                        onClick={handleOpenSignature}
+                        fullWidth
+                        sx={{
+                          bgcolor: "#DC2626",
+                          "&:hover": { bgcolor: "#B91C1C" },
+                        }}
+                      >
+                        Thêm chữ ký
+                      </Button>
+                    </Box>
+                  )}
+                </Box>
               </Box>
             </CardContent>
           </Card>
@@ -304,7 +657,21 @@ const ManagerProfile: React.FC = () => {
           >
             <CardContent>
               <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
-                <Tabs value={tabValue} onChange={(_, val) => setTabValue(val)}>
+                <Tabs
+                  value={tabValue}
+                  onChange={(_, val) => setTabValue(val)}
+                  sx={{
+                    "& .MuiTab-root": {
+                      color: "#6B7280",
+                      "&.Mui-selected": {
+                        color: "#DC2626",
+                      },
+                    },
+                    "& .MuiTabs-indicator": {
+                      backgroundColor: "#DC2626",
+                    },
+                  }}
+                >
                   <Tab
                     label="Thông Tin Chung"
                     icon={<PersonIcon />}
@@ -337,7 +704,7 @@ const ManagerProfile: React.FC = () => {
                   {renderFieldRow(
                     [
                       { label: "Họ và Tên", field: "fullName" },
-                      { label: "Email", field: "email" },
+                      { label: "Email", field: "email", disabled: true },
                     ],
                     userData,
                     setUserData
@@ -359,6 +726,26 @@ const ManagerProfile: React.FC = () => {
                         rows: 2,
                       },
                     ],
+                    userData,
+                    setUserData
+                  )}
+
+                  <Divider />
+
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    Thông Tin Ngân Hàng
+                  </Typography>
+
+                  {renderFieldRow(
+                    [
+                      { label: "Tên Ngân Hàng", field: "bankName" },
+                      { label: "Số Tài Khoản", field: "bankAccountNumber" },
+                    ],
+                    userData,
+                    setUserData
+                  )}
+                  {renderFieldRow(
+                    [{ label: "Tên Chủ Tài Khoản", field: "bankAccountName" }],
                     userData,
                     setUserData
                   )}
@@ -437,6 +824,15 @@ const ManagerProfile: React.FC = () => {
           {notificationMessage}
         </Alert>
       </Snackbar>
+
+      {/* Signature Dialog */}
+      <SignatureDialog
+        open={signatureDialogOpen}
+        onClose={handleCloseSignature}
+        signatureRef={signatureRef}
+        onClear={handleClearSignature}
+        onSave={handleConfirmSignature}
+      />
     </Container>
   );
 };
