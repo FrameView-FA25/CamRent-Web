@@ -376,7 +376,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ camera }) => {
                 variant="body2"
                 sx={{ fontWeight: 600, color: grey[800] }}
               >
-                {camera.branchAddress}
+                {camera.branchAddress || camera.location}
               </Typography>
             </Box>
           </Box>
