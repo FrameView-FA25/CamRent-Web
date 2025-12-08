@@ -11,56 +11,56 @@ const HowItWorksPage: React.FC = () => {
   const steps = [
     {
       icon: <Search sx={{ fontSize: 60 }} />,
-      title: "1. Browse Equipment",
+      title: "1. Tìm thiết bị",
       description:
-        "Explore our extensive catalog of professional camera equipment. Use filters to find exactly what you need for your project.",
+        "Duyệt danh mục thiết bị quay chụp chuyên nghiệp. Dùng bộ lọc để nhanh chóng chọn đúng nhu cầu cho dự án của bạn.",
     },
     {
       icon: <ShoppingCart sx={{ fontSize: 60 }} />,
-      title: "2. Select & Reserve",
+      title: "2. Chọn & đặt trước",
       description:
-        "Choose your rental dates, add items to cart, and complete the reservation. We'll confirm availability immediately.",
+        "Chọn ngày thuê, thêm thiết bị vào giỏ và hoàn tất đặt chỗ. Hệ thống xác nhận khả dụng ngay lập tức.",
     },
     {
       icon: <LocalShipping sx={{ fontSize: 60 }} />,
-      title: "3. Pick Up or Delivery",
+      title: "3. Nhận tại quầy hoặc giao tận nơi",
       description:
-        "Pick up equipment at our location or opt for delivery service. All gear is tested and ready to use.",
+        "Nhận thiết bị tại chi nhánh hoặc chọn giao hàng. Tất cả thiết bị đều được kiểm tra và sẵn sàng sử dụng.",
     },
     {
       icon: <Assignment sx={{ fontSize: 60 }} />,
-      title: "4. Create & Return",
+      title: "4. Sáng tạo & hoàn trả",
       description:
-        "Use the equipment for your shoot. Return it on the agreed date in the same condition. Simple and hassle-free.",
+        "Dùng thiết bị cho buổi quay chụp, sau đó hoàn trả đúng hẹn và cùng tình trạng. Quy trình đơn giản, nhanh gọn.",
     },
   ];
 
   const policies = [
     {
-      title: "Reservation Policy",
+      title: "Chính sách đặt trước",
       items: [
-        "Reserve equipment up to 6 months in advance",
-        "24-hour cancellation policy for full refund",
-        "Valid ID and credit card required",
-        "Security deposit may be required for certain items",
+        "Đặt trước tối đa 6 tháng",
+        "Hủy trong 24 giờ được hoàn tiền đầy đủ",
+        "Cần CMND/CCCD/Hộ chiếu và thẻ thanh toán hợp lệ",
+        "Một số thiết bị cần đặt cọc an toàn",
       ],
     },
     {
-      title: "Rental Periods",
+      title: "Thời hạn thuê",
       items: [
-        "Daily rentals (24 hours)",
-        "Weekly rentals (7 days)",
-        "Monthly rentals available",
-        "Flexible pickup and return times",
+        "Thuê theo ngày (24 giờ)",
+        "Thuê theo tuần (7 ngày)",
+        "Có gói thuê theo tháng",
+        "Linh hoạt giờ nhận và trả thiết bị",
       ],
     },
     {
-      title: "Equipment Care",
+      title: "Bảo quản thiết bị",
       items: [
-        "All equipment is tested before rental",
-        "Insurance options available",
-        "Renters responsible for equipment damage",
-        "Professional cleaning after each rental",
+        "Mọi thiết bị được kiểm tra trước khi giao",
+        "Có tùy chọn mua bảo hiểm",
+        "Người thuê chịu trách nhiệm nếu thiết bị hư hỏng",
+        "Vệ sinh chuyên nghiệp sau mỗi lượt thuê",
       ],
     },
   ];
@@ -74,7 +74,7 @@ const HowItWorksPage: React.FC = () => {
             variant="h2"
             sx={{ mb: 3, fontWeight: 300, color: "#000" }}
           >
-            How It Works
+            Hướng dẫn quy trình
           </Typography>
           <Typography
             variant="body1"
@@ -85,8 +85,8 @@ const HowItWorksPage: React.FC = () => {
               fontSize: "1.1rem",
             }}
           >
-            Renting professional camera equipment has never been easier. Follow
-            these simple steps to get started with your next project.
+            Thuê thiết bị quay chụp chuyên nghiệp chưa bao giờ dễ hơn. Làm theo
+            các bước đơn giản dưới đây để bắt đầu dự án tiếp theo của bạn.
           </Typography>
         </Box>
 
@@ -101,7 +101,7 @@ const HowItWorksPage: React.FC = () => {
               color: "#000",
             }}
           >
-            Simple 4-Step Process
+            4 bước đơn giản
           </Typography>
 
           <Box
@@ -167,7 +167,7 @@ const HowItWorksPage: React.FC = () => {
               color: "#000",
             }}
           >
-            Rental Policies & Guidelines
+            Chính sách & hướng dẫn thuê
           </Typography>
 
           <Box
@@ -234,10 +234,10 @@ const HowItWorksPage: React.FC = () => {
             variant="h5"
             sx={{ mb: 2, fontWeight: 400, color: "#000" }}
           >
-            Ready to Get Started?
+            Sẵn sàng bắt đầu?
           </Typography>
           <Typography sx={{ mb: 4, color: "#666", fontSize: "1.1rem" }}>
-            Browse our equipment catalog and reserve your gear today.
+            Duyệt danh mục và đặt thiết bị ngay hôm nay.
           </Typography>
           <Box sx={{ display: "flex", gap: 2, justifyContent: "center" }}>
             <Box
@@ -259,7 +259,7 @@ const HowItWorksPage: React.FC = () => {
                 },
               }}
             >
-              Browse Equipment
+              Xem thiết bị
             </Box>
             <Box
               component="a"
@@ -279,7 +279,7 @@ const HowItWorksPage: React.FC = () => {
                 },
               }}
             >
-              Contact Us
+              Liên hệ
             </Box>
           </Box>
         </Box>
