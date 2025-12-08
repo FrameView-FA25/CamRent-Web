@@ -18,26 +18,35 @@ export interface LoginRequest {
 }
 
 export interface LoginResponse {
-  token: string;
-  refreshToken: string;
-  expiresAt: string;
-  fullName: string;
-  email: string;
-  createdAt: string;
-  phoneNumber?: string;
-  address?: string;
-  roles: string[];
+  token: string; // Access token để xác thực các request sau
+  refreshToken: string; // Refresh token để làm mới access token
+  expiresAt: string; // Thời gian hết hạn của token
+  fullName: string; // Tên đầy đủ của user
+  phoneNumber: string; // Số điện thoại của user
+  createdAt: string; // Ngày tạo tài khoản
+  address: string; // Địa chỉ của user
+  email: string; // Email của user
+  roles: string[]; // Danh sách vai trò của user (VD: ["Owner"], ["Renter"], ["BranchManager"])
 }
 
 export interface RegisterRequest {
-  email: string;
-  phone: string;
-  password: string;
-  fullName: string;
-  role: number;
+  email: string; // Email đăng ký
+  phone: string; // Số điện thoại
+  password: string; // Mật khẩu
+  fullName: string; // Tên đầy đủ
+  role: number; // Vai trò (số, nhưng sẽ được convert thành string khi gửi API)
 }
 
 export interface RegisterResponse {
-  message?: string;
-  success?: boolean;
+  message?: string; // Thông báo từ server
+  success?: boolean; // Trạng thái thành công
+}
+
+export interface ResetPasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export interface ResetPasswordResponse {
+  ok?: boolean;
 }

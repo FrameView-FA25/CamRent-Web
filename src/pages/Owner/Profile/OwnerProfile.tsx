@@ -26,6 +26,7 @@ import {
   Person as PersonIcon,
   AccountBalance as AccountBalanceIcon,
 } from "@mui/icons-material";
+import { authService } from "../../../services/auth.service";
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -87,22 +88,54 @@ const OwnerProfile: React.FC = () => {
     setShowNotification(true);
   };
 
+  const showError = (message: string) => {
+    setNotificationMessage(message);
+    setShowNotification(true);
+  };
+
   const handleSave = () => {
     setIsEditing(false);
     showSuccess("Cập nhật thông tin thành công!");
   };
 
-  const handlePasswordUpdate = () => {
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      showSuccess("Mật khẩu xác nhận không khớp!");
+  // Hàm đổi mật khẩu cho user đã đăng nhập
+  const handleChangePassword = async () => {
+    // Validate
+    if (
+      !passwordData.currentPassword ||
+      !passwordData.newPassword ||
+      !passwordData.confirmPassword
+    ) {
+      showError("Vui lòng điền đầy đủ thông tin!");
       return;
     }
-    showSuccess("Cập nhật mật khẩu thành công!");
-    setPasswordData({
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: "",
-    });
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      showError("Mật khẩu xác nhận không khớp!");
+      return;
+    }
+
+    if (passwordData.newPassword.length < 6) {
+      showError("Mật khẩu mới phải có ít nhất 6 ký tự!");
+      return;
+    }
+
+    try {
+      await authService.changePassword({
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword,
+      });
+      showSuccess("Đổi mật khẩu thành công!");
+      setPasswordData({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Đổi mật khẩu thất bại!";
+      showError(errorMessage);
+    }
   };
 
   const handleFieldChange = <T,>(
@@ -144,7 +177,8 @@ const OwnerProfile: React.FC = () => {
   const renderFieldRow = <T extends Record<string, string>>(
     fields: FormField[],
     data: T,
-    setter: React.Dispatch<React.SetStateAction<T>>
+    setter: React.Dispatch<React.SetStateAction<T>>,
+    isPasswordTab?: boolean
   ) => (
     <Box
       sx={{
@@ -163,7 +197,7 @@ const OwnerProfile: React.FC = () => {
           onChange={(e) =>
             handleFieldChange(setter, data, field.field, e.target.value)
           }
-          disabled={field.disabled || !isEditing}
+          disabled={field.disabled || (!isPasswordTab && !isEditing)}
           variant="outlined"
           multiline={field.multiline}
           rows={field.rows}
@@ -420,7 +454,8 @@ const OwnerProfile: React.FC = () => {
                       },
                     ],
                     passwordData,
-                    setPasswordData
+                    setPasswordData,
+                    true
                   )}
                   {renderFieldRow(
                     [
@@ -431,7 +466,8 @@ const OwnerProfile: React.FC = () => {
                       },
                     ],
                     passwordData,
-                    setPasswordData
+                    setPasswordData,
+                    true
                   )}
                   {renderFieldRow(
                     [
@@ -442,11 +478,12 @@ const OwnerProfile: React.FC = () => {
                       },
                     ],
                     passwordData,
-                    setPasswordData
+                    setPasswordData,
+                    true
                   )}
                   <Button
                     variant="contained"
-                    onClick={handlePasswordUpdate}
+                    onClick={handleChangePassword}
                     sx={{
                       bgcolor: "#1F2937",
                       "&:hover": { bgcolor: "#111827" },
