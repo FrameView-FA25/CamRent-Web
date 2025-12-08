@@ -1138,19 +1138,22 @@ const CheckBookings: React.FC = () => {
                         }}
                       >
                         <TableCell>
-                          <Typography
-                            sx={{
-                              maxWidth: 200,
-                              fontSize: "0.875rem",
-                              fontWeight: 500,
-                              color: "#111827",
-                              wordBreak: "break-word",
-                            }}
-                          >
-                            {booking.id.length > 20
-                              ? `${booking.id.substring(0, 20)}...`
-                              : booking.id}
-                          </Typography>
+                          <Tooltip title={booking.id}>
+                            <Typography
+                              sx={{
+                                maxWidth: 200,
+                                fontSize: "0.875rem",
+                                fontWeight: 500,
+                                color: "#111827",
+                                wordBreak: "break-word",
+                                cursor: "pointer",
+                              }}
+                            >
+                              {booking.id.length > 20
+                                ? `${booking.id.substring(0, 10)}...`
+                                : booking.id}
+                            </Typography>
+                          </Tooltip>
                         </TableCell>
                         <TableCell>
                           <Box
