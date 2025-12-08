@@ -270,7 +270,7 @@ const OrderDetailPage: React.FC = () => {
     order.snapshotRentalTotal + order.snapshotDepositAmount + platformFee;
 
   // Check if payment is pending
-  const isPendingPayment = order.statusText === "Chờ duyệt";
+  const isPendingPayment = order.statusText === "Chờ thanh toán";
 
   return (
     <Box sx={{ bgcolor: colors.background.default, minHeight: "100vh", py: 4 }}>
