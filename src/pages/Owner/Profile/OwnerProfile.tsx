@@ -24,7 +24,6 @@ import {
   PhotoCamera as PhotoCameraIcon,
   Lock as LockIcon,
   Person as PersonIcon,
-  Business as BusinessIcon,
   AccountBalance as AccountBalanceIcon,
 } from "@mui/icons-material";
 
@@ -68,13 +67,6 @@ const OwnerProfile: React.FC = () => {
     role: "Owner",
     joinDate: "15/02/2024",
     status: "Active",
-  });
-
-  const [businessData, setBusinessData] = useState({
-    businessName: "CamRent Agency",
-    businessAddress: "789 Đường Business, Quận 1, TP.HCM",
-    taxCode: "0123456789",
-    businessType: "Cho thuê thiết bị camera",
   });
 
   const [bankData, setBankData] = useState({
@@ -195,7 +187,7 @@ const OwnerProfile: React.FC = () => {
           Thông Tin Cá Nhân
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          Quản lý thông tin tài khoản, doanh nghiệp và ngân hàng của bạn
+          Quản lý thông tin tài khoản và ngân hàng của bạn
         </Typography>
       </Box>
 
@@ -293,12 +285,6 @@ const OwnerProfile: React.FC = () => {
                       {profileData.email}
                     </Typography>
                   </Box>
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                    <BusinessIcon fontSize="small" color="action" />
-                    <Typography variant="body2" color="text.secondary">
-                      {businessData.businessName}
-                    </Typography>
-                  </Box>
                 </Stack>
               </Box>
             </CardContent>
@@ -322,11 +308,7 @@ const OwnerProfile: React.FC = () => {
                     icon={<PersonIcon />}
                     iconPosition="start"
                   />
-                  <Tab
-                    label="Doanh Nghiệp"
-                    icon={<BusinessIcon />}
-                    iconPosition="start"
-                  />
+
                   <Tab
                     label="Ngân Hàng"
                     icon={<AccountBalanceIcon />}
@@ -387,52 +369,8 @@ const OwnerProfile: React.FC = () => {
                 </Stack>
               </TabPanel>
 
-              {/* Tab 2: Business Information */}
-              <TabPanel value={tabValue} index={1}>
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    mb: 3,
-                  }}
-                >
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                    Thông Tin Doanh Nghiệp
-                  </Typography>
-                  {renderEditButtons()}
-                </Box>
-
-                <Stack spacing={3}>
-                  {renderFieldRow(
-                    [
-                      { label: "Tên Doanh Nghiệp", field: "businessName" },
-                      { label: "Mã Số Thuế", field: "taxCode" },
-                    ],
-                    businessData,
-                    setBusinessData
-                  )}
-                  {renderFieldRow(
-                    [{ label: "Loại Hình Kinh Doanh", field: "businessType" }],
-                    businessData,
-                    setBusinessData
-                  )}
-                  {renderFieldRow(
-                    [
-                      {
-                        label: "Địa Chỉ Doanh Nghiệp",
-                        field: "businessAddress",
-                        multiline: true,
-                        rows: 2,
-                      },
-                    ],
-                    businessData,
-                    setBusinessData
-                  )}
-                </Stack>
-              </TabPanel>
-
               {/* Tab 3: Bank Information */}
-              <TabPanel value={tabValue} index={2}>
+              <TabPanel value={tabValue} index={1}>
                 <Box
                   sx={{
                     display: "flex",
@@ -467,7 +405,7 @@ const OwnerProfile: React.FC = () => {
               </TabPanel>
 
               {/* Tab 4: Security */}
-              <TabPanel value={tabValue} index={3}>
+              <TabPanel value={tabValue} index={2}>
                 <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
                   Đổi Mật Khẩu
                 </Typography>
