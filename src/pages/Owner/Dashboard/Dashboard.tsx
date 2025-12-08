@@ -12,6 +12,7 @@ import {
   Chip,
   ToggleButton,
   ToggleButtonGroup,
+  CircularProgress,
 } from "@mui/material";
 import {
   PhotoCamera as CameraIcon,
@@ -38,14 +39,12 @@ import type {
 import { dashboardService } from "../../../services/dashboard.service";
 import { getBalance } from "../../../services/wallet.service";
 import type { Wallet as WalletBalanceResponse } from "../../../types/wallet.types";
-// import { walletService, type WalletResponse } from "@/services/wallet.service";
-// ===== TYPES =====
 
 type StatAccent = "teal" | "indigo" | "amber" | "purple";
 
 interface StatItem {
   title: string;
-  value: string;
+  value: string | ReactElement;
   description?: string;
   icon: ReactElement;
   accent: StatAccent;
@@ -521,6 +520,7 @@ export default function Dashboard() {
   const [wallet, setWallet] = useState<WalletBalanceResponse | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [isLoadingWallet, setIsLoadingWallet] = useState<boolean>(true);
   // Mặc định hiển thị thống kê theo tháng ngay khi vào dashboard
   const [chartPeriod, setChartPeriod] = useState<ChartPeriod>("monthly");
 
@@ -545,12 +545,15 @@ export default function Dashboard() {
 
     // Lấy thông tin ví
     const fetchWallet = async () => {
+      setIsLoadingWallet(true);
       try {
         const walletData = await getBalance();
         setWallet(walletData as WalletBalanceResponse);
       } catch (err) {
         console.error("Lỗi khi tải thông tin ví:", err);
         // Không hiển thị lỗi nếu không load được ví, chỉ log
+      } finally {
+        setIsLoadingWallet(false);
       }
     };
 
@@ -563,28 +566,44 @@ export default function Dashboard() {
     () => [
       {
         title: "Số dư ví",
-        value: formatCurrency(wallet?.balance ?? 1),
+        value: isLoadingWallet ? (
+          <CircularProgress size={24} />
+        ) : (
+          formatCurrency(wallet?.balance ?? 1)
+        ),
         description: "Số dư khả dụng trong ví của bạn.",
         icon: <WalletIcon />,
         accent: "teal",
       },
       {
         title: "Tổng camera",
-        value: (data?.totalCameras ?? 0).toString(),
+        value: isLoading ? (
+          <CircularProgress size={24} />
+        ) : (
+          (data?.totalCameras ?? 0).toString()
+        ),
         description: "Số lượng camera bạn đang cho thuê.",
         icon: <CameraIcon />,
         accent: "indigo",
       },
       {
         title: "Tổng phụ kiện",
-        value: (data?.totalAccessories ?? 0).toString(),
+        value: isLoading ? (
+          <CircularProgress size={24} />
+        ) : (
+          (data?.totalAccessories ?? 0).toString()
+        ),
         description: "Số lượng phụ kiện bạn đang cho thuê.",
         icon: <PeopleIcon />,
         accent: "purple",
       },
       {
         title: "Tổng lượt booking",
-        value: (data?.totalBookingsForOwnerItems ?? 0).toString(),
+        value: isLoading ? (
+          <CircularProgress size={24} />
+        ) : (
+          (data?.totalBookingsForOwnerItems ?? 0).toString()
+        ),
         description: "Tổng số đơn thuê liên quan tới thiết bị của bạn.",
         icon: <PeopleIcon />,
         accent: "amber",
@@ -599,6 +618,8 @@ export default function Dashboard() {
     ],
     [
       wallet?.balance,
+      isLoadingWallet,
+      isLoading,
       data?.totalAccessories,
       data?.totalBookingsForOwnerItems,
       data?.totalCameras,
