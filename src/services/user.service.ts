@@ -57,6 +57,36 @@ export interface UpdateUserRequest {
   status: "Active" | "Ban";
 }
 
+export interface UserProfileResponse {
+  id: string;
+  email: string;
+  normalizedEmail: string;
+  phone: string;
+  fullName: string;
+  address: string | null;
+  status: string;
+  bankAccountNumber: string | null;
+  bankName: string | null;
+  bankAccountName: string | null;
+  avatar: string[] | null;
+  roles: Array<{
+    role: string;
+  }>;
+  createdAt: string;
+  updatedAt: string;
+  createdByUserId: string | null;
+  updatedByUserId: string | null;
+}
+
+export interface UpdateUserProfileRequest {
+  fullName: string;
+  phone: string;
+  address: string;
+  bankAccountNumber: string | null;
+  bankName: string | null;
+  bankAccountName: string | null;
+}
+
 export const userService = {
   // Lấy danh sách users
   async getUsers(
@@ -144,103 +174,62 @@ export const userService = {
     return data;
   },
 
-  async updateUser(userId: string, userData: UpdateUserRequest): Promise<User> {
+  async getCurrentUserProfile(): Promise<UserProfileResponse> {
     const token = localStorage.getItem("accessToken");
     if (!token) {
       throw new Error("Không tìm thấy token xác thực. Vui lòng đăng nhập lại.");
     }
 
-    const apiData = {
-      ...userData,
-      status: userData.status,
-    };
-
-    const response = await fetch(`${API_BASE_URL}/Users/${userId}`, {
-      method: "PUT",
+    const response = await fetch(`${API_BASE_URL}/UserProfiles/UserID`, {
+      method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(apiData),
     });
 
-    // Xử lý lỗi 401 (Unauthorized) - token hết hạn
     if (response.status === 401) {
       localStorage.removeItem("accessToken");
       throw new Error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
     }
 
     if (!response.ok) {
-      let errorData: { message?: string; title?: string } = {};
-      const contentType = response.headers.get("content-type");
-      if (contentType && contentType.includes("application/json")) {
-        try {
-          const text = await response.text();
-          if (text) {
-            errorData = JSON.parse(text) as {
-              message?: string;
-              title?: string;
-            };
-          }
-        } catch {
-          // Ignore parse errors
-        }
-      }
-      const errorMessage =
-        errorData.message ||
-        errorData.title ||
-        `Không thể cập nhật thông tin người dùng (mã ${response.status})`;
-      throw new Error(errorMessage);
-    }
-
-    // Kiểm tra xem response có body không
-    const contentType = response.headers.get("content-type");
-    const isNoContent = response.status === 204;
-
-    let responseData: User | null = null;
-
-    // Nếu không phải No Content và có content-type JSON, thử parse
-    if (
-      !isNoContent &&
-      contentType &&
-      contentType.includes("application/json")
-    ) {
-      try {
-        const text = await response.text();
-        if (text && text.trim()) {
-          responseData = JSON.parse(text);
-        }
-      } catch (err) {
-        console.warn("Failed to parse response JSON:", err);
-        // Nếu parse lỗi, responseData vẫn là null và sẽ fetch lại user
-      }
-    }
-
-    // Nếu không có response body (204 No Content hoặc empty), fetch lại user
-    if (!responseData) {
-      // Fetch lại user để lấy thông tin mới nhất
-      const updatedUserResponse = await fetch(
-        `${API_BASE_URL}/Users/${userId}`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
+      const errText = await response.text().catch(() => "");
+      throw new Error(
+        errText || `Không thể tải hồ sơ người dùng (mã ${response.status})`
       );
-
-      if (updatedUserResponse.ok) {
-        responseData = (await updatedUserResponse.json()) as User;
-      } else {
-        // Nếu không fetch được, trả về dữ liệu đã gửi (nhưng không có id và các field khác)
-        // Trong trường hợp này, tốt nhất là throw error hoặc return một user object hợp lệ
-        throw new Error(
-          "Cập nhật thành công nhưng không thể lấy thông tin user mới"
-        );
-      }
     }
 
-    return responseData;
+    const data = (await response.json()) as UserProfileResponse;
+    return data;
+  },
+
+  async updateUserProfile(
+    userId: string,
+    payload: UpdateUserProfileRequest
+  ): Promise<void> {
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      throw new Error("Không tìm thấy token xác thực. Vui lòng đăng nhập lại.");
+    }
+
+    const response = await fetch(`${API_BASE_URL}/UserProfiles/${userId}`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (response.status === 401) {
+      localStorage.removeItem("accessToken");
+      throw new Error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+    }
+
+    if (!response.ok) {
+      const errText = await response.text().catch(() => "");
+      throw new Error(errText || "Cập nhật thông tin người dùng thất bại");
+    }
   },
 };

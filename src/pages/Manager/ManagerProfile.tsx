@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   Box,
   Container,
@@ -31,6 +31,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { SignatureDialog } from "./Verification/components/dialogs/SignatureDialog";
 import SignatureCanvas from "react-signature-canvas";
 import { toast } from "react-toastify";
+import { userService } from "../../services/user.service";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -104,75 +105,35 @@ const ManagerProfile: React.FC = () => {
     confirmPassword: "",
   });
 
+  const fetchUserProfile = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await userService.getCurrentUserProfile();
+      setProfileData(data);
+
+      setUserData({
+        fullName: data.fullName || "",
+        email: data.email || "",
+        phone: data.phone || "",
+        role: (data.roles || []).map((r) => r.role).join(", ") || "",
+        address: data.address || "",
+        bankAccountNumber: data.bankAccountNumber || "",
+        bankName: data.bankName || "",
+        bankAccountName: data.bankAccountName || "",
+      });
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Không thể tải thông tin người dùng"
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
-    let cancelled = false;
-
-    const fetchUserProfile = async () => {
-      // nếu API base không cấu hình, dừng sớm
-      if (!API_BASE_URL) {
-        console.error("VITE_API_BASE_URL is not set");
-        if (!cancelled) setLoading(false);
-        return;
-      }
-
-      if (!user?.id) {
-        // không có user -> không cần fetch, tắt loading
-        if (!cancelled) setLoading(false);
-        return;
-      }
-
-      try {
-        if (!cancelled) setLoading(true);
-        const token = localStorage.getItem("accessToken");
-
-        const response = await fetch(
-          `${API_BASE_URL}/UserProfiles/${user.id}`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
-
-        if (!response.ok) {
-          const errText = await response.text().catch(() => null);
-          throw new Error(
-            errText || `Fetch profile failed: ${response.status}`
-          );
-        }
-
-        const data: UserProfileData = await response.json();
-        if (cancelled) return;
-
-        setProfileData(data);
-
-        // Update form data (defensive fallbacks)
-        setUserData({
-          fullName: data.fullName || "",
-          email: data.email || "",
-          phone: data.phone || "",
-          role: (data.roles || []).map((r) => r.role).join(", ") || "",
-          address: data.address || "",
-          bankAccountNumber: data.bankAccountNumber || "",
-          bankName: data.bankName || "",
-          bankAccountName: data.bankAccountName || "",
-        });
-      } catch (error) {
-        console.error("Error fetching user profile:", error);
-        toast.error("Không thể tải thông tin người dùng");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-
     fetchUserProfile();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [user?.id]);
+  }, [fetchUserProfile]);
 
   // const showSuccess = (message: string) => {
   //   setNotificationMessage(message);
@@ -181,53 +142,25 @@ const ManagerProfile: React.FC = () => {
 
   const handleSave = async () => {
     try {
-      const token = localStorage.getItem("accessToken");
-
-      const response = await fetch(
-        `${API_BASE_URL}/UserProfiles/${profileData?.id}`,
-        {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            fullName: userData.fullName,
-            phone: userData.phone,
-            address: userData.address,
-            bankAccountNumber: userData.bankAccountNumber,
-            bankName: userData.bankName,
-            bankAccountName: userData.bankAccountName,
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || "Không thể cập nhật thông tin");
+      if (!profileData?.id) {
+        toast.error("Không tìm thấy thông tin người dùng");
+        return;
       }
+
+      await userService.updateUserProfile(profileData.id, {
+        fullName: userData.fullName,
+        phone: userData.phone,
+        address: userData.address,
+        bankAccountNumber: userData.bankAccountNumber,
+        bankName: userData.bankName,
+        bankAccountName: userData.bankAccountName,
+      });
 
       setIsEditing(false);
       toast.success("Cập nhật thông tin thành công!");
 
       // Refresh profile data
-      if (user?.id) {
-        const profileResponse = await fetch(
-          `${API_BASE_URL}/UserProfiles/${user.id}`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
-
-        if (profileResponse.ok) {
-          const data = await profileResponse.json();
-          setProfileData(data);
-        }
-      }
+      await fetchUserProfile();
     } catch (error) {
       console.error("Error updating profile:", error);
       toast.error(
@@ -352,23 +285,7 @@ const ManagerProfile: React.FC = () => {
       handleCloseSignature();
 
       // Refresh profile data
-      if (user?.id) {
-        const profileResponse = await fetch(
-          `${API_BASE_URL}/UserProfiles/${user.id}`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
-
-        if (profileResponse.ok) {
-          const data = await profileResponse.json();
-          setProfileData(data);
-        }
-      }
+      await fetchUserProfile();
     } catch (error) {
       console.error("Error updating signature:", error);
       toast.error(
