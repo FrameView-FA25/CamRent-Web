@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Box,
   Container,
@@ -27,6 +27,8 @@ import {
   AccountBalance as AccountBalanceIcon,
 } from "@mui/icons-material";
 import { authService } from "../../../services/auth.service";
+import { toast } from "react-toastify";
+import { userService, type UserProfileResponse } from "@/services/user.service";
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -61,21 +63,25 @@ const OwnerProfile: React.FC = () => {
   const [notificationMessage, setNotificationMessage] = useState("");
 
   const [profileData, setProfileData] = useState({
-    fullName: "Nguyễn Văn Owner",
-    email: "owner@camrent.com",
-    phone: "0987654321",
-    address: "456 Đường XYZ, Quận 3, TP.HCM",
+    id: "",
+    fullName: "",
+    email: "",
+    phone: "",
+    address: "",
     role: "Owner",
-    joinDate: "15/02/2024",
-    status: "Active",
+    joinDate: "",
+    status: "",
   });
 
   const [bankData, setBankData] = useState({
-    bankName: "Vietcombank",
-    accountNumber: "1234567890",
-    accountName: "Nguyễn Văn Owner",
-    branch: "Chi nhánh TP.HCM",
+    bankName: "",
+    accountNumber: "",
+    accountName: "",
+    branch: "",
   });
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
@@ -93,9 +99,67 @@ const OwnerProfile: React.FC = () => {
     setShowNotification(true);
   };
 
-  const handleSave = () => {
-    setIsEditing(false);
-    showSuccess("Cập nhật thông tin thành công!");
+  const fetchProfile = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const data: UserProfileResponse =
+        await userService.getCurrentUserProfile();
+      setProfileData({
+        id: data.id,
+        fullName: data.fullName || "",
+        email: data.email || "",
+        phone: data.phone || "",
+        address: data.address || "",
+        role:
+          (data.roles && data.roles.length > 0 && data.roles[0].role) ||
+          "Owner",
+        joinDate: data.createdAt || "",
+        status: data.status || "",
+      });
+
+      setBankData({
+        bankName: data.bankName || "",
+        accountNumber: data.bankAccountNumber || "",
+        accountName: data.bankAccountName || "",
+        branch: "", // backend chưa trả, để trống
+      });
+    } catch (err) {
+      console.error("Fetch owner profile failed", err);
+      const message = err instanceof Error ? err.message : "Tải hồ sơ thất bại";
+      setError(message);
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProfile();
+  }, []);
+
+  const handleSave = async () => {
+    try {
+      await userService.updateUserProfile(profileData.id, {
+        fullName: profileData.fullName,
+        phone: profileData.phone,
+        address: profileData.address,
+        bankAccountNumber: bankData.accountNumber || null,
+        bankName: bankData.bankName || null,
+        bankAccountName: bankData.accountName || null,
+      });
+
+      setIsEditing(false);
+      showSuccess("Cập nhật thông tin thành công!");
+      fetchProfile();
+    } catch (err) {
+      console.error("Update owner profile failed", err);
+      const message =
+        err instanceof Error ? err.message : "Cập nhật thông tin thất bại";
+      showError(message);
+      toast.error(message);
+    }
   };
 
   // Hàm đổi mật khẩu cho user đã đăng nhập
@@ -205,6 +269,27 @@ const OwnerProfile: React.FC = () => {
       ))}
     </Box>
   );
+
+  if (loading) {
+    return (
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Typography variant="h6">Đang tải hồ sơ...</Typography>
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+        <Button variant="contained" onClick={fetchProfile}>
+          Thử lại
+        </Button>
+      </Container>
+    );
+  }
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>

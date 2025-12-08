@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Box,
   Container,
@@ -26,6 +26,7 @@ import {
   Person as PersonIcon,
 } from "@mui/icons-material";
 import { authService } from "../../services/auth.service";
+import { userService } from "../../services/user.service";
 interface TabPanelProps {
   children?: React.ReactNode;
   index: number;
@@ -57,6 +58,7 @@ const StaffProfile: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [showNotification, setShowNotification] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState("");
+  const [userId, setUserId] = useState<string | null>(null);
 
   const [profileData, setProfileData] = useState({
     fullName: "",
@@ -85,9 +87,58 @@ const StaffProfile: React.FC = () => {
     setShowNotification(true);
   };
 
-  const handleSave = () => {
-    setIsEditing(false);
-    showSuccess("Cập nhật thông tin thành công!");
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const data = await userService.getCurrentUserProfile();
+        setUserId(data.id);
+        setProfileData({
+          fullName: data.fullName || "",
+          email: data.email || "",
+          phoneNumber: data.phone || "",
+          address: data.address || "",
+          role:
+            (data.roles && data.roles.length > 0 && data.roles[0].role) ||
+            "Staff",
+          createdAt: data.createdAt || "",
+          joinDate: data.createdAt || "",
+          status: data.status === "Ban" ? "Ban" : "Active",
+        });
+      } catch (err) {
+        console.error("Fetch staff profile failed", err);
+        const message =
+          err instanceof Error ? err.message : "Tải hồ sơ thất bại";
+        showError(message);
+      }
+    };
+
+    fetchProfile();
+  }, []);
+
+  const handleSave = async () => {
+    if (!userId) {
+      showError("Không tìm thấy người dùng");
+      return;
+    }
+
+    try {
+      await userService.updateUserProfile(userId, {
+        fullName: profileData.fullName,
+        phone: profileData.phoneNumber,
+        address: profileData.address,
+        bankAccountNumber: null,
+        bankName: null,
+        bankAccountName: null,
+      });
+
+      setIsEditing(false);
+      showSuccess("Cập nhật thông tin thành công!");
+    } catch (err) {
+      console.error("Update staff profile failed", err);
+      const message =
+        err instanceof Error ? err.message : "Cập nhật thông tin thất bại!";
+      showError(message);
+    }
   };
 
   // Hàm đổi mật khẩu cho user đã đăng nhập

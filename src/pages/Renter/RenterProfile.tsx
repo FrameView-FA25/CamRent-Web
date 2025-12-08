@@ -38,8 +38,7 @@ import {
 } from "lucide-react";
 import { colors } from "../../theme/colors";
 import { toast } from "react-toastify";
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+import { userService } from "../../services/user.service";
 
 interface UserProfile {
   id: string;
@@ -80,31 +79,7 @@ const RenterProfile: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      const token = localStorage.getItem("accessToken");
-      if (!token) {
-        toast.warning("Please login to view profile");
-        return;
-      }
-
-      // Get userId from token (decode JWT or use stored userId)
-      const userId = localStorage.getItem("userId");
-      if (!userId) {
-        throw new Error("User ID not found");
-      }
-
-      const response = await fetch(`${API_BASE_URL}/UserProfiles/UserID`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch profile: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = await userService.getCurrentUserProfile();
       setProfile(data);
       setEditedProfile(data);
     } catch (err) {
