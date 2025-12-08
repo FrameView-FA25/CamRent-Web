@@ -57,7 +57,20 @@ export const verificationService = {
 
     if (contentType?.includes("application/json")) {
       const result = await response.json();
-      return { success: true, data: result };
+      const contractId =
+        result?.contractId ||
+        result?.data?.contractId ||
+        result?.data?.contract?.id ||
+        null;
+
+      const data =
+        result?.data?.verification ||
+        result?.data?.data ||
+        result?.data ||
+        result?.verification ||
+        null;
+
+      return { success: true, data, contractId: contractId ?? undefined, raw: result };
     }
 
     const text = await response.text();

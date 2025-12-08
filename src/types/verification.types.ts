@@ -10,7 +10,13 @@ export type VerificationStatus =
   | CanonicalVerificationStatus
   | Lowercase<CanonicalVerificationStatus>;
 
-export type VerificationItemType = "Camera" | "Accessory" | "Combo" | "1" | "2" | "3";
+export type VerificationItemType =
+  | "Camera"
+  | "Accessory"
+  | "Combo"
+  | "1"
+  | "2"
+  | "3";
 
 export interface VerificationItem {
   itemId: string;
@@ -55,6 +61,8 @@ export interface CreateVerificationResponse {
   success: boolean;
   message?: string;
   data?: Verification | null;
+  contractId?: string;
+  raw?: unknown;
 }
 
 export interface Verification {
@@ -73,6 +81,7 @@ export interface Verification {
   inspections?: Inspection[];
   items: VerificationItem[];
   contracts?: Contract[];
+  contractId?: string | null;
   createdAt: string;
 }
 export interface Inspection {

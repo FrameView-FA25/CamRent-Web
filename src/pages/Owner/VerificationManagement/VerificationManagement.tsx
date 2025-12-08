@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -21,7 +21,6 @@ import {
   MenuItem,
   ListItemIcon,
   ListItemText,
-  Divider,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -35,20 +34,15 @@ import {
   TaskAltRounded,
   DoNotDisturbOnRounded,
   MoreVert as MoreVertIcon,
-  Description as DescriptionIcon,
 } from "@mui/icons-material";
-import SignatureCanvas from "react-signature-canvas";
 import { branchService } from "../../../services/branch.service";
 import { verificationService } from "../../../services/verification.service";
 import type { CreateVerificationRequest } from "../../../services/verification.service";
-import { contractService } from "../../../services/contract.service";
 import type { Branch } from "../../../types/branch.types";
 import ModalVerification from "../../../components/Modal/Owner/ModalVerification";
 import VerificationDetailModal from "../../../components/Modal/VerificationDetailModal";
 import { useVerificationContext } from "../../../context/VerifiContext/useVerificationContext";
 import type { Verification } from "../../../types/verification.types";
-import { OwnerSignatureDialog } from "./SignatureDialog";
-import { ContractPreviewDialog } from "./ContractPreviewDialog";
 import { VerificationStats } from "./VerificationStats";
 export default function VerificationManagement() {
   // Sử dụng context thay vì state local
@@ -83,14 +77,6 @@ export default function VerificationManagement() {
   const [menuVerification, setMenuVerification] = useState<Verification | null>(
     null
   );
-  const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-  const [currentContractId, setCurrentContractId] = useState<string | null>(
-    null
-  );
-  const [currentFilename, setCurrentFilename] = useState("");
-  const [signatureDialogOpen, setSignatureDialogOpen] = useState(false);
-  const signatureRef = useRef<SignatureCanvas | null>(null);
 
   /**
    * useEffect: Gọi API lấy danh sách verification khi component được mount
@@ -134,12 +120,15 @@ export default function VerificationManagement() {
   };
 
   const handleCreateVerification = async (data: CreateVerificationRequest) => {
-    await verificationService.createVerification(data);
+    const result = await verificationService.createVerification(data);
+    const createdContractId = result?.contractId;
     refreshVerifications(); // Refresh danh sách
     setCurrentPage(1); // Reset về trang 1
     setMessage({
       type: "success",
-      text: "Tạo yêu cầu xác minh thành công!",
+      text: createdContractId
+        ? `Tạo yêu cầu xác minh thành công. Hợp đồng ${createdContractId} đã được tạo.`
+        : "Tạo yêu cầu xác minh thành công!",
     });
   };
 
@@ -223,154 +212,20 @@ export default function VerificationManagement() {
     setMenuVerification(null);
   };
 
-  const handleContractConfirm = async (verification: Verification) => {
-    try {
-      const token = localStorage.getItem("accessToken");
-
-      if (!token) {
-        setMessage({
-          type: "error",
-          text: "Vui lòng đăng nhập để tạo hợp đồng.",
-        });
-        return;
-      }
-
-      // 1. Tạo hợp đồng từ verification
-      const { contractId } = await contractService.createFromVerification(
-        verification.id,
-        token
+  // Sắp xếp theo thời gian tạo
+  const sortedVerifications =
+    verifications?.slice().sort((a, b) => {
+      const timeA = new Date(a.createdAt).getTime();
+      const timeB = new Date(b.createdAt).getTime();
+      return (
+        (Number.isNaN(timeB) ? 0 : timeB) - (Number.isNaN(timeA) ? 0 : timeA)
       );
+    }) || [];
 
-      // 2. Lấy file preview
-      const blob = await contractService.getPreview(contractId, token);
-
-      // 3. Đặt tên file mặc định cho hợp đồng
-      const filename = `verification_contract_${contractId}.pdf`;
-
-      const pdfBlob = new Blob([blob], { type: "application/pdf" });
-      const url = window.URL.createObjectURL(pdfBlob);
-
-      setPdfUrl(url);
-      setCurrentContractId(contractId);
-      setCurrentFilename(filename);
-      setPdfDialogOpen(true);
-      setMessage({
-        type: "success",
-        text: "Tạo hợp đồng xác minh thành công!",
-      });
-    } catch (error) {
-      console.error(error);
-      setMessage({
-        type: "error",
-        text:
-          error instanceof Error
-            ? error.message
-            : "Có lỗi khi tạo hợp đồng xác minh.",
-      });
-    } finally {
-      // no-op
-    }
-  };
-
-  const handleDownloadPdf = () => {
-    if (!pdfUrl) return;
-    const link = document.createElement("a");
-    link.href = pdfUrl;
-    link.download = currentFilename || "contract.pdf";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const handleClosePdfDialog = () => {
-    if (pdfUrl) {
-      window.URL.revokeObjectURL(pdfUrl);
-    }
-    setPdfDialogOpen(false);
-    setPdfUrl(null);
-  };
-
-  const handleOpenSignatureDialog = () => {
-    if (!currentContractId) {
-      setMessage({
-        type: "error",
-        text: "Không tìm thấy thông tin hợp đồng để ký.",
-      });
-      return;
-    }
-    setSignatureDialogOpen(true);
-  };
-
-  const handleCloseSignatureDialog = () => {
-    setSignatureDialogOpen(false);
-  };
-
-  const handleClearSignature = () => {
-    if (signatureRef.current) {
-      signatureRef.current.clear();
-    }
-  };
-
-  const handleSaveSignature = async () => {
-    if (!signatureRef.current) return;
-
-    const isEmpty = signatureRef.current.isEmpty();
-
-    if (isEmpty) {
-      setMessage({
-        type: "error",
-        text: "Vui lòng ký vào khung trước khi xác nhận!",
-      });
-      return;
-    }
-
-    if (!currentContractId) {
-      setMessage({
-        type: "error",
-        text: "Không tìm thấy thông tin hợp đồng để ký.",
-      });
-      return;
-    }
-
-    try {
-      const signatureData = signatureRef.current.toDataURL();
-      const base64Signature = signatureData.split(",")[1];
-
-      const token = localStorage.getItem("accessToken");
-
-      if (!token) {
-        setMessage({
-          type: "error",
-          text: "Vui lòng đăng nhập để ký hợp đồng.",
-        });
-        return;
-      }
-
-      await contractService.sign(currentContractId, base64Signature, token);
-
-      setMessage({
-        type: "success",
-        text: "Chữ ký đã được lưu thành công!",
-      });
-
-      setSignatureDialogOpen(false);
-      handleClosePdfDialog();
-      await refreshVerifications();
-    } catch (error) {
-      console.error("Signature error:", error);
-      setMessage({
-        type: "error",
-        text: error instanceof Error ? error.message : "Lỗi khi ký hợp đồng.",
-      });
-    }
-  };
-  /**
-   * Tính toán phân trang
-   */
-  const totalPages = Math.ceil((verifications?.length || 0) / itemsPerPage);
+  const totalPages = Math.ceil(sortedVerifications.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentVerifications = verifications?.slice(startIndex, endIndex) || [];
+  const currentVerifications = sortedVerifications.slice(startIndex, endIndex);
 
   /**
    * Xử lý thay đổi trang
@@ -983,19 +838,6 @@ export default function VerificationManagement() {
           onClick={() => {
             if (!menuVerification) return;
             handleCloseActionMenu();
-            handleContractConfirm(menuVerification);
-          }}
-        >
-          <ListItemIcon>
-            <DescriptionIcon fontSize="small" sx={{ color: "#F97316" }} />
-          </ListItemIcon>
-          <ListItemText primary="Tạo hợp đồng" />
-        </MenuItem>
-        <Divider />
-        <MenuItem
-          onClick={() => {
-            if (!menuVerification) return;
-            handleCloseActionMenu();
             handleDeleteVerification(menuVerification.id);
           }}
           sx={{ color: "#B91C1C" }}
@@ -1031,22 +873,6 @@ export default function VerificationManagement() {
         open={openDetailModal}
         onClose={handleCloseDetailModal}
         verification={selectedVerification}
-      />
-      <ContractPreviewDialog
-        open={pdfDialogOpen}
-        onClose={handleClosePdfDialog}
-        pdfUrl={pdfUrl}
-        currentContractId={currentContractId}
-        onDownload={handleDownloadPdf}
-        onOpenSignature={handleOpenSignatureDialog}
-      />
-
-      <OwnerSignatureDialog
-        open={signatureDialogOpen}
-        onClose={handleCloseSignatureDialog}
-        signatureRef={signatureRef}
-        onClear={handleClearSignature}
-        onSave={handleSaveSignature}
       />
     </Box>
   );

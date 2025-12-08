@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -30,6 +30,8 @@ import {
 import { Tooltip } from "@mui/material";
 import type { Verification, Contract } from "../../types/verification.types";
 import { contractService } from "../../services/contract.service";
+import SignatureCanvas from "react-signature-canvas";
+import { OwnerSignatureDialog } from "../../pages/Owner/VerificationManagement/SignatureDialog";
 
 interface VerificationDetailModalProps {
   open: boolean;
@@ -44,6 +46,10 @@ export default function VerificationDetailModal({
 }: VerificationDetailModalProps) {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState<string | null>(null);
+  const [signatureDialogOpen, setSignatureDialogOpen] = useState(false);
+  const [signingContractId, setSigningContractId] = useState<string | null>(null);
+  const [signing, setSigning] = useState(false);
+  const signatureRef = useRef<SignatureCanvas | null>(null);
 
   if (!verification) return null;
 
@@ -76,6 +82,53 @@ export default function VerificationDetailModal({
       );
     } finally {
       setPreviewLoading(null);
+    }
+  };
+
+  const handleOpenSignature = (contractId: string) => {
+    setSigningContractId(contractId);
+    if (signatureRef.current) {
+      signatureRef.current.clear();
+    }
+    setSignatureDialogOpen(true);
+  };
+
+  const handleCloseSignature = () => {
+    setSignatureDialogOpen(false);
+    setSigningContractId(null);
+  };
+
+  const handleClearSignature = () => {
+    if (signatureRef.current) {
+      signatureRef.current.clear();
+    }
+  };
+
+  const handleSaveSignature = async () => {
+    if (!signatureRef.current) return;
+
+    if (signatureRef.current.isEmpty()) {
+      alert("Vui lòng ký trước khi xác nhận.");
+      return;
+    }
+
+    if (!signingContractId) {
+      alert("Không tìm thấy thông tin hợp đồng để ký.");
+      return;
+    }
+
+    try {
+      setSigning(true);
+      const signatureData = signatureRef.current.toDataURL();
+      const base64Signature = signatureData.split(",")[1];
+      await contractService.sign(signingContractId, base64Signature);
+      alert("Ký hợp đồng thành công!");
+      handleCloseSignature();
+    } catch (error) {
+      console.error("Signature error:", error);
+      alert(error instanceof Error ? error.message : "Lỗi khi ký hợp đồng.");
+    } finally {
+      setSigning(false);
     }
   };
 
@@ -939,32 +992,67 @@ export default function VerificationDetailModal({
                             </Box>
                           </TableCell>
                           <TableCell align="center">
-                            <Button
-                              variant="outlined"
-                              size="small"
-                              startIcon={<VisibilityIcon />}
-                              onClick={() => handlePreviewContract(contract.id)}
-                              disabled={previewLoading === contract.id}
+                            <Box
                               sx={{
-                                borderColor: "#FF6B35",
-                                color: "#FF6B35",
-                                fontWeight: 600,
-                                fontSize: "0.75rem",
-                                textTransform: "none",
-                                "&:hover": {
-                                  borderColor: "#E85D2A",
-                                  bgcolor: "#FFF5F0",
-                                },
-                                "&:disabled": {
-                                  borderColor: "#FCDAD0",
-                                  color: "#FCDAD0",
-                                },
+                                display: "flex",
+                                gap: 1,
+                                justifyContent: "center",
+                                flexWrap: "wrap",
                               }}
                             >
-                              {previewLoading === contract.id
-                                ? "Đang tải..."
-                                : "Xem trước"}
-                            </Button>
+                              <Button
+                                variant="outlined"
+                                size="small"
+                                startIcon={<VisibilityIcon />}
+                                onClick={() => handlePreviewContract(contract.id)}
+                                disabled={previewLoading === contract.id}
+                                sx={{
+                                  borderColor: "#FF6B35",
+                                  color: "#FF6B35",
+                                  fontWeight: 600,
+                                  fontSize: "0.75rem",
+                                  textTransform: "none",
+                                  "&:hover": {
+                                    borderColor: "#E85D2A",
+                                    bgcolor: "#FFF5F0",
+                                  },
+                                  "&:disabled": {
+                                    borderColor: "#FCDAD0",
+                                    color: "#FCDAD0",
+                                  },
+                                }}
+                              >
+                                {previewLoading === contract.id
+                                  ? "Đang tải..."
+                                  : "Xem trước"}
+                              </Button>
+                              <Button
+                                variant="contained"
+                                size="small"
+                                onClick={() => handleOpenSignature(contract.id)}
+                                disabled={
+                                  signing ||
+                                  (signingContractId !== null &&
+                                    signingContractId !== contract.id)
+                                }
+                                sx={{
+                                  bgcolor: "#F97316",
+                                  fontWeight: 600,
+                                  fontSize: "0.75rem",
+                                  textTransform: "none",
+                                  "&:hover": {
+                                    bgcolor: "#EA580C",
+                                  },
+                                  "&:disabled": {
+                                    bgcolor: "#FCDAD0",
+                                  },
+                                }}
+                              >
+                                {signing && signingContractId === contract.id
+                                  ? "Đang ký..."
+                                  : "Ký hợp đồng"}
+                              </Button>
+                            </Box>
                           </TableCell>
                         </TableRow>
                       );
@@ -1009,6 +1097,14 @@ export default function VerificationDetailModal({
           Đóng
         </Button>
       </DialogActions>
+
+      <OwnerSignatureDialog
+        open={signatureDialogOpen}
+        onClose={handleCloseSignature}
+        signatureRef={signatureRef}
+        onClear={handleClearSignature}
+        onSave={handleSaveSignature}
+      />
 
       {/* Modal xem ảnh lớn */}
       <Modal

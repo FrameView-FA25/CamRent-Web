@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Box,
   Container,
@@ -15,6 +15,13 @@ import {
   IconButton,
   Tooltip,
   alpha,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Stack,
 } from "@mui/material";
 import {
   AccountBalanceWallet as WalletIcon,
@@ -22,8 +29,9 @@ import {
   TrendingUp as TrendingUpIcon,
   TrendingDown as TrendingDownIcon,
   Lock as LockIcon,
+  AddCircle as AddCircleIcon,
 } from "@mui/icons-material";
-import { getWallet } from "../../../services/wallet.service";
+import { getWallet, topupWallet } from "../../../services/wallet.service";
 import type { Wallet as WalletType } from "../../../types/wallet.types";
 import { toast } from "react-toastify";
 
@@ -50,6 +58,9 @@ const Wallet: React.FC = () => {
   const [wallet, setWallet] = useState<WalletType | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [topupOpen, setTopupOpen] = useState(false);
+  const [topupAmount, setTopupAmount] = useState<number>(200000);
+  const [topupSubmitting, setTopupSubmitting] = useState(false);
 
   const loadWallet = async () => {
     setLoading(true);
@@ -70,6 +81,44 @@ const Wallet: React.FC = () => {
   useEffect(() => {
     loadWallet();
   }, []);
+
+  const defaultReturnUrl = useMemo(() => {
+    if (typeof window === "undefined") return "";
+    return `${window.location.origin}/owner/wallet`;
+  }, []);
+
+  const handleOpenTopup = () => {
+    setTopupOpen(true);
+  };
+
+  const handleCloseTopup = () => {
+    if (topupSubmitting) return;
+    setTopupOpen(false);
+  };
+
+  const handleSubmitTopup = async () => {
+    if (!topupAmount || topupAmount <= 0) {
+      toast.warn("Vui lòng nhập số tiền hợp lệ.");
+      return;
+    }
+    try {
+      setTopupSubmitting(true);
+      const paymentUrl = await topupWallet(
+        topupAmount,
+        defaultReturnUrl,
+        defaultReturnUrl
+      );
+      toast.success("Tạo giao dịch nạp tiền thành công, mở trang thanh toán.");
+      window.open(paymentUrl, "_blank", "noopener");
+      setTopupOpen(false);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Không thể tạo giao dịch nạp tiền";
+      toast.error(message);
+    } finally {
+      setTopupSubmitting(false);
+    }
+  };
 
   const getTransactionIcon = (isCredit: boolean) => {
     return isCredit ? (
@@ -163,6 +212,26 @@ const Wallet: React.FC = () => {
                 )}
               </IconButton>
             </Tooltip>
+            <Button
+              variant="contained"
+              startIcon={<AddCircleIcon />}
+              onClick={handleOpenTopup}
+              sx={{
+                ml: 2,
+                bgcolor: "#0D9488",
+                color: "#FFFFFF",
+                fontWeight: 600,
+                textTransform: "none",
+                px: 2.5,
+                py: 1,
+                boxShadow: "0 4px 12px rgba(13, 148, 136, 0.25)",
+                "&:hover": {
+                  bgcolor: "#0B7C74",
+                },
+              }}
+            >
+              Nạp tiền
+            </Button>
           </Box>
         </Box>
 
@@ -497,6 +566,105 @@ const Wallet: React.FC = () => {
           </TableContainer>
         </Paper>
       </Container>
+
+      <Dialog
+        open={topupOpen}
+        onClose={handleCloseTopup}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: { borderRadius: 3 },
+        }}
+      >
+        <DialogTitle
+          sx={{
+            fontWeight: 700,
+            color: "#0D9488",
+            borderBottom: "1px solid #E5E7EB",
+            marginBottom: 2,
+          }}
+        >
+          Nạp tiền vào ví
+        </DialogTitle>
+        <DialogContent sx={{ pt: 4, pb: 2, overflow: "visible" }}>
+          <Stack spacing={4}>
+            <TextField
+              label="Số tiền (VNĐ)"
+              type="number"
+              value={topupAmount}
+              onChange={(e) => setTopupAmount(Number(e.target.value))}
+              slotProps={{
+                input: {
+                  min: 10000,
+                  inputProps: {
+                    step: 50000,
+                  },
+                },
+              }}
+              fullWidth
+              helperText={`Tối thiểu: ${formatCurrency(10000)}`}
+            />
+            <Box
+              sx={{
+                p: 3,
+                borderRadius: 2,
+                bgcolor: "#F0FDFA",
+                border: "2px solid #0D9488",
+                textAlign: "center",
+              }}
+            >
+              <Typography
+                variant="body2"
+                sx={{
+                  color: "#6B7280",
+                  fontSize: "0.875rem",
+                  fontWeight: 500,
+                  display: "block",
+                  mb: 1.5,
+                }}
+              >
+                Số tiền bạn sẽ nạp:
+              </Typography>
+              <Typography
+                variant="h4"
+                sx={{
+                  color: "#0D9488",
+                  fontWeight: 700,
+                  fontSize: { xs: "1.5rem", sm: "2rem" },
+                  wordBreak: "break-word",
+                  overflowWrap: "break-word",
+                }}
+              >
+                {formatCurrency(topupAmount || 0)}
+              </Typography>
+            </Box>
+            <Typography variant="body2" sx={{ color: "#6B7280" }}>
+              Sau khi xác nhận, bạn sẽ được chuyển tới cổng thanh toán. Hoàn tất
+              thanh toán để tiền vào ví.
+            </Typography>
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ p: 2.5, borderTop: "1px solid #E5E7EB" }}>
+          <Button
+            onClick={handleCloseTopup}
+            disabled={topupSubmitting}
+            sx={{ color: "#6B7280" }}
+          >
+            Huỷ
+          </Button>
+          <Button
+            onClick={handleSubmitTopup}
+            variant="contained"
+            disabled={topupSubmitting}
+            sx={{
+              bgcolor: "#0D9488",
+              "&:hover": { bgcolor: "#0B7C74" },
+            }}
+          >
+            {topupSubmitting ? "Đang tạo..." : "Tiếp tục thanh toán"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
