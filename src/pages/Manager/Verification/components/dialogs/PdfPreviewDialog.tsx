@@ -7,7 +7,7 @@ import {
   Button,
   IconButton,
 } from "@mui/material";
-import { Cancel, Draw, FileDownload } from "@mui/icons-material";
+import { Cancel, FileDownload } from "@mui/icons-material";
 
 interface PdfPreviewDialogProps {
   open: boolean;
@@ -21,7 +21,6 @@ export const PdfPreviewDialog: React.FC<PdfPreviewDialogProps> = ({
   open,
   onClose,
   pdfUrl,
-  onSign,
   onDownload,
 }) => {
   return (
@@ -87,21 +86,7 @@ export const PdfPreviewDialog: React.FC<PdfPreviewDialogProps> = ({
         >
           Đóng
         </Button>
-        <Button
-          onClick={onSign}
-          variant="outlined"
-          startIcon={<Draw />}
-          sx={{
-            borderColor: "#F97316",
-            color: "#F97316",
-            "&:hover": {
-              borderColor: "#EA580C",
-              bgcolor: "#FFF7ED",
-            },
-          }}
-        >
-          Ký hợp đồng
-        </Button>
+
         <Button
           onClick={onDownload}
           variant="contained"

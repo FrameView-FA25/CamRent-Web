@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   Box,
   Card,
@@ -7,13 +7,9 @@ import {
   Chip,
   Button,
   Stack,
-  Divider,
-  Collapse,
 } from "@mui/material";
 import {
   Eye,
-  ChevronDown,
-  ChevronUp,
   Calendar,
   Phone,
   MapPin,
@@ -21,10 +17,8 @@ import {
   CheckCircle,
   Clock,
   XCircle,
-  ClipboardList,
 } from "lucide-react";
 import { colors } from "../../theme/colors";
-import InspectionListItem from "./InspectionListItem";
 import type { Verification } from "../../types/verification.types";
 
 interface VerificationListItemProps {
@@ -36,17 +30,14 @@ interface VerificationListItemProps {
 const VerificationListItem: React.FC<VerificationListItemProps> = ({
   verification,
   onViewDetails,
-  onRefresh,
 }) => {
-  const [showInspections, setShowInspections] = useState(false);
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("vi-VN", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
-  };
+  // const formatDate = (dateString: string) => {
+  //   return new Date(dateString).toLocaleDateString("vi-VN", {
+  //     day: "2-digit",
+  //     month: "2-digit",
+  //     year: "numeric",
+  //   });
+  // };
 
   const getStatusInfo = () => {
     switch (verification.status) {
@@ -75,12 +66,6 @@ const VerificationListItem: React.FC<VerificationListItemProps> = ({
   };
 
   const statusInfo = getStatusInfo();
-  const hasInspections =
-    verification.inspections && verification.inspections.length > 0;
-  const pendingInspections =
-    verification.inspections?.filter((i) => !i.passed) || [];
-  const approvedInspections =
-    verification.inspections?.filter((i) => i.passed) || [];
 
   return (
     <Card
@@ -163,7 +148,7 @@ const VerificationListItem: React.FC<VerificationListItemProps> = ({
                     variant="body2"
                     sx={{ color: colors.text.secondary }}
                   >
-                    {formatDate(verification.createdAt)}
+                    {`Nhân viên phụ trách: ${verification.staffName}`}
                   </Typography>
                 </Box>
               </Stack>
@@ -187,81 +172,6 @@ const VerificationListItem: React.FC<VerificationListItemProps> = ({
               Xem chi tiết
             </Button>
           </Box>
-
-          {/* Inspections Section */}
-          {hasInspections && (
-            <>
-              <Divider />
-              <Box>
-                <Button
-                  fullWidth
-                  onClick={() => setShowInspections(!showInspections)}
-                  endIcon={
-                    showInspections ? (
-                      <ChevronUp size={20} />
-                    ) : (
-                      <ChevronDown size={20} />
-                    )
-                  }
-                  sx={{
-                    justifyContent: "space-between",
-                    textTransform: "none",
-                    color: colors.text.primary,
-                    bgcolor: colors.background.default,
-                    p: 1.5,
-                    borderRadius: 2,
-                    "&:hover": {
-                      bgcolor: colors.neutral[100],
-                    },
-                  }}
-                >
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                    <ClipboardList size={20} color={colors.text.secondary} />
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                      Danh sách Inspections ({verification.inspections?.length})
-                    </Typography>
-                    {pendingInspections.length > 0 && (
-                      <Chip
-                        label={`${pendingInspections.length} chưa duyệt`}
-                        size="small"
-                        sx={{
-                          height: 20,
-                          bgcolor: colors.status.warningLight,
-                          color: colors.status.warning,
-                          fontWeight: 600,
-                        }}
-                      />
-                    )}
-                    {approvedInspections.length > 0 && (
-                      <Chip
-                        label={`${approvedInspections.length} đã duyệt`}
-                        size="small"
-                        sx={{
-                          height: 20,
-                          bgcolor: colors.status.successLight,
-                          color: colors.status.success,
-                          fontWeight: 600,
-                        }}
-                      />
-                    )}
-                  </Box>
-                </Button>
-
-                <Collapse in={showInspections}>
-                  <Stack spacing={2} sx={{ mt: 2 }}>
-                    {verification.inspections?.map((inspection) => (
-                      <InspectionListItem
-                        key={inspection.id}
-                        inspection={inspection}
-                        verificationId={verification.id}
-                        onApprove={onRefresh}
-                      />
-                    ))}
-                  </Stack>
-                </Collapse>
-              </Box>
-            </>
-          )}
         </Stack>
       </CardContent>
     </Card>
