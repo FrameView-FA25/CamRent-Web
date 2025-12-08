@@ -94,7 +94,7 @@ const OwnerLayout: React.FC = () => {
       <Box
         sx={{
           px: 3,
-          py: 2.5,
+          py: 1,
           display: "flex",
           alignItems: "center",
           gap: 1.5,
