@@ -3,13 +3,10 @@ import { Box, Paper, Stack, Typography } from "@mui/material";
 import {
   Search as SearchIcon,
   CheckCircle as CheckCircleIcon,
-  CameraAlt as CameraIcon,
-  Cancel as CancelIcon,
 } from "@mui/icons-material";
 import { colors } from "../../theme/colors";
 type ProductWithStatus = {
   isConfirmed: boolean;
-  isAvailable: boolean;
 };
 
 interface ProductStatsProps {
@@ -32,20 +29,6 @@ const ProductStats: React.FC<ProductStatsProps> = ({ items, total }) => {
       label: "Đã xác minh",
       bgColor: colors.status.successLight,
       iconColor: colors.status.success,
-    },
-    {
-      icon: <CameraIcon sx={{ fontSize: 32 }} />,
-      count: items.filter((c) => c.isAvailable).length,
-      label: "Sẵn sàng cho thuê",
-      bgColor: colors.accent.blueLight,
-      iconColor: colors.accent.blue,
-    },
-    {
-      icon: <CancelIcon sx={{ fontSize: 32 }} />,
-      count: items.filter((c) => !c.isAvailable).length,
-      label: "Không khả dụng",
-      bgColor: colors.status.warningLight,
-      iconColor: colors.status.warning,
     },
   ];
 

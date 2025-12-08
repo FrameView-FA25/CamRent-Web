@@ -83,13 +83,13 @@ const DeviceManagement: React.FC = () => {
 
   const deriveStatus = (
     isConfirmed?: boolean,
-    isAvailable?: boolean,
     location?: string | null
   ): DeviceStatus => {
     if (!isConfirmed) return "pending";
-    if (isAvailable) return "active";
-    if (location && location !== "Platform") return "unavailable";
-    return "inactive";
+    // Nếu không có location hoặc đang ở platform -> coi như sẵn sàng
+    if (!location || location === "Platform") return "active";
+    // Có location khác platform -> đang được giữ/không khả dụng
+    return "unavailable";
   };
 
   const formatBranch = (
@@ -112,7 +112,7 @@ const DeviceManagement: React.FC = () => {
   };
 
   const mapCameraToDevice = (camera: Camera): AdminDevice => {
-    const status = deriveStatus(camera.isConfirmed, camera.isAvailable, camera.location);
+    const status = deriveStatus(camera.isConfirmed, camera.location);
     const { label, color } = STATUS_DISPLAY[status];
     return {
       id: camera.id,
@@ -132,7 +132,7 @@ const DeviceManagement: React.FC = () => {
   };
 
   const mapAccessoryToDevice = (accessory: Accessory): AdminDevice => {
-    const status = deriveStatus(accessory.isConfirmed, accessory.isAvailable, accessory.location);
+    const status = deriveStatus(accessory.isConfirmed, accessory.location);
     const { label, color } = STATUS_DISPLAY[status];
     return {
       id: accessory.id,

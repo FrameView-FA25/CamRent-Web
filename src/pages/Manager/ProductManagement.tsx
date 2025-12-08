@@ -25,9 +25,6 @@ import ProductNoResults from "../../components/ProductManagement/ProductNoResult
 import type { Camera } from "../../types/product.types";
 import type { Accessory } from "../../types/product.types";
 import { colors } from "../../theme/colors";
-import { toast } from "react-toastify";
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 const ProductManagementPage: React.FC = () => {
   const [currentTab, setCurrentTab] = useState(0); // 0: Cameras, 1: Accessories
@@ -90,52 +87,6 @@ const ProductManagementPage: React.FC = () => {
   const handleEdit = (item: Camera | Accessory) => {
     console.log("Edit item:", item);
     // TODO: Implement edit dialog
-  };
-
-  const handleToggleAvailability = async (item: Camera | Accessory) => {
-    try {
-      const token = localStorage.getItem("accessToken");
-      if (!token) {
-        toast.error("Vui lòng đăng nhập lại");
-        return;
-      }
-
-      const endpoint =
-        currentTab === 0
-          ? `${API_BASE_URL}/Cameras/${item.id}/availability`
-          : `${API_BASE_URL}/Accessories/${item.id}/availability`;
-
-      const newStatus = !item.isAvailable;
-
-      const response = await fetch(endpoint, {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ isAvailable: newStatus }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to update availability: ${response.status}`);
-      }
-
-      toast.success(
-        `Đã ${newStatus ? "bật" : "tắt"} trạng thái có sẵn cho ${item.brand} ${
-          item.model
-        }`
-      );
-
-      // Refresh list
-      if (currentTab === 0) {
-        refreshCameras();
-      } else {
-        refreshAccessories();
-      }
-    } catch (error) {
-      console.error("Error updating availability:", error);
-      toast.error("Có lỗi xảy ra khi cập nhật trạng thái");
-    }
   };
 
   const loading = currentTab === 0 ? camerasLoading : accessoriesLoading;
@@ -293,14 +244,12 @@ const ProductManagementPage: React.FC = () => {
                       cameras={paginatedCameras}
                       onView={handleView}
                       onEdit={handleEdit}
-                      onToggleAvailability={handleToggleAvailability}
                     />
                   ) : (
                     <AccessoryTable
                       accessories={paginatedAccessories}
                       onView={handleView}
                       onEdit={handleEdit}
-                      onToggleAvailability={handleToggleAvailability}
                     />
                   )}
                 </Paper>
