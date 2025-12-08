@@ -17,7 +17,6 @@ export interface Accessory {
   specsJson: string | null;
   categories: string[];
   isConfirmed: boolean;
-  isAvailable: boolean;
   ownerUserId: string;
   ownerName: string | null;
 }
