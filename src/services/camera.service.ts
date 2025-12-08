@@ -35,7 +35,6 @@ export interface Camera {
   media: CameraMedia[]; // Danh sách hình ảnh/media của camera
   specsJson: string | null; // Thông số kỹ thuật dạng JSON string
   isConfirmed?: boolean; // Trạng thái đã được xác minh hay chưa
-  isAvailable?: boolean; // Thiết bị đang sẵn sàng hay tạm ngưng
   status?: string | null; // Trạng thái tổng hợp trả về từ API (nếu có)
   location?: string | null;
   ownerUserId?: string | null;
@@ -79,7 +78,6 @@ export interface Accessory {
   specsJson: string | null;
   categories?: string[];
   isConfirmed: boolean;
-  isAvailable: boolean;
   location?: string | null;
   createdAt?: string | null;
 }
@@ -112,7 +110,6 @@ export interface CameraQrHistoryCamera {
   depositCapMaxVnd: number | null;
   specsJson: string | null;
   isConfirmed: boolean;
-  isAvailable: boolean;
   location?: string | null;
   ownerUserId?: string;
   ownerName?: string | null;

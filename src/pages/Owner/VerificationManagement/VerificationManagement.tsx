@@ -418,7 +418,7 @@ export default function VerificationManagement() {
       icon: (
         <CheckCircleRounded
           fontSize="small"
-          sx={{ color: "#10B981", mr: 0.5 }}
+          sx={{ color: "#10B981", mr: 0.5, fill: "#15803D" }}
         />
       ),
     },

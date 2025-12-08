@@ -1,4 +1,3 @@
-
 export interface Camera {
   id: string;
   brand: string;
@@ -20,7 +19,6 @@ export interface Camera {
   specsJson: string | null;
   categories: string[];
   isConfirmed: boolean;
-  isAvailable: boolean;
   ownerUserId: string;
   ownerName: string | null;
   platformFeePercent: number;
@@ -42,7 +40,7 @@ export interface CameraFilters {
   page: number;
   pageSize: number;
   sortBy?: string;
-  sortDir?: 'asc' | 'desc';
+  sortDir?: "asc" | "desc";
   brand?: string;
   model?: string;
   branchName?: string;
@@ -77,7 +75,6 @@ export interface Accessory {
   depositCapMinVnd: number | null;
   depositCapMaxVnd: number | null;
   isConfirmed: boolean;
-  isAvailable: boolean;
   location: string;
   ownerUserId: string;
   ownerName: string | null;
