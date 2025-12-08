@@ -75,42 +75,12 @@ export const authService = {
       ? [roleFromToken]
       : [];
 
-    const emailFromToken =
-      (decoded?.[
-        "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"
-      ] as string | undefined) ||
-      (decoded?.email as string | undefined) ||
-      (decoded?.Email as string | undefined);
-    const nameFromToken =
-      (decoded?.[
-        "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"
-      ] as string | undefined) ||
-      (decoded?.unique_name as string | undefined) ||
-      (decoded?.name as string | undefined) ||
-      (decoded?.Name as string | undefined);
-
     localStorage.setItem("accessToken", authData.token);
     if (roles[0]) {
       localStorage.setItem("role", roles[0]);
     } else {
       localStorage.removeItem("role");
     }
-
-    localStorage.setItem(
-      "userInfo",
-      JSON.stringify({
-        email: (authData as { email?: string }).email || emailFromToken || "",
-        fullName:
-          (authData as { fullName?: string }).fullName ||
-          nameFromToken ||
-          (authData as { name?: string }).name ||
-          "",
-        roles,
-        phoneNumber: (authData as { phoneNumber?: string }).phoneNumber || "",
-        createdAt: (authData as { createdAt?: string }).createdAt || "",
-        address: (authData as { address?: string }).address || "",
-      })
-    );
   },
 
   /**
