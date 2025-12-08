@@ -11,7 +11,7 @@ interface ContextMenuProps {
   anchorEl: HTMLElement | null;
   onClose: () => void;
   onAssignStaff: () => void;
-  onCreateContract: () => void;
+  onViewContract: () => void;
   onConfirmBooking: () => void;
   onCancelBooking: () => void;
   onViewDetails: () => void;
@@ -22,7 +22,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
   anchorEl,
   onClose,
   onAssignStaff,
-  onCreateContract,
+  onViewContract,
   onConfirmBooking,
   onCancelBooking,
   onViewDetails,
@@ -30,7 +30,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
 }) => {
   const canConfirm = bookingStatus === "PendingApproval";
   const canCancel = !["Cancelled", "Completed"].includes(bookingStatus);
-  const canCreateContract = bookingStatus === "Confirmed";
+  const canViewContract = bookingStatus === "Confirmed";
   return (
     <Menu
       anchorEl={anchorEl}
@@ -56,9 +56,9 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
       >
         <Assignment sx={{ mr: 1.5, fontSize: 20 }} /> Phân công nhân viên
       </MenuItem>
-      {canCreateContract && (
+      {canViewContract && (
         <MenuItem
-          onClick={onCreateContract}
+          onClick={onViewContract}
           sx={{
             py: 1.5,
             "&:hover": {
@@ -67,7 +67,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
             },
           }}
         >
-          <Description sx={{ mr: 1.5, fontSize: 20 }} /> Tạo hợp đồng
+          <Description sx={{ mr: 1.5, fontSize: 20 }} /> Xem hợp đồng
         </MenuItem>
       )}
       {canConfirm && (

@@ -148,7 +148,9 @@ const VerificationListItem: React.FC<VerificationListItemProps> = ({
                     variant="body2"
                     sx={{ color: colors.text.secondary }}
                   >
-                    {`Nhân viên phụ trách: ${verification.staffName}`}
+                    {verification.staffName
+                      ? `Nhân viên phụ trách: ${verification.staffName}`
+                      : "Chưa có nhân viên phụ trách"}
                   </Typography>
                 </Box>
               </Stack>

@@ -101,10 +101,61 @@ const BookingManagement: React.FC = () => {
     dialogState.setContextMenu(null);
   };
 
-  // Handler for create contract
-  const handleCreateContract = () => {
-    dialogState.setContractDialogOpen(true);
+  // Handler for view contract
+  const handleViewContract = async () => {
     dialogState.setContextMenu(null);
+    
+    if (!dialogState.selectedBooking?.contracts || dialogState.selectedBooking.contracts.length === 0) {
+      setError("Không tìm thấy hợp đồng cho đơn này");
+      return;
+    }
+
+    const contractId = dialogState.selectedBooking.contracts[0].id;
+    const token = localStorage.getItem("accessToken");
+
+    try {
+      dialogState.setContractLoading(true);
+
+      const previewResponse = await fetch(
+        `https://camrent-backend.up.railway.app/api/Contracts/${contractId}/preview`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!previewResponse.ok) {
+        throw new Error("Không thể lấy preview hợp đồng");
+      }
+
+      const contentDisposition = previewResponse.headers.get("content-disposition");
+      let filename = `contract_${contractId}.pdf`;
+
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(
+          /filename[^;=\n]*=(?:(["'])([^"'\n]*)\1|([^;\n]*));?/
+        );
+        if (filenameMatch && filenameMatch[2]) {
+          filename = filenameMatch[2];
+        }
+      }
+
+      const blob = await previewResponse.blob();
+      const pdfBlob = new Blob([blob], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(pdfBlob);
+
+      dialogState.setPdfUrl(url);
+      dialogState.setCurrentContractId(contractId);
+      dialogState.setCurrentFilename(filename);
+      dialogState.setPdfDialogOpen(true);
+    } catch (error) {
+      console.error("Contract error:", error);
+      setError(error instanceof Error ? error.message : "Lỗi khi xem hợp đồng");
+    } finally {
+      dialogState.setContractLoading(false);
+    }
   };
 
   // Handler for view details
@@ -215,7 +266,7 @@ const BookingManagement: React.FC = () => {
           anchorEl={dialogState.contextMenu}
           onClose={() => dialogState.setContextMenu(null)}
           onAssignStaff={handleAssignStaff}
-          onCreateContract={handleCreateContract}
+          onViewContract={handleViewContract}
           onConfirmBooking={handleConfirmBookingClick}
           onCancelBooking={handleCancelBookingClick}
           onViewDetails={handleViewDetails}
