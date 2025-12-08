@@ -36,6 +36,8 @@ import type {
   TopRentedAsset,
 } from "../../../services/dashboard.service";
 import { dashboardService } from "../../../services/dashboard.service";
+import { getBalance } from "../../../services/wallet.service";
+import type { Wallet as WalletBalanceResponse } from "../../../types/wallet.types";
 // import { walletService, type WalletResponse } from "@/services/wallet.service";
 // ===== TYPES =====
 
@@ -516,7 +518,7 @@ const ColumnChartCard = ({
  */
 export default function Dashboard() {
   const [data, setData] = useState<OwnerDashboardResponse | null>(null);
-  const [wallet, setWallet] = useState<WalletResponse | null>(null);
+  const [wallet, setWallet] = useState<WalletBalanceResponse | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   // Mặc định hiển thị thống kê theo tháng ngay khi vào dashboard
@@ -544,8 +546,8 @@ export default function Dashboard() {
     // Lấy thông tin ví
     const fetchWallet = async () => {
       try {
-        const walletData = await walletService.getMyWallet();
-        setWallet(walletData);
+        const walletData = await getBalance();
+        setWallet(walletData as WalletBalanceResponse);
       } catch (err) {
         console.error("Lỗi khi tải thông tin ví:", err);
         // Không hiển thị lỗi nếu không load được ví, chỉ log
@@ -561,7 +563,7 @@ export default function Dashboard() {
     () => [
       {
         title: "Số dư ví",
-        value: formatCurrency(wallet?.balance ?? 0),
+        value: formatCurrency(wallet?.balance ?? 1),
         description: "Số dư khả dụng trong ví của bạn.",
         icon: <WalletIcon />,
         accent: "teal",
