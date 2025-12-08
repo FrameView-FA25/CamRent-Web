@@ -171,7 +171,7 @@ const ModalLogin: React.FC<Props> = ({
             <TextField
               fullWidth
               type="email"
-              placeholder="your@email.com"
+              placeholder="abcd@gmail.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               variant="outlined"
@@ -185,11 +185,11 @@ const ModalLogin: React.FC<Props> = ({
               color="text.primary"
               sx={{ mb: 1 }}
             >
-              Password
+              Mật khẩu
             </Typography>
             <TextField
               fullWidth
-              placeholder="Enter your password"
+              placeholder="Nhập mật khẩu của bạn"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               type={showPassword ? "text" : "password"}

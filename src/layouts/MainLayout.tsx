@@ -18,13 +18,22 @@ import {
   ListItemText,
   Divider,
 } from "@mui/material";
-import { User, LogOut, ShoppingCart, Camera, Package } from "lucide-react";
+import {
+  User,
+  LogOut,
+  ShoppingCart,
+  Camera,
+  Package,
+  ChartLine,
+  Wallet,
+} from "lucide-react";
 import { getDefaultRouteByRole } from "@/utils/roleUtils";
 import { colors } from "../theme/colors";
 import CartModal from "../components/Modal/ModalCart";
 import { useCartContext } from "../context/CartContext";
 import Footer from "./Footer";
 import { ModalResetPassword } from "@/components/Modal/Auth/ModalResetPassword";
+import { getBalance } from "@/services/wallet.service";
 
 const MainLayout: React.FC = () => {
   const location = useLocation();
@@ -40,7 +49,7 @@ const MainLayout: React.FC = () => {
   const [resetToken, setResetToken] = useState("");
   const [productMenuAnchor, setProductMenuAnchor] =
     useState<null | HTMLElement>(null);
-
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const closeTimeoutRef = useRef<number | null>(null);
 
   const isActive = (path: string) => location.pathname === path;
@@ -69,8 +78,17 @@ const MainLayout: React.FC = () => {
     }, 200);
   };
 
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+  const handleMenuOpen = async (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
+    if (isAuthenticated) {
+      try {
+        const balanceData = await getBalance();
+        setWalletBalance(balanceData.balance);
+      } catch (error) {
+        console.error("Failed to fetch wallet balance:", error);
+        setWalletBalance(null);
+      }
+    }
   };
 
   const handleMenuClose = () => {
@@ -162,7 +180,6 @@ const MainLayout: React.FC = () => {
       setResetToken(tokenParam);
       setResetOpen(true);
     } else {
-      // Đảm bảo đóng modal khi rời route
       setResetOpen(false);
     }
   }, [location.pathname, location.search]);
@@ -483,8 +500,8 @@ const MainLayout: React.FC = () => {
               }}
             >
               <MenuItem onClick={handleProfile}>
-                <User size={16} style={{ marginRight: 8 }} />
-                Dashboard
+                <ChartLine size={16} style={{ marginRight: 8 }} />
+                Bảng Điều Khiển
               </MenuItem>
               {isRenter && (
                 <MenuItem
@@ -494,12 +511,41 @@ const MainLayout: React.FC = () => {
                   }}
                 >
                   <ShoppingCart size={16} style={{ marginRight: 8 }} />
-                  My Orders
+                  Đơn hàng
                 </MenuItem>
               )}
+
+              {/* Wallet Balance Display */}
+              <Box
+                sx={{
+                  px: 2,
+                  py: 1.5,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1,
+                }}
+              >
+                <Wallet size={16} style={{ color: colors.primary.main }} />
+                <Typography
+                  variant="body2"
+                  sx={{
+                    fontWeight: 500,
+                    color: colors.text.primary,
+                  }}
+                >
+                  Số dư:{" "}
+                  {walletBalance !== null
+                    ? walletBalance.toLocaleString("vi-VN") + " ₫"
+                    : "Đang tải..."}
+                </Typography>
+              </Box>
+
               <MenuItem onClick={handleLogout}>
-                <LogOut size={16} style={{ marginRight: 8 }} />
-                Logout
+                <LogOut
+                  size={16}
+                  style={{ marginRight: 8, color: colors.status.error }}
+                />
+                Đăng xuất
               </MenuItem>
             </Menu>
           </Box>
@@ -519,7 +565,7 @@ const MainLayout: React.FC = () => {
               "&:hover": { bgcolor: colors.primary.light },
             }}
           >
-            LOGIN
+            Đăng nhập
           </Button>
         )}
 
