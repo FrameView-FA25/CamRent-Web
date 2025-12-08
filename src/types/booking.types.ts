@@ -77,6 +77,16 @@ export interface Booking {
   inspections?: BookingInspection[];
   createdAt: string;
   updatedAt: string;
+  contracts: Contracts[];
+}
+export interface Contracts {
+  id: string;
+  status: string;
+  branchAddress: string;
+  branchName: string;
+  createdAt: string;
+  signatures: string[];
+  signedAt: string;
 }
 export interface Branch {
   id: string;
