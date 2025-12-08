@@ -1,58 +1,20 @@
 // URL cơ sở của API backend
 const API_BASE_URL = "https://camrent-backend.up.railway.app/api";
 
-/**
- * Interface cho request đăng nhập
- */
-export interface LoginRequest {
-  email: string; // Email đăng nhập
-  password: string; // Mật khẩu
-}
-
-/**
- * Interface cho response đăng nhập
- */
-export interface LoginResponse {
-  token: string; // Access token để xác thực các request sau
-  refreshToken: string; // Refresh token để làm mới access token
-  expiresAt: string; // Thời gian hết hạn của token
-  fullName: string; // Tên đầy đủ của user
-  phoneNumber: string; // Số điện thoại của user
-  createdAt: string; // Ngày tạo tài khoản
-  address: string; // Địa chỉ của user
-  email: string; // Email của user
-  roles: string[]; // Danh sách vai trò của user (VD: ["Owner"], ["Renter"], ["BranchManager"])
-}
-
-/**
- * Interface cho request đăng ký
- */
-export interface RegisterRequest {
-  email: string; // Email đăng ký
-  phone: string; // Số điện thoại
-  password: string; // Mật khẩu
-  fullName: string; // Tên đầy đủ
-  role: number; // Vai trò (số, nhưng sẽ được convert thành string khi gửi API)
-}
-
-/**
- * Interface cho response đăng ký
- */
-export interface RegisterResponse {
-  message?: string; // Thông báo từ server
-  success?: boolean; // Trạng thái thành công
-}
+import type {
+  LoginRequest,
+  LoginResponse,
+  RegisterRequest,
+  RegisterResponse,
+  ResetPasswordResponse,
+  ResetPasswordRequest,
+} from "../types/auth.types";
 
 /**
  * Service quản lý xác thực (Authentication)
  * Bao gồm: đăng nhập, đăng ký, quản lý token, kiểm tra trạng thái đăng nhập
  */
 export const authService = {
-  /**
-   * Đăng nhập vào hệ thống
-   * @param credentials - Thông tin đăng nhập (email, password)
-   * @returns Promise chứa thông tin user và token sau khi đăng nhập thành công
-   */
   async login(credentials: LoginRequest): Promise<LoginResponse> {
     const response = await fetch(`${API_BASE_URL}/Auths/Login`, {
       method: "POST",
@@ -269,7 +231,7 @@ export const authService = {
     }
   },
 
-  // === THÊM MỚI: Đặt lại mật khẩu ===
+  // Hàm đặt lại mật khẩu cho user chưa đăng nhập
   async resetPassword(
     email: string,
     token: string,
@@ -290,5 +252,30 @@ export const authService = {
       const text = await response.text().catch(() => "");
       throw new Error(text || "Đặt lại mật khẩu thất bại");
     }
+  },
+  // Hàm đổi mật khẩu cho user đã đăng nhập
+  async changePassword(
+    data: ResetPasswordRequest
+  ): Promise<ResetPasswordResponse> {
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      throw new Error("Vui lòng đăng nhập");
+    }
+
+    const response = await fetch(`${API_BASE_URL}/Auths/change-password`, {
+      method: "POST",
+      headers: {
+        accept: "*/*",
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const text = await response.text().catch(() => "");
+      throw new Error(text || "Đổi mật khẩu thất bại");
+    }
+    return response.json();
   },
 };
