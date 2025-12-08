@@ -18,8 +18,6 @@ import {
   TableRow,
   IconButton,
   Modal,
-  Menu,
-  MenuItem,
   TextField,
 } from "@mui/material";
 import {
@@ -30,7 +28,6 @@ import {
   ZoomIn as ZoomInIcon,
   Description as DescriptionIcon,
   PersonAdd as PersonAddIcon,
-  MoreVert as MoreVertIcon,
 } from "@mui/icons-material";
 import SignatureCanvas from "react-signature-canvas";
 import type { Verification } from "../../types/verification.types";
@@ -75,9 +72,7 @@ export default function VerificationDetailModal({
   const [currentFilename, setCurrentFilename] = useState<string>("");
   const [signatureDialogOpen, setSignatureDialogOpen] = useState(false);
   const [assignStaffDialogOpen, setAssignStaffDialogOpen] = useState(false);
-  const [statusMenuAnchor, setStatusMenuAnchor] = useState<null | HTMLElement>(
-    null
-  );
+
   const [statusNote, setStatusNote] = useState<string>("");
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<string>("");
@@ -143,13 +138,76 @@ export default function VerificationDetailModal({
   const canCreateContract = ["approved", "completed"].includes(
     verification.status.toLowerCase()
   );
-
-  // const canAssignStaff = verification.status.toLowerCase() === "pending";
-
-  const handleCreateContract = () => {
-    setContractDialogOpen(true);
+  const isApproved = verification.status.toLowerCase() === "approved";
+  const hasStaff = !!verification.staffName;
+  const hasContract =
+    verification.contracts && verification.contracts.length > 0;
+  const handleCreateContract = async () => {
+    // Nếu đã có contract, xem contract đó
+    if (hasContract) {
+      await handleViewContract();
+    } else {
+      // Nếu chưa có, mở dialog tạo mới
+      setContractDialogOpen(true);
+    }
   };
+  const handleViewContract = async () => {
+    if (!verification.contracts || verification.contracts.length === 0) {
+      toast.error("Không tìm thấy hợp đồng");
+      return;
+    }
 
+    const contractId = verification.contracts[0].id; // Lấy contract đầu tiên
+    const token = localStorage.getItem("accessToken");
+
+    try {
+      setContractLoading(true);
+
+      const previewResponse = await fetch(
+        `https://camrent-backend.up.railway.app/api/Contracts/${contractId}/preview`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!previewResponse.ok) {
+        throw new Error("Không thể lấy preview hợp đồng");
+      }
+
+      const contentDisposition = previewResponse.headers.get(
+        "content-disposition"
+      );
+      let filename = `contract_${contractId}.pdf`;
+
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(
+          /filename[^;=\n]*=(?:(["'])([^"'\n]*)\1|([^;\n]*));?/
+        );
+        if (filenameMatch && filenameMatch[2]) {
+          filename = filenameMatch[2];
+        }
+      }
+
+      const blob = await previewResponse.blob();
+      const pdfBlob = new Blob([blob], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(pdfBlob);
+
+      setPdfUrl(url);
+      setCurrentContractId(contractId);
+      setCurrentFilename(filename);
+      setPdfDialogOpen(true);
+    } catch (error) {
+      console.error("Contract error:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Lỗi khi xem hợp đồng"
+      );
+    } finally {
+      setContractLoading(false);
+    }
+  };
   const handleCloseContractDialog = () => {
     setContractDialogOpen(false);
   };
@@ -224,17 +282,8 @@ export default function VerificationDetailModal({
     return success;
   };
 
-  const handleOpenStatusMenu = (event: React.MouseEvent<HTMLElement>) => {
-    setStatusMenuAnchor(event.currentTarget);
-  };
-
-  const handleCloseStatusMenu = () => {
-    setStatusMenuAnchor(null);
-  };
-
   const handleSelectStatus = (status: string) => {
     setSelectedStatus(status);
-    setStatusMenuAnchor(null);
     setStatusDialogOpen(true);
   };
 
@@ -255,9 +304,9 @@ export default function VerificationDetailModal({
       );
       toast.success("Cập nhật trạng thái thành công");
       handleCloseStatusDialog();
-      onClose(); // Đóng modal chính
+      onClose();
       if (onRefresh) {
-        onRefresh(); // Refresh danh sách verification
+        onRefresh();
       }
     } catch (error) {
       console.error("Error updating status:", error);
@@ -350,65 +399,74 @@ export default function VerificationDetailModal({
                 </Typography>
 
                 <Box sx={{ display: "flex", gap: 2 }}>
-                  {/* Update Status Button */}
-                  <IconButton
-                    onClick={handleOpenStatusMenu}
-                    sx={{
-                      border: "1px solid #E2E8F0",
-                      borderRadius: 2,
-                      "&:hover": {
-                        bgcolor: "#F8FAFC",
-                      },
-                    }}
-                  >
-                    <MoreVertIcon />
-                  </IconButton>
-
-                  <Menu
-                    anchorEl={statusMenuAnchor}
-                    open={Boolean(statusMenuAnchor)}
-                    onClose={handleCloseStatusMenu}
-                  >
-                    <MenuItem onClick={() => handleSelectStatus("Pending")}>
-                      Chờ xử lý
-                    </MenuItem>
-                    <MenuItem onClick={() => handleSelectStatus("Verified")}>
-                      Đã xác minh
-                    </MenuItem>
-                    <MenuItem onClick={() => handleSelectStatus("Approved")}>
+                  {!isApproved && (
+                    <Button
+                      variant="outlined"
+                      startIcon={<CheckCircleIcon />}
+                      onClick={() => handleSelectStatus("Approved")}
+                      sx={{
+                        borderColor: "#10B981",
+                        color: "#10B981",
+                        fontWeight: 600,
+                        textTransform: "none",
+                        px: 3,
+                        "&:hover": {
+                          borderColor: "#059669",
+                          bgcolor: "#F0FDF4",
+                        },
+                      }}
+                    >
                       Đã duyệt
-                    </MenuItem>
-                    <MenuItem onClick={() => handleSelectStatus("Rejected")}>
-                      Từ chối
-                    </MenuItem>
-                  </Menu>
+                    </Button>
+                  )}
 
-                  {/* {canAssignStaff && onAssignStaff && ( */}
                   <Button
                     variant="outlined"
-                    startIcon={<PersonAddIcon />}
-                    onClick={handleOpenAssignStaff}
+                    startIcon={<CancelIcon />}
+                    onClick={() => handleSelectStatus("Rejected")}
                     sx={{
-                      borderColor: "#3B82F6",
-                      color: "#3B82F6",
+                      borderColor: "#EF4444",
+                      color: "#EF4444",
                       fontWeight: 600,
                       textTransform: "none",
                       px: 3,
                       "&:hover": {
-                        borderColor: "#2563EB",
-                        bgcolor: "#EFF6FF",
+                        borderColor: "#DC2626",
+                        bgcolor: "#FEF2F2",
                       },
                     }}
                   >
-                    Gán Nhân Viên
+                    Hủy
                   </Button>
-                  {/* )} */}
+
+                  {/* {canAssignStaff && onAssignStaff && ( */}
+                  {onAssignStaff && (
+                    <Button
+                      variant="outlined"
+                      startIcon={<PersonAddIcon />}
+                      onClick={handleOpenAssignStaff}
+                      sx={{
+                        borderColor: "#3B82F6",
+                        color: "#3B82F6",
+                        fontWeight: 600,
+                        textTransform: "none",
+                        px: 3,
+                        "&:hover": {
+                          borderColor: "#2563EB",
+                          bgcolor: "#EFF6FF",
+                        },
+                      }}
+                    >
+                      {hasStaff ? "Thay Đổi Nhân Viên" : "Gán Nhân Viên"}
+                    </Button>
+                  )}
 
                   {canCreateContract && (
                     <Button
                       variant="contained"
                       startIcon={<DescriptionIcon />}
                       onClick={handleCreateContract}
+                      disabled={contractLoading}
                       sx={{
                         bgcolor: "#10B981",
                         color: "white",
@@ -420,7 +478,11 @@ export default function VerificationDetailModal({
                         },
                       }}
                     >
-                      Tạo Hợp Đồng
+                      {contractLoading
+                        ? "Đang tải..."
+                        : hasContract
+                        ? "Xem Hợp Đồng"
+                        : "Tạo Hợp Đồng"}
                     </Button>
                   )}
                 </Box>
