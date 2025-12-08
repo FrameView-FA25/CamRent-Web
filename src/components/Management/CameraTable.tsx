@@ -12,7 +12,6 @@ import {
   Box,
   Typography,
   Tooltip,
-  Switch,
 } from "@mui/material";
 import { Eye, Edit } from "lucide-react";
 import type { Camera } from "../../types/product.types";
@@ -22,14 +21,12 @@ interface CameraTableProps {
   cameras: Camera[];
   onView: (camera: Camera) => void;
   onEdit: (camera: Camera) => void;
-  onToggleAvailability: (camera: Camera) => void;
 }
 
 export const CameraTable: React.FC<CameraTableProps> = ({
   cameras,
   onView,
   onEdit,
-  onToggleAvailability,
 }) => {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("vi-VN", {
@@ -84,9 +81,6 @@ export const CameraTable: React.FC<CameraTableProps> = ({
             </TableCell>
             <TableCell sx={{ fontWeight: 700, color: colors.text.primary }}>
               Trạng thái xác minh
-            </TableCell>
-            <TableCell sx={{ fontWeight: 700, color: colors.text.primary }}>
-              Còn hàng
             </TableCell>
             <TableCell
               sx={{ fontWeight: 700, color: colors.text.primary }}
@@ -161,18 +155,6 @@ export const CameraTable: React.FC<CameraTableProps> = ({
                   </Typography>
                 </TableCell>
                 <TableCell>{getStatusChip(camera.isConfirmed)}</TableCell>
-                <TableCell>
-                  <Tooltip
-                    title={camera.isAvailable ? "Đang có sẵn" : "Không có sẵn"}
-                  >
-                    <Switch
-                      checked={camera.isAvailable}
-                      onChange={() => onToggleAvailability(camera)}
-                      color="success"
-                      size="small"
-                    />
-                  </Tooltip>
-                </TableCell>
                 <TableCell align="center">
                   <Box
                     sx={{ display: "flex", gap: 1, justifyContent: "center" }}

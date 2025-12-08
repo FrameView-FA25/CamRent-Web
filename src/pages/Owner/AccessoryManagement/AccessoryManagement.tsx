@@ -36,9 +36,6 @@ import {
   QrCodeScanner as QrCodeScannerIcon,
   HourglassEmptyRounded,
   CheckCircleRounded,
-  CancelRounded,
-  TaskAltRounded,
-  DoNotDisturbOnRounded,
   MoreVert as MoreVertIcon,
 } from "@mui/icons-material";
 import ModalAddAccessory from "../../../components/Modal/Owner/ModalAddAccessory";
@@ -79,28 +76,18 @@ export default function AccessoryManagement() {
   );
   const [menuAccessory, setMenuAccessory] = useState<Accessory | null>(null);
 
-  /**
-   * Hàm tải danh sách phụ kiện từ API
-   */
-
-  /**
-   * useEffect: Gọi API lấy danh sách phụ kiện khi component được mount
-   */
+  // useEffect: Gọi API lấy danh sách phụ kiện khi component được mount
   useEffect(() => {
     fetchAccessories();
   }, [fetchAccessories]);
 
-  /**
-   * Hàm xử lý khi thêm phụ kiện mới thành công
-   */
+  // Hàm xử lý khi thêm phụ kiện mới thành công
   const handleAddAccessory = () => {
     refreshAccessories();
     setCurrentPage(1);
   };
 
-  /**
-   * Hàm mở modal edit phụ kiện
-   */
+  // Hàm mở modal edit phụ kiện
   const handleOpenEdit = (accessory: Accessory) => {
     setSelectedAccessory(accessory);
     setOpenEditModal(true);
@@ -198,43 +185,13 @@ export default function AccessoryManagement() {
     },
     approved: {
       label: "Đã duyệt",
-      bg: "#EEF4FF",
-      color: "#1D4ED8",
-      border: "1px solid rgba(59, 130, 246, 0.3)",
+      bg: "#E6F4EA",
+      color: "#15803D",
+      border: "1px solid rgba(21, 128, 61, 0.35)",
       icon: (
         <CheckCircleRounded
           fontSize="small"
-          sx={{ color: "#2563EB", mr: 0.5 }}
-        />
-      ),
-    },
-    rejected: {
-      label: "Từ chối",
-      bg: "#FEF2F2",
-      color: "#B91C1C",
-      border: "1px solid rgba(239, 68, 68, 0.35)",
-      icon: (
-        <CancelRounded fontSize="small" sx={{ color: "#EF4444", mr: 0.5 }} />
-      ),
-    },
-    completed: {
-      label: "Hoàn thành",
-      bg: "#F0FDF4",
-      color: "#047857",
-      border: "1px solid rgba(16, 185, 129, 0.35)",
-      icon: (
-        <TaskAltRounded fontSize="small" sx={{ color: "#059669", mr: 0.5 }} />
-      ),
-    },
-    cancelled: {
-      label: "Đã hủy",
-      bg: "#F4F4F5",
-      color: "#52525B",
-      border: "1px solid rgba(148, 163, 184, 0.35)",
-      icon: (
-        <DoNotDisturbOnRounded
-          fontSize="small"
-          sx={{ color: "#64748B", mr: 0.5 }}
+          sx={{ color: "#15803D", mr: 0.5, fill: "#15803D" }}
         />
       ),
     },
@@ -272,10 +229,14 @@ export default function AccessoryManagement() {
     if (!accessoryItem.isConfirmed) {
       return { key: "pending", label: "Chờ xác minh" };
     }
-    if (accessoryItem.isConfirmed && !accessoryItem.isAvailable) {
-      return { key: "cancelled", label: "Tạm ngưng" };
-    }
-    return { key: "approved", label: "Sẵn sàng" };
+    return { key: "approved", label: "Đã xác minh" };
+  };
+
+  // Thống kê nhanh theo trạng thái xác minh
+  const stats = {
+    total: accessories.length,
+    verified: accessories.filter((a) => a.isConfirmed).length,
+    pending: accessories.filter((a) => !a.isConfirmed).length,
   };
 
   const actionButtonBaseSx = {
@@ -447,7 +408,7 @@ export default function AccessoryManagement() {
           gridTemplateColumns: {
             xs: "1fr",
             sm: "repeat(2, 1fr)",
-            lg: "repeat(4, 1fr)",
+            lg: "repeat(3, 1fr)",
           },
           gap: 3,
           mb: 4,
@@ -545,14 +506,14 @@ export default function AccessoryManagement() {
                     fontSize: "0.75rem",
                   }}
                 >
-                  Có Sẵn
+                  Đã xác minh
                 </Typography>
                 <Typography
                   variant="h3"
                   fontWeight={700}
                   sx={{ color: "#10B981" }}
                 >
-                  {accessories.length}
+                  {stats.verified}
                 </Typography>
               </Box>
               <Box
@@ -604,19 +565,19 @@ export default function AccessoryManagement() {
                     fontSize: "0.75rem",
                   }}
                 >
-                  Đã Cho Thuê
+                  Chờ xác minh
                 </Typography>
                 <Typography
                   variant="h3"
                   fontWeight={700}
-                  sx={{ color: "#3B82F6" }}
+                  sx={{ color: "#F97316" }}
                 >
-                  0
+                  {stats.pending}
                 </Typography>
               </Box>
               <Box
                 sx={{
-                  bgcolor: "#EFF6FF",
+                  bgcolor: "#FFF7ED",
                   p: 1.5,
                   borderRadius: 2,
                   display: "flex",
@@ -624,66 +585,7 @@ export default function AccessoryManagement() {
                   justifyContent: "center",
                 }}
               >
-                <Typography sx={{ fontSize: "1.5rem" }}>🔒</Typography>
-              </Box>
-            </Box>
-          </CardContent>
-        </Card>
-
-        <Card
-          elevation={0}
-          sx={{
-            bgcolor: "#FFFFFF",
-            border: "1px solid #E2E8F0",
-            borderRadius: 2.5,
-            transition: "all 0.2s ease",
-            "&:hover": {
-              borderColor: "#F59E0B",
-              boxShadow: "0 4px 12px rgba(245, 158, 11, 0.08)",
-            },
-          }}
-        >
-          <CardContent sx={{ p: 3 }}>
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "flex-start",
-              }}
-            >
-              <Box>
-                <Typography
-                  variant="body2"
-                  sx={{
-                    color: "#64748B",
-                    fontWeight: 600,
-                    mb: 1,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.5px",
-                    fontSize: "0.75rem",
-                  }}
-                >
-                  Bảo Trì
-                </Typography>
-                <Typography
-                  variant="h3"
-                  fontWeight={700}
-                  sx={{ color: "#F59E0B" }}
-                >
-                  0
-                </Typography>
-              </Box>
-              <Box
-                sx={{
-                  bgcolor: "#FFFBEB",
-                  p: 1.5,
-                  borderRadius: 2,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Typography sx={{ fontSize: "1.5rem" }}>🔧</Typography>
+                <Typography sx={{ fontSize: "1.5rem" }}>⏳</Typography>
               </Box>
             </Box>
           </CardContent>
@@ -1009,7 +911,9 @@ export default function AccessoryManagement() {
                       <IconButton
                         aria-label="more actions"
                         size="medium"
-                        onClick={(event) => handleOpenActionMenu(event, accessory)}
+                        onClick={(event) =>
+                          handleOpenActionMenu(event, accessory)
+                        }
                         sx={{
                           ...actionButtonBaseSx,
                           border: "1px solid rgba(148, 163, 184, 0.35)",

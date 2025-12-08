@@ -187,13 +187,13 @@ export default function CameraManagement() {
     },
     approved: {
       label: "Đã duyệt",
-      bg: "#EEF4FF",
-      color: "#1D4ED8",
-      border: "1px solid rgba(59, 130, 246, 0.3)",
+      bg: "#E6F4EA",
+      color: "#15803D",
+      border: "1px solid rgba(59, 246, 112, 0.3)",
       icon: (
         <CheckCircleRounded
           fontSize="small"
-          sx={{ color: "#2563EB", mr: 0.5 }}
+          sx={{ color: "#15803D", mr: 0.5, fill: "#15803D" }}
         />
       ),
     },
@@ -243,20 +243,14 @@ export default function CameraManagement() {
     if (!cameraItem.isConfirmed) {
       return { key: "pending", label: "Chờ xác minh" };
     }
-    if (cameraItem.isConfirmed && !cameraItem.isAvailable) {
-      return { key: "cancelled", label: "Tạm ngưng" };
-    }
-    return { key: "approved", label: "Sẵn sàng" };
+    return { key: "approved", label: "Đã xác minh" };
   };
 
   // Tính toán thống kê dựa trên trạng thái camera
   const stats = {
     total: cameras?.length || 0,
-    available:
-      cameras?.filter((c) => c.isConfirmed && c.isAvailable).length || 0,
+    verified: cameras?.filter((c) => c.isConfirmed).length || 0,
     pending: cameras?.filter((c) => !c.isConfirmed).length || 0,
-    suspended:
-      cameras?.filter((c) => c.isConfirmed && !c.isAvailable).length || 0,
     rented: 0, // Có thể tính từ dữ liệu booking nếu có
     maintenance: 0, // Có thể tính từ dữ liệu maintenance nếu có
   };
@@ -430,7 +424,7 @@ export default function CameraManagement() {
           gridTemplateColumns: {
             xs: "1fr",
             sm: "repeat(2, 1fr)",
-            lg: "repeat(4, 1fr)",
+            lg: "repeat(3, 1fr)",
           },
           gap: 3,
           mb: 4,
@@ -528,14 +522,14 @@ export default function CameraManagement() {
                     fontSize: "0.75rem",
                   }}
                 >
-                  Có Sẵn
+                  Đã xác minh
                 </Typography>
                 <Typography
                   variant="h3"
                   fontWeight={700}
                   sx={{ color: "#10B981" }}
                 >
-                  {stats.available}
+                  {stats.verified}
                 </Typography>
               </Box>
               <Box
@@ -608,65 +602,6 @@ export default function CameraManagement() {
                 }}
               >
                 <Typography sx={{ fontSize: "1.5rem" }}>⏳</Typography>
-              </Box>
-            </Box>
-          </CardContent>
-        </Card>
-
-        <Card
-          elevation={0}
-          sx={{
-            bgcolor: "#FFFFFF",
-            border: "1px solid #E2E8F0",
-            borderRadius: 2.5,
-            transition: "all 0.2s ease",
-            "&:hover": {
-              borderColor: "#F59E0B",
-              boxShadow: "0 4px 12px rgba(245, 158, 11, 0.08)",
-            },
-          }}
-        >
-          <CardContent sx={{ p: 3 }}>
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "flex-start",
-              }}
-            >
-              <Box>
-                <Typography
-                  variant="body2"
-                  sx={{
-                    color: "#64748B",
-                    fontWeight: 600,
-                    mb: 1,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.5px",
-                    fontSize: "0.75rem",
-                  }}
-                >
-                  Tạm Ngưng
-                </Typography>
-                <Typography
-                  variant="h3"
-                  fontWeight={700}
-                  sx={{ color: "#64748B" }}
-                >
-                  {stats.suspended}
-                </Typography>
-              </Box>
-              <Box
-                sx={{
-                  bgcolor: "#F4F4F5",
-                  p: 1.5,
-                  borderRadius: 2,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Typography sx={{ fontSize: "1.5rem" }}>⏸️</Typography>
               </Box>
             </Box>
           </CardContent>
@@ -754,6 +689,18 @@ export default function CameraManagement() {
                   }}
                 >
                   Số Serial
+                </TableCell>
+                <TableCell
+                  sx={{
+                    fontWeight: 700,
+                    color: "#475569",
+                    fontSize: "0.75rem",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                    py: 2,
+                  }}
+                >
+                  Chi nhánh
                 </TableCell>
                 <TableCell
                   sx={{
@@ -928,6 +875,14 @@ export default function CameraManagement() {
                       }}
                     >
                       {camera.serialNumber}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Typography
+                      variant="body2"
+                      sx={{ color: "#334155", fontWeight: 600 }}
+                    >
+                      {camera.branchName || "Chưa có chi nhánh"}
                     </Typography>
                   </TableCell>
                   <TableCell>

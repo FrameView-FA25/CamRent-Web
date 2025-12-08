@@ -80,7 +80,6 @@ const ManagerProfile: React.FC = () => {
   const [tabValue, setTabValue] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
   const [showNotification, setShowNotification] = useState(false);
-  const [notificationMessage, setNotificationMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [signatureDialogOpen, setSignatureDialogOpen] = useState(false);
   const signatureRef = useRef<SignatureCanvas | null>(null);
@@ -820,9 +819,7 @@ const ManagerProfile: React.FC = () => {
           onClose={() => setShowNotification(false)}
           severity="success"
           sx={{ width: "100%" }}
-        >
-          {notificationMessage}
-        </Alert>
+        ></Alert>
       </Snackbar>
 
       {/* Signature Dialog */}
