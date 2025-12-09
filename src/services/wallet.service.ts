@@ -6,22 +6,8 @@
 import type { Wallet, WalletBalanceResponse } from "../types/wallet.types";
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "https://camrent-backend.up.railway.app/api";
-
-interface TopupResponse {
-  redirectUrl?: string;
-  paymentUrl?: string;
-  payUrl?: string;
-  checkoutUrl?: string;
-  url?: string;
-  data?: {
-    redirectUrl?: string;
-    paymentUrl?: string;
-    payUrl?: string;
-    checkoutUrl?: string;
-    url?: string;
-  };
-}
+  import.meta.env.VITE_API_BASE_URL ||
+  "https://camrent-backend.up.railway.app/api";
 
 /**
  * Get wallet information
@@ -101,7 +87,8 @@ export async function topupWallet(
     let errorMessage = "Không thể tạo giao dịch nạp tiền";
     try {
       const errorJson = JSON.parse(errorText);
-      errorMessage = errorJson.message || errorJson.error || errorText || errorMessage;
+      errorMessage =
+        errorJson.message || errorJson.error || errorText || errorMessage;
     } catch {
       errorMessage = errorText || errorMessage;
     }
@@ -116,7 +103,10 @@ export async function topupWallet(
       data = JSON.parse(responseText);
     } catch {
       // Nếu không phải JSON, có thể là string URL trực tiếp
-      if (responseText.startsWith("http://") || responseText.startsWith("https://")) {
+      if (
+        responseText.startsWith("http://") ||
+        responseText.startsWith("https://")
+      ) {
         return responseText.trim();
       }
       throw new Error("Response không hợp lệ");
@@ -125,10 +115,10 @@ export async function topupWallet(
     console.error("Lỗi parse response:", parseError);
     throw new Error("Không thể đọc phản hồi từ server");
   }
-  
+
   // Log để debug
   console.log("Topup response:", data);
-  
+
   // Tìm URL thanh toán trong nhiều định dạng có thể
   const url =
     data?.redirectUrl ||
@@ -150,11 +140,19 @@ export async function topupWallet(
     data?.result?.redirectUrl ||
     data?.result?.paymentUrl ||
     data?.result?.url ||
-    (typeof data === "string" && (data.startsWith("http://") || data.startsWith("https://")) ? data : null);
+    (typeof data === "string" &&
+    (data.startsWith("http://") || data.startsWith("https://"))
+      ? data
+      : null);
 
   if (!url) {
-    console.error("Response không chứa payment URL. Full response:", JSON.stringify(data, null, 2));
-    throw new Error("Không nhận được liên kết thanh toán từ server. Vui lòng thử lại sau.");
+    console.error(
+      "Response không chứa payment URL. Full response:",
+      JSON.stringify(data, null, 2)
+    );
+    throw new Error(
+      "Không nhận được liên kết thanh toán từ server. Vui lòng thử lại sau."
+    );
   }
 
   return url;
