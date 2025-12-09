@@ -90,7 +90,6 @@ const ManagerProfile: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [signatureDialogOpen, setSignatureDialogOpen] = useState(false);
   const signatureRef = useRef<SignatureCanvas | null>(null);
-  const { user } = useAuth();
 
   const [userData, setUserData] = useState({
     fullName: "",

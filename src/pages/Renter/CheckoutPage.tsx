@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Box,
   Container,
@@ -11,6 +11,15 @@ import {
   Stack,
   Chip,
   Alert,
+  Stepper,
+  Step,
+  StepLabel,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  IconButton,
+  CircularProgress,
   Radio,
   RadioGroup,
   FormControlLabel,
@@ -22,9 +31,11 @@ import {
   MapPin,
   Camera,
   Package,
+  FileText,
+  CheckCircle,
+  X as XIcon,
   CreditCard,
   Wallet,
-  Building2,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
@@ -33,7 +44,7 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs, { Dayjs } from "dayjs";
 import { colors } from "../../theme/colors";
 import { toast } from "react-toastify";
-import { getBalance } from "@/services/wallet.service";
+import SignatureCanvas from "react-signature-canvas";
 
 interface CartItemWithQuantity {
   itemId: string;
@@ -112,10 +123,16 @@ const PROVINCES = [
   "Yên Bái",
 ];
 
+const steps = ["Thông tin đặt thuê", "Xem và ký hợp đồng", "Thanh toán"];
+
 const CheckoutPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { items } = location.state || {};
+  const signatureRef = useRef<SignatureCanvas | null>(null);
+
+  // Stepper state
+  const [activeStep, setActiveStep] = useState(0);
 
   // Form state
   const [country] = useState("Vietnam");
@@ -124,31 +141,28 @@ const CheckoutPage: React.FC = () => {
   const [pickupAt, setPickupAt] = useState<Dayjs | null>(null);
   const [returnAt, setReturnAt] = useState<Dayjs | null>(null);
   const [loading, setLoading] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<"wallet" | "transfer">(
-    "wallet"
+
+  // Contract state
+  const [bookingId, setBookingId] = useState<string | null>(null);
+  const [contractId, setContractId] = useState<string | null>(null);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [signatureDialogOpen, setSignatureDialogOpen] = useState(false);
+  const [signing, setSigning] = useState(false);
+
+  // Payment state
+  const [paymentMethod, setPaymentMethod] = useState<"PayOs" | "Wallet">(
+    "PayOs"
   );
-  const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [processingPayment, setProcessingPayment] = useState(false);
+
   // Redirect if no items
   useEffect(() => {
     if (!items || items.length === 0) {
-      toast.error("No items in cart");
+      toast.error("Không có sản phẩm trong giỏ hàng");
       navigate("/");
     }
   }, [items, navigate]);
-  // Fetch wallet balance on component mount
-  useEffect(() => {
-    const fetchWalletBalance = async () => {
-      try {
-        const balanceData = await getBalance();
-        setWalletBalance(balanceData.balance);
-      } catch (error) {
-        console.error("Failed to fetch wallet balance:", error);
-        setWalletBalance(0);
-      }
-    };
 
-    fetchWalletBalance();
-  }, []);
   const cartItems: CartItemWithQuantity[] = items || [];
 
   const formatCurrency = (amount: number) => {
@@ -175,9 +189,8 @@ const CheckoutPage: React.FC = () => {
     return calculateSubtotal() * (days || 1);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  // Step 1: Create booking
+  const handleCreateBooking = async () => {
     // Validation
     if (!province || !district) {
       toast.error("Vui lòng điền địa điểm nhận hàng");
@@ -192,15 +205,6 @@ const CheckoutPage: React.FC = () => {
     if (returnAt.isBefore(pickupAt)) {
       toast.error("Ngày trả phải sau ngày nhận");
       return;
-    }
-    if (paymentMethod === "wallet" && walletBalance !== null) {
-      const totalAmount = calculateTotal();
-      if (walletBalance < totalAmount) {
-        toast.error(
-          "Số dư ví không đủ. Vui lòng nạp thêm tiền hoặc chọn chuyển khoản."
-        );
-        return;
-      }
     }
 
     try {
@@ -226,15 +230,11 @@ const CheckoutPage: React.FC = () => {
         body: JSON.stringify(bookingData),
       });
 
-      // ✅ Check if response has content
       const contentType = response.headers.get("content-type");
       let result = null;
 
       if (contentType && contentType.includes("application/json")) {
-        // Response is JSON
         const text = await response.text();
-        console.log("Response text:", text);
-
         if (text) {
           try {
             result = JSON.parse(text);
@@ -243,31 +243,29 @@ const CheckoutPage: React.FC = () => {
             throw new Error("Invalid JSON response from server");
           }
         }
-      } else {
-        // Response is not JSON (might be empty or plain text)
-        const text = await response.text();
-        console.log("Non-JSON response:", text);
       }
 
-      // ✅ Check response status after reading body
       if (!response.ok) {
         throw new Error(result?.message || `Máy ảnh đã có người đặt thuê.`);
       }
 
-      console.log("Đặt thuê thành công:", result);
+      // Get bookingId and contractId from response
+      const responseBookingId = result?.id || result?.bookingId;
+      const responseContractId =
+        result?.contracts?.[0]?.id || result?.contractId;
+
+      if (!responseBookingId || !responseContractId) {
+        throw new Error("Không tìm thấy thông tin đơn hàng hoặc hợp đồng");
+      }
+
+      setBookingId(responseBookingId);
+      setContractId(responseContractId);
+
+      // Fetch contract preview
+      await fetchContractPreview(responseContractId, token);
 
       toast.success("Đặt thuê thành công!");
-      if (paymentMethod === "wallet") {
-        toast.success("Đặt thuê và thanh toán thành công!");
-      } else {
-        toast.success(
-          "Đặt thuê thành công! Vui lòng chuyển khoản để hoàn tất."
-        );
-      }
-      // Navigate to orders page
-      setTimeout(() => {
-        navigate("/renter/orders");
-      }, 1500);
+      setActiveStep(1); // Move to step 2
     } catch (error: unknown) {
       console.error("Error creating booking:", error);
 
@@ -278,6 +276,201 @@ const CheckoutPage: React.FC = () => {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Fetch contract preview PDF
+  const fetchContractPreview = async (
+    contractId: string,
+    token: string | null
+  ) => {
+    try {
+      const previewResponse = await fetch(
+        `${API_BASE_URL}/Contracts/${contractId}/preview`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!previewResponse.ok) {
+        throw new Error("Không thể lấy hợp đồng");
+      }
+
+      const blob = await previewResponse.blob();
+      const pdfBlob = new Blob([blob], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(pdfBlob);
+
+      setPdfUrl(url);
+    } catch (error) {
+      console.error("Error fetching contract:", error);
+      toast.error("Không thể tải hợp đồng");
+    }
+  };
+
+  // Open signature dialog
+  const handleOpenSignature = () => {
+    setSignatureDialogOpen(true);
+  };
+
+  // Clear signature
+  const handleClearSignature = () => {
+    if (signatureRef.current) {
+      signatureRef.current.clear();
+    }
+  };
+
+  // Sign contract
+  const handleSignContract = async () => {
+    if (!signatureRef.current || signatureRef.current.isEmpty()) {
+      toast.error("Vui lòng ký vào khung trước khi xác nhận");
+      return;
+    }
+
+    if (!contractId) {
+      toast.error("Không tìm thấy hợp đồng");
+      return;
+    }
+
+    try {
+      setSigning(true);
+      const token = localStorage.getItem("accessToken");
+
+      // Get signature as base64
+      const signatureDataUrl = signatureRef.current.toDataURL("image/png");
+      const base64Data = signatureDataUrl.split(",")[1] || "";
+
+      if (!base64Data) {
+        throw new Error("Dữ liệu chữ ký không hợp lệ");
+      }
+
+      // POST signature
+      const response = await fetch(
+        `${API_BASE_URL}/Contracts/${contractId}/sign`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            signatureBase64: base64Data,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Không thể ký hợp đồng");
+      }
+
+      toast.success("Ký hợp đồng thành công!");
+      setSignatureDialogOpen(false);
+
+      // Move to payment step
+      setActiveStep(2);
+    } catch (error) {
+      console.error("Error signing contract:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Không thể ký hợp đồng"
+      );
+    } finally {
+      setSigning(false);
+    }
+  };
+
+  // Process payment
+  const handlePayment = async () => {
+    if (!bookingId) {
+      toast.error("Không tìm thấy thông tin đơn hàng");
+      return;
+    }
+
+    try {
+      setProcessingPayment(true);
+      const token = localStorage.getItem("accessToken");
+
+      // Step 1: Authorize payment
+      const authorizeResponse = await fetch(
+        `${API_BASE_URL}/Payments/authorize`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            bookingId: bookingId,
+            mode: "Deposit",
+            method: paymentMethod,
+          }),
+        }
+      );
+
+      if (!authorizeResponse.ok) {
+        const errorText = await authorizeResponse.text();
+        throw new Error(errorText || "Không thể khởi tạo thanh toán");
+      }
+
+      // Response is payment ID (string with quotes)
+      let paymentId = await authorizeResponse.text();
+
+      // Remove leading and trailing quotes if present
+      paymentId = paymentId.replace(/^"|"$/g, "");
+
+      if (paymentMethod === "Wallet") {
+        // Wallet payment success
+        toast.success("Thanh toán bằng ví thành công!");
+        setTimeout(() => {
+          navigate("/");
+        }, 1500);
+      } else {
+        // PayOs payment - create checkout URL
+        const returnUrl = `${window.location.origin}`;
+        const cancelUrl = `${window.location.origin}`;
+
+        const payosResponse = await fetch(
+          `${API_BASE_URL}/Payments/${paymentId}/payos`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              returnUrl: returnUrl,
+              cancelUrl: cancelUrl,
+            }),
+          }
+        );
+
+        if (!payosResponse.ok) {
+          const errorText = await payosResponse.text();
+          throw new Error(errorText || "Không thể tạo link thanh toán");
+        }
+
+        const payosData = await payosResponse.json();
+
+        // Get redirectUrl from response
+        const redirectUrl =
+          payosData.redirectUrl || payosData.checkoutUrl || payosData.url;
+
+        if (!redirectUrl) {
+          throw new Error("Không nhận được link thanh toán");
+        }
+
+        // Redirect to PayOs checkout page
+        window.location.href = redirectUrl;
+      }
+    } catch (error) {
+      console.error("Error processing payment:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Không thể xử lý thanh toán"
+      );
+    } finally {
+      setProcessingPayment(false);
     }
   };
 
@@ -310,7 +503,7 @@ const CheckoutPage: React.FC = () => {
                 },
               }}
             >
-              Quay lại giỏ hàng
+              Quay lại
             </Button>
 
             <Typography
@@ -324,13 +517,32 @@ const CheckoutPage: React.FC = () => {
                 gap: 2,
               }}
             >
-              <CreditCard size={32} />
+              <FileText size={32} />
               Thanh Toán
             </Typography>
             <Typography variant="body1" sx={{ color: colors.text.secondary }}>
               Hoàn tất đặt thuê thiết bị của bạn
             </Typography>
           </Box>
+
+          {/* Stepper */}
+          <Paper
+            elevation={0}
+            sx={{
+              p: 3,
+              mb: 3,
+              borderRadius: 3,
+              border: `1px solid ${colors.border.light}`,
+            }}
+          >
+            <Stepper activeStep={activeStep}>
+              {steps.map((label) => (
+                <Step key={label}>
+                  <StepLabel>{label}</StepLabel>
+                </Step>
+              ))}
+            </Stepper>
+          </Paper>
 
           {/* Main Content */}
           <Box
@@ -340,179 +552,302 @@ const CheckoutPage: React.FC = () => {
               flexDirection: { xs: "column", lg: "row" },
             }}
           >
-            {/* Left - Checkout Form */}
+            {/* Left - Form/Contract/Payment */}
             <Box sx={{ flex: 1 }}>
-              <Paper
-                elevation={0}
-                component="form"
-                onSubmit={handleSubmit}
-                sx={{
-                  p: 4,
-                  borderRadius: 3,
-                  border: `1px solid ${colors.border.light}`,
-                }}
-              >
-                {/* Pickup Location */}
-                <Box sx={{ mb: 4 }}>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 1.5,
-                      mb: 3,
-                    }}
-                  >
-                    <MapPin size={24} color={colors.primary.main} />
-                    <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                      Chọn Nơi Nhận Thiết Bị
-                    </Typography>
-                  </Box>
-
-                  <Stack spacing={2}>
-                    <TextField
-                      fullWidth
-                      label="Quốc gia"
-                      value={country}
-                      disabled
+              {activeStep === 0 ? (
+                // Step 1: Booking Information
+                <Paper
+                  elevation={0}
+                  component="form"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    handleCreateBooking();
+                  }}
+                  sx={{
+                    p: 4,
+                    borderRadius: 3,
+                    border: `1px solid ${colors.border.light}`,
+                  }}
+                >
+                  {/* Pickup Location */}
+                  <Box sx={{ mb: 4 }}>
+                    <Box
                       sx={{
-                        "& .MuiOutlinedInput-root": {
-                          bgcolor: colors.neutral[50],
-                        },
-                      }}
-                    />
-
-                    <TextField
-                      fullWidth
-                      select
-                      required
-                      label="Tỉnh/Thành phố"
-                      value={province}
-                      onChange={(e) => setProvince(e.target.value)}
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          "&:hover fieldset": {
-                            borderColor: colors.primary.main,
-                          },
-                          "&.Mui-focused fieldset": {
-                            borderColor: colors.primary.main,
-                          },
-                        },
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1.5,
+                        mb: 3,
                       }}
                     >
-                      {PROVINCES.map((prov) => (
-                        <MenuItem key={prov} value={prov}>
-                          {prov}
-                        </MenuItem>
-                      ))}
-                    </TextField>
+                      <MapPin size={24} color={colors.primary.main} />
+                      <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                        Chọn Nơi Nhận Thiết Bị
+                      </Typography>
+                    </Box>
 
-                    <TextField
-                      fullWidth
-                      required
-                      label="Quận/Huyện"
-                      value={district}
-                      onChange={(e) => setDistrict(e.target.value)}
-                      placeholder="Nhập quận hoặc huyện"
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          "&:hover fieldset": {
-                            borderColor: colors.primary.main,
-                          },
-                          "&.Mui-focused fieldset": {
-                            borderColor: colors.primary.main,
-                          },
-                        },
-                      }}
-                    />
-                  </Stack>
-                </Box>
-
-                <Divider sx={{ my: 4 }} />
-
-                {/* Rental Period */}
-                <Box>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 1.5,
-                      mb: 3,
-                    }}
-                  >
-                    <Calendar size={24} color={colors.primary.main} />
-                    <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                      Thời gian thuê
-                    </Typography>
-                  </Box>
-
-                  <Stack spacing={3}>
-                    <DateTimePicker
-                      label="Chọn Ngày & Giờ Nhận"
-                      value={pickupAt}
-                      onChange={(newValue) => setPickupAt(newValue)}
-                      minDateTime={dayjs()}
-                      slotProps={{
-                        textField: {
-                          required: true,
-                          fullWidth: true,
-                          sx: {
-                            "& .MuiOutlinedInput-root": {
-                              "&:hover fieldset": {
-                                borderColor: colors.primary.main,
-                              },
-                              "&.Mui-focused fieldset": {
-                                borderColor: colors.primary.main,
-                              },
-                            },
-                          },
-                        },
-                      }}
-                    />
-
-                    <DateTimePicker
-                      label="Chọn Ngày & Giờ Trả"
-                      value={returnAt}
-                      onChange={(newValue) => setReturnAt(newValue)}
-                      minDateTime={pickupAt || dayjs()}
-                      slotProps={{
-                        textField: {
-                          required: true,
-                          fullWidth: true,
-                          sx: {
-                            "& .MuiOutlinedInput-root": {
-                              "&:hover fieldset": {
-                                borderColor: colors.primary.main,
-                              },
-                              "&.Mui-focused fieldset": {
-                                borderColor: colors.primary.main,
-                              },
-                            },
-                          },
-                        },
-                      }}
-                    />
-
-                    {pickupAt && returnAt && (
-                      <Alert
-                        severity="info"
+                    <Stack spacing={2}>
+                      <TextField
+                        fullWidth
+                        label="Quốc gia"
+                        value={country}
+                        disabled
                         sx={{
-                          borderRadius: 2,
-                          "& .MuiAlert-icon": {
-                            color: colors.status.info,
+                          "& .MuiOutlinedInput-root": {
+                            bgcolor: colors.neutral[50],
+                          },
+                        }}
+                      />
+
+                      <TextField
+                        fullWidth
+                        select
+                        required
+                        label="Tỉnh/Thành phố"
+                        value={province}
+                        onChange={(e) => setProvince(e.target.value)}
+                        sx={{
+                          "& .MuiOutlinedInput-root": {
+                            "&:hover fieldset": {
+                              borderColor: colors.primary.main,
+                            },
+                            "&.Mui-focused fieldset": {
+                              borderColor: colors.primary.main,
+                            },
                           },
                         }}
                       >
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          Thời gian thuê: {calculateRentalDays()} ngày
-                        </Typography>
-                      </Alert>
-                    )}
-                  </Stack>
-                </Box>
-                <Divider sx={{ my: 4 }} />
+                        {PROVINCES.map((prov) => (
+                          <MenuItem key={prov} value={prov}>
+                            {prov}
+                          </MenuItem>
+                        ))}
+                      </TextField>
 
-                {/* Payment Method */}
-                <Box>
+                      <TextField
+                        fullWidth
+                        required
+                        label="Quận/Huyện"
+                        value={district}
+                        onChange={(e) => setDistrict(e.target.value)}
+                        placeholder="Nhập quận hoặc huyện"
+                        sx={{
+                          "& .MuiOutlinedInput-root": {
+                            "&:hover fieldset": {
+                              borderColor: colors.primary.main,
+                            },
+                            "&.Mui-focused fieldset": {
+                              borderColor: colors.primary.main,
+                            },
+                          },
+                        }}
+                      />
+                    </Stack>
+                  </Box>
+
+                  <Divider sx={{ my: 4 }} />
+
+                  {/* Rental Period */}
+                  <Box>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1.5,
+                        mb: 3,
+                      }}
+                    >
+                      <Calendar size={24} color={colors.primary.main} />
+                      <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                        Thời gian thuê
+                      </Typography>
+                    </Box>
+
+                    <Stack spacing={3}>
+                      <DateTimePicker
+                        label="Chọn Ngày & Giờ Nhận"
+                        value={pickupAt}
+                        onChange={(newValue) => setPickupAt(newValue)}
+                        minDateTime={dayjs()}
+                        slotProps={{
+                          textField: {
+                            required: true,
+                            fullWidth: true,
+                            sx: {
+                              "& .MuiOutlinedInput-root": {
+                                "&:hover fieldset": {
+                                  borderColor: colors.primary.main,
+                                },
+                                "&.Mui-focused fieldset": {
+                                  borderColor: colors.primary.main,
+                                },
+                              },
+                            },
+                          },
+                        }}
+                      />
+
+                      <DateTimePicker
+                        label="Chọn Ngày & Giờ Trả"
+                        value={returnAt}
+                        onChange={(newValue) => setReturnAt(newValue)}
+                        minDateTime={pickupAt || dayjs()}
+                        slotProps={{
+                          textField: {
+                            required: true,
+                            fullWidth: true,
+                            sx: {
+                              "& .MuiOutlinedInput-root": {
+                                "&:hover fieldset": {
+                                  borderColor: colors.primary.main,
+                                },
+                                "&.Mui-focused fieldset": {
+                                  borderColor: colors.primary.main,
+                                },
+                              },
+                            },
+                          },
+                        }}
+                      />
+
+                      {pickupAt && returnAt && (
+                        <Alert
+                          severity="info"
+                          sx={{
+                            borderRadius: 2,
+                            "& .MuiAlert-icon": {
+                              color: colors.status.info,
+                            },
+                          }}
+                        >
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            Thời gian thuê: {calculateRentalDays()} ngày
+                          </Typography>
+                        </Alert>
+                      )}
+                    </Stack>
+                  </Box>
+
+                  {/* Submit Button */}
+                  <Button
+                    type="submit"
+                    fullWidth
+                    variant="contained"
+                    disabled={loading}
+                    sx={{
+                      mt: 4,
+                      py: 1.5,
+                      bgcolor: colors.primary.main,
+                      color: "white",
+                      fontWeight: 700,
+                      fontSize: "1rem",
+                      textTransform: "none",
+                      "&:hover": {
+                        bgcolor: colors.primary.dark,
+                      },
+                      "&:disabled": {
+                        bgcolor: colors.neutral[300],
+                      },
+                    }}
+                  >
+                    {loading ? "Đang xử lý..." : "Chuyển qua bước tiếp theo"}
+                  </Button>
+                </Paper>
+              ) : activeStep === 1 ? (
+                // Step 2: Contract Preview
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 4,
+                    borderRadius: 3,
+                    border: `1px solid ${colors.border.light}`,
+                  }}
+                >
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      mb: 3,
+                    }}
+                  >
+                    <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                      Xem trước hợp đồng
+                    </Typography>
+                    <Chip
+                      icon={<FileText size={16} />}
+                      label="Hợp đồng thuê"
+                      color="primary"
+                    />
+                  </Box>
+
+                  {/* PDF Preview */}
+                  {pdfUrl ? (
+                    <Box
+                      sx={{
+                        width: "100%",
+                        height: "600px",
+                        border: `2px solid ${colors.border.light}`,
+                        borderRadius: 2,
+                        overflow: "hidden",
+                        mb: 3,
+                      }}
+                    >
+                      <iframe
+                        src={pdfUrl}
+                        width="100%"
+                        height="100%"
+                        title="Contract Preview"
+                        style={{ border: "none" }}
+                      />
+                    </Box>
+                  ) : (
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        height: 400,
+                      }}
+                    >
+                      <CircularProgress />
+                    </Box>
+                  )}
+
+                  {/* Sign Button */}
+                  <Button
+                    fullWidth
+                    variant="contained"
+                    startIcon={<CheckCircle size={20} />}
+                    onClick={handleOpenSignature}
+                    disabled={!pdfUrl}
+                    sx={{
+                      py: 1.5,
+                      bgcolor: colors.primary.main,
+                      color: "white",
+                      fontWeight: 700,
+                      fontSize: "1rem",
+                      textTransform: "none",
+                      "&:hover": {
+                        bgcolor: colors.primary.dark,
+                      },
+                      "&:disabled": {
+                        bgcolor: colors.neutral[300],
+                      },
+                    }}
+                  >
+                    Ký hợp đồng
+                  </Button>
+                </Paper>
+              ) : (
+                // Step 3: Payment
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 4,
+                    borderRadius: 3,
+                    border: `1px solid ${colors.border.light}`,
+                  }}
+                >
                   <Box
                     sx={{
                       display: "flex",
@@ -523,27 +858,31 @@ const CheckoutPage: React.FC = () => {
                   >
                     <CreditCard size={24} color={colors.primary.main} />
                     <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                      Phương thức thanh toán
+                      Chọn phương thức thanh toán
                     </Typography>
                   </Box>
+
+                  <Alert severity="success" sx={{ mb: 3, borderRadius: 2 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      Hợp đồng đã được ký thành công!
+                    </Typography>
+                  </Alert>
 
                   <FormControl component="fieldset" fullWidth>
                     <RadioGroup
                       value={paymentMethod}
                       onChange={(e) =>
-                        setPaymentMethod(
-                          e.target.value as "wallet" | "transfer"
-                        )
+                        setPaymentMethod(e.target.value as "PayOs" | "Wallet")
                       }
                     >
-                      {/* Wallet Payment */}
+                      {/* PayOs Payment */}
                       <Paper
                         elevation={0}
                         sx={{
-                          p: 2.5,
+                          p: 3,
                           mb: 2,
                           border: `2px solid ${
-                            paymentMethod === "wallet"
+                            paymentMethod === "PayOs"
                               ? colors.primary.main
                               : colors.border.light
                           }`,
@@ -555,129 +894,89 @@ const CheckoutPage: React.FC = () => {
                             bgcolor: colors.primary.lighter,
                           },
                         }}
-                        onClick={() => setPaymentMethod("wallet")}
+                        onClick={() => setPaymentMethod("PayOs")}
                       >
                         <FormControlLabel
-                          value="wallet"
-                          control={
-                            <Radio
-                              sx={{
-                                color: colors.primary.main,
-                                "&.Mui-checked": {
-                                  color: colors.primary.main,
-                                },
-                              }}
-                            />
-                          }
+                          value="PayOs"
+                          control={<Radio />}
                           label={
-                            <Box sx={{ ml: 1 }}>
-                              <Box
-                                sx={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: 1.5,
-                                  mb: 0.5,
-                                }}
-                              >
-                                <Wallet size={20} color={colors.primary.main} />
-                                <Typography
-                                  variant="body1"
-                                  sx={{ fontWeight: 700 }}
-                                >
-                                  Thanh toán qua Ví
-                                </Typography>
-                              </Box>
-                              <Typography
-                                variant="body2"
-                                sx={{ color: colors.text.secondary, ml: 3.5 }}
-                              >
-                                Số dư hiện tại:{" "}
-                                <strong>
-                                  {walletBalance !== null
-                                    ? walletBalance.toLocaleString("vi-VN") +
-                                      " ₫"
-                                    : "Đang tải..."}
-                                </strong>
-                              </Typography>
-                              {walletBalance !== null &&
-                                walletBalance < calculateTotal() && (
-                                  <Alert
-                                    severity="warning"
-                                    sx={{ mt: 1.5, ml: 3.5 }}
-                                  >
-                                    Số dư không đủ. Cần thêm{" "}
-                                    {(
-                                      calculateTotal() - walletBalance
-                                    ).toLocaleString("vi-VN")}{" "}
-                                    ₫
-                                  </Alert>
-                                )}
-                            </Box>
-                          }
-                          sx={{ m: 0, width: "100%" }}
-                        />
-                      </Paper>
-
-                      {/* Bank Transfer */}
-                      <Paper
-                        elevation={0}
-                        sx={{
-                          p: 2.5,
-                          border: `2px solid ${
-                            paymentMethod === "transfer"
-                              ? colors.primary.main
-                              : colors.border.light
-                          }`,
-                          borderRadius: 2,
-                          cursor: "pointer",
-                          transition: "all 0.2s",
-                          "&:hover": {
-                            borderColor: colors.primary.main,
-                            bgcolor: colors.primary.lighter,
-                          },
-                        }}
-                        onClick={() => setPaymentMethod("transfer")}
-                      >
-                        <FormControlLabel
-                          value="transfer"
-                          control={
-                            <Radio
+                            <Box
                               sx={{
-                                color: colors.primary.main,
-                                "&.Mui-checked": {
-                                  color: colors.primary.main,
-                                },
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 2,
                               }}
-                            />
-                          }
-                          label={
-                            <Box sx={{ ml: 1 }}>
-                              <Box
-                                sx={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: 1.5,
-                                  mb: 0.5,
-                                }}
-                              >
-                                <Building2
-                                  size={20}
-                                  color={colors.primary.main}
-                                />
+                            >
+                              <CreditCard
+                                size={24}
+                                color={colors.primary.main}
+                              />
+                              <Box>
                                 <Typography
                                   variant="body1"
                                   sx={{ fontWeight: 700 }}
                                 >
                                   Chuyển khoản ngân hàng
                                 </Typography>
+                                <Typography
+                                  variant="caption"
+                                  sx={{ color: colors.text.secondary }}
+                                >
+                                  Thanh toán qua cổng PayOS
+                                </Typography>
                               </Box>
-                              <Typography
-                                variant="body2"
-                                sx={{ color: colors.text.secondary, ml: 3.5 }}
-                              >
-                                Bạn sẽ nhận thông tin chuyển khoản sau khi đặt
-                                thuê
-                              </Typography>
+                            </Box>
+                          }
+                          sx={{ m: 0, width: "100%" }}
+                        />
+                      </Paper>
+
+                      {/* Wallet Payment */}
+                      <Paper
+                        elevation={0}
+                        sx={{
+                          p: 3,
+                          border: `2px solid ${
+                            paymentMethod === "Wallet"
+                              ? colors.primary.main
+                              : colors.border.light
+                          }`,
+                          borderRadius: 2,
+                          cursor: "pointer",
+                          transition: "all 0.2s",
+                          "&:hover": {
+                            borderColor: colors.primary.main,
+                            bgcolor: colors.primary.lighter,
+                          },
+                        }}
+                        onClick={() => setPaymentMethod("Wallet")}
+                      >
+                        <FormControlLabel
+                          value="Wallet"
+                          control={<Radio />}
+                          label={
+                            <Box
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 2,
+                              }}
+                            >
+                              <Wallet size={24} color={colors.primary.main} />
+                              <Box>
+                                <Typography
+                                  variant="body1"
+                                  sx={{ fontWeight: 700 }}
+                                >
+                                  Ví điện tử
+                                </Typography>
+                                <Typography
+                                  variant="caption"
+                                  sx={{ color: colors.text.secondary }}
+                                >
+                                  Thanh toán bằng số dư ví
+                                </Typography>
+                              </Box>
                             </Box>
                           }
                           sx={{ m: 0, width: "100%" }}
@@ -685,37 +984,44 @@ const CheckoutPage: React.FC = () => {
                       </Paper>
                     </RadioGroup>
                   </FormControl>
-                </Box>
-                {/* Submit Button */}
-                <Button
-                  type="submit"
-                  fullWidth
-                  variant="contained"
-                  disabled={
-                    loading ||
-                    (paymentMethod === "wallet" &&
-                      walletBalance !== null &&
-                      walletBalance < calculateTotal())
-                  }
-                  sx={{
-                    mt: 4,
-                    py: 1.5,
-                    bgcolor: colors.primary.main,
-                    color: "white",
-                    fontWeight: 700,
-                    fontSize: "1rem",
-                    textTransform: "none",
-                    "&:hover": {
-                      bgcolor: colors.primary.dark,
-                    },
-                    "&:disabled": {
-                      bgcolor: colors.neutral[300],
-                    },
-                  }}
-                >
-                  {loading ? "Đang xử lý..." : "Xác nhận đặt thuê"}
-                </Button>
-              </Paper>
+
+                  {/* Payment Button */}
+                  <Button
+                    fullWidth
+                    variant="contained"
+                    onClick={handlePayment}
+                    disabled={processingPayment}
+                    sx={{
+                      mt: 4,
+                      py: 1.5,
+                      bgcolor: colors.primary.main,
+                      color: "white",
+                      fontWeight: 700,
+                      fontSize: "1rem",
+                      textTransform: "none",
+                      "&:hover": {
+                        bgcolor: colors.primary.dark,
+                      },
+                      "&:disabled": {
+                        bgcolor: colors.neutral[300],
+                      },
+                    }}
+                  >
+                    {processingPayment ? (
+                      <>
+                        <CircularProgress
+                          size={20}
+                          sx={{ mr: 1 }}
+                          color="inherit"
+                        />
+                        Đang xử lý...
+                      </>
+                    ) : (
+                      "Tiến hành thanh toán"
+                    )}
+                  </Button>
+                </Paper>
+              )}
             </Box>
 
             {/* Right - Order Summary */}
@@ -902,13 +1208,113 @@ const CheckoutPage: React.FC = () => {
                     variant="caption"
                     sx={{ color: colors.text.secondary, display: "block" }}
                   >
-                    💡Vui lòng xem xét kỹ thông tin thuê nhà của bạn trước khi
+                    💡 Vui lòng xem xét kỹ thông tin thuê nhà của bạn trước khi
                     xác nhận
                   </Typography>
                 </Box>
               </Paper>
             </Box>
           </Box>
+
+          {/* Signature Dialog */}
+          <Dialog
+            open={signatureDialogOpen}
+            onClose={() => !signing && setSignatureDialogOpen(false)}
+            maxWidth="md"
+            fullWidth
+          >
+            <DialogTitle>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                  Ký hợp đồng
+                </Typography>
+                <IconButton
+                  onClick={() => !signing && setSignatureDialogOpen(false)}
+                  disabled={signing}
+                >
+                  <XIcon size={20} />
+                </IconButton>
+              </Box>
+            </DialogTitle>
+            <DialogContent>
+              <Box sx={{ mb: 2 }}>
+                <Alert severity="info" sx={{ borderRadius: 2 }}>
+                  Vui lòng ký tên của bạn vào khung bên dưới để xác nhận hợp
+                  đồng
+                </Alert>
+              </Box>
+
+              <Box
+                sx={{
+                  border: `2px dashed ${colors.border.light}`,
+                  borderRadius: 2,
+                  bgcolor: colors.neutral[50],
+                  p: 2,
+                }}
+              >
+                <SignatureCanvas
+                  ref={signatureRef}
+                  canvasProps={{
+                    style: {
+                      width: "100%",
+                      height: "200px",
+                      border: `1px solid ${colors.border.light}`,
+                      borderRadius: "8px",
+                      backgroundColor: "white",
+                    },
+                  }}
+                />
+              </Box>
+            </DialogContent>
+            <DialogActions sx={{ p: 3, gap: 1 }}>
+              <Button
+                variant="outlined"
+                onClick={handleClearSignature}
+                disabled={signing}
+                sx={{
+                  borderColor: colors.border.light,
+                  color: colors.text.primary,
+                  textTransform: "none",
+                  fontWeight: 600,
+                }}
+              >
+                Xóa
+              </Button>
+              <Button
+                variant="contained"
+                onClick={handleSignContract}
+                disabled={signing}
+                sx={{
+                  bgcolor: colors.primary.main,
+                  color: "white",
+                  textTransform: "none",
+                  fontWeight: 600,
+                  "&:hover": {
+                    bgcolor: colors.primary.dark,
+                  },
+                }}
+              >
+                {signing ? (
+                  <>
+                    <CircularProgress
+                      size={16}
+                      sx={{ mr: 1 }}
+                      color="inherit"
+                    />
+                    Đang ký...
+                  </>
+                ) : (
+                  "Xác nhận ký"
+                )}
+              </Button>
+            </DialogActions>
+          </Dialog>
         </Container>
       </Box>
     </LocalizationProvider>

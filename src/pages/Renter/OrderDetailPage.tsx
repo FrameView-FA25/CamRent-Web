@@ -18,8 +18,6 @@ import {
   ImageListItem,
   Card,
   CardContent,
-  CircularProgress,
-  Alert,
 } from "@mui/material";
 import {
   ArrowLeft,
@@ -36,15 +34,12 @@ import {
   AlertCircle,
   Shield,
   CheckCircle,
-  CreditCard,
-  Loader2,
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { colors } from "../../theme/colors";
 import type { BookingDetail } from "../../types/booking.types";
 import { toast } from "react-toastify";
 import { getOrderStatusInfo } from "../../utils/order.utils";
-import { initiatePayment } from "../../services/payment.service";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -59,7 +54,6 @@ const OrderDetailPage: React.FC = () => {
   const [selectedInspectionImage, setSelectedInspectionImage] = useState<
     string | null
   >(null);
-  const [initiatingPayment, setInitiatingPayment] = useState(false);
 
   useEffect(() => {
     if (orderId) {
@@ -92,6 +86,12 @@ const OrderDetailPage: React.FC = () => {
       }
 
       const data = await response.json();
+
+      // Update statusText if it's "Chờ thanh toán"
+      if (data.statusText === "Chờ thanh toán") {
+        data.statusText = "Chờ xác nhận";
+      }
+
       setOrder(data);
     } catch (err) {
       console.error("Error fetching order details:", err);
@@ -165,28 +165,6 @@ const OrderDetailPage: React.FC = () => {
 
   const handleDownloadContract = () => {
     toast.info("Contract download feature coming soon");
-  };
-
-  const handlePayment = async () => {
-    if (!orderId) {
-      toast.error("Không tìm thấy thông tin đơn hàng");
-      return;
-    }
-
-    try {
-      setInitiatingPayment(true);
-
-      // Step 1 & 2: Authorize payment and get PayOS checkout URL
-      const checkoutUrl = await initiatePayment(orderId, "Deposit");
-
-      // Step 3: Redirect to PayOS checkout page
-      console.log("Redirecting to PayOS:", checkoutUrl);
-      window.location.href = checkoutUrl;
-    } catch (error: any) {
-      console.error("Payment error:", error);
-      toast.error(error.message || "Không thể khởi tạo thanh toán");
-      setInitiatingPayment(false);
-    }
   };
 
   if (loading) {
@@ -269,58 +247,8 @@ const OrderDetailPage: React.FC = () => {
   const totalAmount =
     order.snapshotRentalTotal + order.snapshotDepositAmount + platformFee;
 
-  // Check if payment is pending
-  const isPendingPayment = order.statusText === "Chờ thanh toán";
-
   return (
     <Box sx={{ bgcolor: colors.background.default, minHeight: "100vh", py: 4 }}>
-      {/* Payment Loading Overlay */}
-      {initiatingPayment && (
-        <Box
-          sx={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            bgcolor: "rgba(0, 0, 0, 0.7)",
-            zIndex: 9999,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 3,
-          }}
-        >
-          <CircularProgress
-            size={60}
-            sx={{
-              color: colors.primary.main,
-            }}
-          />
-          <Box sx={{ textAlign: "center" }}>
-            <Typography
-              variant="h6"
-              sx={{
-                color: "white",
-                fontWeight: 700,
-                mb: 1,
-              }}
-            >
-              Đang khởi tạo thanh toán...
-            </Typography>
-            <Typography
-              variant="body2"
-              sx={{
-                color: "rgba(255, 255, 255, 0.7)",
-              }}
-            >
-              Vui lòng đợi trong giây lát
-            </Typography>
-          </Box>
-        </Box>
-      )}
-
       <Container maxWidth="xl">
         {/* Back Button */}
         <Button
@@ -1074,123 +1002,34 @@ const OrderDetailPage: React.FC = () => {
                   /ngày
                 </Typography>
 
-                {/* Payment Status/Action */}
-                {isPendingPayment ? (
+                {/* Payment Status */}
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 2,
+                    p: 2,
+                    bgcolor: colors.status.successLight,
+                    borderRadius: 2,
+                    mt: 1,
+                  }}
+                >
+                  <Shield size={20} color={colors.status.success} />
                   <Box>
-                    <Alert
-                      severity="info"
-                      sx={{ mb: 2 }}
-                      icon={<CreditCard size={20} />}
+                    <Typography
+                      variant="body2"
+                      sx={{ color: colors.status.success, fontWeight: 700 }}
                     >
-                      <Typography
-                        variant="body2"
-                        sx={{ fontWeight: 600, mb: 0.5 }}
-                      >
-                        Đơn hàng đang chờ duyệt
-                      </Typography>
-                      <Typography variant="body2">
-                        Vui lòng thanh toán tiền đặt cọc để hoàn tất đơn hàng
-                      </Typography>
-                    </Alert>
-
-                    <Box
-                      sx={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        mb: 2,
-                        p: 2,
-                        bgcolor: colors.background.default,
-                        borderRadius: 2,
-                      }}
-                    >
-                      <Box>
-                        <Typography
-                          variant="body2"
-                          sx={{ color: colors.text.secondary, mb: 0.5 }}
-                        >
-                          Số tiền cần thanh toán (Đặt cọc):
-                        </Typography>
-                        <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                          {formatCurrency(order.snapshotDepositAmount)}
-                        </Typography>
-                      </Box>
-                    </Box>
-
-                    <Button
-                      fullWidth
-                      variant="contained"
-                      size="large"
-                      startIcon={
-                        initiatingPayment ? (
-                          <Loader2 size={20} className="animate-spin" />
-                        ) : (
-                          <CreditCard size={20} />
-                        )
-                      }
-                      onClick={handlePayment}
-                      disabled={initiatingPayment}
-                      sx={{
-                        bgcolor: colors.primary.main,
-                        color: "black",
-                        py: 1.5,
-                        fontSize: 16,
-                        fontWeight: 700,
-                        textTransform: "none",
-                        borderRadius: 2,
-                        "&:hover": {
-                          bgcolor: colors.primary.dark,
-                        },
-                        "&:disabled": {
-                          bgcolor: colors.neutral[200],
-                          color: colors.neutral[400],
-                        },
-                      }}
-                    >
-                      {initiatingPayment ? "Đang xử lý..." : "Thanh toán ngay"}
-                    </Button>
-
+                      Đã thanh toán
+                    </Typography>
                     <Typography
                       variant="caption"
-                      sx={{
-                        display: "block",
-                        textAlign: "center",
-                        color: colors.text.secondary,
-                        mt: 2,
-                      }}
+                      sx={{ color: colors.text.secondary }}
                     >
-                      Bạn sẽ được chuyển đến trang thanh toán PayOS an toàn
+                      Đơn hàng của bạn đã được xử lý
                     </Typography>
                   </Box>
-                ) : (
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 2,
-                      p: 2,
-                      bgcolor: colors.status.successLight,
-                      borderRadius: 2,
-                      mt: 1,
-                    }}
-                  >
-                    <Shield size={20} color={colors.status.success} />
-                    <Box>
-                      <Typography
-                        variant="body2"
-                        sx={{ color: colors.status.success, fontWeight: 700 }}
-                      >
-                        Đã thanh toán
-                      </Typography>
-                      <Typography
-                        variant="caption"
-                        sx={{ color: colors.text.secondary }}
-                      >
-                        Đơn hàng của bạn đã được thanh toán thành công
-                      </Typography>
-                    </Box>
-                  </Box>
-                )}
+                </Box>
               </Box>
             </Paper>
 
