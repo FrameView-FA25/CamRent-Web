@@ -38,6 +38,7 @@ import {
   Clear,
   Edit,
   MoreVert,
+  Gavel,
 } from "@mui/icons-material";
 import {
   fetchStaffBookings,
@@ -51,7 +52,7 @@ import {
 } from "../../utils/booking.utils";
 import { getItemName } from "../../helpers/booking.helper";
 import { useNavigate } from "react-router-dom";
-import CheckBookingDialog from "../../components/Modal/CheckBookingDialog";
+import CheckBookingDialog from "../../components/Modal/Staff/CheckBookingDialog";
 import {
   createInspection,
   updateInspection,
@@ -64,10 +65,14 @@ import type {
 } from "../../types/verification.types";
 import InspectionListDialog, {
   type InspectionListItem,
-} from "../../components/Modal/InspectionListDialog";
+} from "../../components/Modal/Staff/InspectionListDialog";
 import EditInspectionDialog, {
   type EditInspectionFormState,
-} from "../../components/Modal/EditInspectionDialog";
+} from "../../components/Modal/Staff/EditInspectionDialog";
+import BookingDisputeListDialog from "../../components/Modal/Staff/BookingDisputeListDialog";
+import CreateDisputeDialog from "../../components/Modal/Staff/CreateDisputeDialog";
+import { createDispute } from "../../services/dispute.service";
+import type { CreateDisputeRequest } from "../../types/booking.types";
 
 const CheckBookings: React.FC = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -110,6 +115,11 @@ const CheckBookings: React.FC = () => {
   const [deviceMenuBookingId, setDeviceMenuBookingId] = useState<string | null>(
     null
   );
+  const [disputeDialogOpen, setDisputeDialogOpen] = useState(false);
+  const [disputeBookingId, setDisputeBookingId] = useState<string>("");
+  const [createDisputeDialogOpen, setCreateDisputeDialogOpen] = useState(false);
+  const [createDisputeBookingId, setCreateDisputeBookingId] =
+    useState<string>("");
   const navigate = useNavigate();
   useEffect(() => {
     loadAssignments();
@@ -1423,6 +1433,34 @@ const CheckBookings: React.FC = () => {
           </ListItemIcon>
           <ListItemText primary="Tạo phiếu kiểm tra" />
         </MenuItem>
+        <MenuItem
+          onClick={() => {
+            if (actionMenuBookingId) {
+              setCreateDisputeBookingId(actionMenuBookingId);
+              setCreateDisputeDialogOpen(true);
+            }
+            handleCloseActionMenu();
+          }}
+        >
+          <ListItemIcon>
+            <Gavel fontSize="small" sx={{ color: "#DC2626" }} />
+          </ListItemIcon>
+          <ListItemText primary="Tạo Dispute" />
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            if (actionMenuBookingId) {
+              setDisputeBookingId(actionMenuBookingId);
+              setDisputeDialogOpen(true);
+            }
+            handleCloseActionMenu();
+          }}
+        >
+          <ListItemIcon>
+            <Gavel fontSize="small" sx={{ color: "#9333EA" }} />
+          </ListItemIcon>
+          <ListItemText primary="Xem Disputes" />
+        </MenuItem>
       </Menu>
       <Menu
         anchorEl={deviceMenuAnchorEl}
@@ -1490,6 +1528,21 @@ const CheckBookings: React.FC = () => {
         saving={savingInspection}
         onClose={handleCloseEditInspection}
         onSubmit={handleSubmitEditInspection}
+      />
+      <CreateDisputeDialog
+        open={createDisputeDialogOpen}
+        onClose={() => setCreateDisputeDialogOpen(false)}
+        bookingId={createDisputeBookingId}
+        onSubmit={async (data: CreateDisputeRequest) => {
+          await createDispute(data);
+          toast.success("Đã tạo dispute thành công");
+          setCreateDisputeDialogOpen(false);
+        }}
+      />
+      <BookingDisputeListDialog
+        open={disputeDialogOpen}
+        onClose={() => setDisputeDialogOpen(false)}
+        bookingId={disputeBookingId}
       />
     </Box>
   );

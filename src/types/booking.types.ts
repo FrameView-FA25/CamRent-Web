@@ -197,6 +197,45 @@ export interface CreateInspectionRequest {
   items: InspectionItem[];
   inspectorId: string;
 }
+
+// Dispute Types
+export interface Dispute {
+  id: string;
+  bookingId: string;
+  title: string;
+  description: string;
+  severity: string; // "Low" | "Medium" | "High"
+  status: string; // "Open" | "InProgress" | "Resolved" | "Closed"
+  createdBy: string;
+  assignedTo?: string;
+  totalAmount: number;
+  createdAt: string;
+  updatedAt: string;
+  items?: DisputeItem[];
+}
+
+export interface DisputeItem {
+  id: string;
+  disputeId: string;
+  type: string; // "Camera" | "Accessory" | "Money"
+  amount: number;
+  notes: string;
+  createdAt: string;
+}
+
+export interface CreateDisputeRequest {
+  bookingId: string;
+  title: string;
+  description: string;
+  severity: string;
+}
+
+export interface AddDisputeItemRequest {
+  type: string;
+  amount: number;
+  notes: string;
+}
+
 export interface Location {
   country: string;
   province: string;
