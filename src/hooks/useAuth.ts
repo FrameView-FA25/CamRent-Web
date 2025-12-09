@@ -54,7 +54,7 @@ export const useAuth = () => {
   const isOwner = user?.roles.includes("Owner") || false;
   const isManager = user?.roles.includes("Manager") || false;
   const isStaff = user?.roles.includes("Staff") || false;
-
+  const isRenter = user?.roles.includes("Renter") || false;
   return {
     user,
     isAuthenticated,
@@ -66,5 +66,6 @@ export const useAuth = () => {
     logout,
     refreshAuth,
     checkAuthStatus,
+    isRenter,
   };
 };

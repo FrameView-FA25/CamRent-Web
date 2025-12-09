@@ -182,7 +182,7 @@ const MainLayout: React.FC = () => {
     setResetOpen(false);
     navigate("/", { replace: true });
   };
-
+  console.log("User", user);
   return (
     <div className="app-shell">
       <header className="app-header flex items-center justify-between px-6 py-3 shadow-sm bg-white">
@@ -468,7 +468,7 @@ const MainLayout: React.FC = () => {
               }}
             >
               <User size={18} />
-              <span>{user.fullName}</span>
+              <span>{user.email}</span>
             </Button>
 
             {/* User Dropdown Menu */}
