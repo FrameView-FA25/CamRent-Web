@@ -19,6 +19,7 @@
     "@react-three/fiber": "^9.4.0",
     "canvas-confetti": "^1.9.4",
     "dayjs": "^1.11.19",
+    "html5-qrcode": "^2.3.8",
     "jwt-decode": "^4.0.0",
     "lucide-react": "^0.546.0",
     "react": "^19.1.1",

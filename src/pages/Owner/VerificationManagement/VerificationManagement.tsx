@@ -119,6 +119,62 @@ export default function VerificationManagement() {
     setSelectedVerification(null);
   };
 
+  /**
+   * Hàm refresh và cập nhật selectedVerification sau khi ký hợp đồng
+   * Giải pháp: Fetch lại verification cụ thể để có dữ liệu mới nhất về chữ ký
+   */
+  const handleRefreshAndUpdateVerification = async () => {
+    if (!selectedVerification) return;
+
+    const verificationId = selectedVerification.id;
+
+    // Bước 1: Refresh danh sách trong context
+    await refreshVerifications();
+
+    // Bước 2: Fetch lại verification cụ thể để có dữ liệu mới nhất về contracts và signatures
+    try {
+      const updatedVerification = await verificationService.getVerificationById(
+        verificationId
+      );
+      setSelectedVerification(updatedVerification);
+    } catch (error) {
+      console.error("Error fetching updated verification:", error);
+      // Nếu fetch thất bại, thử tìm trong danh sách đã refresh (fallback)
+      const foundVerification = verifications.find(
+        (v) => v.id === verificationId
+      );
+      if (foundVerification) {
+        setSelectedVerification(foundVerification);
+      }
+    }
+  };
+
+  /**
+   * useEffect: Tự động cập nhật selectedVerification khi verifications thay đổi
+   * Đây là backup mechanism để đảm bảo selectedVerification luôn sync với danh sách
+   */
+  useEffect(() => {
+    if (selectedVerification && verifications.length > 0) {
+      const updatedVerification = verifications.find(
+        (v) => v.id === selectedVerification.id
+      );
+      if (updatedVerification) {
+        // Chỉ cập nhật nếu có thay đổi thực sự (tránh infinite loop)
+        // So sánh contracts để phát hiện thay đổi về chữ ký
+        const currentContracts = JSON.stringify(
+          selectedVerification.contracts || []
+        );
+        const newContracts = JSON.stringify(
+          updatedVerification.contracts || []
+        );
+        if (currentContracts !== newContracts) {
+          setSelectedVerification(updatedVerification);
+        }
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [verifications]); // Chạy khi verifications thay đổi
+
   const handleCreateVerification = async (data: CreateVerificationRequest) => {
     const result = await verificationService.createVerification(data);
     const createdContractId = result?.contractId;
@@ -873,6 +929,7 @@ export default function VerificationManagement() {
         open={openDetailModal}
         onClose={handleCloseDetailModal}
         verification={selectedVerification}
+        onRefresh={handleRefreshAndUpdateVerification}
       />
     </Box>
   );

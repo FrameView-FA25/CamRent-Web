@@ -37,6 +37,7 @@ import type {
   AccessoryBooking,
   AccessoryInspection,
 } from "../../../types/accessory.types";
+import QRScannerDialog from "../../../components/QRScanner/QRScannerDialog";
 
 const bookingStatusColors: Record<
   string,
@@ -99,6 +100,7 @@ const parseSpecs = (specsJson?: string | null) => {
 
 const CameraQrHistory = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const [qrScannerOpen, setQrScannerOpen] = useState(false);
   const [cameraIdInput, setCameraIdInput] = useState(
     searchParams.get("cameraId") || ""
   );
@@ -138,6 +140,12 @@ const CameraQrHistory = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleQRScanSuccess = (result: string) => {
+    setCameraIdInput(result);
+    setSearchParams({ cameraId: result });
+    handleFetch(result);
   };
 
   const handleSubmit = () => {
@@ -240,6 +248,27 @@ const CameraQrHistory = () => {
             }}
           >
             Kiểm tra thiết bị
+          </Button>
+          <Button
+            variant="outlined"
+            size="large"
+            onClick={() => setQrScannerOpen(true)}
+            startIcon={<QrCodeScanner />}
+            sx={{
+              minWidth: 200,
+              borderColor: "#F97316",
+              color: "#F97316",
+              fontWeight: 600,
+              textTransform: "none",
+              borderRadius: 2,
+              py: 1.5,
+              "&:hover": {
+                borderColor: "#EA580C",
+                bgcolor: "#FFF5F0",
+              },
+            }}
+          >
+            Quét QR
           </Button>
         </Stack>
         <Alert
@@ -382,10 +411,10 @@ const CameraQrHistory = () => {
                     <Stack direction="row" spacing={1}>
                       <Chip
                         icon={<CheckCircle />}
-                      label={cameraAvailable ? "Đang rảnh" : "Đã đặt"}
+                        label={cameraAvailable ? "Đang rảnh" : "Đã đặt"}
                         sx={{
-                        bgcolor: cameraAvailable ? "#DCFCE7" : "#FEE2E2",
-                        color: cameraAvailable ? "#166534" : "#991B1B",
+                          bgcolor: cameraAvailable ? "#DCFCE7" : "#FEE2E2",
+                          color: cameraAvailable ? "#166534" : "#991B1B",
                           fontWeight: 600,
                           borderRadius: 2,
                         }}
@@ -981,6 +1010,11 @@ const CameraQrHistory = () => {
           </Card>
         </Stack>
       )}
+      <QRScannerDialog
+        open={qrScannerOpen}
+        onClose={() => setQrScannerOpen(false)}
+        onScanSuccess={handleQRScanSuccess}
+      />
     </Box>
   );
 };
