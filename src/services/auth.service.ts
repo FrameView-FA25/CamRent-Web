@@ -62,26 +62,49 @@ export const authService = {
    * @param authData - Dữ liệu xác thực từ API sau khi đăng nhập
    */
   saveAuthData(authData: LoginResponse): void {
-    const decoded = authData.token ? decodeToken(authData.token) : null;
-    const roleFromToken =
-      (decoded?.[
-        "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
-      ] as string | undefined) ||
-      (decoded?.role as string | undefined) ||
-      (decoded?.Role as string | undefined);
-    const roles: string[] = (authData as { roles?: string[] })?.roles?.length
-      ? (authData as { roles: string[] }).roles
-      : roleFromToken
-      ? [roleFromToken]
-      : [];
+  const decoded = authData.token ? decodeToken(authData.token) : null;
+  const roleFromToken =
+    (decoded?.[
+      "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
+    ] as string | undefined) ||
+    (decoded?.role as string | undefined) ||
+    (decoded?.Role as string | undefined);
+  const roles: string[] = (authData as { roles?: string[] })?.roles?.length
+    ? (authData as { roles: string[] }).roles
+    : roleFromToken
+    ? [roleFromToken]
+    : [];
 
-    localStorage.setItem("accessToken", authData.token);
-    if (roles[0]) {
-      localStorage.setItem("role", roles[0]);
-    } else {
-      localStorage.removeItem("role");
-    }
-  },
+  // Lưu token
+  localStorage.setItem("accessToken", authData.token);
+  
+  // Lưu role
+  if (roles[0]) {
+    localStorage.setItem("role", roles[0]);
+  } else {
+    localStorage.removeItem("role");
+  }
+
+  // ✅ THÊM: Lưu userInfo
+  const authWithUserData = authData as LoginResponse & {
+    email?: string;
+    fullName?: string;
+    phoneNumber?: string;
+    createdAt?: string;
+    address?: string;
+  };
+  
+  const userInfo = {
+    email: authWithUserData.email || decoded?.email || "",
+    fullName: authWithUserData.fullName || decoded?.name || decoded?.fullName || "",
+    roles: roles,
+    phoneNumber: authWithUserData.phoneNumber || decoded?.phoneNumber,
+    createdAt: authWithUserData.createdAt,
+    address: authWithUserData.address,
+  };
+  
+  localStorage.setItem("userInfo", JSON.stringify(userInfo));
+},
 
   /**
    * Lấy access token từ localStorage
