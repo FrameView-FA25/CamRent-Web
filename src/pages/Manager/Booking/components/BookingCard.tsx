@@ -91,7 +91,7 @@ export const BookingCard: React.FC<BookingCardProps> = ({
                 fontSize: "0.95rem",
               }}
             >
-              ID: {booking.id.substring(0, 18)}...
+              {booking.renter?.fullName} - {booking.renter?.phone}
             </Typography>
 
             {/* Status */}
