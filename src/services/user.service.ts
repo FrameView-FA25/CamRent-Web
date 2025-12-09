@@ -82,9 +82,9 @@ export interface UpdateUserProfileRequest {
   fullName: string;
   phone: string;
   address: string;
-  bankAccountNumber: string | null;
+  bankNo: string | null;
   bankName: string | null;
-  bankAccountName: string | null;
+  bankAccName: string | null;
 }
 
 export const userService = {

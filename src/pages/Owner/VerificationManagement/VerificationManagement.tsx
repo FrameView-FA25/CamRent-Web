@@ -44,6 +44,12 @@ import VerificationDetailModal from "../../../components/Modal/VerificationDetai
 import { useVerificationContext } from "../../../context/VerifiContext/useVerificationContext";
 import type { Verification } from "../../../types/verification.types";
 import { VerificationStats } from "./VerificationStats";
+import {
+  userService,
+  type UserProfileResponse,
+} from "../../../services/user.service";
+import { toast } from "react-toastify";
+
 export default function VerificationManagement() {
   // Sử dụng context thay vì state local
   const {
@@ -77,6 +83,9 @@ export default function VerificationManagement() {
   const [menuVerification, setMenuVerification] = useState<Verification | null>(
     null
   );
+  const [userProfile, setUserProfile] = useState<UserProfileResponse | null>(
+    null
+  );
 
   /**
    * useEffect: Gọi API lấy danh sách verification khi component được mount
@@ -85,7 +94,17 @@ export default function VerificationManagement() {
   useEffect(() => {
     fetchVerifications();
     fetchBranches();
+    fetchUserProfile();
   }, [fetchVerifications]);
+
+  const fetchUserProfile = async () => {
+    try {
+      const data = await userService.getCurrentUserProfile();
+      setUserProfile(data);
+    } catch (error) {
+      console.error("Lỗi khi tải thông tin người dùng:", error);
+    }
+  };
 
   const fetchBranches = async () => {
     setIsLoadingBranches(true);
@@ -100,6 +119,25 @@ export default function VerificationManagement() {
   };
 
   const handleOpenModal = () => {
+    // Kiểm tra thông tin ngân hàng trước khi mở modal
+    if (!userProfile) {
+      toast.error("Không thể tải thông tin người dùng. Vui lòng thử lại.");
+      return;
+    }
+
+    const { bankAccountNumber, bankName, bankAccountName } = userProfile;
+
+    // Kiểm tra xem đã có đầy đủ thông tin ngân hàng chưa
+    if (!bankAccountNumber || !bankName || !bankAccountName) {
+      toast.error(
+        "Vui lòng cập nhật đầy đủ thông tin ngân hàng (Tên ngân hàng, Số tài khoản, Tên chủ tài khoản) trong trang Hồ sơ trước khi tạo yêu cầu xác minh.",
+        {
+          autoClose: 5000,
+        }
+      );
+      return;
+    }
+
     setOpenModal(true);
     setMessage(null);
   };
