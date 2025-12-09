@@ -77,7 +77,6 @@ const OwnerProfile: React.FC = () => {
     bankName: "",
     accountNumber: "",
     accountName: "",
-    branch: "",
   });
 
   const [loading, setLoading] = useState(true);
@@ -123,7 +122,6 @@ const OwnerProfile: React.FC = () => {
         bankName: data.bankName || "",
         accountNumber: data.bankAccountNumber || "",
         accountName: data.bankAccountName || "",
-        branch: "", // backend chưa trả, để trống
       });
     } catch (err) {
       console.error("Fetch owner profile failed", err);
@@ -145,9 +143,9 @@ const OwnerProfile: React.FC = () => {
         fullName: profileData.fullName,
         phone: profileData.phone,
         address: profileData.address,
-        bankAccountNumber: bankData.accountNumber || null,
+        bankNo: bankData.accountNumber || null,
         bankName: bankData.bankName || null,
-        bankAccountName: bankData.accountName || null,
+        bankAccName: bankData.accountName || null,
       });
 
       setIsEditing(false);
@@ -513,10 +511,7 @@ const OwnerProfile: React.FC = () => {
                     setBankData
                   )}
                   {renderFieldRow(
-                    [
-                      { label: "Tên Chủ Tài Khoản", field: "accountName" },
-                      { label: "Chi Nhánh", field: "branch" },
-                    ],
+                    [{ label: "Tên Chủ Tài Khoản", field: "accountName" }],
                     bankData,
                     setBankData
                   )}

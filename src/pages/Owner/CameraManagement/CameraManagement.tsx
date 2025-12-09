@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   Box,
   Typography,
@@ -43,10 +42,11 @@ import ModalAddCamera from "../../../components/Modal/Owner/ModalAddCamera";
 import ModalEditCamera from "../../../components/Modal/Owner/ModalEditCamera";
 import { useCameraContext } from "../../../context/CameraContexts/useCameraContext";
 import type { Camera, CameraMedia } from "../../../services/camera.service";
+import ModalCreateQRCode from "../../../components/Modal/Owner/ModalCreateQR";
+import QRCode from "qrcode";
 
 export default function CameraManagement() {
   // Sử dụng context thay vì state local
-  const navigate = useNavigate();
   const {
     cameras,
     loading,
@@ -61,6 +61,11 @@ export default function CameraManagement() {
   const [openAddModal, setOpenAddModal] = useState(false);
   const [openEditModal, setOpenEditModal] = useState(false);
   const [selectedCamera, setSelectedCamera] = useState<Camera | null>(null);
+
+  // State cho QR Code Modal
+  const [openQRModal, setOpenQRModal] = useState(false);
+  const [qrCodeUrl, setQrCodeUrl] = useState<string>("");
+  const [qrCameraId, setQrCameraId] = useState<string>("");
 
   // State phân trang
   const [currentPage, setCurrentPage] = useState(1);
@@ -81,6 +86,27 @@ export default function CameraManagement() {
   useEffect(() => {
     fetchCameras();
   }, [fetchCameras]);
+
+  // Hàm tạo và hiển thị QR Code cho camera
+
+  const handleGenerateQRCode = async (cameraId: string) => {
+    try {
+      // Tạo QR code từ camera ID
+      const qrDataUrl = await QRCode.toDataURL(cameraId, {
+        width: 300,
+        margin: 2,
+        color: {
+          dark: "#1E293B",
+          light: "#FFFFFF",
+        },
+      });
+      setQrCodeUrl(qrDataUrl);
+      setQrCameraId(cameraId);
+      setOpenQRModal(true);
+    } catch (error) {
+      console.error("Error generating QR code:", error);
+    }
+  };
 
   /**
    * Hàm xử lý khi thêm camera mới thành công
@@ -1023,16 +1049,16 @@ export default function CameraManagement() {
           <ListItemText primary="Chỉnh sửa camera" />
         </MenuItem>
         <MenuItem
-          onClick={() => {
+          onClick={async () => {
             if (!menuCamera) return;
-            navigate(`/owner/qr-inspection?cameraId=${menuCamera.id}`);
+            await handleGenerateQRCode(menuCamera.id);
             handleCloseActionMenu();
           }}
         >
           <ListItemIcon>
             <QrCodeScannerIcon fontSize="small" sx={{ color: "#C8501D" }} />
           </ListItemIcon>
-          <ListItemText primary="Quét QR kiểm tra" />
+          <ListItemText primary="Tạo QR code" />
         </MenuItem>
         <Divider />
         <MenuItem
@@ -1062,6 +1088,12 @@ export default function CameraManagement() {
         camera={selectedCamera}
         onClose={handleCloseEdit}
         onUpdated={handleUpdatedCamera}
+      />
+      <ModalCreateQRCode
+        open={openQRModal}
+        onClose={() => setOpenQRModal(false)}
+        qrCodeUrl={qrCodeUrl}
+        cameraId={qrCameraId}
       />
 
       {/* Image Preview Dialog */}
