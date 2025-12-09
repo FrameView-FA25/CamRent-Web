@@ -53,17 +53,17 @@ const AssignStaffDialog: React.FC<AssignStaffDialogProps> = ({
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <DialogTitle>
         <Typography variant="h6" sx={{ fontWeight: 700 }}>
-          Assign Staff
+          Gán nhân viên
         </Typography>
       </DialogTitle>
       <DialogContent>
         <Box sx={{ pt: 2 }}>
           <FormControl fullWidth>
-            <InputLabel>Select Staff</InputLabel>
+            <InputLabel>Chọn nhân viên</InputLabel>
             <Select
               value={selectedStaffId}
               onChange={(e) => setSelectedStaffId(e.target.value)}
-              label="Select Staff"
+              label="Chọn nhân viên"
             >
               {staffList.map((staff) => (
                 <MenuItem key={staff.userId} value={staff.userId}>
