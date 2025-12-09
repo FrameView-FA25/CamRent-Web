@@ -44,6 +44,7 @@ import { useCameraContext } from "../../../context/CameraContexts/useCameraConte
 import type { Camera, CameraMedia } from "../../../services/camera.service";
 import ModalCreateQRCode from "../../../components/Modal/Owner/ModalCreateQR";
 import QRCode from "qrcode";
+import { toast } from "react-toastify";
 
 export default function CameraManagement() {
   // Sử dụng context thay vì state local
@@ -117,6 +118,15 @@ export default function CameraManagement() {
     refreshCameras();
     // Reset về trang 1 khi thêm mới
     setCurrentPage(1);
+    // Hiển thị toast thông báo thành công
+    toast.success("Thêm camera thành công! 📷", {
+      position: "top-right",
+      autoClose: 3000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+    });
   };
 
   const handleOpenActionMenu = (
@@ -173,13 +183,20 @@ export default function CameraManagement() {
     handleCloseEdit();
   };
 
+  // Sắp xếp cameras theo createdAt (mới nhất trước)
+  const sortedCameras = [...(cameras || [])].sort((a, b) => {
+    const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return dateB - dateA; // Sắp xếp giảm dần (mới nhất trước)
+  });
+
   /**
    * Tính toán phân trang
    */
-  const totalPages = Math.ceil((cameras?.length || 0) / itemsPerPage);
+  const totalPages = Math.ceil((sortedCameras?.length || 0) / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentCameras = cameras?.slice(startIndex, endIndex) || [];
+  const currentCameras = sortedCameras?.slice(startIndex, endIndex) || [];
 
   /**
    * Xử lý thay đổi trang

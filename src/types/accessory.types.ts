@@ -15,6 +15,7 @@ export interface Accessory {
   depositCapMaxVnd: number;
   media: MediaItem[];
   specsJson: string | null;
+  createdAt: string;
   categories: string[];
   isConfirmed: boolean;
   ownerUserId: string;

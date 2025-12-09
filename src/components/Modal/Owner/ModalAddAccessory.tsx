@@ -528,7 +528,7 @@ export default function ModalAddAccessory({
                   ),
                 },
               }}
-              placeholder="5000000"
+              placeholder="50000"
               sx={{
                 "& .MuiOutlinedInput-root": {
                   borderRadius: 2,

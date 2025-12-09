@@ -32,7 +32,7 @@ import type { Verification, Contract } from "../../types/verification.types";
 import { contractService } from "../../services/contract.service";
 import SignatureCanvas from "react-signature-canvas";
 import { OwnerSignatureDialog } from "../../pages/Owner/VerificationManagement/SignatureDialog";
-
+import { toast } from "react-toastify";
 interface VerificationDetailModalProps {
   open: boolean;
   onClose: () => void;
@@ -56,6 +56,11 @@ export default function VerificationDetailModal({
   const signatureRef = useRef<SignatureCanvas | null>(null);
 
   if (!verification) return null;
+  // Kiểm tra xem chủ sở hữu đã ký hợp đồng chưa
+  const hasOwnerSigned = (contract: Contract): boolean => {
+    const ownerSignature = contract.signatures?.find((s) => s.role === "Owner");
+    return ownerSignature?.isSigned === true;
+  };
 
   const handlePreviewContract = async (contractId: string) => {
     setPreviewLoading(contractId);
@@ -126,7 +131,7 @@ export default function VerificationDetailModal({
       const signatureData = signatureRef.current.toDataURL();
       const base64Signature = signatureData.split(",")[1];
       await contractService.sign(signingContractId, base64Signature);
-      alert("Ký hợp đồng thành công!");
+      toast.success("Ký hợp đồng thành công!");
       handleCloseSignature();
       // Đợi refresh hoàn tất để đảm bảo dữ liệu được cập nhật
       await onRefresh?.();
@@ -927,8 +932,22 @@ export default function VerificationDetailModal({
                               >
                                 {contract.signatures &&
                                 contract.signatures.length > 0 ? (
-                                  contract.signatures.map(
-                                    (signature, sigIdx) => (
+                                  [...contract.signatures]
+                                    .sort((a, b) => {
+                                      const roleOrder = {
+                                        Owner: 1,
+                                        Platform: 2,
+                                      };
+                                      return (
+                                        (roleOrder[
+                                          a.role as keyof typeof roleOrder
+                                        ] || 999) -
+                                        (roleOrder[
+                                          b.role as keyof typeof roleOrder
+                                        ] || 999)
+                                      );
+                                    })
+                                    .map((signature, sigIdx) => (
                                       <Tooltip
                                         key={sigIdx}
                                         title={
@@ -991,8 +1010,7 @@ export default function VerificationDetailModal({
                                           )}
                                         </Box>
                                       </Tooltip>
-                                    )
-                                  )
+                                    ))
                                 ) : (
                                   <Typography
                                     sx={{
@@ -1050,6 +1068,7 @@ export default function VerificationDetailModal({
                                     handleOpenSignature(contract.id)
                                   }
                                   disabled={
+                                    hasOwnerSigned(contract) ||
                                     signing ||
                                     (signingContractId !== null &&
                                       signingContractId !== contract.id)

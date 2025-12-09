@@ -191,47 +191,49 @@ const Wallet: React.FC = () => {
                 </Typography>
               </Box>
             </Box>
-            <Tooltip title="Làm mới">
-              <IconButton
-                onClick={loadWallet}
-                disabled={loading}
+            <Box sx={{ display: "flex", gap: 2 }}>
+              <Tooltip title="Làm mới">
+                <IconButton
+                  onClick={loadWallet}
+                  disabled={loading}
+                  sx={{
+                    bgcolor: "white",
+                    color: "#0D9488",
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                    "&:hover": {
+                      bgcolor: "#F0FDFA",
+                      boxShadow: "0 4px 12px rgba(13, 148, 136, 0.15)",
+                    },
+                  }}
+                >
+                  {loading ? (
+                    <CircularProgress size={20} sx={{ color: "#0D9488" }} />
+                  ) : (
+                    <RefreshIcon />
+                  )}
+                </IconButton>
+              </Tooltip>
+              <Button
+                variant="contained"
+                startIcon={<AddCircleIcon />}
+                onClick={handleOpenTopup}
                 sx={{
-                  bgcolor: "white",
-                  color: "#0D9488",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                  ml: 2,
+                  bgcolor: "#0D9488",
+                  color: "#FFFFFF",
+                  fontWeight: 600,
+                  textTransform: "none",
+                  px: 2.5,
+                  py: 1,
+                  boxShadow: "0 4px 12px rgba(13, 148, 136, 0.25)",
                   "&:hover": {
-                    bgcolor: "#F0FDFA",
-                    boxShadow: "0 4px 12px rgba(13, 148, 136, 0.15)",
+                    bgcolor: "#0B7C74",
                   },
                 }}
               >
-                {loading ? (
-                  <CircularProgress size={20} sx={{ color: "#0D9488" }} />
-                ) : (
-                  <RefreshIcon />
-                )}
-              </IconButton>
-            </Tooltip>
-            <Button
-              variant="contained"
-              startIcon={<AddCircleIcon />}
-              onClick={handleOpenTopup}
-              sx={{
-                ml: 2,
-                bgcolor: "#0D9488",
-                color: "#FFFFFF",
-                fontWeight: 600,
-                textTransform: "none",
-                px: 2.5,
-                py: 1,
-                boxShadow: "0 4px 12px rgba(13, 148, 136, 0.25)",
-                "&:hover": {
-                  bgcolor: "#0B7C74",
-                },
-              }}
-            >
-              Nạp tiền
-            </Button>
+                Nạp tiền
+              </Button>
+            </Box>
           </Box>
         </Box>
 
