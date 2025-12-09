@@ -2,16 +2,19 @@ import { useState, useMemo } from "react";
 import type { Booking } from "@/types/booking.types";
 import { STATUS_MAP } from "../constants";
 
+export type SortOrder = "newest" | "alphabetical";
+
 export const useBookingFilters = (bookings: Booking[]) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTab, setSelectedTab] = useState(0);
+  const [sortOrder, setSortOrder] = useState<SortOrder>("newest");
 
   const getStatusNumber = (statusText: string): number => {
     return STATUS_MAP[statusText] ?? -1;
   };
 
   const filteredBookings = useMemo(() => {
-    return bookings.filter((booking) => {
+    const filtered = bookings.filter((booking) => {
       if (booking.statusText === "Giỏ hàng") {
         return false;
       }
@@ -36,7 +39,19 @@ export const useBookingFilters = (bookings: Booking[]) => {
 
       return matchesSearch && matchesTab;
     });
-  }, [bookings, searchQuery, selectedTab]);
+
+    // ✅ Apply sorting
+    return filtered.sort((a, b) => {
+      if (sortOrder === "newest") {
+        const dateA = new Date(a.createdAt || 0).getTime();
+        const dateB = new Date(b.createdAt || 0).getTime();
+        return dateB - dateA; // Descending order (newest first)
+      } else {
+        // Alphabetical by booking ID
+        return a.id.localeCompare(b.id, 'vi');
+      }
+    });
+  }, [bookings, searchQuery, selectedTab, sortOrder]);
 
   return {
     searchQuery,
@@ -44,5 +59,7 @@ export const useBookingFilters = (bookings: Booking[]) => {
     selectedTab,
     setSelectedTab,
     filteredBookings,
+    sortOrder,
+    setSortOrder,
   };
 };

@@ -101,7 +101,7 @@ const ManagerLayout: React.FC = () => {
             fontWeight: 700,
           }}
         >
-          A
+          M
         </Avatar>
         <Typography
           variant="h6"
@@ -191,7 +191,7 @@ const ManagerLayout: React.FC = () => {
             }}
             src="/user-avatar.jpg"
           >
-            {user?.fullName ? user.fullName.charAt(0) : "O"}
+            {user?.email ? user.email.charAt(0) : "O"}
           </Avatar>
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Typography
@@ -202,7 +202,7 @@ const ManagerLayout: React.FC = () => {
                 lineHeight: 1.3,
               }}
             >
-              {user?.fullName || "Owner"}
+              {user?.email || "Owner"}
             </Typography>
             <Typography
               sx={{
