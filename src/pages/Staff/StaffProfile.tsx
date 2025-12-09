@@ -126,9 +126,9 @@ const StaffProfile: React.FC = () => {
         fullName: profileData.fullName,
         phone: profileData.phoneNumber,
         address: profileData.address,
-        bankAccountNumber: null,
+        bankNo: null,
         bankName: null,
-        bankAccountName: null,
+        bankAccName: null,
       });
 
       setIsEditing(false);
