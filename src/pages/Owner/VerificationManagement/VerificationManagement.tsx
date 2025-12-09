@@ -218,6 +218,14 @@ export default function VerificationManagement() {
     const createdContractId = result?.contractId;
     refreshVerifications(); // Refresh danh sách
     setCurrentPage(1); // Reset về trang 1
+    toast.success("Tạo yêu cầu xác minh thành công!", {
+      position: "top-right",
+      autoClose: 3000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+    });
     setMessage({
       type: "success",
       text: createdContractId

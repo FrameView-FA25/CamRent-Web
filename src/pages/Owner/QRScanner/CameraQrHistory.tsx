@@ -439,7 +439,7 @@ const CameraQrHistory = () => {
                     gridTemplateColumns={{
                       xs: "repeat(1, minmax(0, 1fr))",
                       sm: "repeat(2, minmax(0, 1fr))",
-                      md: "repeat(4, minmax(0, 1fr))",
+                      md: "repeat(3, minmax(0, 1fr))",
                     }}
                   >
                     <Box>
@@ -464,14 +464,6 @@ const CameraQrHistory = () => {
                       </Typography>
                       <Typography variant="h6" fontWeight={700}>
                         {(camera.depositPercent * 100).toFixed(0)}%
-                      </Typography>
-                    </Box>
-                    <Box>
-                      <Typography variant="body2" color="#94A3B8">
-                        Chủ sở hữu
-                      </Typography>
-                      <Typography variant="h6" fontWeight={700}>
-                        {camera.ownerName || "Không có"}
                       </Typography>
                     </Box>
                   </Box>
@@ -761,7 +753,7 @@ const CameraQrHistory = () => {
                     gridTemplateColumns={{
                       xs: "repeat(1, minmax(0, 1fr))",
                       sm: "repeat(2, minmax(0, 1fr))",
-                      md: "repeat(4, minmax(0, 1fr))",
+                      md: "repeat(3, minmax(0, 1fr))",
                     }}
                   >
                     <Box>
@@ -786,14 +778,6 @@ const CameraQrHistory = () => {
                       </Typography>
                       <Typography variant="h6" fontWeight={700}>
                         {(accessory.depositPercent * 100).toFixed(0)}%
-                      </Typography>
-                    </Box>
-                    <Box>
-                      <Typography variant="body2" color="#94A3B8">
-                        Chủ sở hữu
-                      </Typography>
-                      <Typography variant="h6" fontWeight={700}>
-                        {accessory.ownerName || "Không có"}
                       </Typography>
                     </Box>
                   </Box>

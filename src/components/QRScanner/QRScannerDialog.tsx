@@ -34,14 +34,20 @@ export default function QRScannerDialog({
   const containerId = "qr-reader";
 
   useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+
     if (open && !scannerRef.current) {
-      setError(null); // Reset error khi mở lại
-      startScanning();
+      setError(null);
+      // Delay nhỏ để đảm bảo DOM đã render
+      timeoutId = setTimeout(() => {
+        startScanning();
+      }, 100);
     } else if (!open && scannerRef.current) {
       stopScanning();
     }
 
     return () => {
+      clearTimeout(timeoutId);
       if (scannerRef.current) {
         stopScanning();
       }

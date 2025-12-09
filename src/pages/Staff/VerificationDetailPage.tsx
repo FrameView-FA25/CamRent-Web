@@ -13,6 +13,8 @@ import {
   Avatar,
   IconButton,
   Stack,
+  Dialog,
+  DialogContent,
 } from "@mui/material";
 import {
   ArrowBack,
@@ -26,6 +28,11 @@ import {
   Inventory,
   PhotoCamera,
   TaskAlt,
+  CheckCircle,
+  Cancel,
+  Close,
+  NavigateBefore,
+  NavigateNext,
 } from "@mui/icons-material";
 import { verificationService } from "../../services/verification.service";
 import type { Verification } from "../../types/verification.types";
@@ -36,6 +43,11 @@ const VerificationDetailPage: React.FC = () => {
   const [verification, setVerification] = useState<Verification | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [imageModalOpen, setImageModalOpen] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [currentInspectionMedia, setCurrentInspectionMedia] = useState<
+    Array<{ id: string; url: string; label: string }>
+  >([]);
 
   const loadVerificationDetail = useCallback(async () => {
     if (!id) return;
@@ -99,6 +111,33 @@ const VerificationDetailPage: React.FC = () => {
       Cancelled: { bg: "#F3F4F6", color: "#6B7280" },
     };
     return colorMap[status] || { bg: "#F3F4F6", color: "#6B7280" };
+  };
+
+  const handleOpenImageModal = (
+    media: Array<{ id: string; url: string; label: string }>,
+    startIndex: number = 0
+  ) => {
+    setCurrentInspectionMedia(media);
+    setCurrentImageIndex(startIndex);
+    setImageModalOpen(true);
+  };
+
+  const handleCloseImageModal = () => {
+    setImageModalOpen(false);
+    setCurrentImageIndex(0);
+    setCurrentInspectionMedia([]);
+  };
+
+  const handleNextImage = () => {
+    setCurrentImageIndex((prev) =>
+      prev < currentInspectionMedia.length - 1 ? prev + 1 : 0
+    );
+  };
+
+  const handlePrevImage = () => {
+    setCurrentImageIndex((prev) =>
+      prev > 0 ? prev - 1 : currentInspectionMedia.length - 1
+    );
   };
 
   if (loading) {
@@ -656,6 +695,369 @@ const VerificationDetailPage: React.FC = () => {
           </Paper>
         </Box>
 
+        {/* Inspections Section */}
+        {verification.inspections && verification.inspections.length > 0 && (
+          <Paper elevation={0} sx={{ p: 3, borderRadius: 3, mb: 4 }}>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 2,
+                mb: 3,
+              }}
+            >
+              <Box
+                sx={{
+                  width: 50,
+                  height: 50,
+                  borderRadius: 2,
+                  bgcolor: "#EEF2FF",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <TaskAlt sx={{ color: "#4F46E5", fontSize: 28 }} />
+              </Box>
+              <Box>
+                <Typography
+                  variant="h6"
+                  sx={{ fontWeight: 700, color: "#1F2937" }}
+                >
+                  Kết quả kiểm tra ({verification.inspections.length})
+                </Typography>
+                <Typography variant="body2" sx={{ color: "#6B7280" }}>
+                  Chi tiết các lần kiểm tra thiết bị
+                </Typography>
+              </Box>
+            </Box>
+            <Divider sx={{ mb: 3 }} />
+            <Stack spacing={3}>
+              {verification.inspections.map((inspection) => (
+                <Paper
+                  key={inspection.id}
+                  elevation={0}
+                  sx={{
+                    p: 3,
+                    bgcolor: "#F9FAFB",
+                    borderRadius: 2,
+                    border: "1px solid #E5E7EB",
+                  }}
+                >
+                  <Box sx={{ display: "flex", gap: 3 }}>
+                    {/* Image Section - Left Side */}
+                    {inspection.media && inspection.media.length > 0 && (
+                      <Box sx={{ flexShrink: 0 }}>
+                        <Box
+                          sx={{
+                            position: "relative",
+                            width: 120,
+                            height: 120,
+                            borderRadius: 2,
+                            overflow: "hidden",
+                            border: "2px solid #E5E7EB",
+                            bgcolor: "white",
+                            cursor: "pointer",
+                            transition: "all 0.2s",
+                            "&:hover": {
+                              borderColor: "#F97316",
+                              boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                            },
+                          }}
+                          onClick={() =>
+                            handleOpenImageModal(inspection.media || [], 0)
+                          }
+                        >
+                          <Box
+                            component="img"
+                            src={inspection.media[0].url}
+                            alt={inspection.media[0].label}
+                            sx={{
+                              width: "100%",
+                              height: "100%",
+                              objectFit: "cover",
+                            }}
+                          />
+                        </Box>
+                        {inspection.media.length > 1 && (
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              display: "block",
+                              textAlign: "center",
+                              color: "#6B7280",
+                              mt: 0.5,
+                              cursor: "pointer",
+                              "&:hover": {
+                                color: "#F97316",
+                              },
+                            }}
+                            onClick={() =>
+                              handleOpenImageModal(inspection.media || [], 0)
+                            }
+                          >
+                            +{inspection.media.length - 1} ảnh khác
+                          </Typography>
+                        )}
+                      </Box>
+                    )}
+
+                    {/* Info Section - Right Side */}
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          gap: 2,
+                          mb: 2,
+                          alignItems: "flex-start",
+                        }}
+                      >
+                        <Avatar
+                          sx={{
+                            bgcolor:
+                              inspection.itemType === "Camera"
+                                ? "#EFF6FF"
+                                : "#ECFDF5",
+                            color:
+                              inspection.itemType === "Camera"
+                                ? "#2563EB"
+                                : "#059669",
+                            width: 40,
+                            height: 40,
+                          }}
+                        >
+                          {inspection.itemType === "Camera" ? (
+                            <Camera sx={{ fontSize: 20 }} />
+                          ) : (
+                            <Inventory sx={{ fontSize: 20 }} />
+                          )}
+                        </Avatar>
+                        <Box sx={{ flex: 1 }}>
+                          <Typography
+                            variant="h6"
+                            sx={{ fontWeight: 700, color: "#1F2937", mb: 0.5 }}
+                          >
+                            {inspection.itemName}
+                          </Typography>
+                          <Box
+                            sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}
+                          >
+                            <Chip
+                              label={inspection.itemType}
+                              size="small"
+                              sx={{
+                                bgcolor:
+                                  inspection.itemType === "Camera"
+                                    ? "#EFF6FF"
+                                    : "#F0FDF4",
+                                color:
+                                  inspection.itemType === "Camera"
+                                    ? "#3B82F6"
+                                    : "#10B981",
+                                fontWeight: 600,
+                              }}
+                            />
+                            <Chip
+                              label={inspection.section}
+                              size="small"
+                              sx={{
+                                bgcolor: "#FEF3C7",
+                                color: "#F59E0B",
+                                fontWeight: 600,
+                              }}
+                            />
+                            {inspection.passed !== null && (
+                              <Chip
+                                icon={
+                                  inspection.passed ? (
+                                    <CheckCircle sx={{ fontSize: 16 }} />
+                                  ) : (
+                                    <Cancel sx={{ fontSize: 16 }} />
+                                  )
+                                }
+                                label={inspection.passed ? "Đạt" : "Không đạt"}
+                                size="small"
+                                sx={{
+                                  bgcolor: inspection.passed
+                                    ? "#D1FAE5"
+                                    : "#FEE2E2",
+                                  color: inspection.passed
+                                    ? "#059669"
+                                    : "#EF4444",
+                                  fontWeight: 600,
+                                }}
+                              />
+                            )}
+                          </Box>
+                        </Box>
+                      </Box>
+
+                      <Divider sx={{ my: 2 }} />
+
+                      <Box
+                        sx={{
+                          display: "grid",
+                          gridTemplateColumns: {
+                            xs: "1fr",
+                            md: "repeat(3, 1fr)",
+                          },
+                          gap: 2,
+                        }}
+                      >
+                        <Box>
+                          <Typography
+                            variant="caption"
+                            sx={{ color: "#6B7280", display: "block", mb: 0.5 }}
+                          >
+                            Mục kiểm tra
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            sx={{ fontWeight: 600, color: "#1F2937" }}
+                          >
+                            {inspection.label}
+                          </Typography>
+                        </Box>
+
+                        <Box>
+                          <Typography
+                            variant="caption"
+                            sx={{ color: "#6B7280", display: "block", mb: 0.5 }}
+                          >
+                            Kết quả
+                          </Typography>
+                          <Typography variant="body2" sx={{ color: "#374151" }}>
+                            {inspection.value}
+                          </Typography>
+                        </Box>
+
+                        <Box>
+                          <Typography
+                            variant="caption"
+                            sx={{ color: "#6B7280", display: "block", mb: 0.5 }}
+                          >
+                            Ghi chú
+                          </Typography>
+                          <Typography variant="body2" sx={{ color: "#374151" }}>
+                            {inspection.notes || "Không có"}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </Box>
+                  </Box>
+                </Paper>
+              ))}
+            </Stack>
+          </Paper>
+        )}
+
+        {/* Image Modal */}
+        <Dialog
+          open={imageModalOpen}
+          onClose={handleCloseImageModal}
+          maxWidth="md"
+          fullWidth
+          PaperProps={{
+            sx: {
+              borderRadius: 3,
+              overflow: "hidden",
+            },
+          }}
+        >
+          <DialogContent
+            sx={{
+              p: 0,
+              bgcolor: "#1E293B",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              minHeight: "400px",
+              position: "relative",
+            }}
+          >
+            {currentInspectionMedia.length > 0 && (
+              <>
+                {currentInspectionMedia.length > 1 && (
+                  <Box sx={{ position: "absolute", left: 8, zIndex: 2 }}>
+                    <IconButton
+                      onClick={handlePrevImage}
+                      sx={{ bgcolor: "rgba(255,255,255,0.85)" }}
+                    >
+                      <NavigateBefore />
+                    </IconButton>
+                  </Box>
+                )}
+
+                <img
+                  src={currentInspectionMedia[currentImageIndex]?.url}
+                  alt={`Preview ${currentImageIndex + 1}`}
+                  style={{
+                    maxWidth: "100%",
+                    maxHeight: "80vh",
+                    objectFit: "contain",
+                  }}
+                />
+
+                {currentInspectionMedia.length > 1 && (
+                  <Box sx={{ position: "absolute", right: 8, zIndex: 2 }}>
+                    <IconButton
+                      onClick={handleNextImage}
+                      sx={{ bgcolor: "rgba(255,255,255,0.85)" }}
+                    >
+                      <NavigateNext />
+                    </IconButton>
+                  </Box>
+                )}
+
+                <IconButton
+                  onClick={handleCloseImageModal}
+                  sx={{
+                    position: "absolute",
+                    top: 16,
+                    right: 16,
+                    bgcolor: "rgba(255, 255, 255, 0.9)",
+                    color: "#1E293B",
+                    zIndex: 2,
+                    "&:hover": { bgcolor: "#FFFFFF" },
+                  }}
+                >
+                  <Close />
+                </IconButton>
+
+                {currentInspectionMedia.length > 1 && (
+                  <Box
+                    sx={{
+                      position: "absolute",
+                      bottom: 12,
+                      display: "flex",
+                      gap: 1,
+                      zIndex: 2,
+                    }}
+                  >
+                    {currentInspectionMedia.map((_, idx) => (
+                      <Box
+                        key={idx}
+                        onClick={() => setCurrentImageIndex(idx)}
+                        sx={{
+                          width: 10,
+                          height: 10,
+                          borderRadius: "50%",
+                          bgcolor:
+                            idx === currentImageIndex
+                              ? "#FF6B35"
+                              : "rgba(255,255,255,0.5)",
+                          cursor: "pointer",
+                          transition: "all 0.2s",
+                          "&:hover": { bgcolor: "#FF6B35" },
+                        }}
+                      />
+                    ))}
+                  </Box>
+                )}
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
       </Container>
     </Box>
   );
