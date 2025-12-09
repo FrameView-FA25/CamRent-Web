@@ -15,7 +15,7 @@ import {
   Box,
 } from "@mui/material";
 
-import type { VerificationItem } from "../../types/verification.types";
+import type { VerificationItem } from "../../../types/verification.types";
 type InspectionDefaultValues = {
   verifyId?: string;
   items?: VerificationItem[];

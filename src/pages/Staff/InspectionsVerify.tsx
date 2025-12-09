@@ -45,7 +45,7 @@ import {
   updateInspection,
   deleteInspection,
 } from "../../services/inspection.service";
-import InspectionDialog from "../../components/Modal/InspectionDialog";
+import InspectionDialog from "../../components/Modal/Staff/InspectionDialog";
 import { verificationService } from "../../services/verification.service";
 import type {
   Verification,
@@ -55,10 +55,10 @@ import type {
 import { toast } from "react-toastify";
 import InspectionListDialog, {
   type InspectionListItem,
-} from "../../components/Modal/InspectionListDialog";
+} from "../../components/Modal/Staff/InspectionListDialog";
 import EditInspectionDialog, {
   type EditInspectionFormState,
-} from "../../components/Modal/EditInspectionDialog";
+} from "../../components/Modal/Staff/EditInspectionDialog";
 
 const statusPalette = {
   warning: { base: "#F59E0B", icon: HourglassEmpty },
