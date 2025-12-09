@@ -59,6 +59,12 @@ interface UserProfileData {
   bankName: string | null;
   bankAccountName: string | null;
   signatureAssetId: string | null;
+  signatureAsset?: {
+    url: string;
+    contentType: string;
+    sizeBytes: number;
+    label: string;
+  } | null;
   avatarId: string | null;
   id: string;
   roles: Array<{
@@ -124,7 +130,9 @@ const ManagerProfile: React.FC = () => {
     } catch (error) {
       console.error("Error fetching user profile:", error);
       toast.error(
-        error instanceof Error ? error.message : "Không thể tải thông tin người dùng"
+        error instanceof Error
+          ? error.message
+          : "Không thể tải thông tin người dùng"
       );
     } finally {
       setLoading(false);
@@ -520,6 +528,33 @@ const ManagerProfile: React.FC = () => {
                       <Alert severity="success" sx={{ mb: 2 }}>
                         Đã có chữ ký
                       </Alert>
+
+                      {/* Display signature image */}
+                      {profileData?.signatureAsset?.url && (
+                        <Box
+                          sx={{
+                            mb: 2,
+                            p: 2,
+                            border: "2px dashed #E5E7EB",
+                            borderRadius: 2,
+                            bgcolor: "#F9FAFB",
+                            display: "flex",
+                            justifyContent: "center",
+                            alignItems: "center",
+                          }}
+                        >
+                          <img
+                            src={profileData.signatureAsset.url}
+                            alt="Chữ ký"
+                            style={{
+                              maxWidth: "100%",
+                              maxHeight: "150px",
+                              objectFit: "contain",
+                            }}
+                          />
+                        </Box>
+                      )}
+
                       <Button
                         variant="outlined"
                         startIcon={<DrawIcon />}
