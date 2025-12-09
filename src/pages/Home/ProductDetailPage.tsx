@@ -47,6 +47,7 @@ const ProductDetailPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState(0);
   const [addingToCart, setAddingToCart] = useState(false);
+  const [buyingNow, setBuyingNow] = useState(false);
 
   // ✅ Check if current camera is already in compare list
   const isInCompare = id ? compareIds.includes(id) : false;
@@ -181,6 +182,82 @@ const ProductDetailPage: React.FC = () => {
       navigate("/products");
     }, 1000);
   };
+
+  // ✅ Handle "Thuê ngay" - Add to cart then go to checkout
+  const handleBuyNow = async () => {
+    if (!camera) return;
+
+    try {
+      const token = localStorage.getItem("accessToken");
+
+      if (!token) {
+        toast.warning("Vui lòng đăng nhập để thuê thiết bị");
+        navigate("/login");
+        return;
+      }
+
+      setBuyingNow(true);
+
+      // Step 1: Try to add to cart (skip error if already in cart)
+      const addToCartResponse = await fetch(
+        `${API_BASE_URL}/Bookings/AddToCart`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            id: camera.id,
+            type: "Camera",
+          }),
+        }
+      );
+
+      // ✅ If item already in cart (400 error), continue to checkout anyway
+      if (!addToCartResponse.ok && addToCartResponse.status !== 400) {
+        const errorText = await addToCartResponse.text();
+        console.error("Add to cart error:", errorText);
+        throw new Error(`Failed to add to cart: ${addToCartResponse.status}`);
+      }
+
+      // ✅ Refresh cart count
+      await refreshCart();
+
+      // Step 2: Get cart items to pass to checkout
+      const cartResponse = await fetch(`${API_BASE_URL}/Bookings/GetCard`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!cartResponse.ok) {
+        throw new Error("Failed to fetch cart");
+      }
+
+      const cartData = await cartResponse.json();
+
+      // Step 3: Navigate to checkout with cart items
+      navigate("/checkout", {
+        state: {
+          items: cartData.items || [],
+        },
+      });
+
+      toast.success("Đang chuyển đến trang thanh toán...", {
+        position: "top-right",
+        autoClose: 1500,
+      });
+    } catch (error) {
+      console.error("Error in buy now:", error);
+      toast.error("Không thể xử lý. Vui lòng thử lại");
+    } finally {
+      setBuyingNow(false);
+    }
+  };
+
   // Loading state
   if (loading) {
     return (
@@ -471,6 +548,13 @@ const ProductDetailPage: React.FC = () => {
               <Button
                 fullWidth
                 variant="contained"
+                onClick={handleBuyNow}
+                disabled={buyingNow || !camera.isConfirmed}
+                startIcon={
+                  buyingNow ? (
+                    <CircularProgress size={16} color="inherit" />
+                  ) : null
+                }
                 sx={{
                   bgcolor: colors.primary.main,
                   color: "white",
@@ -489,7 +573,7 @@ const ProductDetailPage: React.FC = () => {
                   },
                 }}
               >
-                Thuê ngay
+                {buyingNow ? "Đang xử lý..." : "Thuê ngay"}
               </Button>
 
               <Stack direction="row" spacing={1}>
