@@ -925,7 +925,7 @@ export default function CameraManagement() {
                       variant="body2"
                       sx={{ color: "#334155", fontWeight: 600 }}
                     >
-                      {camera.branchName || "Chưa có chi nhánh"}
+                      {camera.branchName || "-"}
                     </Typography>
                   </TableCell>
                   <TableCell>

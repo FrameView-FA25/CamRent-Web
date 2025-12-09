@@ -274,29 +274,63 @@ const InspectionDialog: React.FC<InspectionDialogProps> = ({
         {/* Removed Type field as it's not part of the form type */}
         {/* InspectionTypeId được giữ trong form nhưng không hiển thị trên giao diện */}
         <TextField
+          select
           label="Phần kiểm tra"
           name="Section"
           value={form.Section}
           onChange={handleChange}
           fullWidth
           sx={{ mb: 2 }}
-        />
+        >
+          <MenuItem value="">-- Chọn phần kiểm tra --</MenuItem>
+          <MenuItem value="Ngoại quan">Ngoại quan</MenuItem>
+          <MenuItem value="Chức năng">Chức năng</MenuItem>
+          <MenuItem value="Phụ kiện">Phụ kiện</MenuItem>
+          <MenuItem value="Khác">Khác</MenuItem>
+        </TextField>
         <TextField
+          select
           label="Tên kiểm tra"
           name="Label"
           value={form.Label}
           onChange={handleChange}
           fullWidth
           sx={{ mb: 2 }}
-        />
+        >
+          <MenuItem value="">-- Chọn tên kiểm tra --</MenuItem>
+          <MenuItem value="Vết xước">Vết xước</MenuItem>
+          <MenuItem value="Vết móp">Vết móp</MenuItem>
+          <MenuItem value="Màu sắc">Màu sắc</MenuItem>
+          <MenuItem value="Độ sạch">Độ sạch</MenuItem>
+          <MenuItem value="Hoạt động bình thường">
+            Hoạt động bình thường
+          </MenuItem>
+          <MenuItem value="Pin">Pin</MenuItem>
+          <MenuItem value="Sạc">Sạc</MenuItem>
+          <MenuItem value="Dây cáp">Dây cáp</MenuItem>
+          <MenuItem value="Thẻ nhớ">Thẻ nhớ</MenuItem>
+          <MenuItem value="Túi đựng">Túi đựng</MenuItem>
+          <MenuItem value="Khác">Khác</MenuItem>
+        </TextField>
         <TextField
+          select
           label="Giá trị"
           name="Value"
           value={form.Value}
           onChange={handleChange}
           fullWidth
           sx={{ mb: 2 }}
-        />
+        >
+          <MenuItem value="">-- Chọn giá trị --</MenuItem>
+          <MenuItem value="Tốt">Tốt</MenuItem>
+          <MenuItem value="Khá">Khá</MenuItem>
+          <MenuItem value="Trung bình">Trung bình</MenuItem>
+          <MenuItem value="Kém">Kém</MenuItem>
+          <MenuItem value="Có">Có</MenuItem>
+          <MenuItem value="Không">Không</MenuItem>
+          <MenuItem value="Hoạt động">Hoạt động</MenuItem>
+          <MenuItem value="Không hoạt động">Không hoạt động</MenuItem>
+        </TextField>
         <FormControl fullWidth sx={{ mb: 2 }}>
           <FormLabel>Kết quả</FormLabel>
           <RadioGroup
@@ -306,8 +340,8 @@ const InspectionDialog: React.FC<InspectionDialogProps> = ({
               form.Passed === null
                 ? ""
                 : form.Passed === true
-                  ? "true"
-                  : "false"
+                ? "true"
+                : "false"
             }
             onChange={handleChange}
           >

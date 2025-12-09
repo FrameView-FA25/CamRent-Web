@@ -110,7 +110,13 @@ const Inspections: React.FC = () => {
     setError(null);
     try {
       const res = await verificationService.getVerificationsByUserId();
-      setData(res || []);
+
+      const sortedData = (res || []).sort((a, b) => {
+        const dateA = new Date(a.createdAt || 0).getTime();
+        const dateB = new Date(b.createdAt || 0).getTime();
+        return dateB - dateA; // Mới nhất trước
+      });
+      setData(sortedData);
     } catch (err: unknown) {
       let message = "";
       if (typeof err === "object" && err !== null && "message" in err) {

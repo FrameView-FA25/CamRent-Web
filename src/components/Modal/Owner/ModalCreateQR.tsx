@@ -63,7 +63,7 @@ export default function ModalCreateQRCode({
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <QrCode2Icon />
           <Typography variant="h6" fontWeight={700}>
-            QR Code Camera
+            QR Code
           </Typography>
         </Box>
         <IconButton
@@ -76,13 +76,15 @@ export default function ModalCreateQRCode({
           <CloseIcon />
         </IconButton>
       </DialogTitle>
-      <DialogContent sx={{ p: 4, textAlign: "center", bgcolor: "#F8FAFC" }}>
+      <DialogContent
+        sx={{ p: 1, my: 2, textAlign: "center", bgcolor: "#F8FAFC" }}
+      >
         {qrCodeUrl && (
           <Box>
             <Box
               sx={{
                 bgcolor: "#FFFFFF",
-                p: 3,
+                p: 2,
                 borderRadius: 2,
                 border: "2px solid #E2E8F0",
                 display: "inline-block",

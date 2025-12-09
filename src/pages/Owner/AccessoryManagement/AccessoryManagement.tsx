@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   Box,
   Typography,
@@ -42,10 +41,11 @@ import ModalAddAccessory from "../../../components/Modal/Owner/ModalAddAccessory
 import ModalEditAccessory from "../../../components/Modal/Owner/ModalEditAccessory";
 import { useAccessoryContext } from "../../../context/AccessoryContext/useAccessoryContext";
 import type { Accessory } from "../../../types/accessory.types";
+import ModalCreateQRCode from "../../../components/Modal/Owner/ModalCreateQR";
+import QRCode from "qrcode";
 import { toast } from "react-toastify";
 
 export default function AccessoryManagement() {
-  const navigate = useNavigate();
   const {
     accessories,
     loading,
@@ -58,6 +58,11 @@ export default function AccessoryManagement() {
 
   // State quản lý modal thêm phụ kiện
   const [openAddModal, setOpenAddModal] = useState(false);
+
+  // State cho QR Code Modal
+  const [openQRModal, setOpenQRModal] = useState(false);
+  const [qrCodeUrl, setQrCodeUrl] = useState<string>("");
+  const [qrAccessoryId, setQrAccessoryId] = useState<string>("");
 
   // State quản lý modal edit phụ kiện
   const [openEditModal, setOpenEditModal] = useState(false);
@@ -94,6 +99,27 @@ export default function AccessoryManagement() {
       pauseOnHover: true,
       draggable: true,
     });
+  };
+
+  // Hàm tạo và hiển thị QR Code cho accessory
+
+  const handleGenerateQRCode = async (accessoryId: string) => {
+    try {
+      // Tạo QR code từ camera ID
+      const qrDataUrl = await QRCode.toDataURL(accessoryId, {
+        width: 300,
+        margin: 2,
+        color: {
+          dark: "#1E293B",
+          light: "#FFFFFF",
+        },
+      });
+      setQrCodeUrl(qrDataUrl);
+      setQrAccessoryId(accessoryId);
+      setOpenQRModal(true);
+    } catch (error) {
+      console.error("Error generating QR code:", error);
+    }
   };
 
   // Hàm mở modal edit phụ kiện
@@ -1019,16 +1045,16 @@ export default function AccessoryManagement() {
           <ListItemText primary="Chỉnh sửa phụ kiện" />
         </MenuItem>
         <MenuItem
-          onClick={() => {
+          onClick={async () => {
             if (!menuAccessory) return;
-            navigate(`/owner/qr-inspection?cameraId=${menuAccessory.id}`);
+            await handleGenerateQRCode(menuAccessory.id);
             handleCloseActionMenu();
           }}
         >
           <ListItemIcon>
             <QrCodeScannerIcon fontSize="small" sx={{ color: "#C8501D" }} />
           </ListItemIcon>
-          <ListItemText primary="Quét QR kiểm tra" />
+          <ListItemText primary="Tạo QR code" />
         </MenuItem>
         <Divider />
         <MenuItem
@@ -1052,6 +1078,13 @@ export default function AccessoryManagement() {
         open={openAddModal}
         onClose={() => setOpenAddModal(false)}
         onAdd={handleAddAccessory}
+      />
+      {/* Modal tạo QR Code */}
+      <ModalCreateQRCode
+        open={openQRModal}
+        onClose={() => setOpenQRModal(false)}
+        qrCodeUrl={qrCodeUrl}
+        cameraId={qrAccessoryId}
       />
 
       {/* Edit Accessory Modal */}
