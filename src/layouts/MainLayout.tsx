@@ -50,7 +50,7 @@ const MainLayout: React.FC = () => {
   const [productMenuAnchor, setProductMenuAnchor] =
     useState<null | HTMLElement>(null);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
-  const closeTimeoutRef = useRef<number | null>(null);
+  const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -131,7 +131,7 @@ const MainLayout: React.FC = () => {
     // Add delay before closing
     closeTimeoutRef.current = setTimeout(() => {
       setProductMenuAnchor(null);
-    }, 150);
+    }, 150) as unknown as NodeJS.Timeout;
   };
 
   const handleProductMenuEnter = () => {

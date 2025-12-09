@@ -80,8 +80,14 @@ const RenterProfile: React.FC = () => {
       setError(null);
 
       const data = await userService.getCurrentUserProfile();
-      setProfile(data);
-      setEditedProfile(data);
+      const profileData: UserProfile = {
+        ...data,
+        nationalIdNumber: null,
+        kycStatus: "Pending",
+        avatar: data.avatar || [],
+      };
+      setProfile(profileData);
+      setEditedProfile(profileData);
     } catch (err) {
       console.error("Error fetching profile:", err);
       setError(err instanceof Error ? err.message : "Failed to load profile");

@@ -232,4 +232,30 @@ export const userService = {
       throw new Error(errText || "Cập nhật thông tin người dùng thất bại");
     }
   },
+
+  async updateUser(userId: string, payload: UpdateUserRequest): Promise<void> {
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      throw new Error("Không tìm thấy token xác thực. Vui lòng đăng nhập lại.");
+    }
+
+    const response = await fetch(`${API_BASE_URL}/Users/${userId}`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (response.status === 401) {
+      localStorage.removeItem("accessToken");
+      throw new Error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+    }
+
+    if (!response.ok) {
+      const errText = await response.text().catch(() => "");
+      throw new Error(errText || "Cập nhật thông tin người dùng thất bại");
+    }
+  },
 };

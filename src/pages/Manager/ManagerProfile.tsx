@@ -27,7 +27,6 @@ import {
   Security as SecurityIcon,
   Draw as DrawIcon,
 } from "@mui/icons-material";
-import { useAuth } from "../../hooks/useAuth";
 import { SignatureDialog } from "./Verification/components/dialogs/SignatureDialog";
 import SignatureCanvas from "react-signature-canvas";
 import { toast } from "react-toastify";
@@ -90,7 +89,6 @@ const ManagerProfile: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [signatureDialogOpen, setSignatureDialogOpen] = useState(false);
   const signatureRef = useRef<SignatureCanvas | null>(null);
-  const { user } = useAuth();
 
   const [userData, setUserData] = useState({
     fullName: "",
@@ -115,7 +113,11 @@ const ManagerProfile: React.FC = () => {
     try {
       setLoading(true);
       const data = await userService.getCurrentUserProfile();
-      setProfileData(data);
+      setProfileData({
+        ...data,
+        signatureAssetId: null,
+        avatarId: null,
+      });
 
       setUserData({
         fullName: data.fullName || "",
@@ -159,9 +161,9 @@ const ManagerProfile: React.FC = () => {
         fullName: userData.fullName,
         phone: userData.phone,
         address: userData.address,
-        bankAccountNumber: userData.bankAccountNumber,
+        bankNo: userData.bankAccountNumber,
         bankName: userData.bankName,
-        bankAccountName: userData.bankAccountName,
+        bankAccName: userData.bankAccountName,
       });
 
       setIsEditing(false);
