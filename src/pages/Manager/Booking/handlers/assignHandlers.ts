@@ -1,5 +1,5 @@
 import { toast } from "react-toastify";
-import { createDelivery } from "@/services/booking.service"
+import { assignStaffToBooking } from "@/services/booking.service"
 import type { Booking } from "@/types/booking.types";
 
 export const handleAssignConfirm = async (
@@ -12,13 +12,13 @@ export const handleAssignConfirm = async (
   if (!selectedBooking || !selectedStaff) return;
 
   setAssignLoading(true);
-  const { success, error: deliveryError } = await createDelivery(
+  const { success, error: assignError } = await assignStaffToBooking(
     selectedBooking.id,
     selectedStaff
   );
 
-  if (deliveryError) {
-    toast.error(`Lỗi phân công nhân viên: ${deliveryError}`, {
+  if (assignError) {
+    toast.error(`Lỗi phân công nhân viên: ${assignError}`, {
       position: "top-right",
       autoClose: 3000,
     });

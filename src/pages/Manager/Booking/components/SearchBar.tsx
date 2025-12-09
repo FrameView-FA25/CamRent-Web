@@ -3,17 +3,26 @@ import {
   Paper,
   TextField,
   IconButton,
-  Button,
+  ToggleButtonGroup,
+  ToggleButton,
   InputAdornment,
   CircularProgress,
 } from "@mui/material";
-import { Search, Refresh, FilterList } from "@mui/icons-material";
+import {
+  Search,
+  Refresh,
+  CalendarToday,
+  SortByAlpha,
+} from "@mui/icons-material";
+import type { SortOrder } from "../hooks/useBookingFilters";
 
 interface SearchBarProps {
   searchQuery: string;
   onSearchChange: (value: string) => void;
   onRefresh: () => void;
   loading: boolean;
+  sortOrder: SortOrder;
+  onSortChange: (sort: SortOrder) => void;
 }
 
 export const SearchBar: React.FC<SearchBarProps> = ({
@@ -21,6 +30,8 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   onSearchChange,
   onRefresh,
   loading,
+  sortOrder,
+  onSortChange,
 }) => {
   return (
     <Paper
@@ -58,6 +69,43 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           },
         }}
       />
+
+      {/* Sort Toggle */}
+      <ToggleButtonGroup
+        value={sortOrder}
+        exclusive
+        onChange={(_, newSort) => {
+          if (newSort !== null) onSortChange(newSort);
+        }}
+        sx={{
+          flexShrink: 0,
+          "& .MuiToggleButton-root": {
+            textTransform: "none",
+            fontWeight: 600,
+            px: 2,
+            py: 1,
+            borderColor: "#E5E7EB",
+            color: "#6B7280",
+            "&.Mui-selected": {
+              bgcolor: "#F97316",
+              color: "white",
+              "&:hover": {
+                bgcolor: "#EA580C",
+              },
+            },
+          },
+        }}
+      >
+        <ToggleButton value="newest">
+          <CalendarToday sx={{ fontSize: 18, mr: 1 }} />
+          Mới nhất
+        </ToggleButton>
+        <ToggleButton value="alphabetical">
+          <SortByAlpha sx={{ fontSize: 18, mr: 1 }} />
+          A-Z
+        </ToggleButton>
+      </ToggleButtonGroup>
+
       <IconButton
         onClick={onRefresh}
         disabled={loading}
@@ -79,22 +127,6 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           <Refresh />
         )}
       </IconButton>
-      <Button
-        variant="outlined"
-        startIcon={<FilterList />}
-        sx={{
-          minWidth: 120,
-          borderColor: "#E5E7EB",
-          color: "#6B7280",
-          "&:hover": {
-            borderColor: "#F97316",
-            bgcolor: "#FFF7ED",
-            color: "#F97316",
-          },
-        }}
-      >
-        LỌC
-      </Button>
     </Paper>
   );
 };

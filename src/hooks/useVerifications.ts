@@ -1,10 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { toast } from "react-toastify";
 import { verificationService } from "../services/verification.service";
 import { fetchStaffList } from "../services/booking.service";
 import type { Verification } from "../types/verification.types";
 import type { Staff } from "../types/booking.types";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+export type SortOrder = "newest" | "alphabetical";
 
 export const useVerifications = () => {
   const [verifications, setVerifications] = useState<Verification[]>([]);
@@ -15,21 +17,66 @@ export const useVerifications = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [loading, setLoading] = useState(true);
   const [staffList, setStaffList] = useState<Staff[]>([]);
+  const [sortOrder, setSortOrder] = useState<SortOrder>("newest");
 
   useEffect(() => {
     fetchVerifications();
     loadStaffList();
   }, []);
 
+  const filterVerifications = useCallback(() => {
+    let filtered = [...verifications];
+
+    const tabs = ["all", "pending", "in-progress", "approved", "rejected"];
+    if (activeTab > 0) {
+      const target = tabs[activeTab];
+      filtered = filtered.filter(
+        (v) => v.status?.toString().toLowerCase() === target
+      );
+    }
+
+    if (searchQuery) {
+      filtered = filtered.filter(
+        (v) =>
+          v.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          v.phoneNumber.includes(searchQuery) ||
+          (v.branchName?.toLowerCase().includes(searchQuery.toLowerCase()) ??
+            false)
+      );
+    }
+
+    // ✅ Apply sorting
+    filtered.sort((a, b) => {
+      if (sortOrder === "newest") {
+        const dateA = new Date(a.createdAt || 0).getTime();
+        const dateB = new Date(b.createdAt || 0).getTime();
+        return dateB - dateA; // Descending order (newest first)
+      } else {
+        // Alphabetical by name
+        return a.name.localeCompare(b.name, 'vi');
+      }
+    });
+
+    setFilteredVerifications(filtered);
+  }, [verifications, searchQuery, activeTab, sortOrder]);
+
   useEffect(() => {
     filterVerifications();
-  }, [verifications, searchQuery, activeTab]);
+  }, [filterVerifications]);
 
   const fetchVerifications = async () => {
     try {
       setLoading(true);
       const data = await verificationService.getVerificationsByUserId();
-      setVerifications(data);
+      
+      // ✅ Sort by createdAt (newest first)
+      const sortedData = data.sort((a, b) => {
+        const dateA = new Date(a.createdAt || 0).getTime();
+        const dateB = new Date(b.createdAt || 0).getTime();
+        return dateB - dateA; // Descending order (newest first)
+      });
+      
+      setVerifications(sortedData);
     } catch (error) {
       console.error("Error fetching verifications:", error);
       toast.error(
@@ -51,30 +98,6 @@ export const useVerifications = () => {
     } catch (error) {
       console.error("Error loading staff:", error);
     }
-  };
-
-  const filterVerifications = () => {
-    let filtered = [...verifications];
-
-    const tabs = ["all", "pending", "in-progress", "approved", "rejected"];
-    if (activeTab > 0) {
-      const target = tabs[activeTab];
-      filtered = filtered.filter(
-        (v) => v.status?.toString().toLowerCase() === target
-      );
-    }
-
-    if (searchQuery) {
-      filtered = filtered.filter(
-        (v) =>
-          v.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          v.phoneNumber.includes(searchQuery) ||
-          (v.branchName?.toLowerCase().includes(searchQuery.toLowerCase()) ??
-            false)
-      );
-    }
-
-    setFilteredVerifications(filtered);
   };
 
   const assignStaff = async (verificationId: string, staffId: string) => {
@@ -138,7 +161,9 @@ export const useVerifications = () => {
     loading,
     staffList,
     assignStaff,
-     updateStatus, // ✅ Export updateStatus
+    updateStatus, // ✅ Export updateStatus
     refreshVerifications: fetchVerifications,
+    sortOrder,
+    setSortOrder,
   };
 };

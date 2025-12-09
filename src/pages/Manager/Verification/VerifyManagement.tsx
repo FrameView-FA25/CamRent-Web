@@ -10,8 +10,10 @@ import {
   Tabs,
   Tab,
   Chip,
+  ToggleButtonGroup,
+  ToggleButton,
 } from "@mui/material";
-import { Search, FileText } from "lucide-react";
+import { Search, FileText, Calendar, SortAsc } from "lucide-react";
 import { colors } from "../../../theme/colors";
 import { useVerifications } from "../../../hooks/useVerifications";
 import VerificationStats from "../../../components/Verification/VerificationStats";
@@ -24,7 +26,13 @@ import { verificationService } from "../../../services/verification.service";
 import { toast } from "react-toastify";
 
 const VerifyManagement: React.FC = () => {
-  const { verifications, loading, refreshVerifications } = useVerifications();
+  const {
+    verifications,
+    loading,
+    refreshVerifications,
+    sortOrder,
+    setSortOrder,
+  } = useVerifications();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<string>("all");
@@ -58,17 +66,30 @@ const VerifyManagement: React.FC = () => {
   }, []);
 
   // Filter verifications
-  const filteredVerifications = verifications.filter((v) => {
-    const matchesSearch =
-      v.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      v.phoneNumber.includes(searchQuery) ||
-      v.branchName?.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredVerifications = verifications
+    .filter((v) => {
+      const matchesSearch =
+        v.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        v.phoneNumber.includes(searchQuery) ||
+        v.branchName?.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesTab =
-      activeTab === "all" || v.status.toLowerCase() === activeTab.toLowerCase();
+      const matchesTab =
+        activeTab === "all" ||
+        v.status.toLowerCase() === activeTab.toLowerCase();
 
-    return matchesSearch && matchesTab;
-  });
+      return matchesSearch && matchesTab;
+    })
+    .sort((a, b) => {
+      // ✅ Apply sorting based on sortOrder
+      if (sortOrder === "newest") {
+        const dateA = new Date(a.createdAt || 0).getTime();
+        const dateB = new Date(b.createdAt || 0).getTime();
+        return dateB - dateA; // Descending order (newest first)
+      } else {
+        // Alphabetical by name
+        return a.name.localeCompare(b.name, "vi");
+      }
+    });
 
   const handleViewDetails = (verification: Verification) => {
     setSelectedVerification(verification);
@@ -133,25 +154,62 @@ const VerifyManagement: React.FC = () => {
             border: `1px solid ${colors.border.light}`,
           }}
         >
-          <TextField
-            fullWidth
-            placeholder="Tìm kiếm theo tên, số điện thoại, chi nhánh..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Search size={20} color={colors.text.secondary} />
-                </InputAdornment>
-              ),
-            }}
-            sx={{
-              mb: 2,
-              "& .MuiOutlinedInput-root": {
-                borderRadius: 2,
-              },
-            }}
-          />
+          <Box sx={{ display: "flex", gap: 2, mb: 2, alignItems: "center" }}>
+            <TextField
+              fullWidth
+              placeholder="Tìm kiếm theo tên, số điện thoại, chi nhánh..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Search size={20} color={colors.text.secondary} />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: 2,
+                },
+              }}
+            />
+
+            {/* Sort Toggle */}
+            <ToggleButtonGroup
+              value={sortOrder}
+              exclusive
+              onChange={(_, newSort) => {
+                if (newSort !== null) setSortOrder(newSort);
+              }}
+              sx={{
+                flexShrink: 0,
+                "& .MuiToggleButton-root": {
+                  textTransform: "none",
+                  fontWeight: 600,
+                  px: 2,
+                  py: 1,
+                  borderColor: colors.border.light,
+                  color: colors.text.secondary,
+                  "&.Mui-selected": {
+                    bgcolor: colors.primary.main,
+                    color: "white",
+                    "&:hover": {
+                      bgcolor: colors.primary.dark,
+                    },
+                  },
+                },
+              }}
+            >
+              <ToggleButton value="newest">
+                <Calendar size={18} style={{ marginRight: 8 }} />
+                Mới nhất
+              </ToggleButton>
+              <ToggleButton value="alphabetical">
+                <SortAsc size={18} style={{ marginRight: 8 }} />
+                A-Z
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </Box>
 
           <Tabs
             value={activeTab}

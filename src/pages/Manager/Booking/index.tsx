@@ -48,6 +48,8 @@ const BookingManagement: React.FC = () => {
     selectedTab,
     setSelectedTab,
     filteredBookings,
+    sortOrder,
+    setSortOrder,
   } = useBookingFilters(bookings);
 
   // Dialog hooks
@@ -104,8 +106,11 @@ const BookingManagement: React.FC = () => {
   // Handler for view contract
   const handleViewContract = async () => {
     dialogState.setContextMenu(null);
-    
-    if (!dialogState.selectedBooking?.contracts || dialogState.selectedBooking.contracts.length === 0) {
+
+    if (
+      !dialogState.selectedBooking?.contracts ||
+      dialogState.selectedBooking.contracts.length === 0
+    ) {
       setError("Không tìm thấy hợp đồng cho đơn này");
       return;
     }
@@ -130,7 +135,9 @@ const BookingManagement: React.FC = () => {
         throw new Error("Không thể lấy preview hợp đồng");
       }
 
-      const contentDisposition = previewResponse.headers.get("content-disposition");
+      const contentDisposition = previewResponse.headers.get(
+        "content-disposition"
+      );
       let filename = `contract_${contractId}.pdf`;
 
       if (contentDisposition) {
@@ -238,6 +245,8 @@ const BookingManagement: React.FC = () => {
           onSearchChange={setSearchQuery}
           onRefresh={loadBookings}
           loading={loading}
+          sortOrder={sortOrder}
+          onSortChange={setSortOrder}
         />
 
         {/* Tabs */}

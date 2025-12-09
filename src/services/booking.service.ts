@@ -262,6 +262,57 @@ export const fetchStaffList = async (): Promise<{
 };
 
 /**
+ * Gán nhân viên cho booking
+ * Dành cho BranchManager để phân công nhân viên chăm sóc booking
+ * @param bookingId - ID của booking cần gán nhân viên
+ * @param staffId - ID của nhân viên được phân công
+ * @returns Promise chứa kết quả (success/error)
+ */
+export const assignStaffToBooking = async (
+  bookingId: string,
+  staffId: string
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      return { success: false, error: "Unauthorized - No token found" };
+    }
+
+    const response = await fetch(
+      `${API_BASE_URL}/Bookings/${bookingId}/assign-staff/${staffId}`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    // ✅ 204 No Content = Success
+    if (response.status === 204) {
+      return { success: true };
+    }
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      return {
+        success: false,
+        error: `Failed to assign staff: ${response.status} - ${errorText}`,
+      };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error assigning staff to booking:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error occurred",
+    };
+  }
+};
+
+/**
  * Tạo đơn giao hàng (Delivery) cho một booking
  * Dành cho BranchManager để tạo đơn giao và phân công nhân viên giao hàng
  * @param bookingId - ID của booking cần tạo đơn giao
@@ -436,7 +487,6 @@ export const fetchBookingById = async (
       renterId: data.renterId,
       renter: data.renter,
       staffId: data.staffId,
-      staff: data.staff,
       pickupAt: data.pickupAt,
       returnAt: data.returnAt,
       location: data.location,
