@@ -57,7 +57,13 @@ const OrderCard: React.FC<OrderCardProps> = ({ booking, onMenuOpen }) => {
     return diffDays || 1;
   };
 
-  const statusInfo = getOrderStatusInfo(booking.status, booking.statusText);
+  // Convert statusText if needed
+  const displayStatusText =
+    booking.statusText === "Chờ thanh toán"
+      ? "Chờ xác nhận"
+      : booking.statusText;
+
+  const statusInfo = getOrderStatusInfo(booking.status, displayStatusText);
   const rentalDays = calculateRentalDays(booking.pickupAt, booking.returnAt);
   const platformFee =
     booking.snapshotRentalTotal * booking.snapshotPlatformFeePercent;
