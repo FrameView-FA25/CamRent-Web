@@ -44,6 +44,7 @@ import VerificationDetailModal from "../../../components/Modal/VerificationDetai
 import { useVerificationContext } from "../../../context/VerifiContext/useVerificationContext";
 import type { Verification } from "../../../types/verification.types";
 import { VerificationStats } from "./VerificationStats";
+import { useNavigate } from "react-router-dom";
 import {
   userService,
   type UserProfileResponse,
@@ -51,6 +52,7 @@ import {
 import { toast } from "react-toastify";
 
 export default function VerificationManagement() {
+  const navigate = useNavigate();
   // Sử dụng context thay vì state local
   const {
     verifications,
@@ -129,12 +131,10 @@ export default function VerificationManagement() {
 
     // Kiểm tra xem đã có đầy đủ thông tin ngân hàng chưa
     if (!bankAccountNumber || !bankName || !bankAccountName) {
-      toast.error(
-        "Vui lòng cập nhật đầy đủ thông tin ngân hàng (Tên ngân hàng, Số tài khoản, Tên chủ tài khoản) trong trang Hồ sơ trước khi tạo yêu cầu xác minh.",
-        {
-          autoClose: 5000,
-        }
-      );
+      navigate("/owner/profile");
+      toast.error("Vui lòng cập nhật đầy đủ thông tin ngân hàng.", {
+        autoClose: 5000,
+      });
       return;
     }
 

@@ -42,6 +42,7 @@ import ModalAddAccessory from "../../../components/Modal/Owner/ModalAddAccessory
 import ModalEditAccessory from "../../../components/Modal/Owner/ModalEditAccessory";
 import { useAccessoryContext } from "../../../context/AccessoryContext/useAccessoryContext";
 import type { Accessory } from "../../../types/accessory.types";
+import { toast } from "react-toastify";
 
 export default function AccessoryManagement() {
   const navigate = useNavigate();
@@ -85,6 +86,14 @@ export default function AccessoryManagement() {
   const handleAddAccessory = () => {
     refreshAccessories();
     setCurrentPage(1);
+    toast.success("Thêm phụ kiện thành công! 🎒", {
+      position: "top-right",
+      autoClose: 3000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+    });
   };
 
   // Hàm mở modal edit phụ kiện
@@ -147,13 +156,20 @@ export default function AccessoryManagement() {
     }
   };
 
+  // Sắp xếp accessories theo createdAt (mới nhất trước)
+  const sortedAccessories = [...(accessories || [])].sort((a, b) => {
+    const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return dateB - dateA; // Sắp xếp giảm dần (mới nhất trước)
+  });
+
   /**
    * Tính toán phân trang
    */
-  const totalPages = Math.ceil(accessories.length / itemsPerPage);
+  const totalPages = Math.ceil(sortedAccessories.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentAccessories = accessories.slice(startIndex, endIndex);
+  const currentAccessories = sortedAccessories.slice(startIndex, endIndex);
 
   /**
    * Xử lý thay đổi trang
