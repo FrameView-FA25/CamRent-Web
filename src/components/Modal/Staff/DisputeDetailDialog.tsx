@@ -285,8 +285,7 @@ const DisputeDetailDialog: React.FC<DisputeDetailDialogProps> = ({
                     size="small"
                     fullWidth
                   >
-                    <MenuItem value="Camera">Máy ảnh</MenuItem>
-                    <MenuItem value="Accessory">Phụ kiện</MenuItem>
+                    <MenuItem value="PayOS">PayOS</MenuItem>
                     <MenuItem value="Money">Tiền mặt</MenuItem>
                   </TextField>
 

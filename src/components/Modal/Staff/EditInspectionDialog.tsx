@@ -11,6 +11,7 @@ import {
   Stack,
   TextField,
   Typography,
+  MenuItem,
 } from "@mui/material";
 import type { InspectionListItem } from "./InspectionListDialog";
 
@@ -137,28 +138,57 @@ const EditInspectionDialog: React.FC<EditInspectionDialogProps> = ({
       <DialogContent dividers>
         <Stack spacing={2.5}>
           <TextField
-            label="Phần"
+            select
+            label="Phần kiểm tra"
             name="section"
             value={form.section}
             onChange={handleChange}
             fullWidth
             required
-          />
+          >
+            <MenuItem value="Ngoại quan">Ngoại quan</MenuItem>
+            <MenuItem value="Chức năng">Chức năng</MenuItem>
+            <MenuItem value="Phụ kiện">Phụ kiện</MenuItem>
+            <MenuItem value="Khác">Khác</MenuItem>
+          </TextField>
           <TextField
-            label="Nhãn"
+            select
+            label="Tên kiểm tra"
             name="label"
             value={form.label}
             onChange={handleChange}
             fullWidth
             required
-          />
+          >
+            <MenuItem value="Vết xước">Vết xước</MenuItem>
+            <MenuItem value="Vết móp">Vết móp</MenuItem>
+            <MenuItem value="Màu sắc">Màu sắc</MenuItem>
+            <MenuItem value="Độ sạch">Độ sạch</MenuItem>
+            <MenuItem value="Hoạt động bình thường">
+              Hoạt động bình thường
+            </MenuItem>
+            <MenuItem value="Pin">Pin</MenuItem>
+            <MenuItem value="Sạc">Sạc</MenuItem>
+            <MenuItem value="Dây cáp">Dây cáp</MenuItem>
+            <MenuItem value="Thẻ nhớ">Thẻ nhớ</MenuItem>
+            <MenuItem value="Túi đựng">Túi đựng</MenuItem>
+            <MenuItem value="Khác">Khác</MenuItem>
+          </TextField>
           <TextField
+            select
             label="Giá trị"
             name="value"
             value={form.value}
             onChange={handleChange}
             fullWidth
-          />
+          >
+            <MenuItem value="Tốt">Tốt</MenuItem>
+            <MenuItem value="Trung bình">Trung bình</MenuItem>
+            <MenuItem value="Khá">Khá</MenuItem>
+            <MenuItem value="Kém">Kém</MenuItem>
+            <MenuItem value="Hoạt động">Hoạt động</MenuItem>
+            <MenuItem value="Không hoạt động">Không hoạt động</MenuItem>
+          </TextField>
           <TextField
             label="Ghi chú"
             name="notes"

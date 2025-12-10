@@ -157,6 +157,8 @@ const Inspections: React.FC = () => {
         .length,
       completed: data.filter((d) => d.status.toLowerCase() === "completed")
         .length,
+      rejected: data.filter((d) => d.status.toLowerCase() === "rejected")
+        .length,
     };
   }, [data]);
 
@@ -560,6 +562,7 @@ const Inspections: React.FC = () => {
             gridTemplateColumns: {
               xs: "repeat(2, 1fr)",
               sm: "repeat(4, 1fr)",
+              md: "repeat(5, 1fr)",
             },
             gap: 3,
             mb: 4,
@@ -778,6 +781,60 @@ const Inspections: React.FC = () => {
                 }}
               >
                 <TaskAlt sx={{ color: "#3B82F6", fontSize: 24 }} />
+              </Box>
+            </Box>
+          </Paper>
+          <Paper
+            elevation={0}
+            sx={{
+              borderRadius: 3,
+              bgcolor: "white",
+              border: "1px solid #E5E7EB",
+              transition: "all 0.3s ease",
+              p: 2.5,
+              "&:hover": {
+                boxShadow: "0 8px 24px rgba(0,0,0,0.1)",
+                transform: "translateY(-2px)",
+              },
+            }}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <Box>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: "#6B7280",
+                    fontWeight: 500,
+                    fontSize: "0.75rem",
+                  }}
+                >
+                  Từ chối
+                </Typography>
+                <Typography
+                  variant="h5"
+                  sx={{ fontWeight: 700, color: "#EF4444", mt: 0.5 }}
+                >
+                  {stats.rejected}
+                </Typography>
+              </Box>
+              <Box
+                sx={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 2,
+                  bgcolor: alpha("#EF4444", 0.1),
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <TaskAlt sx={{ color: "#EF4444", fontSize: 24 }} />
               </Box>
             </Box>
           </Paper>
