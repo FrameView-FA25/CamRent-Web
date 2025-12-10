@@ -557,6 +557,45 @@ export const fetchBookingById = async (
 };
 
 /**
+ * Cập nhật trạng thái booking
+ * @param bookingId - ID của booking cần cập nhật
+ * @param status - Trạng thái mới (Confirmed, PickedUp, Returned, Completed, Cancelled)
+ * @returns Promise void
+ */
+export const updateBookingStatus = async (
+  bookingId: string,
+  status: "Confirmed" | "PickedUp" | "Returned" | "Completed" | "Cancelled"
+): Promise<void> => {
+  try {
+    const accessToken = localStorage.getItem("accessToken");
+    if (!accessToken) {
+      throw new Error("Vui lòng đăng nhập lại");
+    }
+
+    const response = await fetch(
+      `${API_BASE_URL}/Bookings/${bookingId}/update-status?status=${status}`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.message || errorData.title || "Cập nhật trạng thái thất bại"
+      );
+    }
+  } catch (error) {
+    console.error("Error updating booking status:", error);
+    throw error;
+  }
+};
+
+/**
  * Tạo bản kiểm tra thiết bị (Inspection) cho một booking
  * Dành cho Staff để kiểm tra tình trạng thiết bị khi nhận/trả
  * @param inspectionData - Dữ liệu inspection: bookingId, itemId, condition, notes, images

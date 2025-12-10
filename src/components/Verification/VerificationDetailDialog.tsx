@@ -767,6 +767,15 @@ export default function VerificationDetailModal({
                                     fontSize: "0.75rem",
                                   }}
                                 >
+                                  Ngày kiểm tra
+                                </TableCell>
+                                <TableCell
+                                  sx={{
+                                    fontWeight: 700,
+                                    color: "#475569",
+                                    fontSize: "0.75rem",
+                                  }}
+                                >
                                   Giá trị
                                 </TableCell>
                                 <TableCell
@@ -826,6 +835,18 @@ export default function VerificationDetailModal({
                                       }}
                                     >
                                       {inspection.label}
+                                    </Typography>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Typography
+                                      sx={{
+                                        color: "#1E293B",
+                                        fontSize: "0.875rem",
+                                      }}
+                                    >
+                                      {inspection.createdAt
+                                        ? formatDate(inspection.createdAt)
+                                        : "-"}
                                     </Typography>
                                   </TableCell>
                                   <TableCell>

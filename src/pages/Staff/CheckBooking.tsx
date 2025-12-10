@@ -24,6 +24,16 @@ import {
   Tabs,
   Tooltip,
   alpha,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  RadioGroup,
+  Radio,
+  FormControlLabel,
+  FormControl,
+  FormLabel,
 } from "@mui/material";
 import {
   Search,
@@ -39,10 +49,12 @@ import {
   Edit,
   MoreVert,
   Gavel,
+  Update,
 } from "@mui/icons-material";
 import {
   fetchStaffBookings,
   fetchBookingById,
+  updateBookingStatus,
 } from "../../services/booking.service";
 import type { Booking, BookingInspection } from "../../types/booking.types";
 import {
@@ -120,6 +132,10 @@ const CheckBookings: React.FC = () => {
   const [createDisputeDialogOpen, setCreateDisputeDialogOpen] = useState(false);
   const [createDisputeBookingId, setCreateDisputeBookingId] =
     useState<string>("");
+  const [updateStatusDialogOpen, setUpdateStatusDialogOpen] = useState(false);
+  const [updateStatusBookingId, setUpdateStatusBookingId] =
+    useState<string>("");
+  const [selectedStatus, setSelectedStatus] = useState<string>("");
   const navigate = useNavigate();
   useEffect(() => {
     loadAssignments();
@@ -478,6 +494,42 @@ const CheckBookings: React.FC = () => {
     }
   };
 
+  const handleOpenUpdateStatusDialog = (bookingId: string) => {
+    setUpdateStatusBookingId(bookingId);
+    const booking = bookings.find((b) => b.id === bookingId);
+    setSelectedStatus(booking?.status || "");
+    setUpdateStatusDialogOpen(true);
+  };
+
+  const handleCloseUpdateStatusDialog = () => {
+    setUpdateStatusDialogOpen(false);
+    setUpdateStatusBookingId("");
+    setSelectedStatus("");
+  };
+
+  const handleSubmitUpdateStatus = async () => {
+    if (!updateStatusBookingId || !selectedStatus) return;
+
+    try {
+      await updateBookingStatus(
+        updateStatusBookingId,
+        selectedStatus as
+          | "Confirmed"
+          | "PickedUp"
+          | "Returned"
+          | "Completed"
+          | "Cancelled"
+      );
+      toast.success("Cập nhật trạng thái thành công");
+      await loadAssignments();
+      handleCloseUpdateStatusDialog();
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Cập nhật trạng thái thất bại"
+      );
+    }
+  };
+
   const filteredBookings = useMemo(() => {
     return bookings.filter((booking) => {
       const matchesSearch =
@@ -498,7 +550,9 @@ const CheckBookings: React.FC = () => {
         // Đã trả
         (selectedTab === 3 && booking.status === "Returned") ||
         // Hoàn tất
-        (selectedTab === 4 && booking.status === "Completed");
+        (selectedTab === 4 && booking.status === "Completed") ||
+        // Đã hủy
+        (selectedTab === 5 && booking.status === "Cancelled");
 
       return matchesSearch && matchesTab;
     });
@@ -519,6 +573,7 @@ const CheckBookings: React.FC = () => {
       pickedUp: bookings.filter((b) => b.status === "PickedUp").length,
       returned: bookings.filter((b) => b.status === "Returned").length,
       completed: bookings.filter((b) => b.status === "Completed").length,
+      cancelled: bookings.filter((b) => b.status === "Cancelled").length,
     };
   }, [bookings]);
 
@@ -607,7 +662,8 @@ const CheckBookings: React.FC = () => {
             display: "grid",
             gridTemplateColumns: {
               xs: "repeat(2, 1fr)",
-              sm: "repeat(5, 1fr)",
+              sm: "repeat(3, 1fr)",
+              md: "repeat(6, 1fr)",
             },
             gap: 3,
             mb: 4,
@@ -752,7 +808,7 @@ const CheckBookings: React.FC = () => {
                     fontSize: "0.75rem",
                   }}
                 >
-                  Đã nhận máy
+                  Đã giao máy
                 </Typography>
                 <Typography
                   variant="h5"
@@ -884,6 +940,60 @@ const CheckBookings: React.FC = () => {
               </Box>
             </Box>
           </Paper>
+          <Paper
+            elevation={0}
+            sx={{
+              borderRadius: 3,
+              bgcolor: "white",
+              border: "1px solid #E5E7EB",
+              transition: "all 0.3s ease",
+              p: 2.5,
+              "&:hover": {
+                boxShadow: "0 8px 24px rgba(0,0,0,0.1)",
+                transform: "translateY(-2px)",
+              },
+            }}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <Box>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: "#6B7280",
+                    fontWeight: 500,
+                    fontSize: "0.75rem",
+                  }}
+                >
+                  Đã hủy
+                </Typography>
+                <Typography
+                  variant="h5"
+                  sx={{ fontWeight: 700, color: "#EF4444", mt: 0.5 }}
+                >
+                  {stats.cancelled}
+                </Typography>
+              </Box>
+              <Box
+                sx={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 2,
+                  bgcolor: alpha("#EF4444", 0.1),
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Clear sx={{ color: "#EF4444", fontSize: 24 }} />
+              </Box>
+            </Box>
+          </Paper>
         </Box>
 
         {/* Search Bar */}
@@ -996,7 +1106,7 @@ const CheckBookings: React.FC = () => {
               })`}
             />
             <Tab
-              label={`Đã nhận máy (${
+              label={`Đã giao máy (${
                 bookings.filter((b) => b.status === "PickedUp").length
               })`}
             />
@@ -1008,6 +1118,11 @@ const CheckBookings: React.FC = () => {
             <Tab
               label={`Hoàn tất (${
                 bookings.filter((b) => b.status === "Completed").length
+              })`}
+            />
+            <Tab
+              label={`Đã hủy (${
+                bookings.filter((b) => b.status === "Cancelled").length
               })`}
             />
           </Tabs>
@@ -1048,6 +1163,16 @@ const CheckBookings: React.FC = () => {
                     }}
                   >
                     Thiết bị
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      fontWeight: 700,
+                      color: "#374151",
+                      fontSize: "0.875rem",
+                      borderBottom: "2px solid #E5E7EB",
+                    }}
+                  >
+                    Ngày tạo
                   </TableCell>
                   <TableCell
                     sx={{
@@ -1240,6 +1365,17 @@ const CheckBookings: React.FC = () => {
                               fontSize: "0.8125rem",
                             }}
                           >
+                            {formatDate(booking.createdAt)}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color: "#6B7280",
+                              fontSize: "0.8125rem",
+                            }}
+                          >
                             {formatDate(booking.pickupAt)}
                           </Typography>
                           <Typography
@@ -1257,7 +1393,10 @@ const CheckBookings: React.FC = () => {
                               fontSize: "0.875rem",
                             }}
                           >
-                            {formatCurrency(booking.snapshotRentalTotal)}
+                            {formatCurrency(
+                              booking.snapshotRentalTotal +
+                                booking.snapshotDepositAmount
+                            )}
                           </Typography>
                         </TableCell>
                         <TableCell>
@@ -1461,6 +1600,19 @@ const CheckBookings: React.FC = () => {
           </ListItemIcon>
           <ListItemText primary="Xem Tranh Chấp" />
         </MenuItem>
+        <MenuItem
+          onClick={() => {
+            if (actionMenuBookingId) {
+              handleOpenUpdateStatusDialog(actionMenuBookingId);
+            }
+            handleCloseActionMenu();
+          }}
+        >
+          <ListItemIcon>
+            <Update fontSize="small" sx={{ color: "#F97316" }} />
+          </ListItemIcon>
+          <ListItemText primary="Cập nhật trạng thái" />
+        </MenuItem>
       </Menu>
       <Menu
         anchorEl={deviceMenuAnchorEl}
@@ -1544,6 +1696,93 @@ const CheckBookings: React.FC = () => {
         onClose={() => setDisputeDialogOpen(false)}
         bookingId={disputeBookingId}
       />
+
+      {/* Update Status Dialog */}
+      <Dialog
+        open={updateStatusDialogOpen}
+        onClose={handleCloseUpdateStatusDialog}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontWeight: 700, fontSize: 20 }}>
+          Cập nhật trạng thái đơn hàng
+        </DialogTitle>
+        <DialogContent sx={{ pt: 3 }}>
+          <FormControl component="fieldset" fullWidth>
+            <FormLabel component="legend" sx={{ mb: 2, fontWeight: 600 }}>
+              Chọn trạng thái mới
+            </FormLabel>
+            <RadioGroup
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value)}
+            >
+              <FormControlLabel
+                value="Confirmed"
+                control={<Radio sx={{ color: "#10B981" }} />}
+                label={
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <CheckCircleOutline
+                      sx={{ color: "#10B981", fontSize: 20 }}
+                    />
+                    <Typography>Đã xác nhận</Typography>
+                  </Box>
+                }
+              />
+              <FormControlLabel
+                value="PickedUp"
+                control={<Radio sx={{ color: "#3B82F6" }} />}
+                label={
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <LocalShipping sx={{ color: "#3B82F6", fontSize: 20 }} />
+                    <Typography>Đã giao máy</Typography>
+                  </Box>
+                }
+              />
+              <FormControlLabel
+                value="Returned"
+                control={<Radio sx={{ color: "#8B5CF6" }} />}
+                label={
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <TaskAlt sx={{ color: "#8B5CF6", fontSize: 20 }} />
+                    <Typography>Đã trả máy</Typography>
+                  </Box>
+                }
+              />
+              <FormControlLabel
+                value="Completed"
+                control={<Radio sx={{ color: "#059669" }} />}
+                label={
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <TaskAlt sx={{ color: "#059669", fontSize: 20 }} />
+                    <Typography>Hoàn tất</Typography>
+                  </Box>
+                }
+              />
+              <FormControlLabel
+                value="Cancelled"
+                control={<Radio sx={{ color: "#EF4444" }} />}
+                label={
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <Clear sx={{ color: "#EF4444", fontSize: 20 }} />
+                    <Typography>Hủy đơn</Typography>
+                  </Box>
+                }
+              />
+            </RadioGroup>
+          </FormControl>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={handleCloseUpdateStatusDialog}>Hủy</Button>
+          <Button
+            onClick={handleSubmitUpdateStatus}
+            variant="contained"
+            disabled={!selectedStatus}
+            sx={{ bgcolor: "#F97316", fontWeight: 600 }}
+          >
+            Xác nhận
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

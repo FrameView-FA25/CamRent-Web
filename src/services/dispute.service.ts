@@ -114,22 +114,42 @@ export const addDisputeItem = async (
   request: AddDisputeItemRequest
 ): Promise<void> => {
   try {
+    console.log("Adding dispute item:", { disputeId, request });
+
     const response = await fetch(
       `${API_BASE_URL}/Disputes/${disputeId}/items`,
       {
         method: "POST",
         headers: getAuthHeaders(),
-        body: JSON.stringify(request),
+        body: JSON.stringify({
+          type: request.type,
+          amount: request.amount,
+          notes: request.notes,
+        }),
       }
     );
 
+    console.log("Response status:", response.status);
+
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
+      const errorText = await response.text();
+      console.error("Error response:", errorText);
+
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch {
+        errorData = { message: errorText };
+      }
+
       throw new Error(
-        errorData.message ||
+        errorData.title ||
+          errorData.message ||
           `Failed to add dispute item: ${response.statusText}`
       );
     }
+
+    console.log("Dispute item added successfully");
   } catch (error) {
     console.error("Error adding dispute item:", error);
     throw error;
@@ -192,6 +212,56 @@ export const assignDispute = async (
     }
   } catch (error) {
     console.error("Error assigning dispute:", error);
+    throw error;
+  }
+};
+
+export const resolveDispute = async (disputeId: string): Promise<void> => {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/Disputes/${disputeId}/resolved`,
+      {
+        method: "PUT",
+        headers: getAuthHeaders(),
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.message || `Failed to resolve dispute: ${response.statusText}`
+      );
+    }
+  } catch (error) {
+    console.error("Error resolving dispute:", error);
+    throw error;
+  }
+};
+
+/**
+ * Từ chối dispute
+ * @param disputeId - ID của dispute
+ * @param request - Thông tin từ chối (resolutionNote)
+ * @returns Promise void
+ */
+export const rejectDispute = async (disputeId: string): Promise<void> => {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/Disputes/${disputeId}/rejected`,
+      {
+        method: "PUT",
+        headers: getAuthHeaders(),
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.message || `Failed to reject dispute: ${response.statusText}`
+      );
+    }
+  } catch (error) {
+    console.error("Error rejecting dispute:", error);
     throw error;
   }
 };

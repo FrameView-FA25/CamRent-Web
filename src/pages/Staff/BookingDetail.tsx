@@ -11,16 +11,14 @@ import {
   Alert,
   CircularProgress,
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  TextField,
   Stepper,
   Step,
   StepLabel,
   Avatar,
   IconButton,
   Stack,
+  Collapse,
 } from "@mui/material";
 import {
   ArrowBack,
@@ -30,12 +28,12 @@ import {
   LocationOn,
   CalendarToday,
   LocalShipping,
-  Edit,
   PhotoCamera,
-  QrCodeScanner,
   TaskAlt,
   AccessTime,
   Payment,
+  ExpandMore,
+  ExpandLess,
 } from "@mui/icons-material";
 import {
   fetchBookingById,
@@ -64,10 +62,12 @@ const BookingDetail: React.FC = () => {
   const [booking, setBooking] = useState<Booking | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [notes, setNotes] = useState("");
   const [deliveryPhotos, setDeliveryPhotos] = useState<File[]>([]);
+  const [rentalDetailExpanded, setRentalDetailExpanded] = useState(false);
+  const [paidDetailExpanded, setPaidDetailExpanded] = useState(false);
+  const [unpaidDetailExpanded, setUnpaidDetailExpanded] = useState(false);
 
   const loadBookingDetail = useCallback(async () => {
     if (!id) return;
@@ -99,11 +99,6 @@ const BookingDetail: React.FC = () => {
     loadBookingDetail();
   }, [loadBookingDetail]);
 
-  const handleUpdateStatus = () => {
-    setUpdateDialogOpen(false);
-    setConfirmDialogOpen(true);
-  };
-
   const handleConfirmUpdate = () => {
     console.log("Update booking status:", {
       bookingId: id,
@@ -116,38 +111,25 @@ const BookingDetail: React.FC = () => {
     setDeliveryPhotos([]);
   };
 
-  const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files) {
-      setDeliveryPhotos([...deliveryPhotos, ...Array.from(event.target.files)]);
-    }
-  };
-
   const getStatusNumber = (statusText: string): number => {
     const statusMap: Record<string, number> = {
       Pending: 0,
       Confirmed: 1,
       Delivering: 2,
+      Delivered: 3,
       Completed: 4,
-      Cancelled: 4,
+      Cancelled: -1, // Đơn bị hủy không hiển thị progress
     };
     return statusMap[statusText] ?? 0;
   };
 
-  const getActiveStep = (status: number) => {
-    switch (status) {
-      case 0:
-        return 0; // Pending
-      case 1:
-        return 1; // Confirmed
-      case 2:
-        return 2; // Delivering
-      case 3:
-        return 3; // Delivered
-      case 4:
-        return 4; // Completed
-      default:
-        return 0;
-    }
+  const getActiveStep = (statusNumber: number) => {
+    // Nếu đơn hàng bị hủy, không hiển thị step nào
+    if (statusNumber === -1) return -1;
+
+    // Trả về step hiện tại (đã hoàn thành step này)
+    // VD: Confirmed (1) -> đã hoàn thành step 0 và step 1
+    return statusNumber;
   };
 
   if (loading) {
@@ -196,7 +178,6 @@ const BookingDetail: React.FC = () => {
   }
 
   const statusNumber = getStatusNumber(booking.statusText);
-  const canUpdateStatus = statusNumber >= 1 && statusNumber < 3;
 
   return (
     <Box sx={{ bgcolor: "#F5F5F5", minHeight: "100vh", p: 3 }}>
@@ -229,63 +210,56 @@ const BookingDetail: React.FC = () => {
                 }}
               >
                 Chi tiết đơn hàng
+                <Chip
+                  label={booking.statusText}
+                  size="small"
+                  sx={{
+                    bgcolor: statusNumber === -1 ? "#FEE2E2" : "#FFF7ED",
+                    color: statusNumber === -1 ? "#DC2626" : "#F97316",
+                    fontWeight: 600,
+                  }}
+                />
               </Typography>
               <Typography variant="body2" sx={{ color: "#6B7280", mt: 0.5 }}>
                 Mã đơn: {booking.id}
               </Typography>
             </Box>
-            {canUpdateStatus && (
-              <Button
-                variant="contained"
-                startIcon={<Edit />}
-                onClick={() => setUpdateDialogOpen(true)}
-                sx={{
-                  bgcolor: "#F97316",
-                  textTransform: "none",
-                  fontWeight: 600,
-                  px: 3,
-                  "&:hover": {
-                    bgcolor: "#EA580C",
-                  },
-                }}
-              >
-                Cập nhật trạng thái
-              </Button>
-            )}
           </Box>
         </Box>
 
-        {/* Stepper */}
-        <Paper elevation={0} sx={{ p: 4, mb: 3, borderRadius: 3 }}>
-          <Stepper activeStep={getActiveStep(statusNumber)} alternativeLabel>
-            {steps.map((label) => (
-              <Step key={label}>
-                <StepLabel
-                  StepIconProps={{
-                    sx: {
-                      "&.Mui-active": {
-                        color: "#F97316",
+        {/* Stepper - Chỉ hiển thị nếu đơn hàng không bị hủy */}
+        {statusNumber !== -1 && (
+          <Paper elevation={0} sx={{ p: 4, mb: 3, borderRadius: 3 }}>
+            <Stepper activeStep={getActiveStep(statusNumber)} alternativeLabel>
+              {steps.map((label, index) => (
+                <Step key={label} completed={index <= statusNumber}>
+                  <StepLabel
+                    StepIconProps={{
+                      sx: {
+                        "&.Mui-active": {
+                          color: "#F97316",
+                        },
+                        "&.Mui-completed": {
+                          color: "#059669",
+                        },
                       },
-                      "&.Mui-completed": {
-                        color: "#059669",
-                      },
-                    },
-                  }}
-                >
-                  <Typography
-                    sx={{
-                      fontWeight: 600,
-                      fontSize: "0.875rem",
-                      color: "#6B7280",
                     }}
                   >
-                    {label}
-                  </Typography>
-                </StepLabel>
-              </Step>
-            ))}
-          </Stepper>
-        </Paper>
+                    <Typography
+                      sx={{
+                        fontWeight: index <= statusNumber ? 600 : 400,
+                        fontSize: "0.875rem",
+                        color: index <= statusNumber ? "#1F2937" : "#9CA3AF",
+                      }}
+                    >
+                      {label}
+                    </Typography>
+                  </StepLabel>
+                </Step>
+              ))}
+            </Stepper>
+          </Paper>
+        )}
 
         <Box
           sx={{
@@ -635,7 +609,7 @@ const BookingDetail: React.FC = () => {
                     }}
                   >
                     <Typography variant="body2" sx={{ color: "#6B7280" }}>
-                      Đơn giá
+                      Đơn giá / Ngày
                     </Typography>
                     <Typography
                       variant="body2"
@@ -659,28 +633,6 @@ const BookingDetail: React.FC = () => {
                       sx={{ fontWeight: 600, color: "#1F2937" }}
                     >
                       {formatCurrency(item.depositAmount)}
-                    </Typography>
-                  </Box>
-
-                  <Divider sx={{ my: 1.5 }} />
-
-                  <Box
-                    sx={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                    }}
-                  >
-                    <Typography
-                      variant="body2"
-                      sx={{ color: "#1F2937", fontWeight: 600 }}
-                    >
-                      Thành tiền
-                    </Typography>
-                    <Typography
-                      variant="body1"
-                      sx={{ fontWeight: 700, color: "#F97316" }}
-                    >
-                      {formatCurrency(item.unitPrice * item.quantity)}
                     </Typography>
                   </Box>
                 </Paper>
@@ -735,262 +687,250 @@ const BookingDetail: React.FC = () => {
             <Divider sx={{ mb: 3 }} />
 
             <Stack spacing={2}>
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <Typography variant="body2" sx={{ color: "#6B7280" }}>
-                  Tổng tiền thuê
-                </Typography>
-
-                <Typography
-                  variant="body1"
-                  sx={{ fontWeight: 600, color: "#1F2937" }}
+              {/* Dropdown cho Tổng tiền thuê */}
+              <Box>
+                <Box
+                  onClick={() => setRentalDetailExpanded(!rentalDetailExpanded)}
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    cursor: "pointer",
+                    p: 1.5,
+                    borderRadius: 2,
+                    bgcolor: rentalDetailExpanded ? "#FFF7ED" : "transparent",
+                    transition: "all 0.2s ease",
+                    "&:hover": {
+                      bgcolor: "#FFF7ED",
+                    },
+                  }}
                 >
-                  {formatCurrency(booking.snapshotRentalTotal)}
-                </Typography>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <Typography variant="body2" sx={{ color: "#6B7280" }}>
+                      Tổng thanh toán
+                    </Typography>
+                    {rentalDetailExpanded ? (
+                      <ExpandLess sx={{ color: "#F97316", fontSize: 20 }} />
+                    ) : (
+                      <ExpandMore sx={{ color: "#F97316", fontSize: 20 }} />
+                    )}
+                  </Box>
+                  <Typography
+                    variant="body1"
+                    sx={{ fontWeight: 600, color: "#1F2937" }}
+                  >
+                    {formatCurrency(
+                      booking.snapshotRentalTotal +
+                        booking.snapshotDepositAmount
+                    )}
+                  </Typography>
+                </Box>
+
+                <Collapse in={rentalDetailExpanded}>
+                  <Box
+                    sx={{
+                      mt: 1,
+                      ml: 2,
+                      pl: 2,
+                      borderLeft: "2px solid #F97316",
+                    }}
+                  >
+                    <Stack spacing={1.5}>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                        }}
+                      >
+                        <Typography variant="caption" sx={{ color: "#6B7280" }}>
+                          Tiền thuê thiết bị
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          sx={{ fontWeight: 600, color: "#374151" }}
+                        >
+                          {formatCurrency(booking.snapshotRentalTotal)}
+                        </Typography>
+                      </Box>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                        }}
+                      >
+                        <Typography variant="caption" sx={{ color: "#6B7280" }}>
+                          Tiền cọc thiết bị
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          sx={{ fontWeight: 600, color: "#374151" }}
+                        >
+                          {formatCurrency(booking.snapshotDepositAmount)}
+                        </Typography>
+                      </Box>
+                    </Stack>
+                  </Box>
+                </Collapse>
               </Box>
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <Typography variant="body2" sx={{ color: "#6B7280" }}>
-                  Tiền giữ chỗ ({format(booking.snapshotPlatformFeePercent)}
-                  Tổng tiền thuê)
-                </Typography>
 
-                <Typography
-                  variant="body1"
-                  sx={{ fontWeight: 600, color: "#1F2937" }}
+              {/* Dropdown cho Đã thanh toán */}
+              <Box>
+                <Box
+                  onClick={() => setPaidDetailExpanded(!paidDetailExpanded)}
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    cursor: "pointer",
+                    p: 1.5,
+                    borderRadius: 2,
+                    bgcolor: paidDetailExpanded ? "#FFF7ED" : "transparent",
+                    transition: "all 0.2s ease",
+                    "&:hover": {
+                      bgcolor: "#FFF7ED",
+                    },
+                  }}
                 >
-                  {formatCurrency(
-                    booking.snapshotPlatformFeePercent *
-                      booking.snapshotRentalTotal
-                  )}
-                </Typography>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <Typography variant="body2" sx={{ color: "#6B7280" }}>
+                      Đã thanh toán
+                    </Typography>
+                    {paidDetailExpanded ? (
+                      <ExpandLess sx={{ color: "#F97316", fontSize: 20 }} />
+                    ) : (
+                      <ExpandMore sx={{ color: "#F97316", fontSize: 20 }} />
+                    )}
+                  </Box>
+                  <Typography
+                    variant="body1"
+                    sx={{ fontWeight: 600, color: "#1F2937" }}
+                  >
+                    {formatCurrency(
+                      booking.snapshotPlatformFeePercent *
+                        booking.snapshotRentalTotal
+                    )}
+                  </Typography>
+                </Box>
+
+                <Collapse in={paidDetailExpanded}>
+                  <Box
+                    sx={{
+                      mt: 1,
+                      ml: 2,
+                      pl: 2,
+                      borderLeft: "2px solid #F97316",
+                    }}
+                  >
+                    <Stack spacing={1.5}>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                        }}
+                      >
+                        <Typography variant="caption" sx={{ color: "#6B7280" }}>
+                          Tiền giữ chỗ (
+                          {format(booking.snapshotPlatformFeePercent)} Tổng tiền
+                          thuê)
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          sx={{ fontWeight: 600, color: "#374151" }}
+                        >
+                          {formatCurrency(
+                            booking.snapshotPlatformFeePercent *
+                              booking.snapshotRentalTotal
+                          )}
+                        </Typography>
+                      </Box>
+                    </Stack>
+                  </Box>
+                </Collapse>
               </Box>
 
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <Typography variant="body2" sx={{ color: "#6B7280" }}>
-                  Tiền cọc thiết bị
-                </Typography>
-                <Typography
-                  variant="body1"
-                  sx={{ fontWeight: 600, color: "#1F2937" }}
+              {/* Dropdown cho Chưa thanh toán */}
+              <Box>
+                <Box
+                  onClick={() => setUnpaidDetailExpanded(!unpaidDetailExpanded)}
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    cursor: "pointer",
+                    p: 1.5,
+                    borderRadius: 2,
+                    bgcolor: unpaidDetailExpanded ? "#FFF7ED" : "transparent",
+                    transition: "all 0.2s ease",
+                    "&:hover": {
+                      bgcolor: "#FFF7ED",
+                    },
+                  }}
                 >
-                  {formatCurrency(booking.snapshotDepositAmount)}
-                </Typography>
-              </Box>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <Typography variant="body2" sx={{ color: "#6B7280" }}>
+                      Chưa thanh toán
+                    </Typography>
+                    {unpaidDetailExpanded ? (
+                      <ExpandLess sx={{ color: "#F97316", fontSize: 20 }} />
+                    ) : (
+                      <ExpandMore sx={{ color: "#F97316", fontSize: 20 }} />
+                    )}
+                  </Box>
+                  <Typography
+                    variant="body1"
+                    sx={{ fontWeight: 600, color: "#1F2937" }}
+                  >
+                    {formatCurrency(
+                      booking.snapshotRentalTotal +
+                        booking.snapshotDepositAmount -
+                        booking.snapshotPlatformFeePercent *
+                          booking.snapshotRentalTotal
+                    )}
+                  </Typography>
+                </Box>
 
-              <Divider />
-
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  p: 2,
-                  bgcolor: "#FFF7ED",
-                  borderRadius: 2,
-                }}
-              >
-                <Typography
-                  variant="h6"
-                  sx={{ fontWeight: 700, color: "#1F2937" }}
-                >
-                  Tổng cộng
-                </Typography>
-                <Typography
-                  variant="h5"
-                  sx={{ fontWeight: 700, color: "#F97316" }}
-                >
-                  {formatCurrency(
-                    booking.snapshotRentalTotal + booking.snapshotDepositAmount
-                  )}
-                </Typography>
+                <Collapse in={unpaidDetailExpanded}>
+                  <Box
+                    sx={{
+                      mt: 1,
+                      ml: 2,
+                      pl: 2,
+                      borderLeft: "2px solid #F97316",
+                    }}
+                  >
+                    <Stack spacing={1.5}>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                        }}
+                      >
+                        <Typography variant="caption" sx={{ color: "#6B7280" }}>
+                          Tổng thanh toán - Đã thanh toán
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          sx={{ fontWeight: 600, color: "#374151" }}
+                        >
+                          {formatCurrency(
+                            booking.snapshotRentalTotal +
+                              booking.snapshotDepositAmount -
+                              booking.snapshotPlatformFeePercent *
+                                booking.snapshotRentalTotal
+                          )}
+                        </Typography>
+                      </Box>
+                    </Stack>
+                  </Box>
+                </Collapse>
               </Box>
             </Stack>
           </Paper>
         </Box>
-
-        {/* Update Status Dialog */}
-        <Dialog
-          open={updateDialogOpen}
-          onClose={() => setUpdateDialogOpen(false)}
-          maxWidth="sm"
-          fullWidth
-        >
-          <DialogTitle sx={{ fontWeight: 700, color: "#1F2937", pb: 1 }}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-              <Box
-                sx={{
-                  width: 50,
-                  height: 50,
-                  borderRadius: 2,
-                  bgcolor: "#FFF7ED",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Edit sx={{ color: "#F97316", fontSize: 28 }} />
-              </Box>
-              <Box>
-                <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                  Cập nhật trạng thái
-                </Typography>
-                <Typography variant="body2" sx={{ color: "#6B7280" }}>
-                  Ghi nhận tiến độ giao hàng
-                </Typography>
-              </Box>
-            </Box>
-          </DialogTitle>
-
-          <DialogContent sx={{ pt: 3 }}>
-            <Alert
-              severity="info"
-              icon={<QrCodeScanner />}
-              sx={{
-                mb: 3,
-                borderRadius: 2,
-                bgcolor: "#E0F2FE",
-                "& .MuiAlert-icon": {
-                  color: "#0284C7",
-                },
-              }}
-            >
-              Vui lòng quét mã QR hoặc chụp ảnh bàn giao thiết bị
-            </Alert>
-
-            <TextField
-              fullWidth
-              multiline
-              rows={4}
-              label="Ghi chú giao hàng"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Mô tả tình trạng thiết bị, ghi chú đặc biệt..."
-              sx={{
-                mb: 3,
-                "& .MuiOutlinedInput-root": {
-                  borderRadius: 2,
-                  "&:hover fieldset": {
-                    borderColor: "#F97316",
-                  },
-                  "&.Mui-focused fieldset": {
-                    borderColor: "#F97316",
-                  },
-                },
-              }}
-            />
-
-            <Box>
-              <Typography
-                variant="subtitle2"
-                sx={{ fontWeight: 600, color: "#1F2937", mb: 2 }}
-              >
-                Ảnh bàn giao ({deliveryPhotos.length})
-              </Typography>
-
-              <input
-                accept="image/*"
-                style={{ display: "none" }}
-                id="upload-delivery-photos"
-                type="file"
-                multiple
-                onChange={handlePhotoUpload}
-              />
-              <label htmlFor="upload-delivery-photos">
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  component="span"
-                  startIcon={<PhotoCamera />}
-                  sx={{
-                    borderColor: "#F97316",
-                    color: "#F97316",
-                    textTransform: "none",
-                    fontWeight: 600,
-                    borderRadius: 2,
-                    py: 1.5,
-                    "&:hover": {
-                      bgcolor: "#FFF7ED",
-                      borderColor: "#F97316",
-                    },
-                  }}
-                >
-                  Chụp / Tải ảnh lên
-                </Button>
-              </label>
-
-              {deliveryPhotos.length > 0 && (
-                <Box
-                  sx={{
-                    mt: 2,
-                    p: 2,
-                    bgcolor: "#F9FAFB",
-                    borderRadius: 2,
-                    border: "1px solid #E5E7EB",
-                  }}
-                >
-                  <Typography variant="caption" sx={{ color: "#6B7280" }}>
-                    {deliveryPhotos.length} ảnh đã tải lên
-                  </Typography>
-                </Box>
-              )}
-            </Box>
-          </DialogContent>
-
-          <DialogActions sx={{ p: 3, pt: 0 }}>
-            <Button
-              onClick={() => setUpdateDialogOpen(false)}
-              variant="outlined"
-              sx={{
-                borderColor: "#E5E7EB",
-                color: "#6B7280",
-                textTransform: "none",
-                fontWeight: 600,
-                "&:hover": {
-                  borderColor: "#9CA3AF",
-                  bgcolor: "#F9FAFB",
-                },
-              }}
-            >
-              Hủy
-            </Button>
-            <Button
-              onClick={handleUpdateStatus}
-              variant="contained"
-              disabled={!notes || deliveryPhotos.length === 0}
-              sx={{
-                bgcolor: "#F97316",
-                textTransform: "none",
-                fontWeight: 600,
-                "&:hover": {
-                  bgcolor: "#EA580C",
-                },
-                "&:disabled": {
-                  bgcolor: "#E5E7EB",
-                  color: "#9CA3AF",
-                },
-              }}
-            >
-              Tiếp tục
-            </Button>
-          </DialogActions>
-        </Dialog>
 
         {/* Confirm Dialog */}
         <Dialog

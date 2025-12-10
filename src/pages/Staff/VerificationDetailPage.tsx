@@ -101,18 +101,6 @@ const VerificationDetailPage: React.FC = () => {
     return statusMap[status] || status;
   };
 
-  const getStatusColor = (status: string) => {
-    const colorMap: Record<string, { bg: string; color: string }> = {
-      Pending: { bg: "#FEF3C7", color: "#F59E0B" },
-      Assigned: { bg: "#DBEAFE", color: "#3B82F6" },
-      Approved: { bg: "#D1FAE5", color: "#10B981" },
-      Rejected: { bg: "#FEE2E2", color: "#EF4444" },
-      Completed: { bg: "#DBEAFE", color: "#3B82F6" },
-      Cancelled: { bg: "#F3F4F6", color: "#6B7280" },
-    };
-    return colorMap[status] || { bg: "#F3F4F6", color: "#6B7280" };
-  };
-
   const handleOpenImageModal = (
     media: Array<{ id: string; url: string; label: string }>,
     startIndex: number = 0
@@ -185,13 +173,11 @@ const VerificationDetailPage: React.FC = () => {
     );
   }
 
-  const statusInfo = getStatusColor(verification.status);
-
   const summaryCards = [
     {
       icon: TaskAlt,
-      bg: "#FEF3C7",
-      color: "#F59E0B",
+      bg: "#D1FAE5",
+      color: "#10B981",
       label: "Trạng thái",
       value: getStatusLabel(verification.status),
     },
@@ -249,15 +235,6 @@ const VerificationDetailPage: React.FC = () => {
                 }}
               >
                 Chi tiết kiểm tra xác minh
-                <Chip
-                  label={getStatusLabel(verification.status)}
-                  sx={{
-                    bgcolor: statusInfo.bg,
-                    color: statusInfo.color,
-                    fontWeight: 600,
-                    fontSize: "0.875rem",
-                  }}
-                />
               </Typography>
               <Typography variant="body2" sx={{ color: "#6B7280", mt: 0.5 }}>
                 Mã yêu cầu: {verification.id}
@@ -899,9 +876,9 @@ const VerificationDetailPage: React.FC = () => {
                           display: "grid",
                           gridTemplateColumns: {
                             xs: "1fr",
-                            md: "repeat(3, 1fr)",
+                            md: "repeat(4, 1fr)",
                           },
-                          gap: 2,
+                          gap: 1,
                         }}
                       >
                         <Box>
@@ -916,6 +893,19 @@ const VerificationDetailPage: React.FC = () => {
                             sx={{ fontWeight: 600, color: "#1F2937" }}
                           >
                             {inspection.label}
+                          </Typography>
+                        </Box>
+                        <Box>
+                          <Typography
+                            variant="caption"
+                            sx={{ color: "#6B7280", display: "block", mb: 0.5 }}
+                          >
+                            Ngày kiểm tra
+                          </Typography>
+                          <Typography variant="body2" sx={{ color: "#374151" }}>
+                            {inspection.createdAt
+                              ? formatDateTime(inspection.createdAt)
+                              : "Không có"}
                           </Typography>
                         </Box>
 

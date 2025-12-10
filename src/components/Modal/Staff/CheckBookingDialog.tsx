@@ -320,11 +320,9 @@ const CheckBookingDialog: React.FC<CheckBookingDialogProps> = ({
         >
           <MenuItem value="">-- Chọn giá trị --</MenuItem>
           <MenuItem value="Tốt">Tốt</MenuItem>
-          <MenuItem value="Khá">Khá</MenuItem>
           <MenuItem value="Trung bình">Trung bình</MenuItem>
+          <MenuItem value="Khá">Khá</MenuItem>
           <MenuItem value="Kém">Kém</MenuItem>
-          <MenuItem value="Có">Có</MenuItem>
-          <MenuItem value="Không">Không</MenuItem>
           <MenuItem value="Hoạt động">Hoạt động</MenuItem>
           <MenuItem value="Không hoạt động">Không hoạt động</MenuItem>
         </TextField>
