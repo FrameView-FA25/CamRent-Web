@@ -5,6 +5,14 @@ export const formatCurrency = (amount: number): string => {
   }).format(amount);
 };
 
+export const format = (decimal: number): string => {
+  return new Intl.NumberFormat("vi-VN", {
+    style: "percent",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(decimal);
+};
+
 export const formatDate = (dateString: string): string => {
   const date = new Date(dateString);
   return date.toLocaleDateString("vi-VN", {

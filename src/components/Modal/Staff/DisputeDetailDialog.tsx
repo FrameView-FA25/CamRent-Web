@@ -127,7 +127,7 @@ const DisputeDetailDialog: React.FC<DisputeDetailDialogProps> = ({
             alignItems: "center",
           }}
         >
-          <Typography variant="h6">Chi tiết Dispute</Typography>
+          <Typography variant="h6">Chi tiết Tranh Chấp</Typography>
           <IconButton onClick={onClose} size="small">
             <CloseIcon />
           </IconButton>
@@ -138,14 +138,14 @@ const DisputeDetailDialog: React.FC<DisputeDetailDialogProps> = ({
           {/* Basic Info */}
           <Box>
             <Typography variant="subtitle2" color="text.secondary">
-              ID Dispute
+              Mã Tranh Chấp
             </Typography>
             <Typography variant="body1">{dispute.id}</Typography>
           </Box>
 
           <Box>
             <Typography variant="subtitle2" color="text.secondary">
-              Booking ID
+              Mã Đơn Hàng
             </Typography>
             <Typography variant="body1">{dispute.bookingId}</Typography>
           </Box>
@@ -285,9 +285,9 @@ const DisputeDetailDialog: React.FC<DisputeDetailDialogProps> = ({
                     size="small"
                     fullWidth
                   >
-                    <MenuItem value="Camera">Camera</MenuItem>
+                    <MenuItem value="Camera">Máy ảnh</MenuItem>
                     <MenuItem value="Accessory">Phụ kiện</MenuItem>
-                    <MenuItem value="Money">Tiền</MenuItem>
+                    <MenuItem value="Money">Tiền mặt</MenuItem>
                   </TextField>
 
                   <TextField

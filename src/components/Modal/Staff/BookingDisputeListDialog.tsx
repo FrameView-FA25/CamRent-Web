@@ -145,7 +145,7 @@ const BookingDisputeListDialog: React.FC<BookingDisputeListDialogProps> = ({
               alignItems: "center",
             }}
           >
-            <Typography variant="h6">Disputes của Booking</Typography>
+            <Typography variant="h6">Tranh chấp đơn hàng</Typography>
             <IconButton onClick={onClose} size="small">
               <Close />
             </IconButton>
@@ -169,24 +169,25 @@ const BookingDisputeListDialog: React.FC<BookingDisputeListDialogProps> = ({
               {disputes.map((dispute, index) => (
                 <React.Fragment key={dispute.id}>
                   {index > 0 && <Divider />}
+
                   <ListItem
                     sx={{
                       display: "flex",
-                      flexDirection: "column",
-                      alignItems: "flex-start",
-                      gap: 1,
+                      flexDirection: "row", // Thay đổi từ "column" thành "row"
+                      alignItems: "center", // Căn giữa theo chiều dọc
+                      gap: 2,
                       py: 2,
                     }}
                   >
                     <Box
                       sx={{
                         display: "flex",
-                        justifyContent: "space-between",
-                        width: "100%",
-                        alignItems: "flex-start",
+                        flexDirection: "column",
+                        gap: 1,
+                        flexGrow: 1,
                       }}
                     >
-                      <Box sx={{ flexGrow: 1 }}>
+                      <Box>
                         <Typography variant="subtitle1" fontWeight="medium">
                           {dispute.title}
                         </Typography>
@@ -198,40 +199,41 @@ const BookingDisputeListDialog: React.FC<BookingDisputeListDialogProps> = ({
                           {dispute.description}
                         </Typography>
                       </Box>
-                      <IconButton
-                        onClick={() => handleViewDetail(dispute.id)}
-                        size="small"
-                        color="primary"
+
+                      <Box
+                        sx={{
+                          display: "flex",
+                          gap: 1,
+                          alignItems: "center",
+                          flexWrap: "wrap",
+                        }}
                       >
-                        <Visibility />
-                      </IconButton>
+                        <Chip
+                          label={dispute.severity}
+                          color={getSeverityColor(dispute.severity)}
+                          size="small"
+                        />
+                        <Chip
+                          label={dispute.status}
+                          color={getStatusColor(dispute.status)}
+                          size="small"
+                        />
+                        <Typography variant="caption" color="text.secondary">
+                          Tổng: {formatCurrency(dispute.totalAmount || 0)}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          • {formatDate(dispute.createdAt)}
+                        </Typography>
+                      </Box>
                     </Box>
 
-                    <Box
-                      sx={{
-                        display: "flex",
-                        gap: 1,
-                        alignItems: "center",
-                        flexWrap: "wrap",
-                      }}
+                    <IconButton
+                      onClick={() => handleViewDetail(dispute.id)}
+                      size="small"
+                      color="primary"
                     >
-                      <Chip
-                        label={dispute.severity}
-                        color={getSeverityColor(dispute.severity)}
-                        size="small"
-                      />
-                      <Chip
-                        label={dispute.status}
-                        color={getStatusColor(dispute.status)}
-                        size="small"
-                      />
-                      <Typography variant="caption" color="text.secondary">
-                        Tổng: {formatCurrency(dispute.totalAmount || 0)}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        • {formatDate(dispute.createdAt)}
-                      </Typography>
-                    </Box>
+                      <Visibility />
+                    </IconButton>
                   </ListItem>
                 </React.Fragment>
               ))}
