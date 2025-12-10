@@ -46,6 +46,7 @@ import {
   formatCurrency,
   formatDate,
   getBookingType,
+  format,
 } from "../../utils/booking.utils";
 import { getItemName } from "../../helpers/booking.helper";
 
@@ -651,7 +652,7 @@ const BookingDetail: React.FC = () => {
                     }}
                   >
                     <Typography variant="body2" sx={{ color: "#6B7280" }}>
-                      Tiền cọc
+                      Tiền cọc thiết bị
                     </Typography>
                     <Typography
                       variant="body2"
@@ -744,6 +745,7 @@ const BookingDetail: React.FC = () => {
                 <Typography variant="body2" sx={{ color: "#6B7280" }}>
                   Tổng tiền thuê
                 </Typography>
+
                 <Typography
                   variant="body1"
                   sx={{ fontWeight: 600, color: "#1F2937" }}
@@ -751,7 +753,6 @@ const BookingDetail: React.FC = () => {
                   {formatCurrency(booking.snapshotRentalTotal)}
                 </Typography>
               </Box>
-
               <Box
                 sx={{
                   display: "flex",
@@ -760,13 +761,18 @@ const BookingDetail: React.FC = () => {
                 }}
               >
                 <Typography variant="body2" sx={{ color: "#6B7280" }}>
-                  Tiền cọc
+                  Tiền giữ chỗ ({format(booking.snapshotPlatformFeePercent)}
+                  Tổng tiền thuê)
                 </Typography>
+
                 <Typography
                   variant="body1"
                   sx={{ fontWeight: 600, color: "#1F2937" }}
                 >
-                  {formatCurrency(booking.snapshotDepositAmount)}
+                  {formatCurrency(
+                    booking.snapshotPlatformFeePercent *
+                      booking.snapshotRentalTotal
+                  )}
                 </Typography>
               </Box>
 
@@ -778,13 +784,13 @@ const BookingDetail: React.FC = () => {
                 }}
               >
                 <Typography variant="body2" sx={{ color: "#6B7280" }}>
-                  Phí vận chuyển
+                  Tiền cọc thiết bị
                 </Typography>
                 <Typography
                   variant="body1"
                   sx={{ fontWeight: 600, color: "#1F2937" }}
                 >
-                  {formatCurrency(0)}
+                  {formatCurrency(booking.snapshotDepositAmount)}
                 </Typography>
               </Box>
 

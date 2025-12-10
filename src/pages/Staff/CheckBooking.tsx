@@ -1445,7 +1445,7 @@ const CheckBookings: React.FC = () => {
           <ListItemIcon>
             <Gavel fontSize="small" sx={{ color: "#DC2626" }} />
           </ListItemIcon>
-          <ListItemText primary="Tạo Dispute" />
+          <ListItemText primary="Tạo Tranh Chấp" />
         </MenuItem>
         <MenuItem
           onClick={() => {
@@ -1459,7 +1459,7 @@ const CheckBookings: React.FC = () => {
           <ListItemIcon>
             <Gavel fontSize="small" sx={{ color: "#9333EA" }} />
           </ListItemIcon>
-          <ListItemText primary="Xem Disputes" />
+          <ListItemText primary="Xem Tranh Chấp" />
         </MenuItem>
       </Menu>
       <Menu
