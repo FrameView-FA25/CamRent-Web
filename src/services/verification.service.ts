@@ -2,6 +2,7 @@ import type {
   CreateVerificationRequest,
   CreateVerificationResponse,
   Verification,
+  UnverifiedDevice,
 } from "../types/verification.types";
 
 // URL cơ sở của API backend
@@ -10,18 +11,7 @@ const API_BASE_URL = "https://camrent-backend.up.railway.app/api";
 // Export lại các type để sử dụng ở nơi khác
 export type { CreateVerificationRequest, CreateVerificationResponse };
 
-/**
- * Service quản lý các thao tác liên quan đến xác minh (Verification)
- * Bao gồm: tạo, cập nhật, xóa, gán nhân viên cho yêu cầu xác minh
- */
 export const verificationService = {
-  /**
-   * Tạo một yêu cầu xác minh mới
-   * Dùng để Owner gửi yêu cầu xác minh tài khoản hoặc thiết bị
-   * Quyền: Owner, Admin
-   * @param data - Dữ liệu yêu cầu xác minh
-   * @returns Promise chứa kết quả tạo verification
-   */
   async createVerification(
     data: CreateVerificationRequest
   ): Promise<CreateVerificationResponse> {
@@ -70,7 +60,12 @@ export const verificationService = {
         result?.verification ||
         null;
 
-      return { success: true, data, contractId: contractId ?? undefined, raw: result };
+      return {
+        success: true,
+        data,
+        contractId: contractId ?? undefined,
+        raw: result,
+      };
     }
 
     const text = await response.text();
@@ -327,5 +322,38 @@ export const verificationService = {
       throw new Error(errorMessage);
     }
   },
-};
+  // Lấy danh sách thiết bị chưa xác minh của owner hiện tại
+  async getOwnerUnverifiedDevices(): Promise<UnverifiedDevice[]> {
+    const token = localStorage.getItem("accessToken");
 
+    if (!token) {
+      throw new Error("Vui lòng đăng nhập để thực hiện thao tác này");
+    }
+
+    const response = await fetch(
+      `${API_BASE_URL}/Verifications/owner-devices`,
+      {
+        method: "GET",
+        headers: {
+          accept: "*/*",
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      let errorMessage = `Lấy danh sách thiết bị thất bại với mã lỗi ${response.status}`;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorMessage;
+      } catch {
+        const errorText = await response.text().catch(() => "");
+        if (errorText) errorMessage = errorText;
+      }
+      throw new Error(errorMessage);
+    }
+
+    return await response.json();
+  },
+};

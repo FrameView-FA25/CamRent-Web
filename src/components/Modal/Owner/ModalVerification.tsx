@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Box,
   Typography,
@@ -13,43 +13,34 @@ import {
   DialogActions,
   Stack,
   IconButton,
+  Checkbox,
+  FormControlLabel,
+  FormGroup,
+  Chip,
+  Divider,
 } from "@mui/material";
 import {
   Add as AddIcon,
   Close as CloseIcon,
   Save as SaveIcon,
-  DeleteOutline as DeleteIcon,
+  CameraAlt as CameraIcon,
+  Extension as AccessoryIcon,
 } from "@mui/icons-material";
 import type {
   CreateVerificationRequest,
   VerificationItem,
+  UnverifiedDevice,
+  VerificationItemType,
 } from "../../../types/verification.types";
-import { cameraService } from "../../../services/camera.service";
-import { accessoryService } from "../../../services/accessory.service";
-import { CameraContext } from "../../../context/CameraContexts/CameraContext.types";
+import { verificationService } from "../../../services/verification.service";
 import type { Branch } from "../../../types/branch.types";
-import type { Accessory } from "../../../types/accessory.types";
-
-interface DeviceOption {
-  id: string;
-  brand?: string;
-  model?: string;
-  name?: string;
-}
-
-interface DeviceOptionSource {
-  id: string;
-  brand?: string | null;
-  model?: string | null;
-  name?: string | null;
-}
 
 interface FormErrors {
   name?: string;
   phoneNumber?: string;
   inspectionDate?: string;
   branchId?: string;
-  items?: (string | undefined)[];
+  items?: string;
 }
 
 // Chuẩn hóa giá trị itemType từ API/tham số về "Camera" hoặc "Accessory"
@@ -62,35 +53,6 @@ const normalizeItemType = (
   return "Camera";
 };
 
-// Trả về chuỗi nhãn dễ đọc từ thông tin thiết bị
-const getDeviceLabel = (option?: DeviceOption) => {
-  if (!option) return "";
-  if (option.brand || option.model) {
-    return `${option.brand ?? ""} ${option.model ?? ""}`.trim();
-  }
-  return option.name ?? "";
-};
-
-// Chuyển đổi dữ liệu trả về từ service sang DeviceOption nội bộ
-const toDeviceOption = ({
-  id,
-  brand,
-  model,
-  name,
-}: DeviceOptionSource): DeviceOption => ({
-  id,
-  brand: brand ?? undefined,
-  model: model ?? undefined,
-  name: name ?? undefined,
-});
-
-// Tạo item rỗng dùng khi thêm thiết bị mới
-const getEmptyItem = (): VerificationItem => ({
-  itemId: "",
-  itemName: "",
-  itemType: "Camera",
-});
-
 // Khởi tạo form rỗng mặc định
 const getEmptyForm = (): CreateVerificationRequest => ({
   name: "",
@@ -98,7 +60,7 @@ const getEmptyForm = (): CreateVerificationRequest => ({
   inspectionDate: "",
   notes: "",
   branchId: "",
-  items: [getEmptyItem()],
+  items: [],
 });
 
 interface ModalVerificationProps {
@@ -126,23 +88,22 @@ export default function ModalVerification({
   const [formData, setFormData] = useState<CreateVerificationRequest>(
     getEmptyForm()
   );
-  // Các option cho camera và phụ kiện
-  const [cameraOptions, setCameraOptions] = useState<DeviceOption[]>([]);
-  const [accessoryOptions, setAccessoryOptions] = useState<DeviceOption[]>([]);
-  // Cờ loading + lỗi cho từng loại thiết bị
-  const [cameraLoading, setCameraLoading] = useState(false);
-  const [accessoryLoading, setAccessoryLoading] = useState(false);
-  const [cameraError, setCameraError] = useState<string | null>(null);
-  const [accessoryError, setAccessoryError] = useState<string | null>(null);
+  // Danh sách thiết bị chưa xác minh từ API mới
+  const [unverifiedDevices, setUnverifiedDevices] = useState<
+    UnverifiedDevice[]
+  >([]);
+  // Danh sách ID thiết bị được chọn
+  const [selectedDeviceIds, setSelectedDeviceIds] = useState<Set<string>>(
+    new Set()
+  );
+  const [devicesLoading, setDevicesLoading] = useState(false);
+  const [devicesError, setDevicesError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{
     type: "success" | "error";
     text: string;
   } | null>(null);
   const [errors, setErrors] = useState<FormErrors>({});
-
-  // Thử lấy context camera nếu có (useContext trả undefined nếu không có provider)
-  const cameraCtx = useContext(CameraContext);
 
   // Chuẩn hóa dữ liệu khởi tạo (đặc biệt khi ở chế độ chỉnh sửa)
   const computedInitialForm = useMemo(() => {
@@ -153,7 +114,7 @@ export default function ModalVerification({
               ...item,
               itemType: normalizeItemType(item.itemType),
             }))
-          : [getEmptyItem()];
+          : [];
 
       return {
         ...getEmptyForm(),
@@ -165,6 +126,17 @@ export default function ModalVerification({
 
     return getEmptyForm();
   }, [initialData, isEditMode]);
+
+  // Lọc thiết bị theo loại
+  const cameraOptions = useMemo(
+    () => unverifiedDevices.filter((device) => device.itemType === "Camera"),
+    [unverifiedDevices]
+  );
+
+  const accessoryOptions = useMemo(
+    () => unverifiedDevices.filter((device) => device.itemType === "Accessory"),
+    [unverifiedDevices]
+  );
 
   // Cập nhật các field cấp 1 của form
   const handleInputChange = (
@@ -205,7 +177,7 @@ export default function ModalVerification({
   const handlePhoneNumberChange = (value: string) => {
     // Loại bỏ mọi ký tự không phải số
     const numeric = value.replace(/\D/g, "");
-    // Giới hạn 10 ký tự (đổi thành 11 nếu bạn dùng 11 số)
+    // Giới hạn 10 ký tự
     const limited = numeric.slice(0, 10);
 
     setFormData((prev: CreateVerificationRequest) => ({
@@ -227,123 +199,101 @@ export default function ModalVerification({
     }));
   };
 
-  // Mở modal sẽ load lại dữ liệu form + fetch camera/phụ kiện
-  useEffect(() => {
-    // Khi modal mở thì tải lại danh sách camera/phụ kiện
-    if (!open) return;
-    setFormData(computedInitialForm);
-    (async () => {
-      // Nếu context đã có danh sách camera thì ưu tiên dùng để tránh gọi API
-      if (cameraCtx && Array.isArray(cameraCtx.cameras)) {
-        const contextOptions = cameraCtx.cameras.map((camera) =>
-          toDeviceOption({
-            id: camera.id,
-            brand: camera.brand,
-            model: camera.model,
-          })
-        );
-        if (contextOptions.length) setCameraOptions(contextOptions);
+  // Xử lý chọn/bỏ chọn thiết bị
+  const handleDeviceToggle = (deviceId: string) => {
+    setSelectedDeviceIds((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(deviceId)) {
+        newSet.delete(deviceId);
+      } else {
+        newSet.add(deviceId);
       }
-      setCameraLoading(true);
-      setAccessoryLoading(true);
-      setCameraError(null);
-      setAccessoryError(null);
-      try {
-        const camsResponse = await cameraService.getCamerasByOwner(1, 200);
-        const options = (camsResponse?.items ?? []).map((camera) =>
-          toDeviceOption({
-            id: camera.id,
-            brand: camera.brand,
-            model: camera.model,
-          })
-        );
-        setCameraOptions(options);
-      } catch (err) {
-        console.error("Lỗi tải camera:", err);
-        setCameraOptions([]);
-        setCameraError(
-          err instanceof Error ? err.message : "Không thể tải danh sách camera"
-        );
-      } finally {
-        setCameraLoading(false);
-      }
-
-      try {
-        // Gọi API phụ kiện của chủ sở hữu (yêu cầu token)
-        const accessories: Accessory[] =
-          await accessoryService.getAccessoriesByOwnerId();
-        const options = accessories.map((accessory) =>
-          toDeviceOption({
-            id: accessory.id,
-            brand: accessory.brand,
-            model: accessory.model,
-          })
-        );
-        setAccessoryOptions(options);
-      } catch (err) {
-        console.error("Lỗi tải accessory:", err);
-        setAccessoryOptions([]);
-        setAccessoryError(
-          err instanceof Error
-            ? err.message
-            : "Không thể tải danh sách phụ kiện"
-        );
-      } finally {
-        setAccessoryLoading(false);
-      }
-    })();
-  }, [open, computedInitialForm, cameraCtx]);
-
-  // Thêm một dòng thiết bị mới
-  const handleAddItem = () => {
-    setFormData((prev: CreateVerificationRequest) => ({
-      ...prev,
-      items: [...(prev.items || []), getEmptyItem()],
-    }));
-  };
-
-  // Xóa thiết bị theo index
-  const handleRemoveItem = (index: number) => {
-    setFormData((prev: CreateVerificationRequest) => ({
-      ...prev,
-      items: prev.items.filter((_: VerificationItem, i: number) => i !== index),
-    }));
-  };
-
-  // Cập nhật thông tin từng thiết bị (loại, id, tên hiển thị)
-  const handleItemChange = (
-    index: number,
-    field: keyof VerificationItem,
-    value: string
-  ) => {
-    setFormData((prev: CreateVerificationRequest) => {
-      const newItems = [...(prev.items || [])];
-      const item = { ...(newItems[index] || getEmptyItem()) };
-
-      if (field === "itemType") {
-        item.itemType = normalizeItemType(value);
-        item.itemId = "";
-        item.itemName = "";
-      } else if (field === "itemId") {
-        item.itemId = value;
-      } else if (field === "itemName") {
-        item.itemName = value;
-      }
-
-      newItems[index] = item;
-      return { ...prev, items: newItems };
+      return newSet;
     });
 
-    // Xóa lỗi item tương ứng khi người dùng đã chọn lại
-    if (field === "itemId") {
-      setErrors((prev) => {
-        if (!prev.items) return prev;
-        const nextItems = [...prev.items];
-        nextItems[index] = undefined;
-        return { ...prev, items: nextItems };
-      });
+    // Xóa lỗi items khi đã chọn ít nhất 1 thiết bị
+    if (errors.items) {
+      setErrors((prev) => ({ ...prev, items: undefined }));
     }
   };
+
+  // Xử lý chọn tất cả camera
+  const handleSelectAllCameras = (checked: boolean) => {
+    setSelectedDeviceIds((prev) => {
+      const newSet = new Set(prev);
+      cameraOptions.forEach((device) => {
+        if (checked) {
+          newSet.add(device.itemId);
+        } else {
+          newSet.delete(device.itemId);
+        }
+      });
+      return newSet;
+    });
+  };
+
+  // Xử lý chọn tất cả phụ kiện
+  const handleSelectAllAccessories = (checked: boolean) => {
+    setSelectedDeviceIds((prev) => {
+      const newSet = new Set(prev);
+      accessoryOptions.forEach((device) => {
+        if (checked) {
+          newSet.add(device.itemId);
+        } else {
+          newSet.delete(device.itemId);
+        }
+      });
+      return newSet;
+    });
+  };
+
+  // Xóa một thiết bị đã chọn từ Chip
+  const handleRemoveDevice = (deviceId: string) => {
+    setSelectedDeviceIds((prev) => {
+      const newSet = new Set(prev);
+      newSet.delete(deviceId);
+      return newSet;
+    });
+  };
+
+  // Mở modal sẽ load lại dữ liệu form + fetch danh sách thiết bị chưa xác minh
+  useEffect(() => {
+    if (!open) return;
+
+    setFormData(computedInitialForm);
+
+    // Khôi phục danh sách thiết bị đã chọn khi edit
+    if (isEditMode && initialData?.items) {
+      const initialIds = new Set(
+        initialData.items.map((item) => item.itemId).filter(Boolean)
+      );
+      setSelectedDeviceIds(initialIds);
+    } else {
+      setSelectedDeviceIds(new Set());
+    }
+
+    const fetchUnverifiedDevices = async () => {
+      setDevicesLoading(true);
+      setDevicesError(null);
+
+      try {
+        const devices = await verificationService.getOwnerUnverifiedDevices();
+        setUnverifiedDevices(devices);
+      } catch (err) {
+        console.error("Lỗi tải danh sách thiết bị:", err);
+        setUnverifiedDevices([]);
+        setDevicesError(
+          err instanceof Error
+            ? err.message
+            : "Không thể tải danh sách thiết bị chưa xác minh"
+        );
+      } finally {
+        setDevicesLoading(false);
+      }
+    };
+
+    fetchUnverifiedDevices();
+  }, [open, computedInitialForm, isEditMode, initialData]);
 
   // Validate toàn bộ form, trả về true nếu hợp lệ
   const validateForm = (): boolean => {
@@ -367,15 +317,8 @@ export default function ModalVerification({
       newErrors.branchId = "Vui lòng chọn chi nhánh";
     }
 
-    if (!formData.items || formData.items.length === 0) {
-      newErrors.items = ["Vui lòng thêm ít nhất một thiết bị"];
-    } else {
-      const itemErrors = formData.items.map((it) =>
-        !it.itemId ? "Vui lòng chọn tên thiết bị" : undefined
-      );
-      if (itemErrors.some((e) => e)) {
-        newErrors.items = itemErrors;
-      }
+    if (selectedDeviceIds.size === 0) {
+      newErrors.items = "Vui lòng chọn ít nhất một thiết bị";
     }
 
     setErrors(newErrors);
@@ -395,11 +338,24 @@ export default function ModalVerification({
     setIsLoading(true);
 
     try {
+      // Chuyển đổi selectedDeviceIds thành items array
+      const items: VerificationItem[] = Array.from(selectedDeviceIds)
+        .map((deviceId) => {
+          const device = unverifiedDevices.find((d) => d.itemId === deviceId);
+          if (!device) return null;
+          return {
+            itemId: device.itemId,
+            itemName: device.itemName,
+            itemType: device.itemType as VerificationItemType,
+          };
+        })
+        .filter((item): item is VerificationItem => item !== null);
+
       // Chuyển đổi inspectionDate sang định dạng ISO 8601
       const submitData: CreateVerificationRequest = {
         ...formData,
         inspectionDate: new Date(formData.inspectionDate).toISOString(),
-        items: formData.items || [],
+        items,
       };
 
       await onSubmit(submitData);
@@ -431,16 +387,35 @@ export default function ModalVerification({
   // Reset state khi đóng modal
   const handleClose = () => {
     setFormData(getEmptyForm());
+    setSelectedDeviceIds(new Set());
     setMessage(null);
     setIsLoading(false);
+    setErrors({});
     onClose();
   };
+
+  // Kiểm tra xem tất cả camera có được chọn không
+  const allCamerasSelected =
+    cameraOptions.length > 0 &&
+    cameraOptions.every((device) => selectedDeviceIds.has(device.itemId));
+
+  // Kiểm tra xem tất cả phụ kiện có được chọn không
+  const allAccessoriesSelected =
+    accessoryOptions.length > 0 &&
+    accessoryOptions.every((device) => selectedDeviceIds.has(device.itemId));
+
+  // Danh sách thiết bị đã chọn để hiển thị
+  const selectedDevices = useMemo(() => {
+    return Array.from(selectedDeviceIds)
+      .map((id) => unverifiedDevices.find((d) => d.itemId === id))
+      .filter((device): device is UnverifiedDevice => device !== undefined);
+  }, [selectedDeviceIds, unverifiedDevices]);
 
   return (
     <Dialog
       open={open}
       onClose={handleClose}
-      maxWidth="sm"
+      maxWidth="md"
       fullWidth
       PaperProps={{
         sx: {
@@ -529,134 +504,170 @@ export default function ModalVerification({
           )}
 
           <Stack spacing={2.5}>
-            <TextField
-              fullWidth
-              label="Tên người yêu cầu"
-              value={formData.name}
-              onChange={(e) => handleInputChange("name", e.target.value)}
-              error={Boolean(errors.name)}
-              helperText={errors.name || " "}
-              disabled={isLoading}
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  borderRadius: 1.5,
-                  bgcolor: "#F8FAFC",
-                  "& fieldset": {
-                    borderColor: "#E2E8F0",
+            <Box sx={{ display: "flex", gap: 2.5 }}>
+              <TextField
+                fullWidth
+                label="Tên người yêu cầu"
+                value={formData.name}
+                onChange={(e) => handleInputChange("name", e.target.value)}
+                error={Boolean(errors.name)}
+                helperText={errors.name || " "}
+                disabled={isLoading}
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: 1.5,
+                    bgcolor: "#F8FAFC",
+                    "& fieldset": {
+                      borderColor: "#E2E8F0",
+                    },
+                    "&:hover fieldset": {
+                      borderColor: "#FF6B35",
+                    },
+                    "&.Mui-focused fieldset": {
+                      borderColor: "#FF6B35",
+                      borderWidth: 2,
+                    },
                   },
-                  "&:hover fieldset": {
-                    borderColor: "#FF6B35",
-                  },
-                  "&.Mui-focused fieldset": {
-                    borderColor: "#FF6B35",
-                    borderWidth: 2,
-                  },
-                },
-              }}
-            />
+                }}
+              />
 
-            <TextField
-              fullWidth
-              label="Số điện thoại"
-              value={formData.phoneNumber}
-              onChange={(e) => handlePhoneNumberChange(e.target.value)}
-              error={Boolean(errors.phoneNumber)}
-              helperText={errors.phoneNumber || " "}
-              disabled={isLoading}
-              placeholder="0123456789"
-              inputProps={{
-                maxLength: 10,
-                inputMode: "numeric",
-              }}
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  borderRadius: 1.5,
-                  bgcolor: "#F8FAFC",
-                  "& fieldset": {
-                    borderColor: "#E2E8F0",
+              <TextField
+                fullWidth
+                label="Số điện thoại"
+                value={formData.phoneNumber}
+                onChange={(e) => handlePhoneNumberChange(e.target.value)}
+                error={Boolean(errors.phoneNumber)}
+                helperText={errors.phoneNumber || " "}
+                disabled={isLoading}
+                placeholder="0123456789"
+                inputProps={{
+                  maxLength: 10,
+                  inputMode: "numeric",
+                }}
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: 1.5,
+                    bgcolor: "#F8FAFC",
+                    "& fieldset": {
+                      borderColor: "#E2E8F0",
+                    },
+                    "&:hover fieldset": {
+                      borderColor: "#FF6B35",
+                    },
+                    "&.Mui-focused fieldset": {
+                      borderColor: "#FF6B35",
+                      borderWidth: 2,
+                    },
                   },
-                  "&:hover fieldset": {
-                    borderColor: "#FF6B35",
+                }}
+              />
+            </Box>
+            <Box sx={{ display: "flex", gap: 2.5 }}>
+              <TextField
+                fullWidth
+                label="Ngày kiểm tra"
+                type="datetime-local"
+                value={formData.inspectionDate}
+                onChange={(e) =>
+                  handleInputChange("inspectionDate", e.target.value)
+                }
+                error={Boolean(errors.inspectionDate)}
+                helperText={errors.inspectionDate || " "}
+                disabled={isLoading}
+                slotProps={{
+                  inputLabel: {
+                    shrink: true,
                   },
-                  "&.Mui-focused fieldset": {
-                    borderColor: "#FF6B35",
-                    borderWidth: 2,
+                }}
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: 1.5,
+                    bgcolor: "#F8FAFC",
+                    "& fieldset": {
+                      borderColor: "#E2E8F0",
+                    },
+                    "&:hover fieldset": {
+                      borderColor: "#FF6B35",
+                    },
+                    "&.Mui-focused fieldset": {
+                      borderColor: "#FF6B35",
+                      borderWidth: 2,
+                    },
                   },
-                },
-              }}
-            />
+                }}
+              />
 
-            <TextField
-              fullWidth
-              label="Ngày kiểm tra"
-              type="datetime-local"
-              value={formData.inspectionDate}
-              onChange={(e) =>
-                handleInputChange("inspectionDate", e.target.value)
-              }
-              error={Boolean(errors.inspectionDate)}
-              helperText={errors.inspectionDate || " "}
-              disabled={isLoading}
-              slotProps={{
-                inputLabel: {
-                  shrink: true,
-                },
-              }}
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  borderRadius: 1.5,
-                  bgcolor: "#F8FAFC",
-                  "& fieldset": {
-                    borderColor: "#E2E8F0",
+              <TextField
+                fullWidth
+                select
+                label="Chi nhánh"
+                value={formData.branchId}
+                onChange={(e) => handleInputChange("branchId", e.target.value)}
+                error={Boolean(errors.branchId)}
+                disabled={isLoading || isLoadingBranches}
+                helperText={
+                  errors.branchId ||
+                  (isLoadingBranches ? "Đang tải danh sách chi nhánh..." : "")
+                }
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: 1.5,
+                    bgcolor: "#F8FAFC",
+                    "& fieldset": {
+                      borderColor: "#E2E8F0",
+                    },
+                    "&:hover fieldset": {
+                      borderColor: "#FF6B35",
+                    },
+                    "&.Mui-focused fieldset": {
+                      borderColor: "#FF6B35",
+                      borderWidth: 2,
+                    },
                   },
-                  "&:hover fieldset": {
-                    borderColor: "#FF6B35",
-                  },
-                  "&.Mui-focused fieldset": {
-                    borderColor: "#FF6B35",
-                    borderWidth: 2,
-                  },
-                },
-              }}
-            />
+                }}
+              >
+                {branches.map((branch) => (
+                  <MenuItem key={branch.id} value={branch.id}>
+                    {branch.name}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Box>
 
-            <TextField
-              fullWidth
-              select
-              label="Chi nhánh"
-              value={formData.branchId}
-              onChange={(e) => handleInputChange("branchId", e.target.value)}
-              error={Boolean(errors.branchId)}
-              disabled={isLoading || isLoadingBranches}
-              helperText={
-                errors.branchId ||
-                (isLoadingBranches ? "Đang tải danh sách chi nhánh..." : "")
-              }
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  borderRadius: 1.5,
-                  bgcolor: "#F8FAFC",
-                  "& fieldset": {
-                    borderColor: "#E2E8F0",
-                  },
-                  "&:hover fieldset": {
-                    borderColor: "#FF6B35",
-                  },
-                  "&.Mui-focused fieldset": {
-                    borderColor: "#FF6B35",
-                    borderWidth: 2,
-                  },
-                },
-              }}
-            >
-              {branches.map((branch) => (
-                <MenuItem key={branch.id} value={branch.id}>
-                  {branch.name}
-                </MenuItem>
-              ))}
-            </TextField>
+            {/* Danh sách thiết bị đã chọn */}
+            {selectedDevices.length > 0 && (
+              <Box>
+                <Typography sx={{ fontWeight: 600, mb: 1, fontSize: 14 }}>
+                  Đã chọn ({selectedDevices.length} thiết bị)
+                </Typography>
+                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                  {selectedDevices.map((device) => (
+                    <Chip
+                      key={device.itemId}
+                      icon={
+                        device.itemType === "Camera" ? (
+                          <CameraIcon sx={{ fontSize: 18 }} />
+                        ) : (
+                          <AccessoryIcon sx={{ fontSize: 18 }} />
+                        )
+                      }
+                      label={device.itemName}
+                      onDelete={() => handleRemoveDevice(device.itemId)}
+                      color={
+                        device.itemType === "Camera" ? "primary" : "secondary"
+                      }
+                      variant="outlined"
+                      sx={{
+                        borderRadius: 2,
+                        fontWeight: 500,
+                      }}
+                    />
+                  ))}
+                </Box>
+              </Box>
+            )}
 
-            {/* Danh sách nhiều thiết bị */}
+            {/* Danh sách thiết bị để chọn */}
             <Box>
               <Box
                 sx={{
@@ -667,141 +678,210 @@ export default function ModalVerification({
                 }}
               >
                 <Typography sx={{ fontWeight: 700 }}>
-                  Danh sách thiết bị
+                  Chọn thiết bị cần xác minh
                 </Typography>
-                <Button
-                  size="small"
-                  variant="outlined"
-                  onClick={handleAddItem}
-                  startIcon={<AddIcon sx={{ fontSize: 18 }} />}
-                  sx={{
-                    borderRadius: 999,
-                    px: 2.5,
-                    py: 0.5,
-                    fontWeight: 600,
-                    textTransform: "none",
-                    borderColor: "#2563EB",
-                    color: "#2563EB",
-                    "&:hover": {
-                      borderColor: "#1D4ED8",
-                      bgcolor: "#EFF6FF",
-                    },
-                  }}
-                >
-                  Thêm thiết bị
-                </Button>
               </Box>
 
-              {(formData.items || []).map((it, idx) => (
-                <Stack key={idx} direction="row" spacing={1} sx={{ mb: 1 }}>
-                  <TextField
-                    select
-                    size="small"
-                    label="Loại"
-                    value={it.itemType}
-                    onChange={(e) =>
-                      handleItemChange(idx, "itemType", e.target.value)
-                    }
-                    sx={{ minWidth: 140 }}
-                  >
-                    <MenuItem value="Camera">Camera</MenuItem>
-                    <MenuItem value="Accessory">Phụ kiện</MenuItem>
-                  </TextField>
+              {devicesError && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  {devicesError}
+                </Alert>
+              )}
 
-                  <TextField
-                    select
-                    size="small"
-                    label="Chọn tên"
-                    value={it.itemId || ""}
-                    onChange={(e) => {
-                      const selectedId = e.target.value;
-                      const isCamera =
-                        it.itemType === "1" || it.itemType === "Camera";
-                      const selected = (
-                        isCamera ? cameraOptions : accessoryOptions
-                      ).find((option) => option.id === selectedId);
-                      handleItemChange(idx, "itemId", selectedId);
-                      handleItemChange(
-                        idx,
-                        "itemName",
-                        getDeviceLabel(selected)
-                      );
-                    }}
-                    sx={{ flex: 1 }}
-                    slotProps={{
-                      select: {
-                        MenuProps: {
-                          PaperProps: {
-                            style: {
-                              maxHeight: 48 * 5 + 8,
-                            },
-                          },
-                        },
-                      },
-                    }}
-                    helperText={
-                      errors.items?.[idx] ||
-                      (it.itemType === "1" || it.itemType === "Camera"
-                        ? cameraLoading
-                          ? "Đang tải camera..."
-                          : cameraError
-                          ? cameraError
-                          : cameraOptions.length === 0
-                          ? "Không có camera"
-                          : ""
-                        : accessoryLoading
-                        ? "Đang tải phụ kiện..."
-                        : accessoryError
-                        ? accessoryError
-                        : accessoryOptions.length === 0
-                        ? "Không có phụ kiện"
-                        : "")
-                    }
-                  >
-                    {it.itemType === "1" || it.itemType === "Camera"
-                      ? cameraOptions.length > 0
-                        ? cameraOptions.map((c) => (
-                            <MenuItem key={c.id} value={c.id}>
-                              {c.brand} {c.model}
-                            </MenuItem>
-                          ))
-                        : [
-                            <MenuItem key="no-camera" value="" disabled>
-                              Không có camera
-                            </MenuItem>,
-                          ]
-                      : accessoryOptions.length > 0
-                      ? accessoryOptions.map((a) => (
-                          <MenuItem key={a.id} value={a.id}>
-                            {a.brand} {a.model}
-                          </MenuItem>
-                        ))
-                      : [
-                          <MenuItem key="no-acc" value="" disabled>
-                            Không có phụ kiện
-                          </MenuItem>,
-                        ]}
-                  </TextField>
+              {devicesLoading ? (
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    py: 4,
+                  }}
+                >
+                  <CircularProgress size={40} />
+                  <Typography sx={{ ml: 2 }}>
+                    Đang tải danh sách thiết bị...
+                  </Typography>
+                </Box>
+              ) : (
+                <Box
+                  sx={{
+                    border: "1px solid #E2E8F0",
+                    borderRadius: 2,
+                    p: 2,
+                    bgcolor: "#F8FAFC",
+                    maxHeight: 400,
+                    overflowY: "auto",
+                  }}
+                >
+                  {/* Camera Section */}
+                  {cameraOptions.length > 0 && (
+                    <Box sx={{ mb: 3 }}>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          mb: 1,
+                        }}
+                      >
+                        <Typography
+                          sx={{
+                            fontWeight: 700,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 1,
+                            color: "#1976D2",
+                          }}
+                        >
+                          <CameraIcon sx={{ fontSize: 20 }} />
+                          Camera ({cameraOptions.length})
+                        </Typography>
+                        <FormControlLabel
+                          control={
+                            <Checkbox
+                              checked={allCamerasSelected}
+                              onChange={(e) =>
+                                handleSelectAllCameras(e.target.checked)
+                              }
+                              disabled={isLoading}
+                              size="small"
+                            />
+                          }
+                          label={
+                            <Typography sx={{ fontSize: 13, fontWeight: 500 }}>
+                              Chọn tất cả
+                            </Typography>
+                          }
+                        />
+                      </Box>
+                      <Divider sx={{ mb: 1.5 }} />
+                      <FormGroup>
+                        {cameraOptions.map((device) => (
+                          <FormControlLabel
+                            key={device.itemId}
+                            control={
+                              <Checkbox
+                                checked={selectedDeviceIds.has(device.itemId)}
+                                onChange={() =>
+                                  handleDeviceToggle(device.itemId)
+                                }
+                                disabled={isLoading}
+                              />
+                            }
+                            label={device.itemName}
+                            sx={{
+                              "&:hover": {
+                                bgcolor: "#EFF6FF",
+                                borderRadius: 1,
+                              },
+                              px: 1,
+                              py: 0.5,
+                            }}
+                          />
+                        ))}
+                      </FormGroup>
+                    </Box>
+                  )}
 
-                  <Button
-                    size="small"
-                    color="error"
-                    variant="text"
-                    startIcon={<DeleteIcon sx={{ fontSize: 18 }} />}
-                    onClick={() => handleRemoveItem(idx)}
-                    sx={{
-                      textTransform: "none",
-                      fontWeight: 500,
-                      px: 1,
-                      "&:hover": {
-                        bgcolor: "rgba(239,68,68,0.04)",
-                      },
-                    }}
-                  >
-                    Xóa
-                  </Button>
-                </Stack>
-              ))}
+                  {/* Accessory Section */}
+                  {accessoryOptions.length > 0 && (
+                    <Box>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          mb: 1,
+                        }}
+                      >
+                        <Typography
+                          sx={{
+                            fontWeight: 700,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 1,
+                            color: "#9C27B0",
+                          }}
+                        >
+                          <AccessoryIcon sx={{ fontSize: 20 }} />
+                          Phụ kiện ({accessoryOptions.length})
+                        </Typography>
+                        <FormControlLabel
+                          control={
+                            <Checkbox
+                              checked={allAccessoriesSelected}
+                              onChange={(e) =>
+                                handleSelectAllAccessories(e.target.checked)
+                              }
+                              disabled={isLoading}
+                              size="small"
+                            />
+                          }
+                          label={
+                            <Typography sx={{ fontSize: 13, fontWeight: 500 }}>
+                              Chọn tất cả
+                            </Typography>
+                          }
+                        />
+                      </Box>
+                      <Divider sx={{ mb: 1.5 }} />
+                      <FormGroup>
+                        {accessoryOptions.map((device) => (
+                          <FormControlLabel
+                            key={device.itemId}
+                            control={
+                              <Checkbox
+                                checked={selectedDeviceIds.has(device.itemId)}
+                                onChange={() =>
+                                  handleDeviceToggle(device.itemId)
+                                }
+                                disabled={isLoading}
+                              />
+                            }
+                            label={device.itemName}
+                            sx={{
+                              "&:hover": {
+                                bgcolor: "#F3E5F5",
+                                borderRadius: 1,
+                              },
+                              px: 1,
+                              py: 0.5,
+                            }}
+                          />
+                        ))}
+                      </FormGroup>
+                    </Box>
+                  )}
+
+                  {/* No devices available */}
+                  {cameraOptions.length === 0 &&
+                    accessoryOptions.length === 0 && (
+                      <Box
+                        sx={{
+                          textAlign: "center",
+                          py: 4,
+                        }}
+                      >
+                        <Typography color="text.secondary">
+                          Không có thiết bị chưa xác minh
+                        </Typography>
+                      </Box>
+                    )}
+                </Box>
+              )}
+
+              {errors.items && (
+                <Typography
+                  sx={{
+                    color: "#EF4444",
+                    fontSize: 12,
+                    mt: 0.5,
+                    ml: 1.5,
+                  }}
+                >
+                  {errors.items}
+                </Typography>
+              )}
             </Box>
           </Stack>
         </DialogContent>
@@ -833,7 +913,7 @@ export default function ModalVerification({
           <Button
             type="submit"
             variant="contained"
-            disabled={isLoading}
+            disabled={isLoading || devicesLoading}
             startIcon={
               isLoading ? (
                 <CircularProgress size={20} sx={{ color: "white" }} />

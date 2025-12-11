@@ -119,3 +119,9 @@ export interface Contract {
   signedAt: string | null;
   signatures: ContractSignature[];
 }
+// Interface cho thiết bị chưa xác minh
+export interface UnverifiedDevice {
+  itemId: string;
+  itemName: string;
+  itemType: "Camera" | "Accessory";
+}
