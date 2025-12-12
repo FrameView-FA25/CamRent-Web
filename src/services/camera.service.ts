@@ -142,7 +142,14 @@ export interface CameraQrHistoryResponse {
   bookings: CameraQrHistoryBooking[];
   inspections: CameraQrHistoryInspection[];
 }
-
+export interface AvailableCamera {
+  cameraId: string;
+  model: string;
+  brand: string;
+  variant?: string;
+  branchName?: string;
+  // ... other properties
+}
 // Service xử lý các API liên quan đến Camera
 export const cameraService = {
   /**
@@ -661,6 +668,52 @@ export const cameraService = {
       };
     } catch (error) {
       console.error("Lỗi khi lấy QR history của camera:", error);
+      throw error;
+    }
+  },
+ async getAvailableCameras(
+    startDate: string,
+    endDate: string
+  ): Promise<Camera[]> {
+    try {
+      // Xây dựng query parameters
+      const params = new URLSearchParams({
+        start: startDate,
+        end: endDate,
+      });
+
+      // Gọi API để lấy danh sách camera khả dụng
+      const response = await fetch(
+        `${API_BASE_URL}/api/Cameras/available?${params.toString()}`,
+        {
+          method: "GET",
+          headers: {
+            accept: "application/json",
+          },
+        }
+      );
+
+      // Kiểm tra nếu response không thành công
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.message ||
+            `Lấy danh sách camera khả dụng thất bại với status ${response.status}`
+        );
+      }
+
+      // Parse dữ liệu JSON từ response
+      const data: Camera[] = await response.json();
+
+      // Kiểm tra và trả về dữ liệu
+      if (!Array.isArray(data)) {
+        console.warn("Unexpected available cameras response:", data);
+        return [];
+      }
+
+      return data;
+    } catch (error) {
+      console.error("Lỗi khi lấy danh sách camera khả dụng:", error);
       throw error;
     }
   },
