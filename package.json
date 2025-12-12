@@ -19,6 +19,7 @@
     "@react-three/drei": "^10.7.6",
     "@react-three/fiber": "^9.4.0",
     "canvas-confetti": "^1.9.4",
+    "date-fns": "^4.1.0",
     "dayjs": "^1.11.19",
     "html5-qrcode": "^2.3.8",
     "jwt-decode": "^4.0.0",

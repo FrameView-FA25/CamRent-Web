@@ -6,35 +6,52 @@ import {
   Button,
   TextField,
   InputAdornment,
-  Tabs,
-  Tab,
   Chip,
   Stack,
-  CircularProgress,
   Paper,
-  Fade,
+  Divider,
+  IconButton,
+  Popover,
+  ToggleButton,
+  ToggleButtonGroup,
 } from "@mui/material";
 import { grey } from "@mui/material/colors";
 import SearchIcon from "@mui/icons-material/Search";
-import { Sparkles } from "lucide-react";
+import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import CloseIcon from "@mui/icons-material/Close";
+import { Sparkles, Camera, Package } from "lucide-react";
 import { colors } from "../../theme/colors";
 import AISearchDialog from "./AISearchDialog";
 import type { AISearchResult } from "../../services/ai.service";
+import { DateCalendar } from "@mui/x-date-pickers/DateCalendar";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
+import { addDays, addMonths } from "date-fns";
 
 interface ProductHeaderProps {
   currentTab: number;
-  onTabChange: (newTab: number) => void;
+  onTabChange: (tab: number) => void;
   totalCameras: number;
   totalAccessories: number;
   searchQuery: string;
   onSearchChange: (query: string) => void;
   compareCount: number;
-  onAISearch: (results: AISearchResult[]) => void;
+  onAISearch: (results: any[]) => void;
+  startDate: Date | null;
+  endDate: Date | null;
+  onStartDateChange: (date: Date | null) => void;
+  onEndDateChange: (date: Date | null) => void;
+  onClearDateFilter: () => void;
   isAISearching?: boolean;
 }
 
 const ProductHeader: React.FC<ProductHeaderProps> = ({
   currentTab,
+  startDate,
+  endDate,
+  onStartDateChange,
+  onEndDateChange,
+  onClearDateFilter,
   onTabChange,
   totalCameras,
   totalAccessories,
@@ -45,316 +62,513 @@ const ProductHeader: React.FC<ProductHeaderProps> = ({
   isAISearching = false,
 }) => {
   const [openAISearch, setOpenAISearch] = useState(false);
-  const [showSearchTip, setShowSearchTip] = useState(false);
+  const [datePickerAnchor, setDatePickerAnchor] = useState<HTMLElement | null>(
+    null
+  );
+  const [selectingEndDate, setSelectingEndDate] = useState(false);
 
   const handleAISearch = (results: AISearchResult[]) => {
     setOpenAISearch(false);
     onAISearch(results);
   };
 
+  const formatDateRange = () => {
+    if (!startDate) return "Chọn ngày thuê";
+    if (!endDate) return `${startDate.toLocaleDateString("vi-VN")} — ...`;
+    return `${startDate.toLocaleDateString(
+      "vi-VN"
+    )} — ${endDate.toLocaleDateString("vi-VN")}`;
+  };
+
+  const handleDatePickerOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setDatePickerAnchor(event.currentTarget);
+    setSelectingEndDate(false);
+  };
+
+  const handleDatePickerClose = () => {
+    setDatePickerAnchor(null);
+    setSelectingEndDate(false);
+  };
+
+  const handleDateSelect = (date: Date | null) => {
+    if (!date) return;
+
+    if (!startDate || selectingEndDate) {
+      // Selecting end date
+      if (startDate && date >= startDate) {
+        onEndDateChange(date);
+        setSelectingEndDate(false);
+      } else if (!startDate) {
+        // First selection - set as start date
+        onStartDateChange(date);
+        setSelectingEndDate(true);
+      }
+    } else {
+      // Selecting start date (reset flow)
+      onStartDateChange(date);
+      onEndDateChange(null);
+      setSelectingEndDate(true);
+    }
+  };
+
+  const handleQuickSelect = (days: number) => {
+    const start = new Date();
+    const end = addDays(start, days);
+    onStartDateChange(start);
+    onEndDateChange(end);
+  };
+
+  const openDatePicker = Boolean(datePickerAnchor);
+
   return (
     <>
       <Box
         sx={{
-          py: 12,
+          background: `linear-gradient(135deg, ${colors.primary.main} 0%, ${colors.primary.dark} 100%)`,
+          pt: 3,
+          pb: 8,
           position: "relative",
-          overflow: "hidden",
-          background: colors.primary.dark,
-          "&::before": {
-            content: '""',
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundImage: "url('/bg-product.jpg')",
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            opacity: 0.15,
-            zIndex: 0,
-          },
         }}
       >
-        <Container maxWidth="lg" sx={{ position: "relative", zIndex: 1 }}>
+        <Container maxWidth="lg">
+          {/* Tabs - Booking.com Style */}
+          <Box sx={{ mb: 4 }}>
+            <Stack
+              direction="row"
+              spacing={3}
+              sx={{
+                borderBottom: "1px solid rgba(255,255,255,0.2)",
+                pb: 0,
+              }}
+            >
+              <Box
+                onClick={() => onTabChange(0)}
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1,
+                  py: 2,
+                  px: 2,
+                  cursor: "pointer",
+                  color: currentTab === 0 ? "white" : "rgba(255,255,255,0.7)",
+                  borderBottom:
+                    currentTab === 0
+                      ? "3px solid white"
+                      : "3px solid transparent",
+                  transition: "all 0.2s",
+                  "&:hover": {
+                    color: "white",
+                  },
+                }}
+              >
+                <Camera size={20} />
+                <Typography sx={{ fontWeight: 600 }}>Cameras</Typography>
+                <Chip
+                  label={totalCameras}
+                  size="small"
+                  sx={{
+                    bgcolor:
+                      currentTab === 0 ? "white" : "rgba(255,255,255,0.2)",
+                    color: currentTab === 0 ? colors.primary.main : "white",
+                    fontWeight: 700,
+                    height: 20,
+                  }}
+                />
+              </Box>
+              <Box
+                onClick={() => onTabChange(1)}
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1,
+                  py: 2,
+                  px: 2,
+                  cursor: "pointer",
+                  color: currentTab === 1 ? "white" : "rgba(255,255,255,0.7)",
+                  borderBottom:
+                    currentTab === 1
+                      ? "3px solid white"
+                      : "3px solid transparent",
+                  transition: "all 0.2s",
+                  "&:hover": {
+                    color: "white",
+                  },
+                }}
+              >
+                <Package size={20} />
+                <Typography sx={{ fontWeight: 600 }}>Phụ kiện</Typography>
+                <Chip
+                  label={totalAccessories}
+                  size="small"
+                  sx={{
+                    bgcolor:
+                      currentTab === 1 ? "white" : "rgba(255,255,255,0.2)",
+                    color: currentTab === 1 ? colors.primary.main : "white",
+                    fontWeight: 700,
+                    height: 20,
+                  }}
+                />
+              </Box>
+            </Stack>
+          </Box>
+
           {/* Title Section */}
-          <Box sx={{ textAlign: "center", mb: 6 }}>
+          <Box sx={{ mb: 4 }}>
             <Typography
               variant="h3"
               sx={{
-                fontWeight: 800,
-                mb: 2,
-                fontSize: { xs: "2rem", md: "2.5rem" },
                 color: "white",
-                textShadow: "2px 2px 4px rgba(0,0,0,0.2)",
-              }}
-            >
-              Khám phá thiết bị
-            </Typography>
-            <Typography
-              variant="h6"
-              sx={{
-                color: "rgba(255,255,255,0.95)",
+                fontWeight: 700,
+                fontSize: { xs: "1.75rem", md: "2.5rem" },
                 mb: 1,
-                fontWeight: 500,
-              }}
-            >
-              Cho thuê thiết bị camera chuyên nghiệp cho dự án của bạn
-            </Typography>
-            <Typography
-              variant="body2"
-              sx={{
-                color: "rgba(255,255,255,0.85)",
-                fontWeight: 500,
               }}
             >
               {currentTab === 0
-                ? `${totalCameras} camera có sẵn`
-                : `${totalAccessories} phụ kiện có sẵn`}
+                ? "Tìm camera hoàn hảo cho dự án của bạn"
+                : "Phụ kiện chuyên nghiệp cho mọi nhu cầu"}
+            </Typography>
+            <Typography
+              variant="body1"
+              sx={{
+                color: "rgba(255,255,255,0.95)",
+                fontSize: "1.1rem",
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+                flexWrap: "wrap",
+              }}
+            >
+              {currentTab === 0
+                ? `Khám phá ${totalCameras} camera chuyên nghiệp với giá tốt nhất`
+                : `Hơn ${totalAccessories} phụ kiện chất lượng cao sẵn sàng cho bạn`}
               {compareCount > 0 && (
                 <Chip
-                  label={`${compareCount} trong danh sách so sánh`}
+                  label={`${compareCount} đang so sánh`}
                   size="small"
                   sx={{
-                    ml: 2,
-                    bgcolor: "rgba(255,255,255,0.2)",
-                    color: "white",
+                    bgcolor: "white",
+                    color: colors.primary.main,
                     fontWeight: 700,
-                    backdropFilter: "blur(10px)",
                   }}
                 />
               )}
             </Typography>
           </Box>
 
-          {/* Tabs - Centered */}
-          <Box
+          {/* Search Box - Booking.com Style */}
+          <Paper
+            elevation={4}
             sx={{
-              display: "flex",
-              justifyContent: "center",
-              mb: 4,
+              borderRadius: 2,
+              overflow: "hidden",
+              border: "3px solid #FFB700",
             }}
           >
-            <Paper
-              elevation={0}
-              sx={{
-                bgcolor: "rgba(255,255,255,0.15)",
-                backdropFilter: "blur(10px)",
-                borderRadius: 3,
-                p: 0.5,
-                display: "inline-flex",
-              }}
+            <Stack
+              direction={{ xs: "column", md: "row" }}
+              spacing={0}
+              divider={<Divider orientation="vertical" flexItem />}
             >
-              <Tabs
-                value={currentTab}
-                onChange={(_, newValue) => onTabChange(newValue)}
-                sx={{
-                  minHeight: "auto",
-                  "& .MuiTab-root": {
-                    textTransform: "none",
-                    fontWeight: 700,
-                    fontSize: 16,
-                    minWidth: 160,
-                    color: "rgba(255,255,255,0.8)",
-                    py: 1.5,
-                    px: 3,
-                    borderRadius: 2,
-                    transition: "all 0.3s ease",
-                    bgcolor: "#000000",
-                    "&:hover": {
-                      bgcolor: "white",
-                      color: colors.primary.main,
-                    },
-                  },
-                  "& .Mui-selected": {
-                    bgcolor: "white !important",
-                    color: `${colors.primary.main} !important`,
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-                  },
-                  "& .MuiTabs-indicator": {
-                    display: "none",
-                  },
-                }}
-              >
-                <Tab label={`Cameras (${totalCameras})`} />
-                <Tab label={`Phụ kiện (${totalAccessories})`} />
-              </Tabs>
-            </Paper>
-          </Box>
-
-          {/* Search Box - Centered */}
-          <Box
-            sx={{
-              maxWidth: 600,
-              mx: "auto",
-              position: "relative",
-            }}
-          >
-            <Paper
-              elevation={4}
-              sx={{
-                borderRadius: 3,
-                overflow: "visible",
-                bgcolor: "white",
-              }}
-            >
-              <Stack
-                direction="row"
-                spacing={0}
-                alignItems="stretch"
-                sx={{ position: "relative" }}
-              >
+              {/* Search Input */}
+              <Box sx={{ flex: 1, display: "flex", alignItems: "center" }}>
                 <TextField
                   fullWidth
-                  placeholder="Tìm kiếm camera, ống kính, phụ kiện..."
+                  placeholder={
+                    currentTab === 0
+                      ? "Tìm camera, ống kính..."
+                      : "Tìm phụ kiện..."
+                  }
                   value={searchQuery}
                   onChange={(e) => onSearchChange(e.target.value)}
-                  onFocus={() => setShowSearchTip(true)}
-                  onBlur={() => setTimeout(() => setShowSearchTip(false), 200)}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
-                        <SearchIcon sx={{ color: grey[500], fontSize: 24 }} />
+                        <SearchIcon sx={{ fontSize: 24, color: grey[600] }} />
                       </InputAdornment>
                     ),
                   }}
                   sx={{
                     "& .MuiOutlinedInput-root": {
-                      borderRadius: "12px 0 0 12px",
-                      py: 0.5,
-                      fontSize: "0.95rem",
-                      height: "48px",
-                      "&:hover .MuiOutlinedInput-notchedOutline": {
-                        borderColor: "transparent",
-                      },
-                      "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                        borderColor: "transparent",
-                      },
+                      "& fieldset": { border: "none" },
+                      py: 1,
+                      fontSize: "1rem",
                     },
                     "& .MuiOutlinedInput-input": {
-                      py: 1,
-                    },
-                    "& .MuiOutlinedInput-notchedOutline": {
-                      border: "none",
+                      py: 1.5,
                     },
                   }}
                 />
+              </Box>
 
-                {/* AI Search Button */}
+              {/* Date Range - Only for cameras */}
+              {currentTab === 0 && (
+                <Box
+                  onClick={handleDatePickerOpen}
+                  sx={{
+                    flex: 1.2,
+                    display: "flex",
+                    alignItems: "center",
+                    px: 2,
+                    py: { xs: 1, md: 0 },
+                    cursor: "pointer",
+                    bgcolor: openDatePicker ? grey[100] : "transparent",
+                    "&:hover": {
+                      bgcolor: grey[50],
+                    },
+                  }}
+                >
+                  <Stack
+                    direction="row"
+                    spacing={1}
+                    alignItems="center"
+                    sx={{ width: "100%" }}
+                  >
+                    <CalendarTodayIcon sx={{ color: grey[600] }} />
+                    <Box sx={{ flex: 1 }}>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: grey[600],
+                          fontWeight: 600,
+                          display: "block",
+                        }}
+                      >
+                        Ngày thuê
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{ color: grey[900], fontWeight: 600 }}
+                      >
+                        {formatDateRange()}
+                      </Typography>
+                    </Box>
+                    {(startDate || endDate) && (
+                      <IconButton
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onClearDateFilter();
+                        }}
+                      >
+                        <CloseIcon fontSize="small" />
+                      </IconButton>
+                    )}
+                  </Stack>
+                </Box>
+              )}
+
+              {/* Search Buttons */}
+              <Stack direction="row" spacing={0}>
                 <Button
                   variant="contained"
+                  size="large"
+                  onClick={() => {}}
+                  sx={{
+                    bgcolor: colors.primary.main,
+                    color: "white",
+                    px: 4,
+                    py: 2.5,
+                    borderRadius: 0,
+                    textTransform: "none",
+                    fontWeight: 700,
+                    fontSize: "1rem",
+                    minWidth: 120,
+                    "&:hover": {
+                      bgcolor: colors.primary.dark,
+                    },
+                  }}
+                >
+                  Tìm
+                </Button>
+                <Button
+                  variant="contained"
+                  size="large"
                   onClick={() => setOpenAISearch(true)}
                   disabled={isAISearching}
                   sx={{
                     bgcolor: "black",
                     color: "white",
-                    minWidth: 140,
-                    height: "48px",
                     px: 3,
-                    borderRadius: "0 12px 12px 0",
+                    py: 2.5,
+                    borderRadius: 0,
                     textTransform: "none",
                     fontWeight: 700,
-                    fontSize: "0.75rem",
-                    boxShadow: "none",
-                    position: "relative",
-                    overflow: "hidden",
+                    fontSize: "1rem",
+                    minWidth: 140,
                     "&:hover": {
-                      bgcolor: "black",
-                      boxShadow: "none",
-                    },
-                    "&::before": {
-                      content: '""',
-                      position: "absolute",
-                      top: 0,
-                      left: "-100%",
-                      width: "100%",
-                      height: "100%",
-                      background:
-                        "linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)",
-                      transition: "left 0.5s",
-                    },
-                    "&:hover::before": {
-                      left: "100%",
+                      bgcolor: "#1a1a1a",
                     },
                   }}
                 >
-                  {isAISearching ? (
-                    <>
-                      <CircularProgress
-                        size={18}
-                        sx={{ color: "white", mr: 1 }}
-                      />
-                      Đang tìm...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles size={18} style={{ marginRight: 8 }} />
-                      AI Search
-                    </>
-                  )}
+                  <Sparkles size={20} style={{ marginRight: 8 }} />
+                  AI Search
                 </Button>
               </Stack>
-
-              {/* Search Tip - Appears below when focused */}
-              <Fade in={showSearchTip}>
-                <Box
-                  sx={{
-                    position: "absolute",
-                    top: "calc(100% + 8px)",
-                    left: 0,
-                    right: 0,
-                    zIndex: 10,
-                  }}
-                >
-                  <Paper
-                    elevation={3}
-                    sx={{
-                      p: 2.5,
-                      bgcolor: "white",
-                      borderRadius: 2,
-                      border: `2px solid ${colors.primary.main}`,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 1.5,
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        bgcolor: colors.primary.lighter,
-                        borderRadius: "50%",
-                        p: 1,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <Sparkles size={20} color={colors.primary.main} />
-                    </Box>
-                    <Box>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          color: grey[800],
-                          fontWeight: 600,
-                          mb: 0.5,
-                        }}
-                      >
-                        💡 Mẹo tìm kiếm thông minh
-                      </Typography>
-                      <Typography
-                        variant="caption"
-                        sx={{ color: grey[600], lineHeight: 1.5 }}
-                      >
-                        Sử dụng <strong>AI Search</strong> để tìm camera phù hợp
-                        nhất với nhu cầu, ngân sách và trình độ của bạn!
-                      </Typography>
-                    </Box>
-                  </Paper>
-                </Box>
-              </Fade>
-            </Paper>
-          </Box>
+            </Stack>
+          </Paper>
         </Container>
       </Box>
+
+      {/* Date Picker Popover - Full Calendar */}
+      <Popover
+        open={openDatePicker}
+        anchorEl={datePickerAnchor}
+        onClose={handleDatePickerClose}
+        anchorOrigin={{
+          vertical: "bottom",
+          horizontal: "left",
+        }}
+        transformOrigin={{
+          vertical: "top",
+          horizontal: "left",
+        }}
+        sx={{
+          mt: 1,
+          "& .MuiPaper-root": {
+            borderRadius: 2,
+            boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+            minWidth: 650,
+          },
+        }}
+      >
+        <Box sx={{ p: 3 }}>
+          {/* Quick Select Buttons */}
+          <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => handleQuickSelect(0)}
+              sx={{
+                textTransform: "none",
+                borderRadius: 20,
+                borderColor: colors.primary.main,
+                color: colors.primary.main,
+                "&:hover": {
+                  bgcolor: colors.primary.lighter,
+                  borderColor: colors.primary.main,
+                },
+              }}
+            >
+              Ngày chính xác
+            </Button>
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => handleQuickSelect(1)}
+              sx={{
+                textTransform: "none",
+                borderRadius: 20,
+              }}
+            >
+              ± 1 ngày
+            </Button>
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => handleQuickSelect(2)}
+              sx={{
+                textTransform: "none",
+                borderRadius: 20,
+              }}
+            >
+              ± 2 ngày
+            </Button>
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => handleQuickSelect(3)}
+              sx={{
+                textTransform: "none",
+                borderRadius: 20,
+              }}
+            >
+              ± 3 ngày
+            </Button>
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => handleQuickSelect(7)}
+              sx={{
+                textTransform: "none",
+                borderRadius: 20,
+              }}
+            >
+              ± 7 ngày
+            </Button>
+          </Stack>
+
+          <Divider sx={{ my: 2 }} />
+
+          {/* Two Calendars Side by Side */}
+          <LocalizationProvider dateAdapter={AdapterDateFns}>
+            <Stack direction="row" spacing={2}>
+              <DateCalendar
+                value={selectingEndDate ? endDate : startDate}
+                onChange={handleDateSelect}
+                minDate={new Date()}
+                sx={{
+                  "& .MuiPickersDay-root": {
+                    "&.Mui-selected": {
+                      bgcolor: colors.primary.main,
+                      "&:hover": {
+                        bgcolor: colors.primary.dark,
+                      },
+                    },
+                  },
+                }}
+              />
+              <DateCalendar
+                value={selectingEndDate ? endDate : startDate}
+                onChange={handleDateSelect}
+                minDate={new Date()}
+                defaultCalendarMonth={addMonths(new Date(), 1)}
+                sx={{
+                  "& .MuiPickersDay-root": {
+                    "&.Mui-selected": {
+                      bgcolor: colors.primary.main,
+                      "&:hover": {
+                        bgcolor: colors.primary.dark,
+                      },
+                    },
+                  },
+                }}
+              />
+            </Stack>
+          </LocalizationProvider>
+
+          <Divider sx={{ my: 2 }} />
+
+          {/* Action Buttons */}
+          <Stack
+            direction="row"
+            spacing={2}
+            sx={{ justifyContent: "flex-end" }}
+          >
+            <Button
+              variant="outlined"
+              onClick={() => {
+                onClearDateFilter();
+                handleDatePickerClose();
+              }}
+            >
+              Xóa
+            </Button>
+            <Button
+              variant="contained"
+              onClick={handleDatePickerClose}
+              disabled={!startDate || !endDate}
+              sx={{
+                bgcolor: colors.primary.main,
+                "&:hover": {
+                  bgcolor: colors.primary.dark,
+                },
+              }}
+            >
+              Áp dụng
+            </Button>
+          </Stack>
+        </Box>
+      </Popover>
 
       {/* AI Search Dialog */}
       <AISearchDialog
