@@ -19,8 +19,10 @@ import {
   Alert,
   CircularProgress,
   Button,
+  Tabs,
+  Tab,
 } from "@mui/material";
-import { UserPlus } from "lucide-react"; // ✅ Import icon
+import { UserPlus } from "lucide-react";
 import {
   Search,
   Person,
@@ -32,8 +34,10 @@ import {
 import { fetchStaffList } from "../../services/booking.service";
 import type { Staff } from "../../types/booking.types";
 import AddStaffDialog from "../../components/Modal/Manager/AddStaffDialog";
-import { toast } from "react-toastify"; // ✅ Import toast
+import StaffWorkloadCalendar from "@/components/Staff/StaffWorkloadCalendar";
+import { toast } from "react-toastify";
 import { colors } from "../../theme/colors";
+
 const StaffManagement: React.FC = () => {
   const [staffList, setStaffList] = useState<Staff[]>([]);
   const [filteredStaff, setFilteredStaff] = useState<Staff[]>([]);
@@ -42,7 +46,8 @@ const StaffManagement: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [openAddDialog, setOpenAddDialog] = useState(false); // ✅ Add dialog state
+  const [openAddDialog, setOpenAddDialog] = useState(false);
+  const [currentTab, setCurrentTab] = useState(0); // 0: Staff List, 1: Workload
 
   useEffect(() => {
     loadStaff();
@@ -78,10 +83,12 @@ const StaffManagement: React.FC = () => {
     }
     setLoading(false);
   };
+
   const handleAddSuccess = () => {
     toast.success("Thêm nhân viên thành công!");
-    loadStaff(); // Refresh staff list
+    loadStaff();
   };
+
   const handleChangePage = (_event: unknown, newPage: number) => {
     setPage(newPage);
   };
@@ -103,7 +110,7 @@ const StaffManagement: React.FC = () => {
   };
 
   const getAvatarColor = (userId: string): string => {
-    const colors = [
+    const colorsList = [
       "#FF6B6B",
       "#4ECDC4",
       "#45B7D1",
@@ -115,8 +122,8 @@ const StaffManagement: React.FC = () => {
     ];
     const index =
       userId.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0) %
-      colors.length;
-    return colors[index];
+      colorsList.length;
+    return colorsList[index];
   };
 
   const getRoleLabel = (email: string): string => {
@@ -169,7 +176,7 @@ const StaffManagement: React.FC = () => {
                   width: 50,
                   height: 50,
                   borderRadius: 2,
-                  bgcolor: "#F97316",
+                  bgcolor: colors.primary.main,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -180,11 +187,10 @@ const StaffManagement: React.FC = () => {
               Quản lý nhân viên
             </Typography>
             <Typography variant="body1" sx={{ color: "#6B7280" }}>
-              Danh sách nhân viên chi nhánh
+              Danh sách nhân viên và lịch làm việc
             </Typography>
           </Box>
 
-          {/* ✅ Add Staff Button */}
           <Button
             variant="contained"
             startIcon={<UserPlus size={20} />}
@@ -205,487 +211,569 @@ const StaffManagement: React.FC = () => {
             Thêm nhân viên
           </Button>
         </Box>
-        {/* Stats Card */}
-        <Box
-          sx={{
-            display: "grid",
-            gridTemplateColumns: {
-              xs: "1fr",
-              sm: "repeat(2, 1fr)",
-              lg: "repeat(4, 1fr)",
-            },
-            gap: 3,
-            mb: 3,
-          }}
-        >
-          {/* Tổng nhân viên */}
-          <Paper
-            elevation={0}
-            sx={{
-              p: 3,
-              borderRadius: 3,
-              bgcolor: "white",
-              display: "flex",
-              alignItems: "center",
-              gap: 2,
-              transition: "all 0.3s ease",
-              "&:hover": {
-                transform: "translateY(-4px)",
-                boxShadow: "0 8px 16px rgba(0,0,0,0.1)",
-              },
-            }}
-          >
-            <Box
-              sx={{
-                width: 56,
-                height: 56,
-                borderRadius: 2,
-                bgcolor: "#E0F2FE",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Search sx={{ color: "#0284C7", fontSize: 28 }} />
-            </Box>
-            <Box>
-              <Typography
-                variant="h4"
-                sx={{ fontWeight: 700, color: "#1F2937", mb: 0.5 }}
-              >
-                {staffList.length}
-              </Typography>
-              <Typography variant="body2" sx={{ color: "#6B7280" }}>
-                Tổng nhân viên
-              </Typography>
-            </Box>
-          </Paper>
 
-          {/* Bận nhận - Manager */}
-          <Paper
-            elevation={0}
-            sx={{
-              p: 3,
-              borderRadius: 3,
-              bgcolor: "white",
-              display: "flex",
-              alignItems: "center",
-              gap: 2,
-              transition: "all 0.3s ease",
-              "&:hover": {
-                transform: "translateY(-4px)",
-                boxShadow: "0 8px 16px rgba(0,0,0,0.1)",
-              },
-            }}
-          >
-            <Box
-              sx={{
-                width: 56,
-                height: 56,
-                borderRadius: 2,
-                bgcolor: "#FFF7ED",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Person sx={{ color: "#F97316", fontSize: 28 }} />
-            </Box>
-            <Box>
-              <Typography
-                variant="h4"
-                sx={{ fontWeight: 700, color: "#1F2937", mb: 0.5 }}
-              >
-                {
-                  staffList.filter((s) =>
-                    s.email.toLowerCase().includes("manager")
-                  ).length
-                }
-              </Typography>
-              <Typography variant="body2" sx={{ color: "#6B7280" }}>
-                Quản lý
-              </Typography>
-            </Box>
-          </Paper>
-
-          {/* Đã xác nhận - Delivery */}
-          <Paper
-            elevation={0}
-            sx={{
-              p: 3,
-              borderRadius: 3,
-              bgcolor: "white",
-              display: "flex",
-              alignItems: "center",
-              gap: 2,
-              transition: "all 0.3s ease",
-              "&:hover": {
-                transform: "translateY(-4px)",
-                boxShadow: "0 8px 16px rgba(0,0,0,0.1)",
-              },
-            }}
-          >
-            <Box
-              sx={{
-                width: 56,
-                height: 56,
-                borderRadius: 2,
-                bgcolor: "#D1FAE5",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Badge sx={{ color: "#059669", fontSize: 28 }} />
-            </Box>
-            <Box>
-              <Typography
-                variant="h4"
-                sx={{ fontWeight: 700, color: "#1F2937", mb: 0.5 }}
-              >
-                {
-                  staffList.filter((s) =>
-                    s.email.toLowerCase().includes("delivery")
-                  ).length
-                }
-              </Typography>
-              <Typography variant="body2" sx={{ color: "#6B7280" }}>
-                Nhân viên giao hàng
-              </Typography>
-            </Box>
-          </Paper>
-
-          {/* Chờ duyệt - Others */}
-          <Paper
-            elevation={0}
-            sx={{
-              p: 3,
-              borderRadius: 3,
-              bgcolor: "white",
-              display: "flex",
-              alignItems: "center",
-              gap: 2,
-              transition: "all 0.3s ease",
-              "&:hover": {
-                transform: "translateY(-4px)",
-                boxShadow: "0 8px 16px rgba(0,0,0,0.1)",
-              },
-            }}
-          >
-            <Box
-              sx={{
-                width: 56,
-                height: 56,
-                borderRadius: 2,
-                bgcolor: "#FEF9C3",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Person sx={{ color: "#CA8A04", fontSize: 28 }} />
-            </Box>
-            <Box>
-              <Typography
-                variant="h4"
-                sx={{ fontWeight: 700, color: "#1F2937", mb: 0.5 }}
-              >
-                {
-                  staffList.filter(
-                    (s) =>
-                      !s.email.toLowerCase().includes("delivery") &&
-                      !s.email.toLowerCase().includes("manager")
-                  ).length
-                }
-              </Typography>
-              <Typography variant="body2" sx={{ color: "#6B7280" }}>
-                Nhân viên khác
-              </Typography>
-            </Box>
-          </Paper>
-        </Box>
-
-        {/* Search Bar */}
+        {/* Tabs */}
         <Paper
           elevation={0}
           sx={{
-            p: 2,
-            mb: 3,
             borderRadius: 3,
-            display: "flex",
-            alignItems: "center",
-            gap: 2,
+            mb: 3,
+            overflow: "hidden",
           }}
         >
-          <TextField
-            fullWidth
-            placeholder="Tìm kiếm theo tên, email, số điện thoại hoặc ID..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Search sx={{ color: "#F97316" }} />
-                </InputAdornment>
-              ),
-            }}
+          <Tabs
+            value={currentTab}
+            onChange={(_, newValue) => setCurrentTab(newValue)}
             sx={{
-              "& .MuiOutlinedInput-root": {
-                borderRadius: 2,
-                "&:hover fieldset": {
-                  borderColor: "#F97316",
-                },
-                "&.Mui-focused fieldset": {
-                  borderColor: "#F97316",
-                },
+              borderBottom: "1px solid #E5E7EB",
+              "& .MuiTab-root": {
+                textTransform: "none",
+                fontWeight: 600,
+                fontSize: "1rem",
+                py: 2,
+                px: 3,
               },
-            }}
-          />
-          <IconButton
-            onClick={loadStaff}
-            disabled={loading}
-            sx={{
-              bgcolor: "#FFF7ED",
-              color: "#F97316",
-              "&:hover": {
-                bgcolor: "#FFEDD5",
+              "& .Mui-selected": {
+                color: colors.primary.main,
               },
-              "&:disabled": {
-                bgcolor: "#F3F4F6",
-                color: "#9CA3AF",
+              "& .MuiTabs-indicator": {
+                bgcolor: colors.primary.main,
+                height: 3,
               },
             }}
           >
-            {loading ? (
-              <CircularProgress size={24} sx={{ color: "#F97316" }} />
-            ) : (
-              <Refresh />
-            )}
-          </IconButton>
+            <Tab label={`Danh sách nhân viên (${staffList.length})`} />
+            <Tab label="Lịch làm việc" />
+          </Tabs>
         </Paper>
 
-        {/* Error Alert */}
-        {error && (
-          <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
-            {error}
-          </Alert>
-        )}
-
-        {/* Table */}
-        <Paper elevation={0} sx={{ borderRadius: 3, overflow: "hidden" }}>
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow sx={{ bgcolor: "#F9FAFB" }}>
-                  <TableCell
-                    sx={{
-                      fontWeight: 700,
-                      color: "#1F2937",
-                      fontSize: "0.875rem",
-                      py: 2,
-                    }}
-                  >
-                    Nhân viên
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      fontWeight: 700,
-                      color: "#1F2937",
-                      fontSize: "0.875rem",
-                    }}
-                  >
-                    Vai trò
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      fontWeight: 700,
-                      color: "#1F2937",
-                      fontSize: "0.875rem",
-                    }}
-                  >
-                    Email
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      fontWeight: 700,
-                      color: "#1F2937",
-                      fontSize: "0.875rem",
-                    }}
-                  >
-                    Số điện thoại
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      fontWeight: 700,
-                      color: "#1F2937",
-                      fontSize: "0.875rem",
-                    }}
-                  >
-                    User ID
-                  </TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={5} sx={{ textAlign: "center", py: 8 }}>
-                      <CircularProgress sx={{ color: "#F97316" }} />
-                      <Typography
-                        sx={{ mt: 2, color: "#6B7280", fontSize: "0.875rem" }}
-                      >
-                        Đang tải dữ liệu...
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                ) : paginatedStaff.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} sx={{ textAlign: "center", py: 8 }}>
-                      <Person sx={{ fontSize: 60, color: "#E5E7EB", mb: 2 }} />
-                      <Typography variant="h6" sx={{ color: "#6B7280", mb: 1 }}>
-                        {searchQuery
-                          ? "Không tìm thấy nhân viên"
-                          : "Chưa có nhân viên nào"}
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        sx={{ color: "#9CA3AF", fontSize: "0.875rem" }}
-                      >
-                        {searchQuery
-                          ? "Thử tìm kiếm với từ khóa khác"
-                          : "Danh sách nhân viên trống"}
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  paginatedStaff.map((staff) => (
-                    <TableRow
-                      key={staff.userId}
-                      sx={{
-                        "&:hover": {
-                          bgcolor: "#FFF7ED",
-                        },
-                        transition: "background-color 0.2s ease",
-                      }}
-                    >
-                      <TableCell>
-                        <Box
-                          sx={{ display: "flex", alignItems: "center", gap: 2 }}
-                        >
-                          <Avatar
-                            sx={{
-                              width: 45,
-                              height: 45,
-                              bgcolor: getAvatarColor(staff.userId),
-                              fontSize: "1rem",
-                              fontWeight: 700,
-                            }}
-                          >
-                            {getInitials(staff.fullName)}
-                          </Avatar>
-                          <Box>
-                            <Typography
-                              sx={{
-                                fontWeight: 600,
-                                color: "#1F2937",
-                                fontSize: "0.9375rem",
-                              }}
-                            >
-                              {staff.fullName}
-                            </Typography>
-                          </Box>
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={getRoleLabel(staff.email)}
-                          size="small"
-                          sx={{
-                            ...getRoleColor(staff.email),
-                            fontWeight: 600,
-                            fontSize: "0.75rem",
-                            borderRadius: 1.5,
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Box
-                          sx={{ display: "flex", alignItems: "center", gap: 1 }}
-                        >
-                          <Email sx={{ fontSize: 18, color: "#9CA3AF" }} />
-                          <Typography
-                            sx={{ color: "#6B7280", fontSize: "0.875rem" }}
-                          >
-                            {staff.email || "Chưa có"}
-                          </Typography>
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Box
-                          sx={{ display: "flex", alignItems: "center", gap: 1 }}
-                        >
-                          <Phone sx={{ fontSize: 18, color: "#9CA3AF" }} />
-                          <Typography
-                            sx={{ color: "#6B7280", fontSize: "0.875rem" }}
-                          >
-                            {staff.phoneNumber || "Chưa có"}
-                          </Typography>
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Box
-                          sx={{ display: "flex", alignItems: "center", gap: 1 }}
-                        >
-                          <Badge sx={{ fontSize: 18, color: "#9CA3AF" }} />
-                          <Typography
-                            sx={{
-                              color: "#6B7280",
-                              fontSize: "0.75rem",
-                              fontFamily: "monospace",
-                            }}
-                          >
-                            {staff.userId.slice(0, 8)}...
-                          </Typography>
-                        </Box>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-
-          {/* Pagination */}
-          {!loading && filteredStaff.length > 0 && (
-            <TablePagination
-              component="div"
-              count={filteredStaff.length}
-              page={page}
-              onPageChange={handleChangePage}
-              rowsPerPage={rowsPerPage}
-              onRowsPerPageChange={handleChangeRowsPerPage}
-              rowsPerPageOptions={[5, 10, 25, 50]}
-              labelRowsPerPage="Số hàng mỗi trang:"
-              labelDisplayedRows={({ from, to, count }) =>
-                `${from}-${to} của ${count}`
-              }
+        {/* Tab Content */}
+        {currentTab === 0 && (
+          <>
+            {/* Stats Card */}
+            <Box
               sx={{
-                borderTop: "1px solid #E5E7EB",
-                "& .MuiTablePagination-select": {
-                  borderRadius: 1,
+                display: "grid",
+                gridTemplateColumns: {
+                  xs: "1fr",
+                  sm: "repeat(2, 1fr)",
+                  lg: "repeat(4, 1fr)",
                 },
-                "& .MuiTablePagination-selectIcon": {
-                  color: "#F97316",
-                },
-                "& .MuiTablePagination-actions button": {
-                  color: "#F97316",
+                gap: 3,
+                mb: 3,
+              }}
+            >
+              {/* Tổng nhân viên */}
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 3,
+                  borderRadius: 3,
+                  bgcolor: "white",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 2,
+                  transition: "all 0.3s ease",
+                  "&:hover": {
+                    transform: "translateY(-4px)",
+                    boxShadow: "0 8px 16px rgba(0,0,0,0.1)",
+                  },
+                }}
+              >
+                <Box
+                  sx={{
+                    width: 56,
+                    height: 56,
+                    borderRadius: 2,
+                    bgcolor: "#E0F2FE",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Search sx={{ color: "#0284C7", fontSize: 28 }} />
+                </Box>
+                <Box>
+                  <Typography
+                    variant="h4"
+                    sx={{ fontWeight: 700, color: "#1F2937", mb: 0.5 }}
+                  >
+                    {staffList.length}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: "#6B7280" }}>
+                    Tổng nhân viên
+                  </Typography>
+                </Box>
+              </Paper>
+
+              {/* Quản lý */}
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 3,
+                  borderRadius: 3,
+                  bgcolor: "white",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 2,
+                  transition: "all 0.3s ease",
+                  "&:hover": {
+                    transform: "translateY(-4px)",
+                    boxShadow: "0 8px 16px rgba(0,0,0,0.1)",
+                  },
+                }}
+              >
+                <Box
+                  sx={{
+                    width: 56,
+                    height: 56,
+                    borderRadius: 2,
+                    bgcolor: "#FFF7ED",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Person sx={{ color: colors.primary.main, fontSize: 28 }} />
+                </Box>
+                <Box>
+                  <Typography
+                    variant="h4"
+                    sx={{ fontWeight: 700, color: "#1F2937", mb: 0.5 }}
+                  >
+                    {
+                      staffList.filter((s) =>
+                        s.email.toLowerCase().includes("manager")
+                      ).length
+                    }
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: "#6B7280" }}>
+                    Quản lý
+                  </Typography>
+                </Box>
+              </Paper>
+
+              {/* Nhân viên giao hàng */}
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 3,
+                  borderRadius: 3,
+                  bgcolor: "white",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 2,
+                  transition: "all 0.3s ease",
+                  "&:hover": {
+                    transform: "translateY(-4px)",
+                    boxShadow: "0 8px 16px rgba(0,0,0,0.1)",
+                  },
+                }}
+              >
+                <Box
+                  sx={{
+                    width: 56,
+                    height: 56,
+                    borderRadius: 2,
+                    bgcolor: "#D1FAE5",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Badge sx={{ color: "#059669", fontSize: 28 }} />
+                </Box>
+                <Box>
+                  <Typography
+                    variant="h4"
+                    sx={{ fontWeight: 700, color: "#1F2937", mb: 0.5 }}
+                  >
+                    {
+                      staffList.filter((s) =>
+                        s.email.toLowerCase().includes("delivery")
+                      ).length
+                    }
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: "#6B7280" }}>
+                    Nhân viên giao hàng
+                  </Typography>
+                </Box>
+              </Paper>
+
+              {/* Nhân viên khác */}
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 3,
+                  borderRadius: 3,
+                  bgcolor: "white",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 2,
+                  transition: "all 0.3s ease",
+                  "&:hover": {
+                    transform: "translateY(-4px)",
+                    boxShadow: "0 8px 16px rgba(0,0,0,0.1)",
+                  },
+                }}
+              >
+                <Box
+                  sx={{
+                    width: 56,
+                    height: 56,
+                    borderRadius: 2,
+                    bgcolor: "#FEF9C3",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Person sx={{ color: "#CA8A04", fontSize: 28 }} />
+                </Box>
+                <Box>
+                  <Typography
+                    variant="h4"
+                    sx={{ fontWeight: 700, color: "#1F2937", mb: 0.5 }}
+                  >
+                    {
+                      staffList.filter(
+                        (s) =>
+                          !s.email.toLowerCase().includes("delivery") &&
+                          !s.email.toLowerCase().includes("manager")
+                      ).length
+                    }
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: "#6B7280" }}>
+                    Nhân viên khác
+                  </Typography>
+                </Box>
+              </Paper>
+            </Box>
+
+            {/* Search Bar */}
+            <Paper
+              elevation={0}
+              sx={{
+                p: 2,
+                mb: 3,
+                borderRadius: 3,
+                display: "flex",
+                alignItems: "center",
+                gap: 2,
+              }}
+            >
+              <TextField
+                fullWidth
+                placeholder="Tìm kiếm theo tên, email, số điện thoại hoặc ID..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Search sx={{ color: colors.primary.main }} />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: 2,
+                    "&:hover fieldset": {
+                      borderColor: colors.primary.main,
+                    },
+                    "&.Mui-focused fieldset": {
+                      borderColor: colors.primary.main,
+                    },
+                  },
+                }}
+              />
+              <IconButton
+                onClick={loadStaff}
+                disabled={loading}
+                sx={{
+                  bgcolor: colors.primary.lighter,
+                  color: colors.primary.main,
+                  "&:hover": {
+                    bgcolor: colors.primary.light,
+                  },
                   "&:disabled": {
+                    bgcolor: "#F3F4F6",
                     color: "#9CA3AF",
                   },
-                },
-              }}
-            />
-          )}
-        </Paper>
+                }}
+              >
+                {loading ? (
+                  <CircularProgress
+                    size={24}
+                    sx={{ color: colors.primary.main }}
+                  />
+                ) : (
+                  <Refresh />
+                )}
+              </IconButton>
+            </Paper>
+
+            {/* Error Alert */}
+            {error && (
+              <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
+                {error}
+              </Alert>
+            )}
+
+            {/* Table */}
+            <Paper elevation={0} sx={{ borderRadius: 3, overflow: "hidden" }}>
+              <TableContainer>
+                <Table>
+                  <TableHead>
+                    <TableRow sx={{ bgcolor: "#F9FAFB" }}>
+                      <TableCell
+                        sx={{
+                          fontWeight: 700,
+                          color: "#1F2937",
+                          fontSize: "0.875rem",
+                          py: 2,
+                        }}
+                      >
+                        Nhân viên
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          fontWeight: 700,
+                          color: "#1F2937",
+                          fontSize: "0.875rem",
+                        }}
+                      >
+                        Vai trò
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          fontWeight: 700,
+                          color: "#1F2937",
+                          fontSize: "0.875rem",
+                        }}
+                      >
+                        Email
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          fontWeight: 700,
+                          color: "#1F2937",
+                          fontSize: "0.875rem",
+                        }}
+                      >
+                        Số điện thoại
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          fontWeight: 700,
+                          color: "#1F2937",
+                          fontSize: "0.875rem",
+                        }}
+                      >
+                        User ID
+                      </TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {loading ? (
+                      <TableRow>
+                        <TableCell
+                          colSpan={5}
+                          sx={{ textAlign: "center", py: 8 }}
+                        >
+                          <CircularProgress
+                            sx={{ color: colors.primary.main }}
+                          />
+                          <Typography
+                            sx={{
+                              mt: 2,
+                              color: "#6B7280",
+                              fontSize: "0.875rem",
+                            }}
+                          >
+                            Đang tải dữ liệu...
+                          </Typography>
+                        </TableCell>
+                      </TableRow>
+                    ) : paginatedStaff.length === 0 ? (
+                      <TableRow>
+                        <TableCell
+                          colSpan={5}
+                          sx={{ textAlign: "center", py: 8 }}
+                        >
+                          <Person
+                            sx={{ fontSize: 60, color: "#E5E7EB", mb: 2 }}
+                          />
+                          <Typography
+                            variant="h6"
+                            sx={{ color: "#6B7280", mb: 1 }}
+                          >
+                            {searchQuery
+                              ? "Không tìm thấy nhân viên"
+                              : "Chưa có nhân viên nào"}
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            sx={{ color: "#9CA3AF", fontSize: "0.875rem" }}
+                          >
+                            {searchQuery
+                              ? "Thử tìm kiếm với từ khóa khác"
+                              : "Danh sách nhân viên trống"}
+                          </Typography>
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      paginatedStaff.map((staff) => (
+                        <TableRow
+                          key={staff.userId}
+                          sx={{
+                            "&:hover": {
+                              bgcolor: colors.primary.lighter,
+                            },
+                            transition: "background-color 0.2s ease",
+                          }}
+                        >
+                          <TableCell>
+                            <Box
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 2,
+                              }}
+                            >
+                              <Avatar
+                                sx={{
+                                  width: 45,
+                                  height: 45,
+                                  bgcolor: getAvatarColor(staff.userId),
+                                  fontSize: "1rem",
+                                  fontWeight: 700,
+                                }}
+                              >
+                                {getInitials(staff.fullName)}
+                              </Avatar>
+                              <Box>
+                                <Typography
+                                  sx={{
+                                    fontWeight: 600,
+                                    color: "#1F2937",
+                                    fontSize: "0.9375rem",
+                                  }}
+                                >
+                                  {staff.fullName}
+                                </Typography>
+                              </Box>
+                            </Box>
+                          </TableCell>
+                          <TableCell>
+                            <Chip
+                              label={getRoleLabel(staff.email)}
+                              size="small"
+                              sx={{
+                                ...getRoleColor(staff.email),
+                                fontWeight: 600,
+                                fontSize: "0.75rem",
+                                borderRadius: 1.5,
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Box
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 1,
+                              }}
+                            >
+                              <Email sx={{ fontSize: 18, color: "#9CA3AF" }} />
+                              <Typography
+                                sx={{ color: "#6B7280", fontSize: "0.875rem" }}
+                              >
+                                {staff.email || "Chưa có"}
+                              </Typography>
+                            </Box>
+                          </TableCell>
+                          <TableCell>
+                            <Box
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 1,
+                              }}
+                            >
+                              <Phone sx={{ fontSize: 18, color: "#9CA3AF" }} />
+                              <Typography
+                                sx={{ color: "#6B7280", fontSize: "0.875rem" }}
+                              >
+                                {staff.phoneNumber || "Chưa có"}
+                              </Typography>
+                            </Box>
+                          </TableCell>
+                          <TableCell>
+                            <Box
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 1,
+                              }}
+                            >
+                              <Badge sx={{ fontSize: 18, color: "#9CA3AF" }} />
+                              <Typography
+                                sx={{
+                                  color: "#6B7280",
+                                  fontSize: "0.75rem",
+                                  fontFamily: "monospace",
+                                }}
+                              >
+                                {staff.userId.slice(0, 8)}...
+                              </Typography>
+                            </Box>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+
+              {/* Pagination */}
+              {!loading && filteredStaff.length > 0 && (
+                <TablePagination
+                  component="div"
+                  count={filteredStaff.length}
+                  page={page}
+                  onPageChange={handleChangePage}
+                  rowsPerPage={rowsPerPage}
+                  onRowsPerPageChange={handleChangeRowsPerPage}
+                  rowsPerPageOptions={[5, 10, 25, 50]}
+                  labelRowsPerPage="Số hàng mỗi trang:"
+                  labelDisplayedRows={({ from, to, count }) =>
+                    `${from}-${to} của ${count}`
+                  }
+                  sx={{
+                    borderTop: "1px solid #E5E7EB",
+                    "& .MuiTablePagination-select": {
+                      borderRadius: 1,
+                    },
+                    "& .MuiTablePagination-selectIcon": {
+                      color: colors.primary.main,
+                    },
+                    "& .MuiTablePagination-actions button": {
+                      color: colors.primary.main,
+                      "&:disabled": {
+                        color: "#9CA3AF",
+                      },
+                    },
+                  }}
+                />
+              )}
+            </Paper>
+          </>
+        )}
+
+        {/* Tab 2: Workload Calendar */}
+        {currentTab === 1 && <StaffWorkloadCalendar />}
+
+        {/* Add Staff Dialog */}
         <AddStaffDialog
           open={openAddDialog}
           onClose={() => setOpenAddDialog(false)}
