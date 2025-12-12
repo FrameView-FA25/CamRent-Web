@@ -12,8 +12,6 @@ import {
   Divider,
   IconButton,
   Popover,
-  ToggleButton,
-  ToggleButtonGroup,
 } from "@mui/material";
 import { grey } from "@mui/material/colors";
 import SearchIcon from "@mui/icons-material/Search";
@@ -93,19 +91,22 @@ const ProductHeader: React.FC<ProductHeaderProps> = ({
   const handleDateSelect = (date: Date | null) => {
     if (!date) return;
 
+    // Convert to Date object if needed
+    const selectedDate = date instanceof Date ? date : new Date(date);
+
     if (!startDate || selectingEndDate) {
       // Selecting end date
-      if (startDate && date >= startDate) {
-        onEndDateChange(date);
+      if (startDate && selectedDate >= startDate) {
+        onEndDateChange(selectedDate);
         setSelectingEndDate(false);
       } else if (!startDate) {
         // First selection - set as start date
-        onStartDateChange(date);
+        onStartDateChange(selectedDate);
         setSelectingEndDate(true);
       }
     } else {
       // Selecting start date (reset flow)
-      onStartDateChange(date);
+      onStartDateChange(selectedDate);
       onEndDateChange(null);
       setSelectingEndDate(true);
     }

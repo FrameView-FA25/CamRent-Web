@@ -25,6 +25,10 @@ const ProductPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(20);
 
+  // Date filter states
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
+
   // AI Search States
   const [openAIResults, setOpenAIResults] = useState(false);
   const [aiResults, setAiResults] = useState<AISearchResult[]>([]);
@@ -123,6 +127,20 @@ const ProductPage: React.FC = () => {
     toast.success(`AI đã tìm được ${results.length} kết quả phù hợp!`);
   };
 
+  // Handle date filter changes
+  const handleStartDateChange = (date: Date | null) => {
+    setStartDate(date);
+  };
+
+  const handleEndDateChange = (date: Date | null) => {
+    setEndDate(date);
+  };
+
+  const handleClearDateFilter = () => {
+    setStartDate(null);
+    setEndDate(null);
+  };
+
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: grey[50] }}>
       {/* Compare Floating Button */}
@@ -141,6 +159,11 @@ const ProductPage: React.FC = () => {
         onSearchChange={setSearchQuery}
         compareCount={compareIds.length}
         onAISearch={handleAISearch}
+        startDate={startDate}
+        endDate={endDate}
+        onStartDateChange={handleStartDateChange}
+        onEndDateChange={handleEndDateChange}
+        onClearDateFilter={handleClearDateFilter}
       />
       {/* Main Content */}
       <Container maxWidth="lg" sx={{ py: 4 }}>
