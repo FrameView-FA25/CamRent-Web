@@ -562,15 +562,6 @@ const StaffManagement: React.FC = () => {
                       >
                         Số điện thoại
                       </TableCell>
-                      <TableCell
-                        sx={{
-                          fontWeight: 700,
-                          color: "#1F2937",
-                          fontSize: "0.875rem",
-                        }}
-                      >
-                        User ID
-                      </TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -705,26 +696,6 @@ const StaffManagement: React.FC = () => {
                                 sx={{ color: "#6B7280", fontSize: "0.875rem" }}
                               >
                                 {staff.phoneNumber || "Chưa có"}
-                              </Typography>
-                            </Box>
-                          </TableCell>
-                          <TableCell>
-                            <Box
-                              sx={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 1,
-                              }}
-                            >
-                              <Badge sx={{ fontSize: 18, color: "#9CA3AF" }} />
-                              <Typography
-                                sx={{
-                                  color: "#6B7280",
-                                  fontSize: "0.75rem",
-                                  fontFamily: "monospace",
-                                }}
-                              >
-                                {staff.userId.slice(0, 8)}...
                               </Typography>
                             </Box>
                           </TableCell>
