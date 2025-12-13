@@ -249,3 +249,29 @@ export interface BookingDetail extends Booking {
   createdAt: string;
   updatedAt: string;
 }
+export interface RenterInfo {
+  renterId: string;
+  renterName: string;
+  renterEmail: string;
+  renterPhone: string;
+  totalBookings: number;
+  totalRevenue: number;
+  lastBookingDate: string;
+}
+
+export interface RenterBookingHistory {
+  bookingId: string;
+  bookingDate: string;
+  pickupAt: string;
+  returnAt: string;
+  status: string;
+  statusText: string;
+  totalAmount: number;
+  items: Array<{
+    itemId: string;
+    itemName: string;
+    itemType: string;
+    quantity: number;
+    unitPrice: number;
+  }>;
+}

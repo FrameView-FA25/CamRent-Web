@@ -58,7 +58,7 @@ export async function authorizePayment(
   const paymentIdRaw = await response.text();
   // Loại bỏ ngoặc kép và khoảng trắng
   const paymentId = paymentIdRaw.trim().replace(/^["']|["']$/g, "");
-  
+
   console.log("Authorized payment ID:", paymentId);
 
   return {
@@ -83,17 +83,14 @@ export async function createPayOsPayment(
 
   console.log("Creating PayOS payment for ID:", paymentId);
 
-  const response = await fetch(
-    `${API_BASE_URL}/Payments/${paymentId}/payos`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(request),
-    }
-  );
+  const response = await fetch(`${API_BASE_URL}/Payments/${paymentId}/payos`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
 
   if (!response.ok) {
     let errorMessage = `Tạo link thanh toán thất bại với mã lỗi ${response.status}`;
@@ -116,7 +113,7 @@ export async function createPayOsPayment(
   try {
     // Try to parse as JSON
     const jsonResponse = JSON.parse(responseText);
-    
+
     // Check if response has redirectUrl property
     if (jsonResponse.redirectUrl) {
       checkoutUrl = jsonResponse.redirectUrl;
@@ -140,7 +137,10 @@ export async function createPayOsPayment(
   console.log("Final checkout URL:", checkoutUrl);
 
   // Validate URL format
-  if (!checkoutUrl.startsWith("http://") && !checkoutUrl.startsWith("https://")) {
+  if (
+    !checkoutUrl.startsWith("http://") &&
+    !checkoutUrl.startsWith("https://")
+  ) {
     console.error("Invalid URL format:", checkoutUrl);
     throw new Error("Invalid checkout URL received");
   }
