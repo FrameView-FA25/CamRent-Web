@@ -24,6 +24,7 @@ import {
   Backpack as AccessoryIcon,
   QrCodeScanner as QrCodeIcon,
   AccountBalanceWallet as WalletIcon,
+  People as PeopleIcon,
 } from "@mui/icons-material";
 import { useAuth } from "../../hooks/useAuth";
 import { colors } from "../../theme/colors";
@@ -45,7 +46,11 @@ const menuItems = [
     icon: <AccessoryIcon />,
     path: "/owner/accessories",
   },
-
+  {
+    text: "Khách hàng",
+    icon: <PeopleIcon />,
+    path: "/owner/customers",
+  },
   {
     text: "Quản lý xác minh",
     icon: <VerifiedUserIcon />,

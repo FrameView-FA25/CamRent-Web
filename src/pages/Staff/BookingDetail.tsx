@@ -34,6 +34,8 @@ import {
   Payment,
   ExpandMore,
   ExpandLess,
+  CheckCircle,
+  Cancel,
 } from "@mui/icons-material";
 import {
   fetchBookingById,
@@ -515,6 +517,165 @@ const BookingDetail: React.FC = () => {
                 </Box>
               </Box>
             </Stack>
+          </Paper>
+
+          {/* Payment Status Section */}
+          <Paper
+            elevation={0}
+            sx={{
+              p: 3,
+              borderRadius: 3,
+              display: "flex",
+              flexDirection: "column",
+              border: "2px solid",
+              borderColor:
+                booking.snapshotPlatformFeePercent *
+                  booking.snapshotRentalTotal >
+                0
+                  ? "#10B981"
+                  : "#FEE2E2",
+            }}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 2,
+                mb: 3,
+              }}
+            >
+              <Box
+                sx={{
+                  width: 50,
+                  height: 50,
+                  borderRadius: 2,
+                  bgcolor:
+                    booking.snapshotPlatformFeePercent *
+                      booking.snapshotRentalTotal >
+                    0
+                      ? "#D1FAE5"
+                      : "#FEE2E2",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Payment
+                  sx={{
+                    color:
+                      booking.snapshotPlatformFeePercent *
+                        booking.snapshotRentalTotal >
+                      0
+                        ? "#059669"
+                        : "#DC2626",
+                    fontSize: 28,
+                  }}
+                />
+              </Box>
+              <Box sx={{ flex: 1 }}>
+                <Typography
+                  variant="h6"
+                  sx={{ fontWeight: 700, color: "#1F2937" }}
+                >
+                  Trạng thái thanh toán
+                </Typography>
+                <Typography variant="body2" sx={{ color: "#6B7280" }}>
+                  Xác minh trước khi giao hàng
+                </Typography>
+              </Box>
+              <Chip
+                icon={
+                  booking.snapshotPlatformFeePercent *
+                    booking.snapshotRentalTotal >
+                  0 ? (
+                    <CheckCircle />
+                  ) : (
+                    <Cancel />
+                  )
+                }
+                label={
+                  booking.snapshotPlatformFeePercent *
+                    booking.snapshotRentalTotal >
+                  0
+                    ? "Đã thanh toán"
+                    : "Chưa thanh toán"
+                }
+                sx={{
+                  bgcolor:
+                    booking.snapshotPlatformFeePercent *
+                      booking.snapshotRentalTotal >
+                    0
+                      ? "#D1FAE5"
+                      : "#FEE2E2",
+                  color:
+                    booking.snapshotPlatformFeePercent *
+                      booking.snapshotRentalTotal >
+                    0
+                      ? "#059669"
+                      : "#DC2626",
+                  fontWeight: 600,
+                }}
+              />
+            </Box>
+
+            <Divider sx={{ mb: 3 }} />
+
+            {booking.snapshotPlatformFeePercent * booking.snapshotRentalTotal >
+            0 ? (
+              <Stack spacing={2.5}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <Avatar sx={{ bgcolor: "#F9FAFB", color: "#6B7280" }}>
+                    <Payment />
+                  </Avatar>
+                  <Box>
+                    <Typography
+                      variant="caption"
+                      sx={{ color: "#6B7280", display: "block" }}
+                    >
+                      Loại thanh toán
+                    </Typography>
+                    <Typography
+                      variant="body1"
+                      sx={{ fontWeight: 600, color: "#1F2937" }}
+                    >
+                      Đặt cọc (Tiền giữ chỗ)
+                    </Typography>
+                  </Box>
+                </Box>
+
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <Avatar sx={{ bgcolor: "#F9FAFB", color: "#6B7280" }}>
+                    <Payment />
+                  </Avatar>
+                  <Box>
+                    <Typography
+                      variant="caption"
+                      sx={{ color: "#6B7280", display: "block" }}
+                    >
+                      Số tiền đã thanh toán
+                    </Typography>
+                    <Typography
+                      variant="body1"
+                      sx={{ fontWeight: 600, color: "#1F2937" }}
+                    >
+                      {formatCurrency(
+                        booking.snapshotPlatformFeePercent *
+                          booking.snapshotRentalTotal
+                      )}
+                    </Typography>
+                  </Box>
+                </Box>
+
+                <Alert severity="success" sx={{ borderRadius: 2 }}>
+                  Khách hàng đã thanh toán tiền giữ chỗ. Có thể giao hàng.
+                </Alert>
+              </Stack>
+            ) : (
+              <Alert severity="error" sx={{ borderRadius: 2 }}>
+                Khách hàng chưa thực hiện thanh toán. Vui lòng nhắc khách hàng
+                thanh toán trước khi giao hàng.
+              </Alert>
+            )}
           </Paper>
 
           {/* Equipment List */}

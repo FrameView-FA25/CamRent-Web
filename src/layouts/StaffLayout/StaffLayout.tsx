@@ -20,12 +20,24 @@ import {
   ExitToApp as LogoutIcon,
   Person as PersonIcon,
   VerifiedUser as VerifiedUserIcon,
+  Dashboard as DashboardIcon,
+  CalendarToday as CalendarIcon,
 } from "@mui/icons-material";
 import { useAuth } from "../../hooks/useAuth";
 import { colors } from "../../theme/colors";
 const DRAWER_WIDTH = 280;
 
 const menuItems = [
+  {
+    text: "Dashboard",
+    icon: <DashboardIcon />,
+    path: "/staff/dashboard",
+  },
+  {
+    text: "Lịch làm việc",
+    icon: <CalendarIcon />,
+    path: "/staff/schedule",
+  },
   {
     text: "Kiểm tra đơn hàng",
     icon: <PeopleIcon />,
@@ -36,7 +48,6 @@ const menuItems = [
     icon: <VerifiedUserIcon />,
     path: "/staff/verifications",
   },
-  // { text: "Đơn hàng", icon: <OrdersIcon />, path: "/staff/orders" }, // Removed as requested
   { text: "Hồ sơ", icon: <PersonIcon />, path: "/staff/profile" },
 ];
 
