@@ -23,17 +23,20 @@ import {
 import {
   Assignment,
   CheckCircle,
-  LocalShipping,
-  AssignmentReturn,
   ExpandMore,
   ExpandLess,
   TrendingUp,
   TrendingFlat,
   TrendingDown,
   CalendarToday,
+  Block,
+  CheckCircleOutline,
 } from "@mui/icons-material";
 import type { Booking, Staff } from "@/types/booking.types";
-import { staffService } from "@/services/staff.service";
+import {
+  staffService,
+  type AvailableStaffItem,
+} from "@/services/staff.service";
 
 interface AssignStaffDialogProps {
   open: boolean;
@@ -46,14 +49,10 @@ interface AssignStaffDialogProps {
   onConfirm: () => void;
 }
 
-interface StaffWorkloadInfo {
-  staffId: string;
-  staffName: string;
-  assignedBookings: number;
-  assignedVerifications: number;
-  todayPickupBookings: number;
-  todayReturnBookings: number;
+interface StaffWorkloadInfo extends AvailableStaffItem {
   totalWorkload: number;
+  conflictingBookings: number;
+  conflictingVerifications: number;
 }
 
 export const AssignStaffDialog: React.FC<AssignStaffDialogProps> = ({
@@ -73,26 +72,28 @@ export const AssignStaffDialog: React.FC<AssignStaffDialogProps> = ({
 
   useEffect(() => {
     if (open && selectedBooking) {
-      loadWorkloadForBookingDate();
+      loadAvailableStaff();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, selectedBooking]);
 
-  const loadWorkloadForBookingDate = async () => {
+  const loadAvailableStaff = async () => {
     if (!selectedBooking) return;
 
     setLoadingWorkload(true);
     setWorkloadError(null);
 
     try {
-      // Use booking start date as the target date
-      const bookingDate = new Date(selectedBooking.startDate);
-      const startOfDay = new Date(bookingDate.setHours(0, 0, 0, 0));
-      const endOfDay = new Date(bookingDate.setHours(23, 59, 59, 999));
+      // Use booking pickup date as start and return date as end
+      const startDate = new Date(selectedBooking.pickupAt);
+      const endDate = selectedBooking.returnAt
+        ? new Date(selectedBooking.returnAt)
+        : new Date(startDate.getTime() + 24 * 60 * 60 * 1000); // Default to +1 day if no return date
 
-      const data = await staffService.getStaffWorkload(
-        startOfDay.toISOString(),
-        endOfDay.toISOString()
+      const data = await staffService.getAvailableStaff(
+        startDate.toISOString(),
+        endDate.toISOString(),
+        "both" // Check availability for both booking and verification
       );
 
       // Transform data and calculate total workload
@@ -103,15 +104,29 @@ export const AssignStaffDialog: React.FC<AssignStaffDialogProps> = ({
           staff.assignedVerifications +
           staff.todayPickupBookings +
           staff.todayReturnBookings,
+        conflictingBookings: staff.conflictingBookings || 0,
+        conflictingVerifications: staff.conflictingVerifications || 0,
       }));
 
-      // Sort by workload (ascending - least busy first)
-      workloadInfo.sort((a, b) => a.totalWorkload - b.totalWorkload);
+      // Sort: available staff first, then by workload (ascending)
+      workloadInfo.sort((a, b) => {
+        if (a.isAvailable && !b.isAvailable) return -1;
+        if (!a.isAvailable && b.isAvailable) return 1;
+        return a.totalWorkload - b.totalWorkload;
+      });
 
       setWorkloadData(workloadInfo);
+
+      // Auto-select first available staff if none selected
+      if (!selectedStaff && workloadInfo.length > 0) {
+        const firstAvailable = workloadInfo.find((s) => s.isAvailable);
+        if (firstAvailable) {
+          onStaffChange(firstAvailable.staffId);
+        }
+      }
     } catch (err: any) {
       setWorkloadError(
-        err?.message || "Không thể tải thông tin workload của nhân viên"
+        err?.message || "Không thể tải thông tin nhân viên khả dụng"
       );
       console.error(err);
     } finally {
@@ -120,8 +135,18 @@ export const AssignStaffDialog: React.FC<AssignStaffDialogProps> = ({
   };
 
   const getWorkloadLevel = (
-    total: number
+    total: number,
+    isAvailable: boolean
   ): { color: string; label: string; icon: JSX.Element; bgColor: string } => {
+    if (!isAvailable) {
+      return {
+        color: "#DC2626",
+        label: "Không khả dụng",
+        icon: <Block sx={{ fontSize: 16 }} />,
+        bgColor: "#FEE2E2",
+      };
+    }
+
     if (total === 0)
       return {
         color: "#10B981",
@@ -159,9 +184,16 @@ export const AssignStaffDialog: React.FC<AssignStaffDialogProps> = ({
     ? getStaffWorkload(selectedStaff)
     : null;
   const selectedStaffLevel = selectedStaffWorkload
-    ? getWorkloadLevel(selectedStaffWorkload.totalWorkload)
+    ? getWorkloadLevel(
+        selectedStaffWorkload.totalWorkload,
+        selectedStaffWorkload.isAvailable
+      )
     : null;
-  console.log("seleccBooking", selectedBooking);
+
+  // Count available and unavailable staff
+  const availableCount = workloadData.filter((s) => s.isAvailable).length;
+  const unavailableCount = workloadData.length - availableCount;
+  console.log("workloadData", workloadData);
   return (
     <Dialog
       open={open}
@@ -203,7 +235,7 @@ export const AssignStaffDialog: React.FC<AssignStaffDialogProps> = ({
               Mã đơn: <strong>{selectedBooking?.id.slice(0, 8)}</strong>
             </Typography>
             <Typography variant="body2" sx={{ color: "#6B7280" }}>
-              Ngày thuê:{" "}
+              Ngày nhận:{" "}
               <strong>
                 {selectedBooking?.pickupAt
                   ? new Date(selectedBooking.pickupAt).toLocaleDateString(
@@ -212,7 +244,56 @@ export const AssignStaffDialog: React.FC<AssignStaffDialogProps> = ({
                   : "N/A"}
               </strong>
             </Typography>
+            <Typography variant="body2" sx={{ color: "#6B7280" }}>
+              Ngày trả:{" "}
+              <strong>
+                {selectedBooking?.returnAt
+                  ? new Date(selectedBooking.returnAt).toLocaleDateString(
+                      "vi-VN"
+                    )
+                  : "N/A"}
+              </strong>
+            </Typography>
           </Paper>
+
+          {/* Availability Summary */}
+          {!loadingWorkload && workloadData.length > 0 && (
+            <Paper
+              elevation={0}
+              sx={{
+                p: 2,
+                mb: 3,
+                bgcolor: "#ECFDF5",
+                borderRadius: 2,
+                border: "1px solid #A7F3D0",
+              }}
+            >
+              <Stack direction="row" spacing={2} alignItems="center">
+                <Chip
+                  icon={<CheckCircleOutline />}
+                  label={`${availableCount} Khả dụng`}
+                  size="small"
+                  sx={{
+                    bgcolor: "#10B981",
+                    color: "white",
+                    fontWeight: 600,
+                  }}
+                />
+                {unavailableCount > 0 && (
+                  <Chip
+                    icon={<Block />}
+                    label={`${unavailableCount} Không khả dụng`}
+                    size="small"
+                    sx={{
+                      bgcolor: "#EF4444",
+                      color: "white",
+                      fontWeight: 600,
+                    }}
+                  />
+                )}
+              </Stack>
+            </Paper>
+          )}
 
           {/* Workload Summary Toggle */}
           <Paper
@@ -260,7 +341,7 @@ export const AssignStaffDialog: React.FC<AssignStaffDialogProps> = ({
                       variant="body2"
                       sx={{ mt: 1, color: "#6B7280" }}
                     >
-                      Đang tải thông tin workload...
+                      Đang tải thông tin nhân viên...
                     </Typography>
                   </Box>
                 )}
@@ -275,7 +356,7 @@ export const AssignStaffDialog: React.FC<AssignStaffDialogProps> = ({
                   !workloadError &&
                   workloadData.length === 0 && (
                     <Alert severity="info" sx={{ borderRadius: 2 }}>
-                      Không có dữ liệu workload cho ngày này
+                      Không có dữ liệu nhân viên cho khoảng thời gian này
                     </Alert>
                   )}
 
@@ -285,7 +366,10 @@ export const AssignStaffDialog: React.FC<AssignStaffDialogProps> = ({
                     <Box sx={{ maxHeight: 300, overflowY: "auto" }}>
                       <Stack spacing={1.5}>
                         {workloadData.map((staff) => {
-                          const level = getWorkloadLevel(staff.totalWorkload);
+                          const level = getWorkloadLevel(
+                            staff.totalWorkload,
+                            staff.isAvailable
+                          );
                           const isSelected = selectedStaff === staff.staffId;
 
                           return (
@@ -300,13 +384,21 @@ export const AssignStaffDialog: React.FC<AssignStaffDialogProps> = ({
                                 borderRadius: 2,
                                 bgcolor: isSelected ? "#FFF7ED" : level.bgColor,
                                 transition: "all 0.2s",
-                                cursor: "pointer",
-                                "&:hover": {
-                                  borderColor: "#F97316",
-                                  boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-                                },
+                                cursor: staff.isAvailable
+                                  ? "pointer"
+                                  : "not-allowed",
+                                opacity: staff.isAvailable ? 1 : 0.6,
+                                "&:hover": staff.isAvailable
+                                  ? {
+                                      borderColor: "#F97316",
+                                      boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                                    }
+                                  : {},
                               }}
-                              onClick={() => onStaffChange(staff.staffId)}
+                              onClick={() =>
+                                staff.isAvailable &&
+                                onStaffChange(staff.staffId)
+                              }
                             >
                               <Stack
                                 direction="row"
@@ -314,13 +406,27 @@ export const AssignStaffDialog: React.FC<AssignStaffDialogProps> = ({
                                 alignItems="center"
                                 mb={1.5}
                               >
-                                <Box>
-                                  <Typography
-                                    variant="body2"
-                                    sx={{ fontWeight: 600, color: "#1F2937" }}
+                                <Box sx={{ flex: 1 }}>
+                                  <Stack
+                                    direction="row"
+                                    alignItems="center"
+                                    spacing={1}
                                   >
-                                    {staff.staffName}
-                                  </Typography>
+                                    <Typography
+                                      variant="body2"
+                                      sx={{ fontWeight: 600, color: "#1F2937" }}
+                                    >
+                                      {staff.staffName}
+                                    </Typography>
+                                    {staff.isAvailable && (
+                                      <CheckCircleOutline
+                                        sx={{
+                                          fontSize: 16,
+                                          color: "#10B981",
+                                        }}
+                                      />
+                                    )}
+                                  </Stack>
                                   <Typography
                                     variant="caption"
                                     sx={{ color: "#6B7280" }}
@@ -347,7 +453,7 @@ export const AssignStaffDialog: React.FC<AssignStaffDialogProps> = ({
                               >
                                 <Chip
                                   icon={<Assignment sx={{ fontSize: 14 }} />}
-                                  label={`${staff.assignedBookings} Bookings`}
+                                  label={`${staff.conflictingBookings} Bookings`}
                                   size="small"
                                   sx={{
                                     fontSize: "0.7rem",
@@ -358,37 +464,13 @@ export const AssignStaffDialog: React.FC<AssignStaffDialogProps> = ({
                                 />
                                 <Chip
                                   icon={<CheckCircle sx={{ fontSize: 14 }} />}
-                                  label={`${staff.assignedVerifications} Xác nhận`}
+                                  label={`${staff.conflictingVerifications} Xác nhận`}
                                   size="small"
                                   sx={{
                                     fontSize: "0.7rem",
                                     height: 24,
                                     bgcolor: "#F0FDF4",
                                     color: "#065F46",
-                                  }}
-                                />
-                                <Chip
-                                  icon={<LocalShipping sx={{ fontSize: 14 }} />}
-                                  label={`${staff.todayPickupBookings} Pickups`}
-                                  size="small"
-                                  sx={{
-                                    fontSize: "0.7rem",
-                                    height: 24,
-                                    bgcolor: "#FFFBEB",
-                                    color: "#92400E",
-                                  }}
-                                />
-                                <Chip
-                                  icon={
-                                    <AssignmentReturn sx={{ fontSize: 14 }} />
-                                  }
-                                  label={`${staff.todayReturnBookings} Returns`}
-                                  size="small"
-                                  sx={{
-                                    fontSize: "0.7rem",
-                                    height: 24,
-                                    bgcolor: "#F5F3FF",
-                                    color: "#5B21B6",
                                   }}
                                 />
                               </Stack>
@@ -420,11 +502,19 @@ export const AssignStaffDialog: React.FC<AssignStaffDialogProps> = ({
                 staffList.map((staff) => {
                   const workload = getStaffWorkload(staff.userId);
                   const level = workload
-                    ? getWorkloadLevel(workload.totalWorkload)
+                    ? getWorkloadLevel(
+                        workload.totalWorkload,
+                        workload.isAvailable
+                      )
                     : null;
+                  const isAvailable = workload?.isAvailable ?? true;
 
                   return (
-                    <MenuItem key={staff.userId} value={staff.userId}>
+                    <MenuItem
+                      key={staff.userId}
+                      value={staff.userId}
+                      disabled={!isAvailable}
+                    >
                       <Stack
                         direction="row"
                         justifyContent="space-between"
@@ -432,9 +522,23 @@ export const AssignStaffDialog: React.FC<AssignStaffDialogProps> = ({
                         sx={{ width: "100%" }}
                       >
                         <Box>
-                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                            {staff.fullName}
-                          </Typography>
+                          <Stack
+                            direction="row"
+                            alignItems="center"
+                            spacing={0.5}
+                          >
+                            <Typography
+                              variant="body2"
+                              sx={{ fontWeight: 600 }}
+                            >
+                              {staff.fullName}
+                            </Typography>
+                            {isAvailable && (
+                              <CheckCircleOutline
+                                sx={{ fontSize: 14, color: "#10B981" }}
+                              />
+                            )}
+                          </Stack>
                           <Typography
                             variant="caption"
                             sx={{ color: "#6B7280" }}
@@ -465,7 +569,9 @@ export const AssignStaffDialog: React.FC<AssignStaffDialogProps> = ({
           {selectedStaffWorkload && selectedStaffLevel && (
             <Alert
               severity={
-                selectedStaffWorkload.totalWorkload === 0
+                !selectedStaffWorkload.isAvailable
+                  ? "error"
+                  : selectedStaffWorkload.totalWorkload === 0
                   ? "success"
                   : selectedStaffWorkload.totalWorkload <= 3
                   ? "info"
@@ -480,8 +586,9 @@ export const AssignStaffDialog: React.FC<AssignStaffDialogProps> = ({
                 Nhân viên đã chọn: {selectedStaffWorkload.staffName}
               </Typography>
               <Typography variant="caption">
-                Trạng thái: <strong>{selectedStaffLevel.label}</strong> (
-                {selectedStaffWorkload.totalWorkload} công việc trong ngày)
+                Trạng thái: <strong>{selectedStaffLevel.label}</strong>
+                {selectedStaffWorkload.isAvailable &&
+                  ` (${selectedStaffWorkload.totalWorkload} công việc trong khoảng thời gian)`}
               </Typography>
             </Alert>
           )}
@@ -503,7 +610,9 @@ export const AssignStaffDialog: React.FC<AssignStaffDialogProps> = ({
         <Button
           onClick={onConfirm}
           variant="contained"
-          disabled={!selectedStaff || loading}
+          disabled={
+            !selectedStaff || loading || !selectedStaffWorkload?.isAvailable
+          }
           sx={{
             bgcolor: "#F97316",
             "&:hover": {
