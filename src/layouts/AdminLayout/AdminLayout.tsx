@@ -106,7 +106,28 @@ const AdminLayout: React.FC = () => {
       </Box>
 
       {/* Menu Items */}
-      <Box sx={{ flex: 1, py: 3, px: 2 }}>
+      <Box
+        sx={{
+          flex: 1,
+          py: 3,
+          px: 2,
+          overflowY: "auto",
+          overflowX: "hidden",
+          "&::-webkit-scrollbar": {
+            width: "6px",
+          },
+          "&::-webkit-scrollbar-track": {
+            bgcolor: "transparent",
+          },
+          "&::-webkit-scrollbar-thumb": {
+            bgcolor: "#D1D5DB",
+            borderRadius: "3px",
+            "&:hover": {
+              bgcolor: "#9CA3AF",
+            },
+          },
+        }}
+      >
         <List sx={{ p: 0 }}>
           {menuItems.map((item) => {
             const isActive = location.pathname === item.path;
