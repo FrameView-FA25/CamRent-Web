@@ -53,6 +53,14 @@ export interface StaffScheduleEvent {
 
 export type StaffScheduleResponse = StaffScheduleEvent[];
 
+export interface WorkSlot {
+  id: string;
+  slotIndex: number;
+  startTime: string;
+  endTime: string;
+  isActive: boolean;
+}
+
 /**
  * Lấy dữ liệu thống kê dashboard cho Owner
  */
@@ -149,6 +157,32 @@ export const dashboardService = {
     }
 
     const json = (await response.json()) as StaffScheduleResponse;
+    return json;
+  },
+
+  async getWorkSlots(): Promise<WorkSlot[]> {
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      throw new Error("Không tìm thấy token xác thực. Vui lòng đăng nhập lại.");
+    }
+
+    const response = await fetch(`${API_BASE_URL}/WorkSlots`, {
+      method: "GET",
+      headers: {
+        accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.message ||
+          `Không thể tải danh sách ca làm việc (mã ${response.status})`
+      );
+    }
+
+    const json = (await response.json()) as WorkSlot[];
     return json;
   },
 };

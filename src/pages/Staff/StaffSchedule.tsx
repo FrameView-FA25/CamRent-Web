@@ -8,165 +8,190 @@ import {
   Alert,
   Stack,
   Chip,
-  Card,
-  CardContent,
-  Avatar,
-  Divider,
-  Grid,
-  Tab,
-  Tabs,
+  IconButton,
+  Tooltip,
+  Menu,
+  MenuItem,
 } from "@mui/material";
 import { decodeToken } from "../../utils/decodeToken";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs, { Dayjs } from "dayjs";
 import {
-  CalendarToday,
+  ChevronLeft,
+  ChevronRight,
   LocalShipping,
   AssignmentReturn,
-  AccessTime,
   Camera,
+  ArrowDropDown,
+  Refresh,
 } from "@mui/icons-material";
 import {
   dashboardService,
   type StaffScheduleResponse,
   type StaffScheduleEvent,
+  type WorkSlot,
 } from "../../services/dashboard.service";
 import { colors } from "../../theme/colors";
+import isoWeek from "dayjs/plugin/isoWeek";
 
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
+dayjs.extend(isoWeek);
 
-const TabPanel: React.FC<TabPanelProps> = ({ children, value, index }) => {
-  return (
-    <div role="tabpanel" hidden={value !== index}>
-      {value === index && <Box sx={{ py: 3 }}>{children}</Box>}
-    </div>
-  );
+// Helper function to get Vietnamese day names
+const getVietnameseDayName = (dayIndex: number): string => {
+  const dayNames = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+  return dayNames[dayIndex];
 };
 
-interface EventCardProps {
-  event: StaffScheduleEvent;
+interface EventCellProps {
+  event: StaffScheduleEvent | null;
+  onClick?: () => void;
 }
 
-const EventCard: React.FC<EventCardProps> = ({ event }) => {
+const EventCell: React.FC<EventCellProps> = ({ event, onClick }) => {
+  if (!event) {
+    return (
+      <Box
+        sx={{
+          height: "100%",
+          width: "100%",
+          border: "1px solid #E5E7EB",
+          backgroundColor: "#FAFAFA",
+          borderRadius: 1,
+          "&:hover": {
+            backgroundColor: "#F3F4F6",
+          },
+        }}
+      />
+    );
+  }
+
   const isPick = event.eventType === "BookingPickup";
   const isReturn = event.eventType === "BookingReturn";
-
+  const isVerification = !isPick && !isReturn;
   const color = isPick ? "#10B981" : isReturn ? "#F59E0B" : "#8B5CF6";
   const bgColor = isPick ? "#D1FAE5" : isReturn ? "#FEF3C7" : "#EDE9FE";
 
+  // Rút gọn tiêu đề cho event kiểm tra
+  const displayTitle =
+    isVerification && event.title.length > 15
+      ? `${event.title.substring(0, 15)}...`
+      : event.title;
+
   return (
-    <Card
-      sx={{
-        mb: 2,
-        borderRadius: 2,
-        boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-        borderLeft: `4px solid ${color}`,
-        transition: "all 0.3s ease",
-        "&:hover": {
-          boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
-          transform: "translateX(4px)",
-        },
-      }}
+    <Tooltip
+      title={
+        <Box>
+          <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+            {event.title}
+          </Typography>
+          <Typography variant="caption" sx={{ display: "block" }}>
+            Thời gian: {dayjs(event.startAt).format("HH:mm")}
+          </Typography>
+          {event.bookingId && (
+            <Typography variant="caption" sx={{ display: "block" }}>
+              Mã đơn: {event.bookingId}
+            </Typography>
+          )}
+          {event.verificationId && (
+            <Typography variant="caption" sx={{ display: "block" }}>
+              Mã kiểm tra: {event.verificationId}
+            </Typography>
+          )}
+        </Box>
+      }
+      arrow
+      placement="top"
+      enterDelay={300}
     >
-      <CardContent sx={{ p: 2.5 }}>
-        <Stack spacing={2}>
-          {/* Header */}
-          <Stack direction="row" alignItems="center" spacing={2}>
-            <Avatar
+      <Box
+        onClick={onClick}
+        sx={{
+          height: "100%",
+          width: "100%",
+          maxWidth: "100%",
+          border: `2px solid ${color}`,
+          borderRadius: 1,
+          backgroundColor: bgColor,
+          p: 0.75,
+          cursor: "pointer",
+          transition: "all 0.2s",
+          overflow: "hidden",
+          display: "flex",
+          flexDirection: "column",
+          position: "relative",
+          "&:hover": {
+            boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+            transform: "scale(1.02)",
+            zIndex: 1,
+          },
+        }}
+      >
+        <Stack spacing={0.3} sx={{ overflow: "hidden", width: "100%" }}>
+          <Stack
+            direction="row"
+            spacing={0.5}
+            alignItems="center"
+            sx={{ minWidth: 0, width: "100%" }}
+          >
+            {isPick ? (
+              <LocalShipping sx={{ fontSize: 13, color, flexShrink: 0 }} />
+            ) : isReturn ? (
+              <AssignmentReturn sx={{ fontSize: 13, color, flexShrink: 0 }} />
+            ) : (
+              <Camera sx={{ fontSize: 13, color, flexShrink: 0 }} />
+            )}
+            <Typography
+              variant="caption"
               sx={{
-                bgcolor: bgColor,
-                color: color,
-                width: 40,
-                height: 40,
+                fontWeight: 600,
+                color,
+                fontSize: "0.65rem",
+                lineHeight: 1.2,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                flex: 1,
+                minWidth: 0,
+                maxWidth: "100%",
               }}
             >
-              {isPick ? (
-                <LocalShipping />
-              ) : isReturn ? (
-                <AssignmentReturn />
-              ) : (
-                <Camera />
-              )}
-            </Avatar>
-            <Box sx={{ flex: 1 }}>
-              <Typography
-                variant="subtitle1"
-                sx={{ fontWeight: 600, color: "#1F2937" }}
-              >
-                {event.title}
-              </Typography>
-              <Stack direction="row" spacing={1} alignItems="center">
-                <AccessTime sx={{ fontSize: 16, color: "#6B7280" }} />
-                <Typography variant="body2" sx={{ color: "#6B7280" }}>
-                  {dayjs(event.startAt).format("DD/MM/YYYY HH:mm")}
-                </Typography>
-              </Stack>
-            </Box>
-            <Chip
-              label={isPick ? "Lấy hàng" : isReturn ? "Trả hàng" : "Kiểm tra"}
-              size="small"
-              sx={{
-                bgcolor: bgColor,
-                color: color,
-                fontWeight: 600,
-              }}
-            />
+              {displayTitle}
+            </Typography>
           </Stack>
-
-          <Divider />
-
-          {/* Event Info */}
-          {event.bookingId && (
-            <Typography variant="body2" sx={{ color: "#1F2937" }}>
-              <strong>Mã đơn hàng:</strong>{" "}
-              <Typography
-                component="span"
-                variant="caption"
-                sx={{
-                  color: "#6B7280",
-                  fontFamily: "monospace",
-                }}
-              >
-                {event.bookingId}
-              </Typography>
-            </Typography>
-          )}
-
-          {event.verificationId && (
-            <Typography variant="body2" sx={{ color: "#1F2937" }}>
-              <strong>Mã kiểm tra:</strong>{" "}
-              <Typography
-                component="span"
-                variant="caption"
-                sx={{
-                  color: "#6B7280",
-                  fontFamily: "monospace",
-                }}
-              >
-                {event.verificationId}
-              </Typography>
-            </Typography>
-          )}
+          <Typography
+            variant="caption"
+            sx={{
+              fontSize: "0.6rem",
+              color: "#6B7280",
+              lineHeight: 1.2,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {dayjs(event.startAt).format("HH:mm")}
+          </Typography>
         </Stack>
-      </CardContent>
-    </Card>
+      </Box>
+    </Tooltip>
   );
 };
 
 const StaffSchedule: React.FC = () => {
-  const [fromDate, setFromDate] = useState<Dayjs | null>(dayjs());
-  const [toDate, setToDate] = useState<Dayjs | null>(dayjs().add(7, "day"));
+  const [currentWeekStart, setCurrentWeekStart] = useState<Dayjs>(
+    dayjs().startOf("isoWeek")
+  );
   const [scheduleData, setScheduleData] =
     useState<StaffScheduleResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [tabValue, setTabValue] = useState(0);
+  const [yearMenuAnchor, setYearMenuAnchor] = useState<null | HTMLElement>(
+    null
+  );
+  const [weekMenuAnchor, setWeekMenuAnchor] = useState<null | HTMLElement>(
+    null
+  );
+  const [workSlots, setWorkSlots] = useState<WorkSlot[]>([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
 
   // Lấy staffId từ token
   const staffId = useMemo(() => {
@@ -176,15 +201,45 @@ const StaffSchedule: React.FC = () => {
     return decoded?.userId || decoded?.id || decoded?.sub || null;
   }, []);
 
+  // Tính toán tuần hiện tại
+  const weekDays = useMemo(() => {
+    return Array.from({ length: 7 }, (_, i) => currentWeekStart.add(i, "day"));
+  }, [currentWeekStart]);
+
+  const weekRange = useMemo(() => {
+    const start = currentWeekStart.format("DD/MM");
+    const end = currentWeekStart.add(6, "day").format("DD/MM");
+    return `${start} - ${end}`;
+  }, [currentWeekStart]);
+
   useEffect(() => {
-    if (fromDate && toDate) {
-      loadSchedule();
-    }
+    loadWorkSlots();
+  }, []);
+
+  useEffect(() => {
+    loadSchedule();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fromDate, toDate]);
+  }, [currentWeekStart]);
+
+  const loadWorkSlots = async () => {
+    setLoadingSlots(true);
+    try {
+      const slots = await dashboardService.getWorkSlots();
+      setWorkSlots(slots.filter((slot) => slot.isActive));
+    } catch (err: unknown) {
+      console.error("Failed to load work slots:", err);
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : "Không thể tải danh sách ca làm việc";
+      setError(errorMessage);
+    } finally {
+      setLoadingSlots(false);
+    }
+  };
 
   const loadSchedule = async () => {
-    if (!fromDate || !toDate || !staffId) {
+    if (!staffId) {
       setError("Không tìm thấy thông tin nhân viên");
       return;
     }
@@ -193,41 +248,119 @@ const StaffSchedule: React.FC = () => {
     setError(null);
 
     try {
+      const fromDate = currentWeekStart.toISOString();
+      const toDate = currentWeekStart.add(7, "day").toISOString();
       const data = await dashboardService.getStaffSchedule(
         staffId,
-        fromDate.toISOString(),
-        toDate.toISOString()
+        fromDate,
+        toDate
       );
       setScheduleData(data);
-    } catch (err: any) {
-      setError(err?.message || "Không thể tải lịch làm việc");
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Không thể tải lịch làm việc";
+      setError(errorMessage);
       console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
-    setTabValue(newValue);
+  const handlePreviousWeek = () => {
+    setCurrentWeekStart((prev) => prev.subtract(1, "week"));
   };
 
-  // Lọc events theo type
-  const pickupEvents = useMemo(() => {
-    return scheduleData?.filter((e) => e.eventType === "BookingPickup") || [];
-  }, [scheduleData]);
+  const handleNextWeek = () => {
+    setCurrentWeekStart((prev) => prev.add(1, "week"));
+  };
 
-  const returnEvents = useMemo(() => {
-    return scheduleData?.filter((e) => e.eventType === "BookingReturn") || [];
-  }, [scheduleData]);
+  const handleToday = () => {
+    setCurrentWeekStart(dayjs().startOf("isoWeek"));
+  };
 
-  const verificationEvents = useMemo(() => {
-    return scheduleData?.filter((e) => e.eventType === "Verification") || [];
-  }, [scheduleData]);
+  const handleYearClick = (event: React.MouseEvent<HTMLElement>) => {
+    setYearMenuAnchor(event.currentTarget);
+  };
 
-  const totalEvents = scheduleData?.length || 0;
+  const handleYearClose = () => {
+    setYearMenuAnchor(null);
+  };
+
+  const handleYearSelect = (year: number) => {
+    const newDate = currentWeekStart.year(year);
+    setCurrentWeekStart(newDate);
+    handleYearClose();
+  };
+
+  const handleWeekClick = (event: React.MouseEvent<HTMLElement>) => {
+    setWeekMenuAnchor(event.currentTarget);
+  };
+
+  const handleWeekClose = () => {
+    setWeekMenuAnchor(null);
+  };
+
+  const handleWeekSelect = (weekStart: Dayjs) => {
+    setCurrentWeekStart(weekStart);
+    handleWeekClose();
+  };
+
+  const yearOptions = useMemo(() => {
+    const currentYear = dayjs().year();
+    return Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
+  }, []);
+
+  const weekOptions = useMemo(() => {
+    const yearStart = dayjs().startOf("year").startOf("isoWeek");
+    const yearEnd = dayjs().endOf("year");
+    const weeks = [];
+    let currentWeek = yearStart;
+
+    while (
+      currentWeek.isBefore(yearEnd) ||
+      currentWeek.isSame(yearEnd, "week")
+    ) {
+      const weekEnd = currentWeek.add(6, "day");
+      weeks.push({
+        weekStart: currentWeek,
+        label: `${currentWeek.format("DD/MM")} To ${weekEnd.format("DD/MM")}`,
+      });
+      currentWeek = currentWeek.add(1, "week");
+    }
+
+    return weeks;
+  }, []);
+
+  // Map events to calendar grid
+  const getEventForSlotAndDay = (
+    slotIndex: number,
+    dayIndex: number
+  ): StaffScheduleEvent | null => {
+    if (!scheduleData || !workSlots.length) return null;
+
+    const targetDay = weekDays[dayIndex];
+    const slot = workSlots.find((s) => s.slotIndex === slotIndex);
+    if (!slot) return null;
+
+    const startHour = parseInt(slot.startTime.split(":")[0]);
+    const endHour = parseInt(slot.endTime.split(":")[0]);
+
+    return (
+      scheduleData.find((event) => {
+        const eventDate = dayjs(event.startAt);
+        const eventHour = eventDate.hour();
+
+        return (
+          eventDate.isSame(targetDay, "day") &&
+          eventHour >= startHour &&
+          eventHour < endHour
+        );
+      }) || null
+    );
+  };
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
+    <Container maxWidth="xl" sx={{ py: 4 }}>
       {/* Header */}
       <Box sx={{ mb: 4 }}>
         <Typography
@@ -238,7 +371,7 @@ const StaffSchedule: React.FC = () => {
             mb: 1,
           }}
         >
-          Lịch Làm Việc
+          Thời khóa biểu tuần
         </Typography>
         <Typography
           variant="body1"
@@ -246,65 +379,128 @@ const StaffSchedule: React.FC = () => {
             color: "#6B7280",
           }}
         >
-          Quản lý lịch lấy hàng và trả hàng của bạn
+          Lịch làm việc của bạn theo tuần và các ca đã được phân công
         </Typography>
       </Box>
 
-      {/* Date Range Selector */}
+      {/* Week Navigation */}
       <Paper
         sx={{
-          p: 3,
+          p: 2,
           mb: 3,
           borderRadius: 3,
           boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
         }}
       >
-        <LocalizationProvider dateAdapter={AdapterDayjs}>
-          <Grid container spacing={2} alignItems="center">
-            <Grid size={{ xs: 12, sm: 5 }}>
-              <DatePicker
-                label="Từ ngày"
-                value={fromDate}
-                onChange={(newValue) => setFromDate(newValue as Dayjs | null)}
-                slotProps={{
-                  textField: {
-                    fullWidth: true,
-                    size: "small",
-                  },
-                }}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, sm: 5 }}>
-              <DatePicker
-                label="Đến ngày"
-                value={toDate}
-                onChange={(newValue) => setToDate(newValue as Dayjs | null)}
-                slotProps={{
-                  textField: {
-                    fullWidth: true,
-                    size: "small",
-                  },
-                }}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, sm: 2 }}>
-              <Stack direction="row" spacing={1} alignItems="center">
-                <CalendarToday sx={{ color: colors.primary.main }} />
-                <Box>
-                  <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                    {totalEvents}
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: "#6B7280" }}>
-                    Sự kiện
-                  </Typography>
-                </Box>
-              </Stack>
-            </Grid>
-          </Grid>
-        </LocalizationProvider>
+        <Stack
+          direction="row"
+          alignItems="center"
+          justifyContent="space-between"
+          flexWrap="wrap"
+          gap={2}
+        >
+          <Stack direction="row" alignItems="center" spacing={2}>
+            <Chip
+              label={currentWeekStart.year()}
+              onClick={handleYearClick}
+              deleteIcon={
+                <ArrowDropDown sx={{ color: "#FFFFFF !important" }} />
+              }
+              onDelete={handleYearClick}
+              sx={{
+                fontWeight: 600,
+                backgroundColor: colors.primary.light,
+                color: "#FFFFFF",
+                cursor: "pointer",
+                fontSize: "1rem",
+                height: 36,
+                "&:hover": {
+                  backgroundColor: colors.primary.main,
+                },
+              }}
+            />
+            <Menu
+              anchorEl={yearMenuAnchor}
+              open={Boolean(yearMenuAnchor)}
+              onClose={handleYearClose}
+            >
+              {yearOptions.map((year) => (
+                <MenuItem
+                  key={year}
+                  onClick={() => handleYearSelect(year)}
+                  selected={year === currentWeekStart.year()}
+                >
+                  {year}
+                </MenuItem>
+              ))}
+            </Menu>
+          </Stack>
+
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <IconButton onClick={handlePreviousWeek} size="small">
+              <ChevronLeft />
+            </IconButton>
+            <Chip
+              label={weekRange}
+              onClick={handleWeekClick}
+              deleteIcon={
+                <ArrowDropDown sx={{ color: "#FFFFFF !important" }} />
+              }
+              onDelete={handleWeekClick}
+              sx={{
+                fontWeight: 600,
+                backgroundColor: colors.primary.light,
+                color: "#FFFFFF",
+                minWidth: 140,
+                cursor: "pointer",
+                "&:hover": {
+                  backgroundColor: colors.primary.main,
+                },
+              }}
+            />
+            <Menu
+              anchorEl={weekMenuAnchor}
+              open={Boolean(weekMenuAnchor)}
+              onClose={handleWeekClose}
+              PaperProps={{
+                style: {
+                  maxHeight: 400,
+                },
+              }}
+            >
+              {weekOptions.map((week, index) => (
+                <MenuItem
+                  key={index}
+                  onClick={() => handleWeekSelect(week.weekStart)}
+                  selected={week.weekStart.isSame(currentWeekStart, "day")}
+                >
+                  {week.label}
+                </MenuItem>
+              ))}
+            </Menu>
+            <IconButton onClick={handleNextWeek} size="small">
+              <ChevronRight />
+            </IconButton>
+          </Stack>
+
+          <Tooltip title="Về tuần hiện tại" arrow>
+            <IconButton
+              onClick={handleToday}
+              sx={{
+                backgroundColor: colors.primary.light,
+                color: "#FFFFFF",
+                "&:hover": {
+                  backgroundColor: colors.primary.main,
+                },
+              }}
+            >
+              <Refresh />
+            </IconButton>
+          </Tooltip>
+        </Stack>
       </Paper>
 
-      {loading ? (
+      {loading || loadingSlots ? (
         <Box
           sx={{
             display: "flex",
@@ -319,95 +515,206 @@ const StaffSchedule: React.FC = () => {
         <Alert severity="error" sx={{ borderRadius: 2 }}>
           {error}
         </Alert>
-      ) : scheduleData ? (
+      ) : (
         <Paper
           sx={{
             borderRadius: 3,
             boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-            overflow: "hidden",
+            overflow: "auto",
           }}
         >
-          {/* Tabs */}
-          <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
-            <Tabs
-              value={tabValue}
-              onChange={handleTabChange}
+          {/* Calendar Grid */}
+          <Box sx={{ minWidth: 900 }}>
+            {/* Header Row */}
+            <Box
               sx={{
-                px: 2,
-                "& .MuiTab-root": {
-                  textTransform: "none",
-                  fontWeight: 600,
-                  fontSize: "1rem",
-                },
+                display: "grid",
+                gridTemplateColumns: "140px repeat(7, 1fr)",
+                borderBottom: "2px solid #E5E7EB",
+                backgroundColor: "#F9FAFB",
               }}
             >
-              <Tab
-                label={`Lấy hàng (${pickupEvents.length})`}
-                icon={<LocalShipping />}
-                iconPosition="start"
-              />
-              <Tab
-                label={`Trả hàng (${returnEvents.length})`}
-                icon={<AssignmentReturn />}
-                iconPosition="start"
-              />
-              <Tab
-                label={`Kiểm tra (${verificationEvents.length})`}
-                icon={<Camera />}
-                iconPosition="start"
-              />
-            </Tabs>
+              <Box
+                sx={{
+                  p: 2,
+                  fontWeight: 600,
+                  color: "#6B7280",
+                  fontSize: "0.875rem",
+                }}
+              >
+                CA
+              </Box>
+              {weekDays.map((day, index) => {
+                const isToday = day.isSame(dayjs(), "day");
+                const isSaturday = index === 5;
+                const isSunday = index === 6;
+                const dayOfWeek = day.day(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+
+                return (
+                  <Box
+                    key={index}
+                    sx={{
+                      p: 2,
+                      textAlign: "center",
+                      borderLeft: "1px solid #E5E7EB",
+                    }}
+                  >
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        display: "block",
+                        fontWeight: 600,
+                        color: isToday
+                          ? colors.primary.main
+                          : isSaturday
+                          ? "#3B82F6"
+                          : isSunday
+                          ? "#EF4444"
+                          : "#6B7280",
+                        fontSize: "0.75rem",
+                      }}
+                    >
+                      {getVietnameseDayName(dayOfWeek)}
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontWeight: isToday ? 700 : 400,
+                        color: isToday ? colors.primary.main : "#1F2937",
+                      }}
+                    >
+                      {day.format("DD/MM")}
+                    </Typography>
+                  </Box>
+                );
+              })}
+            </Box>
+
+            {/* Time Slots Rows */}
+            {workSlots.map((slot) => (
+              <Box
+                key={slot.id}
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: "140px repeat(7, 1fr)",
+                  borderBottom: "1px solid #E5E7EB",
+                  "&:hover": {
+                    backgroundColor: "#FAFAFA",
+                  },
+                }}
+              >
+                {/* Slot Label */}
+                <Box
+                  sx={{
+                    p: 2,
+                    borderRight: "1px solid #E5E7EB",
+                    backgroundColor: "#F9FAFB",
+                    display: "flex",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 1,
+                  }}
+                >
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      fontWeight: 600,
+                      color: "#6B7280",
+                      fontSize: "0.75rem",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    Ca {slot.slotIndex}
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: "#9CA3AF",
+                      fontSize: "0.7rem",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {slot.startTime.substring(0, 5)}-
+                    {slot.endTime.substring(0, 5)}
+                  </Typography>
+                </Box>
+
+                {/* Event Cells */}
+                {weekDays.map((_, dayIndex) => (
+                  <Box
+                    key={dayIndex}
+                    sx={{
+                      borderLeft: "1px solid #E5E7EB",
+                      p: 0.5,
+                      height: 70,
+                      display: "flex",
+                    }}
+                  >
+                    <EventCell
+                      event={getEventForSlotAndDay(slot.slotIndex, dayIndex)}
+                    />
+                  </Box>
+                ))}
+              </Box>
+            ))}
           </Box>
 
-          {/* Tab Panels */}
-          <Box sx={{ p: 3 }}>
-            <TabPanel value={tabValue} index={0}>
-              {pickupEvents.length > 0 ? (
-                pickupEvents.map((event) => (
-                  <EventCard
-                    key={event.bookingId || event.verificationId}
-                    event={event}
-                  />
-                ))
-              ) : (
-                <Alert severity="info" sx={{ borderRadius: 2 }}>
-                  Không có lịch lấy hàng trong khoảng thời gian này
-                </Alert>
-              )}
-            </TabPanel>
-
-            <TabPanel value={tabValue} index={1}>
-              {returnEvents.length > 0 ? (
-                returnEvents.map((event) => (
-                  <EventCard
-                    key={event.bookingId || event.verificationId}
-                    event={event}
-                  />
-                ))
-              ) : (
-                <Alert severity="info" sx={{ borderRadius: 2 }}>
-                  Không có lịch trả hàng trong khoảng thời gian này
-                </Alert>
-              )}
-            </TabPanel>
-
-            <TabPanel value={tabValue} index={2}>
-              {verificationEvents.length > 0 ? (
-                verificationEvents.map((event) => (
-                  <EventCard
-                    key={event.bookingId || event.verificationId}
-                    event={event}
-                  />
-                ))
-              ) : (
-                <Alert severity="info" sx={{ borderRadius: 2 }}>
-                  Không có lịch kiểm tra trong khoảng thời gian này
-                </Alert>
-              )}
-            </TabPanel>
+          {/* Legend */}
+          <Box
+            sx={{
+              p: 2,
+              borderTop: "2px solid #E5E7EB",
+              backgroundColor: "#F9FAFB",
+            }}
+          >
+            <Stack direction="row" spacing={3} justifyContent="center">
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Box
+                  sx={{
+                    width: 16,
+                    height: 16,
+                    backgroundColor: "#D1FAE5",
+                    border: "2px solid #10B981",
+                    borderRadius: 0.5,
+                  }}
+                />
+                <Typography variant="caption" sx={{ color: "#6B7280" }}>
+                  Lấy hàng
+                </Typography>
+              </Stack>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Box
+                  sx={{
+                    width: 16,
+                    height: 16,
+                    backgroundColor: "#FEF3C7",
+                    border: "2px solid #F59E0B",
+                    borderRadius: 0.5,
+                  }}
+                />
+                <Typography variant="caption" sx={{ color: "#6B7280" }}>
+                  Trả hàng
+                </Typography>
+              </Stack>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Box
+                  sx={{
+                    width: 16,
+                    height: 16,
+                    backgroundColor: "#EDE9FE",
+                    border: "2px solid #8B5CF6",
+                    borderRadius: 0.5,
+                  }}
+                />
+                <Typography variant="caption" sx={{ color: "#6B7280" }}>
+                  Kiểm tra
+                </Typography>
+              </Stack>
+            </Stack>
           </Box>
         </Paper>
-      ) : null}
+      )}
     </Container>
   );
 };

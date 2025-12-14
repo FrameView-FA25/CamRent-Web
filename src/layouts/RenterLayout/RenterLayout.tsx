@@ -65,7 +65,6 @@ const RenterLayout: React.FC = () => {
         flexDirection: "column",
         bgcolor: colors.background.paper,
         borderRight: `1px solid ${colors.border.light}`,
-        overflow: "hidden",
       }}
     >
       {/* Header */}
@@ -111,9 +110,23 @@ const RenterLayout: React.FC = () => {
           flex: 1,
           py: 3,
           px: 2,
-          overflow: "hidden",
+          overflowY: "auto",
+          overflowX: "hidden",
           display: "flex",
           flexDirection: "column",
+          "&::-webkit-scrollbar": {
+            width: "6px",
+          },
+          "&::-webkit-scrollbar-track": {
+            bgcolor: "transparent",
+          },
+          "&::-webkit-scrollbar-thumb": {
+            bgcolor: "#D1D5DB",
+            borderRadius: "3px",
+            "&:hover": {
+              bgcolor: "#9CA3AF",
+            },
+          },
         }}
       >
         <List sx={{ p: 0 }}>
@@ -283,7 +296,6 @@ const RenterLayout: React.FC = () => {
               boxSizing: "border-box",
               width: DRAWER_WIDTH,
               border: "none",
-              overflow: "hidden",
             },
           }}
         >
@@ -298,7 +310,6 @@ const RenterLayout: React.FC = () => {
               boxSizing: "border-box",
               width: DRAWER_WIDTH,
               border: "none",
-              overflow: "hidden",
             },
           }}
           open

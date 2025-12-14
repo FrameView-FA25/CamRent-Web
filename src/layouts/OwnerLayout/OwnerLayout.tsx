@@ -138,9 +138,23 @@ const OwnerLayout: React.FC = () => {
           flex: 1,
           py: 3,
           px: 2,
-          overflow: "hidden", // Không cho scroll
+          overflowY: "auto",
+          overflowX: "hidden",
           display: "flex",
           flexDirection: "column",
+          "&::-webkit-scrollbar": {
+            width: "6px",
+          },
+          "&::-webkit-scrollbar-track": {
+            bgcolor: "transparent",
+          },
+          "&::-webkit-scrollbar-thumb": {
+            bgcolor: "#D1D5DB",
+            borderRadius: "3px",
+            "&:hover": {
+              bgcolor: "#9CA3AF",
+            },
+          },
         }}
       >
         <List sx={{ p: 0 }}>
@@ -324,7 +338,6 @@ const OwnerLayout: React.FC = () => {
                     boxSizing: "border-box",
                     width: DRAWER_WIDTH,
                     border: "none",
-                    overflow: "hidden", // Loại bỏ scroll
                   },
                 }}
               >
@@ -340,7 +353,6 @@ const OwnerLayout: React.FC = () => {
                     boxSizing: "border-box",
                     width: DRAWER_WIDTH,
                     border: "none",
-                    overflow: "hidden", // Loại bỏ scroll
                   },
                 }}
                 open
