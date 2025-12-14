@@ -48,9 +48,12 @@ import ComparePage from "@/pages/Home/ComparePage";
 import CameraQrHistory from "@/pages/Owner/QRScanner/CameraQrHistory";
 import RenterProfile from "@/pages/Renter/RenterProfile";
 import ContractTemplateManagement from "@/pages/Manager/ContractTemplateManagement";
+import CustomerList from "@/pages/Owner/CustomerList/CustomerList";
 import PaymentSuccess from "@/components/Payment/PaymentSuccess";
 import PaymentFailed from "@/components/Payment/PaymentFailed";
 import StaffProfile from "@/pages/Staff/StaffProfile";
+import StaffDashboard from "@/pages/Staff/StaffDashboard";
+import StaffSchedule from "@/pages/Staff/StaffSchedule";
 const routes: RouteObject[] = [
   {
     path: "/",
@@ -158,6 +161,10 @@ const routes: RouteObject[] = [
         path: "wallet",
         element: <Wallet />,
       },
+      {
+        path: "customers",
+        element: <CustomerList />,
+      },
     ],
   },
   {
@@ -240,6 +247,14 @@ const routes: RouteObject[] = [
       </ProtectedRoute>
     ),
     children: [
+      {
+        path: "dashboard",
+        element: <StaffDashboard />,
+      },
+      {
+        path: "schedule",
+        element: <StaffSchedule />,
+      },
       {
         path: "check-booking",
         element: <CheckBooking />,

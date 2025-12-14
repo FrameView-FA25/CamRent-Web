@@ -24,7 +24,7 @@ import type { AISearchResult } from "../../services/ai.service";
 import { DateCalendar } from "@mui/x-date-pickers/DateCalendar";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
-import { addDays, addMonths } from "date-fns";
+import { addDays } from "date-fns";
 
 interface ProductHeaderProps {
   currentTab: number;
@@ -88,11 +88,11 @@ const ProductHeader: React.FC<ProductHeaderProps> = ({
     setSelectingEndDate(false);
   };
 
-  const handleDateSelect = (date: Date | null) => {
+  const handleDateSelect = (date: Date | null | unknown) => {
     if (!date) return;
 
     // Convert to Date object if needed
-    const selectedDate = date instanceof Date ? date : new Date(date);
+    const selectedDate = date instanceof Date ? date : new Date(String(date));
 
     if (!startDate || selectingEndDate) {
       // Selecting end date
@@ -522,7 +522,6 @@ const ProductHeader: React.FC<ProductHeaderProps> = ({
                 value={selectingEndDate ? endDate : startDate}
                 onChange={handleDateSelect}
                 minDate={new Date()}
-                defaultCalendarMonth={addMonths(new Date(), 1)}
                 sx={{
                   "& .MuiPickersDay-root": {
                     "&.Mui-selected": {

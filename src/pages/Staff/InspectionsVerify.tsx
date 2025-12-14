@@ -1215,12 +1215,6 @@ const Inspections: React.FC = () => {
             ? {
                 verifyId: dialogRow.id,
                 items: dialogRow.items || [],
-                ItemType:
-                  dialogRow.items && dialogRow.items[0]?.itemType
-                    ? String(dialogRow.items[0].itemType)
-                    : undefined,
-                Notes: dialogRow.notes || "",
-                Type: "Verification",
               }
             : {}
         }

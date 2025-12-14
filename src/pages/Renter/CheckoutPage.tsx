@@ -666,7 +666,9 @@ const CheckoutPage: React.FC = () => {
                       <DateTimePicker
                         label="Chọn Ngày & Giờ Nhận"
                         value={pickupAt}
-                        onChange={(newValue) => setPickupAt(newValue)}
+                        onChange={(newValue) =>
+                          setPickupAt(newValue as Dayjs | null)
+                        }
                         minDateTime={dayjs()}
                         slotProps={{
                           textField: {
@@ -689,7 +691,9 @@ const CheckoutPage: React.FC = () => {
                       <DateTimePicker
                         label="Chọn Ngày & Giờ Trả"
                         value={returnAt}
-                        onChange={(newValue) => setReturnAt(newValue)}
+                        onChange={(newValue) =>
+                          setReturnAt(newValue as Dayjs | null)
+                        }
                         minDateTime={pickupAt || dayjs()}
                         slotProps={{
                           textField: {

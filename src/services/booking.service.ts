@@ -4,7 +4,11 @@ import type {
   Staff,
   CreateDeliveryRequest,
   CreateInspectionRequest,
+  RenterInfo,
+  RenterBookingHistory,
 } from "../types/booking.types";
+
+export type { RenterInfo, RenterBookingHistory };
 
 type ApiBookingItem = BookingItem & {
   id: string;
@@ -636,6 +640,60 @@ export const createInspection = async (
     return {
       success: false,
       error: error instanceof Error ? error.message : "Unknown error occurred",
+    };
+  }
+};
+export const fetchOwnerRenters = async (): Promise<{
+  renters: RenterInfo[];
+  error: string | null;
+}> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/Bookings/owner/renters`, {
+      method: "GET",
+      headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return { renters: data, error: null };
+  } catch (error: unknown) {
+    console.error("Error fetching owner renters:", error);
+    return {
+      renters: [],
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+};
+
+export const fetchRenterBookingHistory = async (
+  renterId: string
+): Promise<{
+  bookings: RenterBookingHistory[];
+  error: string | null;
+}> => {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/Bookings/owner/renters/${renterId}/bookings`,
+      {
+        method: "GET",
+        headers: getAuthHeaders(),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return { bookings: data, error: null };
+  } catch (error: unknown) {
+    console.error("Error fetching renter booking history:", error);
+    return {
+      bookings: [],
+      error: error instanceof Error ? error.message : "Unknown error",
     };
   }
 };

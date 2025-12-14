@@ -7,26 +7,25 @@ import {
   Button,
   TextField,
   MenuItem,
-  FormControl,
-  FormLabel,
-  RadioGroup,
-  FormControlLabel,
-  Radio,
   Box,
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
+  Checkbox,
+  IconButton,
+  Chip,
+  Stack,
+  Typography,
 } from "@mui/material";
-
+import { Clear, PhotoCamera } from "@mui/icons-material";
 import type { VerificationItem } from "../../../types/verification.types";
+import { toast } from "react-toastify";
+
 type InspectionDefaultValues = {
   verifyId?: string;
   items?: VerificationItem[];
-  ItemId?: string;
-  ItemType?: string;
-  Type?: string;
-  Section?: string;
-  Label?: string;
-  Value?: string;
-  Passed?: boolean | null;
-  Notes?: string;
 };
 
 export interface InspectionDialogProps {
@@ -36,136 +35,177 @@ export interface InspectionDialogProps {
   defaultValues?: Partial<InspectionDefaultValues>;
 }
 
+// Danh sách kiểm tra thiết bị camera (như phiếu bảo dưỡng xe)
+const DEFAULT_CHECKLIST = [
+  { label: "Vỏ máy (vết xước, móp)" },
+  { label: "Ống kính (sạch sẽ, trầy xước)" },
+  { label: "Màn hình LCD" },
+  { label: "Nút bấm chức năng" },
+  { label: "Chụp ảnh" },
+  { label: "Quay video" },
+  { label: "Pin (dung lượng, tiếp xúc)" },
+  { label: "Sạc pin" },
+  { label: "Dây cáp kết nối" },
+  { label: "Thẻ nhớ" },
+];
+
+type ChecklistItem = {
+  id: string;
+  label: string;
+  checkPhysical: boolean; // Kiểm tra vật lý (bên ngoài)
+  checkFunction: boolean; // Kiểm tra chức năng
+  checkClean: boolean; // Vệ sinh/Làm sạch
+  needRepair: boolean; // Cần sửa chữa
+  passed: boolean; // Đạt/Không đạt
+  notes: string;
+  images: File[];
+  imagePreviews: string[];
+};
+
 const InspectionDialog: React.FC<InspectionDialogProps> = ({
   open,
   onClose,
   onSubmit,
   defaultValues,
 }) => {
-  // Booking, Type, InspectionTypeId đều lấy từ verify id (mặc định truyền vào defaultValues)
   const verifyId = defaultValues?.verifyId || "";
-  // Danh sách thiết bị từ verify
   const items: VerificationItem[] = defaultValues?.items || [];
-  type FormState = {
-    ItemId: string;
-    ItemType: string;
-    Type: string;
-    Booking: string;
-    InspectionTypeId: string;
-    Section: string;
-    Label: string;
-    Value: string;
-    Passed: boolean | null;
-    Notes: string;
-    files: FileList | undefined;
-    images: FileList | undefined;
-  };
-  const [form, setForm] = React.useState<FormState>({
-    ItemId: "",
-    ItemType: defaultValues?.ItemType || "Camera",
-    Type: defaultValues?.Type || "Booking",
-    Booking: verifyId,
-    InspectionTypeId: verifyId,
-    Section: defaultValues?.Section || "",
-    Label: defaultValues?.Label || "",
-    Value: defaultValues?.Value || "",
-    Passed: defaultValues?.Passed ?? null,
-    Notes: defaultValues?.Notes || "",
-    files: undefined,
-    images: undefined,
-  });
 
+  const [selectedItemId, setSelectedItemId] = React.useState<string>("");
+  const [selectedItemType, setSelectedItemType] = React.useState<string>("");
+
+  // Khởi tạo checklist
+  const [checklist, setChecklist] = React.useState<ChecklistItem[]>(
+    DEFAULT_CHECKLIST.map((item, idx) => ({
+      id: `item-${idx}`,
+      label: item.label,
+      checkPhysical: false,
+      checkFunction: false,
+      checkClean: false,
+      needRepair: false,
+      passed: true,
+      notes: "",
+      images: [],
+      imagePreviews: [],
+    }))
+  );
+
+  // Reset khi mở dialog
   React.useEffect(() => {
-    setForm((f) => ({
-      ...f,
-      ItemId: "",
-      Booking: defaultValues?.verifyId || "",
-      InspectionTypeId: defaultValues?.verifyId || "",
-      ItemType: defaultValues?.ItemType || "Camera",
-      Type: defaultValues?.Type || "Verification",
-      Section: defaultValues?.Section || "",
-      Label: defaultValues?.Label || "",
-      Value: defaultValues?.Value || "",
-      Passed: defaultValues?.Passed ?? null,
-      Notes: defaultValues?.Notes || "",
-      files: undefined,
-      images: undefined,
-    }));
-  }, [defaultValues]);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked, files } = e.target;
-    setForm((f: FormState) => {
-      // Xử lý Passed là boolean
-      if (name === "Passed") {
-        if (value === "true") return { ...f, Passed: true };
-        if (value === "false") return { ...f, Passed: false };
-        return { ...f, Passed: null };
-      }
-      if (type === "file" && files && name === "images") {
-        // Cộng dồn các ảnh đã chọn trước đó
-        const oldFiles = f.images ? Array.from(f.images) : [];
-        const newFiles = Array.from(files);
-        // Loại bỏ trùng lặp theo tên file và size
-        const allFiles = [...oldFiles, ...newFiles].filter(
-          (file, idx, arr) =>
-            arr.findIndex(
-              (f2) => f2.name === file.name && f2.size === file.size
-            ) === idx
-        );
-        // Tạo FileList mới từ mảng file
-        const dataTransfer = new DataTransfer();
-        allFiles.forEach((file) => dataTransfer.items.add(file));
-        return { ...f, images: dataTransfer.files };
-      }
-      // Nếu chọn thiết bị thì tự động fill ItemType
-      if (name === "ItemId") {
-        // value luôn là string, itemId có thể là string hoặc number
-        const selectedItem = items.find((it) => String(it.itemId) === value);
-        // Chuyển string thành tên loại thiết bị
-        const getItemTypeName = (type: string) => {
-          if (type === "1" || type === "Camera") return "Camera";
-          if (type === "2" || type === "Accessory") return "Accessory";
-          if (type === "3" || type === "Combo") return "Combo";
-          return "";
-        };
-        return {
-          ...f,
-          ItemId: value,
-          ItemType: selectedItem ? getItemTypeName(selectedItem.itemType) : "",
-        };
-      }
-      return {
-        ...f,
-        [name]: type === "checkbox" ? checked : type === "file" ? files : value,
-      };
-    });
-  };
-
-  // Preview images
-  const [imagePreviews, setImagePreviews] = React.useState<string[]>([]);
-  React.useEffect(() => {
-    if (form.images && form.images.length > 0) {
-      const urls = Array.from(form.images).map((file) =>
-        URL.createObjectURL(file)
+    if (open) {
+      setSelectedItemId("");
+      setSelectedItemType("");
+      setChecklist(
+        DEFAULT_CHECKLIST.map((item, idx) => ({
+          id: `item-${idx}`,
+          label: item.label,
+          checkPhysical: false,
+          checkFunction: false,
+          checkClean: false,
+          needRepair: false,
+          passed: true,
+          notes: "",
+          images: [],
+          imagePreviews: [],
+        }))
       );
-      setImagePreviews(urls);
-      return () => urls.forEach((url) => URL.revokeObjectURL(url));
-    } else {
-      setImagePreviews([]);
     }
-  }, [form.images]);
+  }, [open]);
+
+  const handleItemSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const itemId = e.target.value;
+    setSelectedItemId(itemId);
+
+    const selectedItem = items.find((it) => String(it.itemId) === itemId);
+    if (selectedItem) {
+      const getItemTypeName = (type: string) => {
+        if (type === "1" || type === "Camera") return "Camera";
+        if (type === "2" || type === "Accessory") return "Accessory";
+        if (type === "3" || type === "Combo") return "Combo";
+        return "";
+      };
+      setSelectedItemType(getItemTypeName(selectedItem.itemType));
+    }
+  };
+
+  const handleChecklistChange = (
+    id: string,
+    field: keyof ChecklistItem,
+    value: string | boolean
+  ) => {
+    setChecklist((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, [field]: value } : item))
+    );
+  };
+
+  const handleCheckAll = (id: string, checked: boolean) => {
+    setChecklist((prev) =>
+      prev.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              checkPhysical: checked,
+              checkFunction: checked,
+              checkClean: checked,
+            }
+          : item
+      )
+    );
+  };
+
+  const handleImageUpload = (id: string, files: FileList | null) => {
+    if (!files) return;
+
+    setChecklist((prev) =>
+      prev.map((item) => {
+        if (item.id === id) {
+          // Giới hạn tối đa 3 ảnh
+          const remainingSlots = 3 - item.images.length;
+          if (remainingSlots <= 0) {
+            toast.error("Chỉ được tải tối đa 3 ảnh cho mỗi mục kiểm tra!");
+            return item;
+          }
+
+          const filesToAdd = Array.from(files).slice(0, remainingSlots);
+          const newFiles = [...item.images, ...filesToAdd];
+          const newPreviews = newFiles.map((file) => URL.createObjectURL(file));
+
+          return {
+            ...item,
+            images: newFiles,
+            imagePreviews: newPreviews,
+          };
+        }
+        return item;
+      })
+    );
+  };
+
+  const handleRemoveImage = (itemId: string, imageIndex: number) => {
+    setChecklist((prev) =>
+      prev.map((item) => {
+        if (item.id === itemId) {
+          const newImages = item.images.filter((_, idx) => idx !== imageIndex);
+          const newPreviews = item.imagePreviews.filter(
+            (_, idx) => idx !== imageIndex
+          );
+          return {
+            ...item,
+            images: newImages,
+            imagePreviews: newPreviews,
+          };
+        }
+        return item;
+      })
+    );
+  };
 
   const handleSubmit = () => {
-    if (!form.ItemId) {
+    if (!selectedItemId) {
       alert("Vui lòng chọn thiết bị!");
       return;
     }
-    if (!form.Type) {
-      alert("Vui lòng chọn Type!");
-      return;
-    }
-    // Chuyển tên loại thiết bị thành số trước khi gửi
+
     const getItemTypeNumber = (typeName: string): number => {
       switch (typeName) {
         case "Camera":
@@ -179,28 +219,34 @@ const InspectionDialog: React.FC<InspectionDialogProps> = ({
       }
     };
 
-    // Loại bỏ các trường không cần thiết khi gửi lên
-    const submitData: Record<string, unknown> = { ...form };
-    delete submitData.files;
+    // Chuyển checklist thành array các inspection items
+    const inspectionItems = checklist.map((item) => ({
+      ItemId: selectedItemId,
+      ItemType: getItemTypeNumber(selectedItemType),
+      Type: "Verification",
+      Booking: verifyId,
+      InspectionTypeId: verifyId,
+      Label: item.label,
+      CheckPhysical: item.checkPhysical,
+      CheckFunction: item.checkFunction,
+      CheckClean: item.checkClean,
+      NeedRepair: item.needRepair,
+      Passed: item.passed,
+      Notes: item.notes,
+      images: item.images,
+    }));
 
-    // Chuyển ItemType từ tên sang số
-    submitData.ItemType = getItemTypeNumber(form.ItemType);
-
-    // Convert FileList to array for images (nếu cần upload)
-    if (form.images) {
-      submitData.images = Array.from(form.images);
-    } else {
-      delete submitData.images;
-    }
-
-    onSubmit(submitData);
+    onSubmit({ items: inspectionItems });
   };
+
+  const passedCount = checklist.filter((item) => item.passed).length;
+  const failedCount = checklist.length - passedCount;
 
   return (
     <Dialog
       open={open}
       onClose={onClose}
-      maxWidth="sm"
+      maxWidth="xl"
       fullWidth
       slotProps={{
         paper: {
@@ -211,205 +257,354 @@ const InspectionDialog: React.FC<InspectionDialogProps> = ({
       <DialogTitle
         sx={{ fontWeight: 700, fontSize: 22, textAlign: "center", pb: 0 }}
       >
-        Tạo kiểm tra thiết bị
+        Phiếu kiểm tra thiết bị
       </DialogTitle>
-      <DialogContent
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 3,
-          mt: 1,
-          bgcolor: "#FAFAFA",
-          borderRadius: 3,
-          p: 3,
-        }}
-      >
-        <div style={{ marginBottom: 8 }}>
-          <strong style={{ fontSize: 16 }}>Thông tin thiết bị</strong>
-        </div>
-        <TextField
-          select
-          label="Thiết bị"
-          name="ItemId"
-          value={form.ItemId || ""}
-          onChange={handleChange}
-          fullWidth
-          sx={{ mb: 2 }}
-        >
-          <MenuItem value="">-- Chọn thiết bị --</MenuItem>
-          {items.map((it) => (
-            <MenuItem key={String(it.itemId)} value={String(it.itemId)}>
-              {it.itemName}
-            </MenuItem>
-          ))}
-        </TextField>
-        <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
+      <DialogContent sx={{ mt: 2 }}>
+        {/* Chọn thiết bị */}
+        <Box sx={{ mb: 3, mt: 2, display: "flex", gap: 2 }}>
+          <TextField
+            select
+            label="Chọn thiết bị"
+            value={selectedItemId}
+            onChange={handleItemSelect}
+            fullWidth
+            sx={{ flex: 2 }}
+            InputLabelProps={{
+              shrink: true,
+            }}
+          >
+            <MenuItem value="">-- Chọn thiết bị --</MenuItem>
+            {items.map((it) => (
+              <MenuItem key={String(it.itemId)} value={String(it.itemId)}>
+                {it.itemName}
+              </MenuItem>
+            ))}
+          </TextField>
           <TextField
             label="Loại thiết bị"
-            name="ItemType"
-            value={form.ItemType}
+            value={selectedItemType}
             fullWidth
+            sx={{ flex: 1 }}
+            disabled
+            InputLabelProps={{
+              shrink: true,
+            }}
             slotProps={{
               input: {
                 readOnly: true,
-                style: { backgroundColor: "#f3f4f6", cursor: "not-allowed" },
+                style: { backgroundColor: "#f3f4f6" },
               },
             }}
-            disabled
-          />
-          <TextField
-            label="Loại "
-            name="Type"
-            value={form.Type}
-            onChange={handleChange}
-            InputProps={{ readOnly: true }}
-            inputProps={{
-              style: { backgroundColor: "#f3f4f6", cursor: "not-allowed" },
-            }}
-            disabled
-            fullWidth
           />
         </Box>
-        {/* Bỏ thông tin kiểm tra và Booking ID */}
-        {/* Removed Type field as it's not part of the form type */}
-        {/* InspectionTypeId được giữ trong form nhưng không hiển thị trên giao diện */}
-        <TextField
-          select
-          label="Phần kiểm tra"
-          name="Section"
-          value={form.Section}
-          onChange={handleChange}
-          fullWidth
-          sx={{ mb: 2 }}
-        >
-          <MenuItem value="">-- Chọn phần kiểm tra --</MenuItem>
-          <MenuItem value="Ngoại quan">Ngoại quan</MenuItem>
-          <MenuItem value="Chức năng">Chức năng</MenuItem>
-          <MenuItem value="Phụ kiện">Phụ kiện</MenuItem>
-          <MenuItem value="Khác">Khác</MenuItem>
-        </TextField>
-        <TextField
-          select
-          label="Tên kiểm tra"
-          name="Label"
-          value={form.Label}
-          onChange={handleChange}
-          fullWidth
-          sx={{ mb: 2 }}
-        >
-          <MenuItem value="">-- Chọn tên kiểm tra --</MenuItem>
-          <MenuItem value="Vết xước">Vết xước</MenuItem>
-          <MenuItem value="Vết móp">Vết móp</MenuItem>
-          <MenuItem value="Màu sắc">Màu sắc</MenuItem>
-          <MenuItem value="Độ sạch">Độ sạch</MenuItem>
-          <MenuItem value="Hoạt động bình thường">
-            Hoạt động bình thường
-          </MenuItem>
-          <MenuItem value="Pin">Pin</MenuItem>
-          <MenuItem value="Sạc">Sạc</MenuItem>
-          <MenuItem value="Dây cáp">Dây cáp</MenuItem>
-          <MenuItem value="Thẻ nhớ">Thẻ nhớ</MenuItem>
-          <MenuItem value="Túi đựng">Túi đựng</MenuItem>
-          <MenuItem value="Khác">Khác</MenuItem>
-        </TextField>
-        <TextField
-          select
-          label="Giá trị"
-          name="Value"
-          value={form.Value}
-          onChange={handleChange}
-          fullWidth
-          sx={{ mb: 2 }}
-        >
-          <MenuItem value="">-- Chọn giá trị --</MenuItem>
-          <MenuItem value="Tốt">Tốt</MenuItem>
-          <MenuItem value="Khá">Khá</MenuItem>
-          <MenuItem value="Trung bình">Trung bình</MenuItem>
-          <MenuItem value="Kém">Kém</MenuItem>
-          <MenuItem value="Có">Có</MenuItem>
-          <MenuItem value="Không">Không</MenuItem>
-          <MenuItem value="Hoạt động">Hoạt động</MenuItem>
-          <MenuItem value="Không hoạt động">Không hoạt động</MenuItem>
-        </TextField>
-        <FormControl fullWidth sx={{ mb: 2 }}>
-          <FormLabel>Kết quả</FormLabel>
-          <RadioGroup
-            row
-            name="Passed"
-            value={
-              form.Passed === null
-                ? ""
-                : form.Passed === true
-                ? "true"
-                : "false"
-            }
-            onChange={handleChange}
-          >
-            <FormControlLabel value="true" control={<Radio />} label="Đạt" />
-            <FormControlLabel
-              value="false"
-              control={<Radio />}
-              label="Không đạt"
-            />
-          </RadioGroup>
-        </FormControl>
-        <TextField
-          label="Ghi chú"
-          name="Notes"
-          value={form.Notes}
-          onChange={handleChange}
-          fullWidth
-          sx={{ mb: 2 }}
-        />
-        {/* Đã bỏ upload file, chỉ còn upload ảnh */}
-        <Button
-          variant="outlined"
-          component="label"
-          sx={{
-            borderRadius: 2,
-            borderColor: "#0ea5e9",
-            color: "#0ea5e9",
-            fontWeight: 500,
-            width: "fit-content",
-            alignSelf: "flex-start",
-            mb: 1,
-          }}
-        >
-          Thêm ảnh
-          <input
-            type="file"
-            name="images"
-            accept="image/*"
-            multiple
-            hidden
-            onChange={handleChange}
-          />
-        </Button>
-        {imagePreviews.length > 0 && (
-          <div
-            style={{
-              display: "flex",
-              gap: 8,
-              flexWrap: "wrap",
-              marginBottom: 8,
-            }}
-          >
-            {imagePreviews.map((src, idx) => (
-              <img
-                key={idx}
-                src={src}
-                alt={`img-${idx}`}
-                style={{
-                  width: 80,
-                  height: 80,
-                  objectFit: "cover",
-                  borderRadius: 8,
-                  border: "1px solid #eee",
-                }}
-              />
-            ))}
-          </div>
-        )}
+
+        {/* Thống kê */}
+        <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
+          <Chip label={`Tổng: ${checklist.length} mục`} color="default" />
+          <Chip label={`Đạt: ${passedCount}`} color="success" />
+          <Chip label={`Không đạt: ${failedCount}`} color="error" />
+        </Stack>
+
+        {/* Bảng checklist */}
+        <Box sx={{ overflowX: "auto" }}>
+          <Table size="small" sx={{ border: "1px solid #ddd" }}>
+            <TableHead>
+              <TableRow sx={{ bgcolor: "#F3F4F6" }}>
+                <TableCell
+                  sx={{
+                    fontWeight: 700,
+                    width: "20%",
+                    border: "1px solid #ddd",
+                    textAlign: "center",
+                  }}
+                  rowSpan={2}
+                >
+                  Danh mục
+                </TableCell>
+                <TableCell
+                  sx={{
+                    fontWeight: 700,
+                    textAlign: "center",
+                    border: "1px solid #ddd",
+                    width: "5%",
+                  }}
+                  rowSpan={2}
+                >
+                  Chọn tất cả
+                </TableCell>
+                <TableCell
+                  sx={{
+                    fontWeight: 700,
+                    textAlign: "center",
+                    border: "1px solid #ddd",
+                  }}
+                  colSpan={4}
+                >
+                  Phương pháp thực hiện
+                </TableCell>
+                <TableCell
+                  sx={{
+                    fontWeight: 700,
+                    width: "5%",
+                    border: "1px solid #ddd",
+                    textAlign: "center",
+                  }}
+                  rowSpan={2}
+                >
+                  Kết quả
+                </TableCell>
+                <TableCell
+                  sx={{
+                    fontWeight: 700,
+                    width: "20%",
+                    border: "1px solid #ddd",
+                    textAlign: "center",
+                  }}
+                  rowSpan={2}
+                >
+                  Ghi chú
+                </TableCell>
+                <TableCell
+                  sx={{
+                    fontWeight: 700,
+                    width: "15%",
+                    border: "1px solid #ddd",
+                    textAlign: "center",
+                  }}
+                  rowSpan={2}
+                >
+                  Ảnh
+                </TableCell>
+              </TableRow>
+              <TableRow sx={{ bgcolor: "#F3F4F6" }}>
+                <TableCell
+                  sx={{
+                    fontWeight: 600,
+                    textAlign: "center",
+                    border: "1px solid #ddd",
+                    width: "5%",
+                  }}
+                >
+                  Tình trạng vật lý
+                </TableCell>
+                <TableCell
+                  sx={{
+                    fontWeight: 600,
+                    textAlign: "center",
+                    border: "1px solid #ddd",
+                    width: "5%",
+                  }}
+                >
+                  Kiểm tra Chức năng
+                </TableCell>
+                <TableCell
+                  sx={{
+                    fontWeight: 600,
+                    textAlign: "center",
+                    border: "1px solid #ddd",
+                    width: "5%",
+                  }}
+                >
+                  Vệ sinh
+                </TableCell>
+                <TableCell
+                  sx={{
+                    fontWeight: 600,
+                    textAlign: "center",
+                    border: "1px solid #ddd",
+                    width: "5%",
+                  }}
+                >
+                  Hư hỏng
+                </TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {checklist.map((item) => (
+                <TableRow key={item.id}>
+                  <TableCell sx={{ border: "1px solid #ddd" }}>
+                    <Typography variant="body2">{item.label}</Typography>
+                  </TableCell>
+                  <TableCell
+                    sx={{ textAlign: "center", border: "1px solid #ddd" }}
+                  >
+                    <Checkbox
+                      checked={
+                        item.checkPhysical &&
+                        item.checkFunction &&
+                        item.checkClean
+                      }
+                      indeterminate={
+                        (item.checkPhysical ||
+                          item.checkFunction ||
+                          item.checkClean) &&
+                        !(
+                          item.checkPhysical &&
+                          item.checkFunction &&
+                          item.checkClean
+                        )
+                      }
+                      onChange={(e) =>
+                        handleCheckAll(item.id, e.target.checked)
+                      }
+                      size="small"
+                      color="primary"
+                    />
+                  </TableCell>
+                  <TableCell
+                    sx={{ textAlign: "center", border: "1px solid #ddd" }}
+                  >
+                    <Checkbox
+                      checked={item.checkPhysical}
+                      onChange={(e) =>
+                        handleChecklistChange(
+                          item.id,
+                          "checkPhysical",
+                          e.target.checked
+                        )
+                      }
+                      size="small"
+                    />
+                  </TableCell>
+                  <TableCell
+                    sx={{ textAlign: "center", border: "1px solid #ddd" }}
+                  >
+                    <Checkbox
+                      checked={item.checkFunction}
+                      onChange={(e) =>
+                        handleChecklistChange(
+                          item.id,
+                          "checkFunction",
+                          e.target.checked
+                        )
+                      }
+                      size="small"
+                    />
+                  </TableCell>
+                  <TableCell
+                    sx={{ textAlign: "center", border: "1px solid #ddd" }}
+                  >
+                    <Checkbox
+                      checked={item.checkClean}
+                      onChange={(e) =>
+                        handleChecklistChange(
+                          item.id,
+                          "checkClean",
+                          e.target.checked
+                        )
+                      }
+                      size="small"
+                    />
+                  </TableCell>
+                  <TableCell
+                    sx={{ textAlign: "center", border: "1px solid #ddd" }}
+                  >
+                    <Checkbox
+                      checked={item.needRepair}
+                      onChange={(e) =>
+                        handleChecklistChange(
+                          item.id,
+                          "needRepair",
+                          e.target.checked
+                        )
+                      }
+                      size="small"
+                      color="warning"
+                    />
+                  </TableCell>
+                  <TableCell
+                    sx={{ textAlign: "center", border: "1px solid #ddd" }}
+                  >
+                    <Checkbox
+                      checked={item.passed}
+                      onChange={(e) =>
+                        handleChecklistChange(
+                          item.id,
+                          "passed",
+                          e.target.checked
+                        )
+                      }
+                      color={item.passed ? "success" : "error"}
+                      size="small"
+                    />
+                  </TableCell>
+                  <TableCell sx={{ border: "1px solid #ddd" }}>
+                    <TextField
+                      size="small"
+                      placeholder="Ghi chú..."
+                      value={item.notes}
+                      onChange={(e) =>
+                        handleChecklistChange(item.id, "notes", e.target.value)
+                      }
+                      fullWidth
+                      multiline
+                      rows={1}
+                    />
+                  </TableCell>
+                  <TableCell sx={{ border: "1px solid #ddd" }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <IconButton
+                        component="label"
+                        size="small"
+                        sx={{ color: "#0ea5e9" }}
+                      >
+                        <PhotoCamera fontSize="small" />
+                        <input
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          hidden
+                          onChange={(e) =>
+                            handleImageUpload(item.id, e.target.files)
+                          }
+                        />
+                      </IconButton>
+                      <Typography variant="caption" color="text.secondary">
+                        ({item.imagePreviews.length}/3)
+                      </Typography>
+                      {item.imagePreviews.map((preview, idx) => (
+                        <Box key={idx} sx={{ position: "relative" }}>
+                          <img
+                            src={preview}
+                            alt={`preview-${idx}`}
+                            style={{
+                              width: 40,
+                              height: 40,
+                              objectFit: "cover",
+                              borderRadius: 4,
+                              border: "1px solid #ddd",
+                            }}
+                          />
+                          <IconButton
+                            size="small"
+                            onClick={() => handleRemoveImage(item.id, idx)}
+                            sx={{
+                              position: "absolute",
+                              top: -8,
+                              right: -8,
+                              bgcolor: "white",
+                              padding: "2px",
+                              "&:hover": { bgcolor: "#fee" },
+                            }}
+                          >
+                            <Clear sx={{ fontSize: 14 }} />
+                          </IconButton>
+                        </Box>
+                      ))}
+                    </Box>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Box>
       </DialogContent>
       <DialogActions sx={{ justifyContent: "space-between", px: 3, pb: 2 }}>
         <Button onClick={onClose} sx={{ borderRadius: 2 }}>
@@ -420,7 +615,7 @@ const InspectionDialog: React.FC<InspectionDialogProps> = ({
           variant="contained"
           sx={{ borderRadius: 2, bgcolor: "#F97316", fontWeight: 600 }}
         >
-          Tạo
+          Tạo phiếu kiểm tra
         </Button>
       </DialogActions>
     </Dialog>
