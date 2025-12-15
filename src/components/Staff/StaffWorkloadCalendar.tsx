@@ -1,602 +1,466 @@
 import React, { useState, useEffect } from "react";
-import type { JSX } from "react";
 import {
   Box,
   Paper,
   Typography,
   Stack,
+  IconButton,
+  Select,
+  MenuItem,
+  FormControl,
   Chip,
+  Tooltip,
   CircularProgress,
   Alert,
-  Avatar,
   Button,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TablePagination,
-  IconButton,
-  Tooltip,
 } from "@mui/material";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Schedule,
+  CheckCircle,
+  Cancel,
+  Person,
+  Refresh,
+  CameraAlt,
+} from "@mui/icons-material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import dayjs, { Dayjs } from "dayjs";
-import {
-  CalendarToday,
-  Assignment,
-  CheckCircle,
-  LocalShipping,
-  AssignmentReturn,
-  Refresh,
-  TrendingUp,
-  TrendingFlat,
-  TrendingDown,
-  Visibility,
-} from "@mui/icons-material";
-import {
-  staffService,
-  type StaffWorkloadResponse,
-} from "../../services/staff.service";
 import { colors } from "../../theme/colors";
-import StaffScheduleDialog from "./StaffScheduleDialog";
+import { cameraService } from "../../services/camera.service";
+import dayjs, { Dayjs } from "dayjs";
+import isoWeek from "dayjs/plugin/isoWeek";
+import "dayjs/locale/vi";
+
+dayjs.extend(isoWeek);
+dayjs.locale("vi");
+
+// Interfaces
+interface Camera {
+  id: string;
+  brand: string;
+  model: string;
+  variant: string;
+  serialNumber: string;
+  branchName: string;
+  branchAddress: string;
+  itemType: string;
+  baseDailyRate: number;
+  estimatedValueVnd: number;
+  depositPercent: number;
+  specsJson: string;
+  isConfirmed: boolean;
+  location: string;
+  ownerUserId: string;
+  ownerName: string;
+  createdAt: string;
+  media: Array<{
+    id: string;
+    url: string;
+    contentType: string;
+    sizeBytes: number;
+    label: string;
+  }>;
+}
 
 const StaffWorkloadCalendar: React.FC = () => {
-  const [selectedDate, setSelectedDate] = useState<Dayjs | null>(dayjs());
-  const [workloadData, setWorkloadData] =
-    useState<StaffWorkloadResponse | null>(null);
+  const [selectedYear, setSelectedYear] = useState(dayjs().year());
+  const [currentWeekStart, setCurrentWeekStart] = useState(
+    dayjs().startOf("isoWeek")
+  );
+  const [startDate, setStartDate] = useState<Dayjs | null>(dayjs());
+  const [endDate, setEndDate] = useState<Dayjs | null>(dayjs().add(7, "day"));
+  const [availableCameras, setAvailableCameras] = useState<Camera[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
 
-  // Dialog state
-  const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
-  const [selectedStaff, setSelectedStaff] = useState<{
-    id: string;
-    name: string;
-  } | null>(null);
+  const years = Array.from({ length: 10 }, (_, i) => dayjs().year() - 5 + i);
 
   useEffect(() => {
-    if (selectedDate) {
-      loadWorkload();
+    if (startDate && endDate) {
+      loadAvailableCameras();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedDate]);
+  }, [startDate, endDate]);
 
-  const loadWorkload = async () => {
-    if (!selectedDate) return;
+  const loadAvailableCameras = async () => {
+    if (!startDate || !endDate) return;
 
     setLoading(true);
     setError(null);
 
     try {
-      const startOfDay = selectedDate.startOf("day").toISOString();
-      const endOfDay = selectedDate.endOf("day").toISOString();
-
-      const data = await staffService.getStaffWorkload(startOfDay, endOfDay);
-      setWorkloadData(data);
-      setPage(0);
+      const cameras = await cameraService.getAvailableCameras(
+        startDate.toISOString(),
+        endDate.toISOString()
+      );
+      setAvailableCameras(cameras);
     } catch (err: any) {
-      setError(err?.message || "Không thể tải dữ liệu workload");
+      setError(err?.message || "Không thể tải danh sách camera khả dụng");
       console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleViewSchedule = (staffId: string, staffName: string) => {
-    setSelectedStaff({ id: staffId, name: staffName });
-    setScheduleDialogOpen(true);
+  const getWeekDays = (weekStart: Dayjs) => {
+    return Array.from({ length: 7 }, (_, i) => weekStart.add(i, "day"));
   };
 
-  const getAvatarColor = (staffId: string): string => {
-    const palette = [
-      "#FF6B6B",
-      "#4ECDC4",
-      "#45B7D1",
-      "#FFA07A",
-      "#98D8C8",
-      "#F7DC6F",
-      "#BB8FCE",
-      "#85C1E2",
-    ];
-    const index =
-      staffId.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0) %
-      palette.length;
-    return palette[index];
+  const weekDays = getWeekDays(currentWeekStart);
+
+  const goToPreviousWeek = () => {
+    setCurrentWeekStart(currentWeekStart.subtract(1, "week"));
   };
 
-  const getInitials = (name: string): string => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
+  const goToNextWeek = () => {
+    setCurrentWeekStart(currentWeekStart.add(1, "week"));
   };
 
-  const getWorkloadLevel = (
-    total: number
-  ): { color: string; label: string; icon: JSX.Element } => {
-    if (total === 0)
-      return {
-        color: "#10B981",
-        label: "Rảnh",
-        icon: <TrendingDown sx={{ fontSize: 16 }} />,
-      };
-    if (total <= 3)
-      return {
-        color: "#3B82F6",
-        label: "Bình thường",
-        icon: <TrendingFlat sx={{ fontSize: 16 }} />,
-      };
-    if (total <= 6)
-      return {
-        color: "#F59E0B",
-        label: "Bận",
-        icon: <TrendingUp sx={{ fontSize: 16 }} />,
-      };
-    return {
-      color: "#EF4444",
-      label: "Rất bận",
-      icon: <TrendingUp sx={{ fontSize: 16 }} />,
-    };
+  const formatWeekRange = () => {
+    const start = currentWeekStart.format("DD/MM");
+    const end = currentWeekStart.add(6, "day").format("DD/MM");
+    return `${start} - ${end}`;
   };
 
-  const getTotalWorkload = (staff: any) => {
-    return (
-      staff.assignedBookings +
-      staff.assignedVerifications +
-      staff.todayPickupBookings +
-      staff.todayReturnBookings
-    );
+  const isToday = (date: Dayjs) => {
+    return date.isSame(dayjs(), "day");
   };
-
-  const handleChangePage = (_event: unknown, newPage: number) => {
-    setPage(newPage);
-  };
-
-  const handleChangeRowsPerPage = (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
-  };
-
-  const paginatedStaff = workloadData?.staffs.slice(
-    page * rowsPerPage,
-    page * rowsPerPage + rowsPerPage
-  );
-
-  const summaryStats = workloadData
-    ? {
-        totalStaff: workloadData.staffs.length,
-        totalBookings: workloadData.staffs.reduce(
-          (sum, s) => sum + s.assignedBookings,
-          0
-        ),
-        totalVerifications: workloadData.staffs.reduce(
-          (sum, s) => sum + s.assignedVerifications,
-          0
-        ),
-        totalPickups: workloadData.staffs.reduce(
-          (sum, s) => sum + s.todayPickupBookings,
-          0
-        ),
-        totalReturns: workloadData.staffs.reduce(
-          (sum, s) => sum + s.todayReturnBookings,
-          0
-        ),
-      }
-    : null;
 
   return (
-    <Box sx={{ bgcolor: "#F5F5F5", minHeight: "100vh", p: 3 }}>
-      <Paper elevation={0} sx={{ borderRadius: 3, p: 3, bgcolor: "white" }}>
+    <Box sx={{ width: "100%" }}>
+      <Paper
+        elevation={0}
+        sx={{
+          borderRadius: 3,
+          overflow: "hidden",
+          border: "1px solid #E5E7EB",
+        }}
+      >
         {/* Header */}
-        <Stack
-          direction={{ xs: "column", md: "row" }}
-          justifyContent="space-between"
-          alignItems={{ xs: "flex-start", md: "center" }}
-          spacing={2}
-          sx={{ mb: 3 }}
+        <Box
+          sx={{
+            p: 3,
+            bgcolor: "white",
+            borderBottom: "2px solid #E5E7EB",
+          }}
         >
-          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-            <Box
-              sx={{
-                width: 48,
-                height: 48,
-                borderRadius: 2,
-                bgcolor: colors.primary.lighter,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <CalendarToday
-                sx={{ color: colors.primary.main, fontSize: 24 }}
-              />
-            </Box>
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            alignItems="center"
+            flexWrap="wrap"
+            gap={2}
+          >
             <Box>
               <Typography
-                variant="h6"
-                sx={{ fontWeight: 700, color: "#1F2937" }}
+                variant="h5"
+                sx={{ fontWeight: 700, color: "#1F2937", mb: 0.5 }}
               >
-                Lịch làm việc nhân viên
+                📅 Thời khóa biểu từng tuần
               </Typography>
               <Typography variant="body2" sx={{ color: "#6B7280" }}>
-                {workloadData?.branchName ||
-                  "Theo dõi workload của từng nhân viên"}
+                Xem lịch làm việc của nhân viên theo tuần
               </Typography>
             </Box>
-          </Box>
 
-          <Stack direction="row" spacing={2} alignItems="center">
-            <LocalizationProvider dateAdapter={AdapterDayjs}>
-              <DatePicker
-                label="Chọn ngày"
-                value={selectedDate}
-                onChange={(value) =>
-                  setSelectedDate(value ? dayjs(value) : null)
-                }
-                slotProps={{
-                  textField: {
-                    size: "small",
-                    sx: { minWidth: 200 },
+            <Stack direction="row" spacing={2} alignItems="center">
+              {/* Year Selector */}
+              <FormControl size="small" sx={{ minWidth: 120 }}>
+                <Select
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(Number(e.target.value))}
+                  sx={{
+                    borderRadius: 2,
+                    "& .MuiOutlinedInput-notchedOutline": {
+                      borderColor: "#E5E7EB",
+                    },
+                    "&:hover .MuiOutlinedInput-notchedOutline": {
+                      borderColor: colors.primary.main,
+                    },
+                    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                      borderColor: colors.primary.main,
+                    },
+                  }}
+                >
+                  {years.map((year) => (
+                    <MenuItem key={year} value={year}>
+                      {year}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              {/* Week Navigation */}
+              <Stack
+                direction="row"
+                alignItems="center"
+                spacing={1}
+                sx={{
+                  bgcolor: "#F9FAFB",
+                  px: 2,
+                  py: 1,
+                  borderRadius: 2,
+                  border: "1px solid #E5E7EB",
+                }}
+              >
+                <IconButton
+                  size="small"
+                  onClick={goToPreviousWeek}
+                  sx={{
+                    color: colors.primary.main,
+                    "&:hover": {
+                      bgcolor: colors.primary.lighter,
+                    },
+                  }}
+                >
+                  <ChevronLeft />
+                </IconButton>
+
+                <Typography
+                  sx={{
+                    fontWeight: 600,
+                    color: "#1F2937",
+                    minWidth: 100,
+                    textAlign: "center",
+                  }}
+                >
+                  {formatWeekRange()}
+                </Typography>
+
+                <IconButton
+                  size="small"
+                  onClick={goToNextWeek}
+                  sx={{
+                    color: colors.primary.main,
+                    "&:hover": {
+                      bgcolor: colors.primary.lighter,
+                    },
+                  }}
+                >
+                  <ChevronRight />
+                </IconButton>
+              </Stack>
+
+              <Button
+                variant="outlined"
+                startIcon={<Refresh />}
+                onClick={loadAvailableCameras}
+                disabled={loading}
+                sx={{
+                  textTransform: "none",
+                  borderColor: colors.primary.main,
+                  color: colors.primary.main,
+                  "&:hover": {
+                    borderColor: colors.primary.dark,
+                    bgcolor: colors.primary.lighter,
                   },
                 }}
-              />
-            </LocalizationProvider>
-
-            <Button
-              variant="outlined"
-              startIcon={<Refresh />}
-              onClick={loadWorkload}
-              disabled={loading}
-              sx={{
-                textTransform: "none",
-                borderColor: colors.primary.main,
-                color: colors.primary.main,
-                "&:hover": {
-                  borderColor: colors.primary.dark,
-                  bgcolor: colors.primary.lighter,
-                },
-              }}
-            >
-              Làm mới
-            </Button>
+              >
+                Làm mới
+              </Button>
+            </Stack>
           </Stack>
-        </Stack>
 
-        {/* Summary Stats */}
-        {summaryStats && !loading && (
-          <Box
+          {/* Date Range Pickers */}
+          <Paper
+            elevation={0}
             sx={{
-              display: "grid",
-              gridTemplateColumns: {
-                xs: "repeat(2, 1fr)",
-                sm: "repeat(3, 1fr)",
-                md: "repeat(5, 1fr)",
-              },
-              gap: 2,
-              mb: 3,
+              p: 2,
+              mt: 2,
+              bgcolor: "#F9FAFB",
+              borderRadius: 2,
+              border: "1px solid #E5E7EB",
             }}
           >
-            {/* ...existing summary stats code... */}
-          </Box>
-        )}
+            <Typography
+              variant="body2"
+              sx={{ fontWeight: 600, color: "#1F2937", mb: 2 }}
+            >
+              🔍 Chọn khoảng thời gian để xem camera khả dụng
+            </Typography>
+            <LocalizationProvider dateAdapter={AdapterDayjs}>
+              <Stack direction="row" spacing={2} alignItems="center">
+                <DatePicker
+                  label="Ngày bắt đầu"
+                  value={startDate}
+                  onChange={(newValue) => setStartDate(newValue)}
+                  slotProps={{
+                    textField: {
+                      size: "small",
+                      fullWidth: true,
+                    },
+                  }}
+                />
+                <Typography sx={{ color: "#6B7280", fontWeight: 600 }}>
+                  →
+                </Typography>
+                <DatePicker
+                  label="Ngày kết thúc"
+                  value={endDate}
+                  onChange={(newValue) => setEndDate(newValue)}
+                  minDate={startDate || undefined}
+                  slotProps={{
+                    textField: {
+                      size: "small",
+                      fullWidth: true,
+                    },
+                  }}
+                />
+              </Stack>
+            </LocalizationProvider>
+          </Paper>
+        </Box>
 
-        {/* Error Alert */}
-        {error && (
-          <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
-            {error}
-          </Alert>
-        )}
-
-        {/* Loading */}
+        {/* Loading State */}
         {loading && (
           <Box sx={{ textAlign: "center", py: 8 }}>
             <CircularProgress sx={{ color: colors.primary.main }} />
             <Typography sx={{ mt: 2, color: "#6B7280" }}>
-              Đang tải dữ liệu workload...
+              Đang tải danh sách camera khả dụng...
             </Typography>
           </Box>
         )}
 
-        {/* Table */}
-        {!loading && (
-          <>
-            {!workloadData || workloadData.staffs.length === 0 ? (
-              <Box sx={{ textAlign: "center", py: 8 }}>
-                <CalendarToday sx={{ fontSize: 60, color: "#E5E7EB", mb: 2 }} />
-                <Typography variant="h6" sx={{ color: "#6B7280", mb: 1 }}>
-                  Không có dữ liệu workload
-                </Typography>
-                <Typography variant="body2" sx={{ color: "#9CA3AF" }}>
-                  Chọn ngày khác để xem workload của nhân viên
-                </Typography>
-              </Box>
-            ) : (
-              <Paper elevation={0} sx={{ borderRadius: 2, overflow: "hidden" }}>
-                <TableContainer>
-                  <Table>
-                    <TableHead>
-                      <TableRow sx={{ bgcolor: "#F9FAFB" }}>
-                        <TableCell
-                          sx={{
-                            fontWeight: 700,
-                            color: "#1F2937",
-                            fontSize: "0.875rem",
-                            py: 2,
-                            width: "20%",
-                          }}
-                        >
-                          Nhân viên
-                        </TableCell>
-                        <TableCell
-                          align="center"
-                          sx={{
-                            fontWeight: 700,
-                            color: "#1F2937",
-                            fontSize: "0.875rem",
-                          }}
-                        >
-                          Đơn hàng
-                        </TableCell>
-                        <TableCell
-                          align="center"
-                          sx={{
-                            fontWeight: 700,
-                            color: "#1F2937",
-                            fontSize: "0.875rem",
-                          }}
-                        >
-                          Xác nhận
-                        </TableCell>
-                        <TableCell
-                          align="center"
-                          sx={{
-                            fontWeight: 700,
-                            color: "#1F2937",
-                            fontSize: "0.875rem",
-                          }}
-                        >
-                          Hàng nhận hôm nay
-                        </TableCell>
-                        <TableCell
-                          align="center"
-                          sx={{
-                            fontWeight: 700,
-                            color: "#1F2937",
-                            fontSize: "0.875rem",
-                          }}
-                        >
-                          Hàng trả hôm nay
-                        </TableCell>
-                        <TableCell
-                          align="center"
-                          sx={{
-                            fontWeight: 700,
-                            color: "#1F2937",
-                            fontSize: "0.875rem",
-                          }}
-                        >
-                          Tổng công việc
-                        </TableCell>
-                        <TableCell
-                          align="center"
-                          sx={{
-                            fontWeight: 700,
-                            color: "#1F2937",
-                            fontSize: "0.875rem",
-                          }}
-                        >
-                          Chi tiết
-                        </TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {paginatedStaff?.map((staff) => {
-                        const totalWorkload = getTotalWorkload(staff);
-                        const workloadLevel = getWorkloadLevel(totalWorkload);
+        {/* Error State */}
+        {error && !loading && (
+          <Box sx={{ p: 3 }}>
+            <Alert severity="error" sx={{ borderRadius: 2 }}>
+              {error}
+            </Alert>
+          </Box>
+        )}
 
-                        return (
-                          <TableRow
-                            key={staff.staffId}
-                            sx={{
-                              "&:hover": {
-                                bgcolor: colors.primary.lighter,
-                              },
-                              transition: "background-color 0.2s ease",
-                            }}
-                          >
-                            <TableCell>
-                              <Box
-                                sx={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: 2,
-                                }}
-                              >
-                                <Avatar
-                                  sx={{
-                                    width: 40,
-                                    height: 40,
-                                    bgcolor: getAvatarColor(staff.staffId),
-                                    fontSize: "0.875rem",
-                                    fontWeight: 700,
-                                  }}
-                                >
-                                  {getInitials(staff.staffName)}
-                                </Avatar>
-                                <Box>
-                                  <Typography
-                                    sx={{
-                                      fontWeight: 600,
-                                      color: "#1F2937",
-                                      fontSize: "0.9375rem",
-                                    }}
-                                  >
-                                    {staff.staffName}
-                                  </Typography>
-                                  <Typography
-                                    variant="caption"
-                                    sx={{
-                                      color: "#6B7280",
-                                      fontFamily: "monospace",
-                                    }}
-                                  >
-                                    {staff.staffId.slice(0, 8)}...
-                                  </Typography>
-                                </Box>
-                              </Box>
-                            </TableCell>
-                            <TableCell align="center">
-                              <Chip
-                                icon={<Assignment sx={{ fontSize: 16 }} />}
-                                label={staff.assignedBookings}
-                                size="small"
-                                sx={{
-                                  bgcolor: "#EFF6FF",
-                                  color: "#1E40AF",
-                                  fontWeight: 600,
-                                  borderRadius: 1.5,
-                                }}
-                              />
-                            </TableCell>
-                            <TableCell align="center">
-                              <Chip
-                                icon={<CheckCircle sx={{ fontSize: 16 }} />}
-                                label={staff.assignedVerifications}
-                                size="small"
-                                sx={{
-                                  bgcolor: "#F0FDF4",
-                                  color: "#065F46",
-                                  fontWeight: 600,
-                                  borderRadius: 1.5,
-                                }}
-                              />
-                            </TableCell>
-                            <TableCell align="center">
-                              <Chip
-                                icon={<LocalShipping sx={{ fontSize: 16 }} />}
-                                label={staff.todayPickupBookings}
-                                size="small"
-                                sx={{
-                                  bgcolor: "#FFFBEB",
-                                  color: "#92400E",
-                                  fontWeight: 600,
-                                  borderRadius: 1.5,
-                                }}
-                              />
-                            </TableCell>
-                            <TableCell align="center">
-                              <Chip
-                                icon={
-                                  <AssignmentReturn sx={{ fontSize: 16 }} />
-                                }
-                                label={staff.todayReturnBookings}
-                                size="small"
-                                sx={{
-                                  bgcolor: "#F5F3FF",
-                                  color: "#5B21B6",
-                                  fontWeight: 600,
-                                  borderRadius: 1.5,
-                                }}
-                              />
-                            </TableCell>
-                            <TableCell align="center">
-                              <Typography
-                                sx={{
-                                  fontWeight: 700,
-                                  fontSize: "1.125rem",
-                                  color: workloadLevel.color,
-                                }}
-                              >
-                                {totalWorkload}
-                              </Typography>
-                            </TableCell>
-                            <TableCell align="center">
-                              <Tooltip title="Xem chi tiết lịch làm việc">
-                                <IconButton
-                                  size="small"
-                                  onClick={() =>
-                                    handleViewSchedule(
-                                      staff.staffId,
-                                      staff.staffName
-                                    )
-                                  }
-                                  sx={{
-                                    color: colors.primary.main,
-                                    "&:hover": {
-                                      bgcolor: colors.primary.lighter,
-                                    },
-                                  }}
-                                >
-                                  <Visibility />
-                                </IconButton>
-                              </Tooltip>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
+        {/* Available Cameras List */}
+        {!loading && !error && availableCameras.length > 0 && (
+          <Box sx={{ p: 3 }}>
+            <Typography
+              variant="h6"
+              sx={{ fontWeight: 700, color: "#1F2937", mb: 2 }}
+            >
+              📷 Danh sách camera khả dụng ({availableCameras.length})
+            </Typography>
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: {
+                  xs: "1fr",
+                  sm: "repeat(2, 1fr)",
+                  md: "repeat(3, 1fr)",
+                  lg: "repeat(4, 1fr)",
+                },
+                gap: 2,
+              }}
+            >
+              {availableCameras.map((camera) => (
+                <Paper
+                  key={camera.id}
+                  elevation={0}
+                  sx={{
+                    p: 2,
+                    border: "1px solid #E5E7EB",
+                    borderRadius: 2,
+                    transition: "all 0.2s",
+                    "&:hover": {
+                      borderColor: colors.primary.main,
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                      transform: "translateY(-2px)",
+                    },
+                  }}
+                >
+                  {/* Camera Image */}
+                  {camera.media && camera.media.length > 0 && (
+                    <Box
+                      sx={{
+                        width: "100%",
+                        height: 150,
+                        borderRadius: 1.5,
+                        overflow: "hidden",
+                        mb: 2,
+                        bgcolor: "#F3F4F6",
+                      }}
+                    >
+                      <img
+                        src={camera.media[0].url}
+                        alt={camera.model}
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
+                        }}
+                      />
+                    </Box>
+                  )}
 
-                {/* Pagination */}
-                {workloadData && workloadData.staffs.length > 0 && (
-                  <TablePagination
-                    component="div"
-                    count={workloadData.staffs.length}
-                    page={page}
-                    onPageChange={handleChangePage}
-                    rowsPerPage={rowsPerPage}
-                    onRowsPerPageChange={handleChangeRowsPerPage}
-                    rowsPerPageOptions={[5, 10, 25, 50]}
-                    labelRowsPerPage="Số hàng mỗi trang:"
-                    labelDisplayedRows={({ from, to, count }) =>
-                      `${from}-${to} của ${count}`
-                    }
-                    sx={{
-                      borderTop: "1px solid #E5E7EB",
-                      "& .MuiTablePagination-select": {
-                        borderRadius: 1,
-                      },
-                      "& .MuiTablePagination-selectIcon": {
-                        color: colors.primary.main,
-                      },
-                      "& .MuiTablePagination-actions button": {
-                        color: colors.primary.main,
-                        "&:disabled": {
-                          color: "#9CA3AF",
-                        },
-                      },
-                    }}
-                  />
-                )}
-              </Paper>
-            )}
-          </>
+                  {/* Camera Info */}
+                  <Stack spacing={1}>
+                    <Typography
+                      sx={{
+                        fontWeight: 700,
+                        color: "#1F2937",
+                        fontSize: "1rem",
+                      }}
+                    >
+                      {camera.brand} {camera.model}
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: "#6B7280" }}>
+                      {camera.variant}
+                    </Typography>
+
+                    <Stack direction="row" spacing={1} flexWrap="wrap">
+                      <Chip
+                        label={camera.branchName}
+                        size="small"
+                        sx={{
+                          bgcolor: colors.primary.lighter,
+                          color: colors.primary.main,
+                          fontSize: "0.7rem",
+                          height: 24,
+                        }}
+                      />
+                      <Chip
+                        icon={<CameraAlt sx={{ fontSize: 14 }} />}
+                        label={`${camera.baseDailyRate.toLocaleString()}đ/ngày`}
+                        size="small"
+                        sx={{
+                          bgcolor: "#ECFDF5",
+                          color: "#065F46",
+                          fontSize: "0.7rem",
+                          height: 24,
+                        }}
+                      />
+                    </Stack>
+
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: "#9CA3AF",
+                        fontFamily: "monospace",
+                      }}
+                    >
+                      SN: {camera.serialNumber}
+                    </Typography>
+                  </Stack>
+                </Paper>
+              ))}
+            </Box>
+          </Box>
+        )}
+
+        {/* Empty State */}
+        {!loading && !error && availableCameras.length === 0 && (
+          <Box sx={{ textAlign: "center", py: 8 }}>
+            <CameraAlt sx={{ fontSize: 60, color: "#E5E7EB", mb: 2 }} />
+            <Typography variant="h6" sx={{ color: "#6B7280", mb: 1 }}>
+              Không có camera khả dụng
+            </Typography>
+            <Typography variant="body2" sx={{ color: "#9CA3AF" }}>
+              Không tìm thấy camera nào trong khoảng thời gian đã chọn
+            </Typography>
+          </Box>
         )}
       </Paper>
-
-      {/* Schedule Dialog */}
-      {selectedStaff && (
-        <StaffScheduleDialog
-          open={scheduleDialogOpen}
-          onClose={() => {
-            setScheduleDialogOpen(false);
-            setSelectedStaff(null);
-          }}
-          staffId={selectedStaff.id}
-          staffName={selectedStaff.name}
-          selectedDate={selectedDate?.toISOString() || ""}
-        />
-      )}
     </Box>
   );
 };

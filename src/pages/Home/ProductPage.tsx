@@ -12,6 +12,14 @@ import CompareFloatingButton from "../../components/Product/CompareFloatingButto
 import AIResultsDialog from "../../components/Product/AIResultsDialog";
 import type { AISearchResult } from "../../services/ai.service";
 
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "https://camrent-backend.up.railway.app";
+
+interface AvailableCameraResponse {
+  status: boolean;
+  cameras: any[];
+}
+
 const ProductPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -28,6 +36,9 @@ const ProductPage: React.FC = () => {
   // Date filter states
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
+  const [filteredByDate, setFilteredByDate] = useState(false);
+  const [availableCameras, setAvailableCameras] = useState<any[]>([]);
+  const [loadingAvailable, setLoadingAvailable] = useState(false);
 
   // AI Search States
   const [openAIResults, setOpenAIResults] = useState(false);
@@ -67,17 +78,28 @@ const ProductPage: React.FC = () => {
     total: totalAccessories,
   } = useAccessories(currentTab === 1, currentPage, pageSize, searchQuery);
 
-  const loading = currentTab === 0 ? camerasLoading : accessoriesLoading;
+  const loading =
+    currentTab === 0 ? loadingAvailable || camerasLoading : accessoriesLoading;
   const error = currentTab === 0 ? camerasError : accessoriesError;
 
   const categories = useMemo(() => {
-    const items = currentTab === 0 ? cameras : accessories;
+    const items =
+      currentTab === 0
+        ? filteredByDate
+          ? availableCameras
+          : cameras
+        : accessories;
     const brands = new Set(items.map((c) => c.brand));
     return ["All", ...Array.from(brands)];
-  }, [cameras, accessories, currentTab]);
+  }, [cameras, accessories, currentTab, filteredByDate, availableCameras]);
 
   const filteredProducts = useMemo(() => {
-    const items = currentTab === 0 ? cameras : accessories;
+    const items =
+      currentTab === 0
+        ? filteredByDate
+          ? availableCameras
+          : cameras
+        : accessories;
 
     if (!searchQuery) {
       return selectedCategory === "All"
@@ -98,11 +120,24 @@ const ProductPage: React.FC = () => {
 
       return matchesSearch && matchesCategory;
     });
-  }, [cameras, accessories, searchQuery, selectedCategory, currentTab]);
+  }, [
+    cameras,
+    accessories,
+    searchQuery,
+    selectedCategory,
+    currentTab,
+    filteredByDate,
+    availableCameras,
+  ]);
 
   // Calculate category counts
   const categoryCounts = useMemo(() => {
-    const items = currentTab === 0 ? cameras : accessories;
+    const items =
+      currentTab === 0
+        ? filteredByDate
+          ? availableCameras
+          : cameras
+        : accessories;
     const counts: Record<string, number> = { All: items.length };
 
     items.forEach((item) => {
@@ -110,7 +145,7 @@ const ProductPage: React.FC = () => {
     });
 
     return counts;
-  }, [cameras, accessories, currentTab]);
+  }, [cameras, accessories, currentTab, filteredByDate, availableCameras]);
 
   // Handle tab change
   const handleTabChange = (newTab: number) => {
@@ -118,6 +153,12 @@ const ProductPage: React.FC = () => {
     setSelectedCategory("All");
     setSearchQuery("");
     setCurrentPage(1);
+
+    // Reset date filter when switching tabs
+    if (newTab === 1) {
+      setFilteredByDate(false);
+      setAvailableCameras([]);
+    }
   };
 
   // Handle AI Search Results
@@ -139,6 +180,84 @@ const ProductPage: React.FC = () => {
   const handleClearDateFilter = () => {
     setStartDate(null);
     setEndDate(null);
+    setFilteredByDate(false);
+    setAvailableCameras([]);
+    setSelectedCategory("All");
+    toast.info("Đã xóa bộ lọc ngày");
+  };
+
+  const handleApplyDateFilter = async () => {
+    if (!startDate || !endDate) {
+      toast.warning("Vui lòng chọn ngày bắt đầu và ngày kết thúc");
+      return;
+    }
+
+    if (startDate > endDate) {
+      toast.error("Ngày bắt đầu phải trước ngày kết thúc");
+      return;
+    }
+
+    setLoadingAvailable(true);
+
+    try {
+      const token = localStorage.getItem("accessToken");
+
+      // Format dates to ISO string
+      const start = startDate.toISOString();
+      const end = endDate.toISOString();
+
+      const params = new URLSearchParams({
+        start: start,
+        end: end,
+      });
+
+      const url = `${API_BASE_URL}/Cameras/available?${params.toString()}`;
+      console.log("Fetching available cameras from:", url);
+
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          accept: "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Error response:", errorText);
+        throw new Error(
+          `Failed to fetch available cameras: ${response.status} - ${errorText}`
+        );
+      }
+
+      const data: AvailableCameraResponse = await response.json();
+      console.log("Available cameras data:", data);
+
+      if (data.status && data.cameras) {
+        setAvailableCameras(data.cameras);
+        setFilteredByDate(true);
+        setSelectedCategory("All"); // Reset category filter
+
+        toast.success(
+          `Tìm thấy ${
+            data.cameras.length
+          } camera khả dụng từ ${startDate.toLocaleDateString(
+            "vi-VN"
+          )} đến ${endDate.toLocaleDateString("vi-VN")}`
+        );
+      } else {
+        setAvailableCameras([]);
+        setFilteredByDate(true);
+        toast.info("Không tìm thấy camera khả dụng trong khoảng thời gian này");
+      }
+    } catch (err: any) {
+      console.error("Error fetching available cameras:", err);
+      toast.error(err?.message || "Không thể lọc camera theo ngày");
+      setFilteredByDate(false);
+      setAvailableCameras([]);
+    } finally {
+      setLoadingAvailable(false);
+    }
   };
 
   return (
@@ -153,7 +272,7 @@ const ProductPage: React.FC = () => {
       <ProductHeader
         currentTab={currentTab}
         onTabChange={handleTabChange}
-        totalCameras={totalCameras}
+        totalCameras={filteredByDate ? availableCameras.length : totalCameras}
         totalAccessories={totalAccessories}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
@@ -164,6 +283,7 @@ const ProductPage: React.FC = () => {
         onStartDateChange={handleStartDateChange}
         onEndDateChange={handleEndDateChange}
         onClearDateFilter={handleClearDateFilter}
+        onApplyDateFilter={handleApplyDateFilter}
       />
       {/* Main Content */}
       <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -180,7 +300,13 @@ const ProductPage: React.FC = () => {
           products={filteredProducts}
           loading={loading}
           error={error}
-          totalProducts={currentTab === 0 ? totalCameras : totalAccessories}
+          totalProducts={
+            currentTab === 0
+              ? filteredByDate
+                ? availableCameras.length
+                : totalCameras
+              : totalAccessories
+          }
           compareCount={compareIds.length}
           onCompareClick={() => navigate("/compare")}
         />

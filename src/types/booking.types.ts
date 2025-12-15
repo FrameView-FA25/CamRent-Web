@@ -106,6 +106,8 @@ export interface Staff {
   phoneNumber?: string;
   avatar?: string;
   role: string;
+  conflictingBookings?: number;
+  conflictingVerifications?: number;
 }
 export interface CreateDeliveryRequest {
   bookingId: string;
