@@ -9,7 +9,6 @@ import {
   MenuItem,
   FormControl,
   Chip,
-  Tooltip,
   CircularProgress,
   Alert,
   Button,
@@ -17,10 +16,6 @@ import {
 import {
   ChevronLeft,
   ChevronRight,
-  Schedule,
-  CheckCircle,
-  Cancel,
-  Person,
   Refresh,
   CameraAlt,
 } from "@mui/icons-material";
@@ -41,26 +36,26 @@ interface Camera {
   id: string;
   brand: string;
   model: string;
-  variant: string;
-  serialNumber: string;
-  branchName: string;
-  branchAddress: string;
-  itemType: string;
+  variant: string | null;
+  serialNumber: string | null;
+  branchName: string | null;
+  branchAddress?: string | null;
+  itemType: string | number;
   baseDailyRate: number;
   estimatedValueVnd: number;
   depositPercent: number;
-  specsJson: string;
-  isConfirmed: boolean;
-  location: string;
-  ownerUserId: string;
-  ownerName: string;
-  createdAt: string;
+  specsJson: string | null;
+  isConfirmed?: boolean;
+  location?: string | null;
+  ownerUserId?: string | null;
+  ownerName?: string | null;
+  createdAt?: string | null;
   media: Array<{
-    id: string;
+    id?: string;
     url: string;
-    contentType: string;
-    sizeBytes: number;
-    label: string;
+    contentType?: string;
+    sizeBytes?: number;
+    label?: string;
   }>;
 }
 
@@ -72,6 +67,7 @@ const StaffWorkloadCalendar: React.FC = () => {
   const [startDate, setStartDate] = useState<Dayjs | null>(dayjs());
   const [endDate, setEndDate] = useState<Dayjs | null>(dayjs().add(7, "day"));
   const [availableCameras, setAvailableCameras] = useState<Camera[]>([]);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -104,12 +100,6 @@ const StaffWorkloadCalendar: React.FC = () => {
     }
   };
 
-  const getWeekDays = (weekStart: Dayjs) => {
-    return Array.from({ length: 7 }, (_, i) => weekStart.add(i, "day"));
-  };
-
-  const weekDays = getWeekDays(currentWeekStart);
-
   const goToPreviousWeek = () => {
     setCurrentWeekStart(currentWeekStart.subtract(1, "week"));
   };
@@ -122,10 +112,6 @@ const StaffWorkloadCalendar: React.FC = () => {
     const start = currentWeekStart.format("DD/MM");
     const end = currentWeekStart.add(6, "day").format("DD/MM");
     return `${start} - ${end}`;
-  };
-
-  const isToday = (date: Dayjs) => {
-    return date.isSame(dayjs(), "day");
   };
 
   return (
@@ -285,7 +271,7 @@ const StaffWorkloadCalendar: React.FC = () => {
                 <DatePicker
                   label="Ngày bắt đầu"
                   value={startDate}
-                  onChange={(newValue) => setStartDate(newValue)}
+                  onChange={(newValue) => setStartDate(newValue as Dayjs)}
                   slotProps={{
                     textField: {
                       size: "small",
@@ -299,7 +285,7 @@ const StaffWorkloadCalendar: React.FC = () => {
                 <DatePicker
                   label="Ngày kết thúc"
                   value={endDate}
-                  onChange={(newValue) => setEndDate(newValue)}
+                  onChange={(newValue) => setEndDate(newValue as Dayjs)}
                   minDate={startDate || undefined}
                   slotProps={{
                     textField: {
@@ -405,7 +391,7 @@ const StaffWorkloadCalendar: React.FC = () => {
                       {camera.brand} {camera.model}
                     </Typography>
                     <Typography variant="caption" sx={{ color: "#6B7280" }}>
-                      {camera.variant}
+                      {camera.variant || "N/A"}
                     </Typography>
 
                     <Stack direction="row" spacing={1} flexWrap="wrap">
