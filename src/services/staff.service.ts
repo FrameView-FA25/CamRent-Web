@@ -1,5 +1,15 @@
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "https://camrent-backend.up.railway.app";
+  import.meta.env.VITE_API_BASE_URL ||
+  "https://camrent-backend.up.railway.app/api";
+
+export interface StaffUser {
+  id: string;
+  email: string;
+  fullName: string;
+  phone: string;
+  roles: string[];
+  status: string;
+}
 
 export interface StaffWorkloadItem {
   staffId: string;
@@ -52,7 +62,7 @@ export const staffService = {
   ): Promise<StaffWorkloadResponse> {
     try {
       const token = localStorage.getItem("accessToken");
-      
+
       if (!token) {
         throw new Error("Không tìm thấy access token");
       }
@@ -68,8 +78,8 @@ export const staffService = {
       const response = await fetch(url, {
         method: "GET",
         headers: {
-          "accept": "application/json",
-          "Authorization": `Bearer ${token}`,
+          accept: "application/json",
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -91,7 +101,7 @@ export const staffService = {
       throw error;
     }
   },
-   async getStaffSchedule(
+  async getStaffSchedule(
     staffId: string,
     fromDate: string,
     toDate: string
@@ -184,5 +194,55 @@ export const staffService = {
       console.error("Error fetching available staff:", error);
       throw error;
     }
+  },
+
+  /**
+   * Lấy danh sách tất cả nhân viên (Staff và BranchManager)
+   * Sử dụng API /Users và filter theo role
+   */
+  async getAllStaffs(): Promise<StaffUser[]> {
+    try {
+      const token = localStorage.getItem("accessToken");
+
+      if (!token) {
+        throw new Error("Không tìm thấy access token");
+      }
+
+      const url = `${API_BASE_URL}/Users?page=1&pageSize=1000`;
+
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `Failed to fetch users: ${response.status} - ${errorText}`
+        );
+      }
+
+      const data = await response.json();
+      const users = data.items || data;
+
+      // Filter users có role Staff hoặc BranchManager
+      return users.filter(
+        (user: StaffUser) =>
+          user.roles.includes("Staff") || user.roles.includes("BranchManager")
+      );
+    } catch (error) {
+      console.error("Error fetching staffs:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Lấy danh sách nhân viên available (chưa gán branch)
+   */
+  async getAvailableStaffs(): Promise<StaffUser[]> {
+    return this.getAllStaffs();
   },
 };
