@@ -24,7 +24,8 @@ import type { AISearchResult } from "../../services/ai.service";
 import { DateCalendar } from "@mui/x-date-pickers/DateCalendar";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
-import { addDays } from "date-fns";
+import { addDays, addMonths } from "date-fns";
+import { vi } from "date-fns/locale";
 
 interface ProductHeaderProps {
   currentTab: number;
@@ -40,6 +41,7 @@ interface ProductHeaderProps {
   onStartDateChange: (date: Date | null) => void;
   onEndDateChange: (date: Date | null) => void;
   onClearDateFilter: () => void;
+  onApplyDateFilter?: () => void;
   isAISearching?: boolean;
 }
 
@@ -50,6 +52,7 @@ const ProductHeader: React.FC<ProductHeaderProps> = ({
   onStartDateChange,
   onEndDateChange,
   onClearDateFilter,
+  onApplyDateFilter,
   onTabChange,
   totalCameras,
   totalAccessories,
@@ -63,7 +66,6 @@ const ProductHeader: React.FC<ProductHeaderProps> = ({
   const [datePickerAnchor, setDatePickerAnchor] = useState<HTMLElement | null>(
     null
   );
-  const [selectingEndDate, setSelectingEndDate] = useState(false);
 
   const handleAISearch = (results: AISearchResult[]) => {
     setOpenAISearch(false);
@@ -80,35 +82,30 @@ const ProductHeader: React.FC<ProductHeaderProps> = ({
 
   const handleDatePickerOpen = (event: React.MouseEvent<HTMLElement>) => {
     setDatePickerAnchor(event.currentTarget);
-    setSelectingEndDate(false);
   };
 
   const handleDatePickerClose = () => {
     setDatePickerAnchor(null);
-    setSelectingEndDate(false);
   };
 
-  const handleDateSelect = (date: Date | null | unknown) => {
+  const handleStartDateSelect = (date: Date | null | unknown) => {
     if (!date) return;
+    const selectedDate = date instanceof Date ? date : new Date(String(date));
+    onStartDateChange(selectedDate);
 
-    // Convert to Date object if needed
+    // Clear end date if it's before new start date
+    if (endDate && selectedDate > endDate) {
+      onEndDateChange(null);
+    }
+  };
+
+  const handleEndDateSelect = (date: Date | null | unknown) => {
+    if (!date) return;
     const selectedDate = date instanceof Date ? date : new Date(String(date));
 
-    if (!startDate || selectingEndDate) {
-      // Selecting end date
-      if (startDate && selectedDate >= startDate) {
-        onEndDateChange(selectedDate);
-        setSelectingEndDate(false);
-      } else if (!startDate) {
-        // First selection - set as start date
-        onStartDateChange(selectedDate);
-        setSelectingEndDate(true);
-      }
-    } else {
-      // Selecting start date (reset flow)
-      onStartDateChange(selectedDate);
-      onEndDateChange(null);
-      setSelectingEndDate(true);
+    // Only allow selecting end date if start date is set and end date is after start date
+    if (startDate && selectedDate >= startDate) {
+      onEndDateChange(selectedDate);
     }
   };
 
@@ -410,7 +407,7 @@ const ProductHeader: React.FC<ProductHeaderProps> = ({
         </Container>
       </Box>
 
-      {/* Date Picker Popover - Full Calendar */}
+      {/* Date Picker Popover - Two Independent Calendars */}
       <Popover
         open={openDatePicker}
         anchorEl={datePickerAnchor}
@@ -428,7 +425,7 @@ const ProductHeader: React.FC<ProductHeaderProps> = ({
           "& .MuiPaper-root": {
             borderRadius: 2,
             boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
-            minWidth: 650,
+            minWidth: 680,
           },
         }}
       >
@@ -500,39 +497,99 @@ const ProductHeader: React.FC<ProductHeaderProps> = ({
 
           <Divider sx={{ my: 2 }} />
 
-          {/* Two Calendars Side by Side */}
-          <LocalizationProvider dateAdapter={AdapterDateFns}>
-            <Stack direction="row" spacing={2}>
-              <DateCalendar
-                value={selectingEndDate ? endDate : startDate}
-                onChange={handleDateSelect}
-                minDate={new Date()}
-                sx={{
-                  "& .MuiPickersDay-root": {
-                    "&.Mui-selected": {
-                      bgcolor: colors.primary.main,
-                      "&:hover": {
-                        bgcolor: colors.primary.dark,
+          {/* Two Independent Calendars Side by Side */}
+          <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={vi}>
+            <Stack
+              direction="row"
+              spacing={3}
+              divider={<Divider orientation="vertical" flexItem />}
+            >
+              {/* Left Calendar - Start Date (Ngày nhận) */}
+              <Box sx={{ flex: 1 }}>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: colors.primary.main,
+                    display: "block",
+                    mb: 1,
+                    fontWeight: 700,
+                    textAlign: "center",
+                  }}
+                >
+                  📅 Chọn ngày nhận
+                </Typography>
+                <DateCalendar
+                  value={startDate}
+                  onChange={handleStartDateSelect}
+                  minDate={new Date()}
+                  sx={{
+                    "& .MuiPickersDay-root": {
+                      "&.Mui-selected": {
+                        bgcolor: colors.primary.main,
+                        "&:hover": {
+                          bgcolor: colors.primary.dark,
+                        },
                       },
                     },
-                  },
-                }}
-              />
-              <DateCalendar
-                value={selectingEndDate ? endDate : startDate}
-                onChange={handleDateSelect}
-                minDate={new Date()}
-                sx={{
-                  "& .MuiPickersDay-root": {
-                    "&.Mui-selected": {
-                      bgcolor: colors.primary.main,
-                      "&:hover": {
-                        bgcolor: colors.primary.dark,
+                    "& .MuiPickersCalendarHeader-label": {
+                      fontWeight: 700,
+                    },
+                  }}
+                />
+              </Box>
+
+              {/* Right Calendar - End Date (Ngày trả) */}
+              <Box sx={{ flex: 1 }}>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: startDate ? colors.primary.main : grey[400],
+                    display: "block",
+                    mb: 1,
+                    fontWeight: 700,
+                    textAlign: "center",
+                  }}
+                >
+                  📦 Chọn ngày trả
+                  {!startDate && (
+                    <Typography
+                      component="span"
+                      variant="caption"
+                      sx={{ display: "block", fontWeight: 400, mt: 0.5 }}
+                    >
+                      (Vui lòng chọn ngày nhận trước)
+                    </Typography>
+                  )}
+                </Typography>
+                <DateCalendar
+                  value={endDate}
+                  onChange={handleEndDateSelect}
+                  minDate={startDate || new Date()}
+                  referenceDate={
+                    startDate
+                      ? addMonths(startDate, 0)
+                      : addMonths(new Date(), 1)
+                  }
+                  disabled={!startDate}
+                  sx={{
+                    "& .MuiPickersDay-root": {
+                      "&.Mui-selected": {
+                        bgcolor: colors.primary.main,
+                        "&:hover": {
+                          bgcolor: colors.primary.dark,
+                        },
+                      },
+                      "&.Mui-disabled": {
+                        color: grey[300],
                       },
                     },
-                  },
-                }}
-              />
+                    "& .MuiPickersCalendarHeader-label": {
+                      fontWeight: 700,
+                    },
+                    opacity: startDate ? 1 : 0.5,
+                  }}
+                />
+              </Box>
             </Stack>
           </LocalizationProvider>
 
@@ -542,30 +599,53 @@ const ProductHeader: React.FC<ProductHeaderProps> = ({
           <Stack
             direction="row"
             spacing={2}
-            sx={{ justifyContent: "flex-end" }}
+            sx={{ justifyContent: "space-between", alignItems: "center" }}
           >
-            <Button
-              variant="outlined"
-              onClick={() => {
-                onClearDateFilter();
-                handleDatePickerClose();
-              }}
-            >
-              Xóa
-            </Button>
-            <Button
-              variant="contained"
-              onClick={handleDatePickerClose}
-              disabled={!startDate || !endDate}
-              sx={{
-                bgcolor: colors.primary.main,
-                "&:hover": {
-                  bgcolor: colors.primary.dark,
-                },
-              }}
-            >
-              Áp dụng
-            </Button>
+            {/* Selected Date Range Display */}
+            <Box sx={{ flex: 1 }}>
+              {startDate && endDate && (
+                <Typography variant="body2" sx={{ color: grey[700] }}>
+                  <strong>Đã chọn:</strong>{" "}
+                  {startDate.toLocaleDateString("vi-VN")} →{" "}
+                  {endDate.toLocaleDateString("vi-VN")} (
+                  {Math.ceil(
+                    (endDate.getTime() - startDate.getTime()) /
+                      (1000 * 60 * 60 * 24)
+                  )}{" "}
+                  ngày)
+                </Typography>
+              )}
+            </Box>
+
+            <Stack direction="row" spacing={2}>
+              <Button
+                variant="outlined"
+                onClick={() => {
+                  onClearDateFilter();
+                  handleDatePickerClose();
+                }}
+              >
+                Xóa
+              </Button>
+              <Button
+                variant="contained"
+                onClick={() => {
+                  if (onApplyDateFilter) {
+                    onApplyDateFilter();
+                  }
+                  handleDatePickerClose();
+                }}
+                disabled={!startDate || !endDate}
+                sx={{
+                  bgcolor: colors.primary.main,
+                  "&:hover": {
+                    bgcolor: colors.primary.dark,
+                  },
+                }}
+              >
+                Áp dụng
+              </Button>
+            </Stack>
           </Stack>
         </Box>
       </Popover>
