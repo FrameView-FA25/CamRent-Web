@@ -20,6 +20,8 @@ import {
   TablePagination,
   Avatar,
   Button,
+  ToggleButtonGroup,
+  ToggleButton,
 } from "@mui/material";
 import {
   Search as SearchIcon,
@@ -30,6 +32,7 @@ import {
   People as PeopleIcon,
   Refresh as RefreshIcon,
   Add as AddIcon,
+  FilterList as FilterListIcon,
 } from "@mui/icons-material";
 import { getRoleLabel } from "../../../utils/roleUtils";
 import { toast } from "react-toastify";
@@ -107,6 +110,7 @@ const AccountManagement: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
+  const [selectedRole, setSelectedRole] = useState<string>("all");
 
   const fetchUsers = async (pageNum: number = 1, pageSize: number = 50) => {
     try {
@@ -134,7 +138,6 @@ const AccountManagement: React.FC = () => {
     fetchUsers(1, rowsPerPage);
   }, []);
 
-  // Tạo user mới
   const handleRefresh = () => {
     fetchUsers(currentPage, rowsPerPage);
   };
@@ -143,16 +146,13 @@ const AccountManagement: React.FC = () => {
     fetchUsers(currentPage, rowsPerPage);
   };
 
-  // Cập nhật user
   const handleUpdateSuccess = () => {
-    // Reload users list after updating user
     fetchUsers(currentPage, rowsPerPage);
   };
 
   const handleEditClick = () => {
     if (selectedUser) {
       setUpdateDialogOpen(true);
-      // Đóng menu nhưng giữ selectedUser để modal có thể sử dụng
       setAnchorEl(null);
     }
   };
@@ -175,7 +175,6 @@ const AccountManagement: React.FC = () => {
           : "Đã kích hoạt tài khoản thành công"
       );
 
-      // Reload users list
       fetchUsers(currentPage, rowsPerPage);
       handleMenuClose();
     } catch (err) {
@@ -215,20 +214,53 @@ const AccountManagement: React.FC = () => {
     fetchUsers(1, newRowsPerPage);
   };
 
-  const filteredUsers = useMemo(() => {
-    if (!searchTerm) return users;
+  const handleRoleChange = (
+    _event: React.MouseEvent<HTMLElement>,
+    newRole: string | null
+  ) => {
+    if (newRole !== null) {
+      setSelectedRole(newRole);
+      setPage(0);
+    }
+  };
 
-    const query = searchTerm.toLowerCase();
-    return users.filter(
-      (user) =>
-        user.fullName.toLowerCase().includes(query) ||
-        user.email.toLowerCase().includes(query) ||
-        user.phone.toLowerCase().includes(query) ||
-        user.roles.some((role) =>
-          getRoleLabel(role).toLowerCase().includes(query)
-        )
-    );
-  }, [users, searchTerm]);
+  const filteredUsers = useMemo(() => {
+    let filtered = users;
+
+    // Filter by role
+    if (selectedRole !== "all") {
+      filtered = filtered.filter((user) => user.roles.includes(selectedRole));
+    }
+
+    // Filter by search term
+    if (searchTerm) {
+      const query = searchTerm.toLowerCase();
+      filtered = filtered.filter(
+        (user) =>
+          user.fullName.toLowerCase().includes(query) ||
+          user.email.toLowerCase().includes(query) ||
+          user.phone.toLowerCase().includes(query) ||
+          user.roles.some((role) =>
+            getRoleLabel(role).toLowerCase().includes(query)
+          )
+      );
+    }
+
+    return filtered;
+  }, [users, searchTerm, selectedRole]);
+
+  // Count users by role
+  const roleStats = useMemo(() => {
+    return {
+      all: users.length,
+      Admin: users.filter((u) => u.roles.includes("Admin")).length,
+      BranchManager: users.filter((u) => u.roles.includes("BranchManager"))
+        .length,
+      Staff: users.filter((u) => u.roles.includes("Staff")).length,
+      Renter: users.filter((u) => u.roles.includes("Renter")).length,
+      Owner: users.filter((u) => u.roles.includes("Owner")).length,
+    };
+  }, [users]);
 
   return (
     <Box sx={{ bgcolor: "#F5F5F5", minHeight: "100vh", p: 3 }}>
@@ -246,7 +278,7 @@ const AccountManagement: React.FC = () => {
               width: 50,
               height: 50,
               borderRadius: 2,
-              bgcolor: "#DC2626",
+              bgcolor: "#FF5722",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -275,8 +307,8 @@ const AccountManagement: React.FC = () => {
             startIcon={<AddIcon />}
             onClick={() => setCreateDialogOpen(true)}
             sx={{
-              bgcolor: "#DC2626",
-              "&:hover": { bgcolor: "#B91C1C" },
+              bgcolor: "#FF5722",
+              "&:hover": { bgcolor: "#F4511E" },
               textTransform: "none",
               borderRadius: 2,
               px: 3,
@@ -318,24 +350,171 @@ const AccountManagement: React.FC = () => {
         }}
       >
         <Box sx={{ p: 3, borderBottom: "1px solid #E5E7EB" }}>
-          <TextField
-            fullWidth
-            placeholder="Tìm kiếm theo tên, email, số điện thoại hoặc vai trò..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon sx={{ color: "#6B7280" }} />
-                </InputAdornment>
-              ),
-            }}
+          <Box
             sx={{
-              "& .MuiOutlinedInput-root": {
-                borderRadius: 2,
-              },
+              display: "flex",
+              gap: 2,
+              mb: 3,
+              flexDirection: { xs: "column", md: "row" },
+              alignItems: { xs: "stretch", md: "center" },
             }}
-          />
+          >
+            <TextField
+              fullWidth
+              placeholder="Tìm kiếm theo tên, email, số điện thoại..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon sx={{ color: "#6B7280" }} />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: 2,
+                },
+              }}
+            />
+          </Box>
+
+          {/* Role Filter */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <FilterListIcon sx={{ color: "#6B7280" }} />
+            <ToggleButtonGroup
+              value={selectedRole}
+              exclusive
+              onChange={handleRoleChange}
+              aria-label="role filter"
+              sx={{
+                flexWrap: "wrap",
+                gap: 1,
+                "& .MuiToggleButton-root": {
+                  border: "1px solid #E5E7EB",
+                  borderRadius: 2,
+                  px: 2,
+                  py: 1,
+                  textTransform: "none",
+                  color: "#6B7280",
+                  "&.Mui-selected": {
+                    bgcolor: "#FF5722",
+                    color: "white",
+                    "&:hover": {
+                      bgcolor: "#F4511E",
+                    },
+                  },
+                  "&:hover": {
+                    bgcolor: "#F9FAFB",
+                  },
+                },
+              }}
+            >
+              <ToggleButton value="all">
+                Tất cả
+                <Chip
+                  label={roleStats.all}
+                  size="small"
+                  sx={{
+                    ml: 1,
+                    height: 20,
+                    fontSize: "0.75rem",
+                    bgcolor:
+                      selectedRole === "all"
+                        ? "rgba(255,255,255,0.2)"
+                        : "#F3F4F6",
+                    color: selectedRole === "all" ? "white" : "#6B7280",
+                  }}
+                />
+              </ToggleButton>
+              <ToggleButton value="Admin">
+                {getRoleLabel("Admin")}
+                <Chip
+                  label={roleStats.Admin}
+                  size="small"
+                  sx={{
+                    ml: 1,
+                    height: 20,
+                    fontSize: "0.75rem",
+                    bgcolor:
+                      selectedRole === "Admin"
+                        ? "rgba(255,255,255,0.2)"
+                        : "#F3F4F6",
+                    color: selectedRole === "Admin" ? "white" : "#6B7280",
+                  }}
+                />
+              </ToggleButton>
+              <ToggleButton value="BranchManager">
+                {getRoleLabel("BranchManager")}
+                <Chip
+                  label={roleStats.BranchManager}
+                  size="small"
+                  sx={{
+                    ml: 1,
+                    height: 20,
+                    fontSize: "0.75rem",
+                    bgcolor:
+                      selectedRole === "BranchManager"
+                        ? "rgba(255,255,255,0.2)"
+                        : "#F3F4F6",
+                    color:
+                      selectedRole === "BranchManager" ? "white" : "#6B7280",
+                  }}
+                />
+              </ToggleButton>
+              <ToggleButton value="Staff">
+                {getRoleLabel("Staff")}
+                <Chip
+                  label={roleStats.Staff}
+                  size="small"
+                  sx={{
+                    ml: 1,
+                    height: 20,
+                    fontSize: "0.75rem",
+                    bgcolor:
+                      selectedRole === "Staff"
+                        ? "rgba(255,255,255,0.2)"
+                        : "#F3F4F6",
+                    color: selectedRole === "Staff" ? "white" : "#6B7280",
+                  }}
+                />
+              </ToggleButton>
+              <ToggleButton value="Renter">
+                {getRoleLabel("Renter")}
+                <Chip
+                  label={roleStats.Renter}
+                  size="small"
+                  sx={{
+                    ml: 1,
+                    height: 20,
+                    fontSize: "0.75rem",
+                    bgcolor:
+                      selectedRole === "Renter"
+                        ? "rgba(255,255,255,0.2)"
+                        : "#F3F4F6",
+                    color: selectedRole === "Renter" ? "white" : "#6B7280",
+                  }}
+                />
+              </ToggleButton>
+              <ToggleButton value="Owner">
+                {getRoleLabel("Owner")}
+                <Chip
+                  label={roleStats.Owner}
+                  size="small"
+                  sx={{
+                    ml: 1,
+                    height: 20,
+                    fontSize: "0.75rem",
+                    bgcolor:
+                      selectedRole === "Owner"
+                        ? "rgba(255,255,255,0.2)"
+                        : "#F3F4F6",
+                    color: selectedRole === "Owner" ? "white" : "#6B7280",
+                  }}
+                />
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </Box>
         </Box>
 
         {loading ? (
@@ -347,7 +526,7 @@ const AccountManagement: React.FC = () => {
               minHeight: 400,
             }}
           >
-            <CircularProgress sx={{ color: "#DC2626" }} />
+            <CircularProgress sx={{ color: "#FF5722" }} />
           </Box>
         ) : (
           <>
@@ -379,7 +558,7 @@ const AccountManagement: React.FC = () => {
                           variant="h6"
                           sx={{ color: "#6B7280", mb: 1 }}
                         >
-                          {searchTerm
+                          {searchTerm || selectedRole !== "all"
                             ? "Không tìm thấy người dùng nào"
                             : "Chưa có người dùng nào"}
                         </Typography>
@@ -387,8 +566,8 @@ const AccountManagement: React.FC = () => {
                           variant="body2"
                           sx={{ color: "#9CA3AF", fontSize: "0.875rem" }}
                         >
-                          {searchTerm
-                            ? "Thử tìm kiếm với từ khóa khác"
+                          {searchTerm || selectedRole !== "all"
+                            ? "Thử tìm kiếm hoặc lọc với điều kiện khác"
                             : "Danh sách người dùng sẽ hiển thị ở đây"}
                         </Typography>
                       </TableCell>
@@ -478,38 +657,40 @@ const AccountManagement: React.FC = () => {
               </Table>
             </TableContainer>
 
-            {!searchTerm && filteredUsers.length > 0 && (
-              <TablePagination
-                component="div"
-                count={total}
-                page={page}
-                onPageChange={handleChangePage}
-                rowsPerPage={rowsPerPage}
-                onRowsPerPageChange={handleChangeRowsPerPage}
-                rowsPerPageOptions={[10, 25, 50, 100]}
-                labelRowsPerPage="Số hàng mỗi trang:"
-                labelDisplayedRows={({ from, to, count }) =>
-                  `${from}-${to} của ${
-                    count !== -1 ? count : `nhiều hơn ${to}`
-                  }`
-                }
-                sx={{
-                  borderTop: "1px solid #E5E7EB",
-                  "& .MuiTablePagination-select": {
-                    borderRadius: 1,
-                  },
-                  "& .MuiTablePagination-selectIcon": {
-                    color: "#DC2626",
-                  },
-                  "& .MuiTablePagination-actions button": {
-                    color: "#DC2626",
-                    "&:disabled": {
-                      color: "#9CA3AF",
+            {!searchTerm &&
+              selectedRole === "all" &&
+              filteredUsers.length > 0 && (
+                <TablePagination
+                  component="div"
+                  count={total}
+                  page={page}
+                  onPageChange={handleChangePage}
+                  rowsPerPage={rowsPerPage}
+                  onRowsPerPageChange={handleChangeRowsPerPage}
+                  rowsPerPageOptions={[10, 25, 50, 100]}
+                  labelRowsPerPage="Số hàng mỗi trang:"
+                  labelDisplayedRows={({ from, to, count }) =>
+                    `${from}-${to} của ${
+                      count !== -1 ? count : `nhiều hơn ${to}`
+                    }`
+                  }
+                  sx={{
+                    borderTop: "1px solid #E5E7EB",
+                    "& .MuiTablePagination-select": {
+                      borderRadius: 1,
                     },
-                  },
-                }}
-              />
-            )}
+                    "& .MuiTablePagination-selectIcon": {
+                      color: "#FF5722",
+                    },
+                    "& .MuiTablePagination-actions button": {
+                      color: "#FF5722",
+                      "&:disabled": {
+                        color: "#9CA3AF",
+                      },
+                    },
+                  }}
+                />
+              )}
           </>
         )}
       </Paper>
@@ -538,6 +719,7 @@ const AccountManagement: React.FC = () => {
           )}
         </MenuItem>
       </Menu>
+
       <CreateUserDialog
         open={createDialogOpen}
         onClose={() => setCreateDialogOpen(false)}
@@ -547,7 +729,7 @@ const AccountManagement: React.FC = () => {
         open={updateDialogOpen}
         onClose={() => {
           setUpdateDialogOpen(false);
-          setSelectedUser(null); // Reset selectedUser khi đóng modal
+          setSelectedUser(null);
         }}
         onSuccess={handleUpdateSuccess}
         user={selectedUser}

@@ -36,7 +36,7 @@ const menuItems = [
   },
   { text: "Quản lý tài khoản", icon: <AdminIcon />, path: "/admin/account" },
   {
-    text: "Quản lý đại lý",
+    text: "Quản lý chi nhánh",
     icon: <StoreIcon />,
     path: "/admin/agencies",
   },
