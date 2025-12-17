@@ -26,6 +26,8 @@ import { toast } from "react-toastify";
 type CheckBookingDefaultValues = {
   verifyId?: string;
   items?: VerificationItem[];
+  ItemType?: string;
+  Type?: string;
 };
 
 export interface CheckBookingDialogProps {

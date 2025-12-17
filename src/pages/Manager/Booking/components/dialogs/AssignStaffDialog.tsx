@@ -137,7 +137,12 @@ export const AssignStaffDialog: React.FC<AssignStaffDialogProps> = ({
   const getWorkloadLevel = (
     total: number,
     isAvailable: boolean
-  ): { color: string; label: string; icon: JSX.Element; bgColor: string } => {
+  ): {
+    color: string;
+    label: string;
+    icon: React.ReactElement;
+    bgColor: string;
+  } => {
     if (!isAvailable) {
       return {
         color: "#DC2626",

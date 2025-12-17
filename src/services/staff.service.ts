@@ -1,5 +1,15 @@
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "https://camrent-backend.up.railway.app";
+  import.meta.env.VITE_API_BASE_URL ||
+  "https://camrent-backend.up.railway.app/api";
+
+export interface StaffUser {
+  id: string;
+  email: string;
+  fullName: string;
+  phone: string;
+  roles: string[];
+  status: string;
+}
 
 export interface StaffWorkloadItem {
   staffId: string;
@@ -73,7 +83,7 @@ export const staffService = {
   ): Promise<StaffWorkloadResponse> {
     try {
       const token = localStorage.getItem("accessToken");
-      
+
       if (!token) {
         throw new Error("Không tìm thấy access token");
       }
@@ -89,8 +99,8 @@ export const staffService = {
       const response = await fetch(url, {
         method: "GET",
         headers: {
-          "accept": "application/json",
-          "Authorization": `Bearer ${token}`,
+          accept: "application/json",
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -112,7 +122,7 @@ export const staffService = {
       throw error;
     }
   },
-   async getStaffSchedule(
+  async getStaffSchedule(
     staffId: string,
     fromDate: string,
     toDate: string
