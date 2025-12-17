@@ -282,7 +282,7 @@ const StaffWorkloadCalendar: React.FC = () => {
     try {
       if (selectedBooking) {
         await staffService.assignStaffToBooking(selectedBooking.id, staffId);
-        toast.success(`Đã gán nhân viên cho booking ${selectedBooking.code}`);
+        toast.success(`Đã gán nhân viên cho đơn hàng ${selectedBooking.code}`);
         // Reload unassigned bookings
         await loadUnassignedBookings();
         setSelectedBooking(null);
@@ -360,7 +360,6 @@ const StaffWorkloadCalendar: React.FC = () => {
           borderRadius: 3,
           overflow: "hidden",
           border: "1px solid #E5E7EB",
-          minHeight: "80vh",
         }}
       >
         {/* Header */}
@@ -434,7 +433,7 @@ const StaffWorkloadCalendar: React.FC = () => {
         </Box>
 
         {/* Main Content */}
-        <Grid container sx={{ height: "calc(100vh - 200px)" }}>
+        <Grid container sx={{ height: "100%" }}>
           {/* Left Side - Work Slots */}
           <Grid
             item
@@ -673,7 +672,7 @@ const StaffWorkloadCalendar: React.FC = () => {
                                   : "#1F2937",
                             }}
                           >
-                            Booking
+                            Đơn hàng
                           </Typography>
                         </Stack>
                         <Typography variant="caption" sx={{ color: "#6B7280" }}>
@@ -728,7 +727,7 @@ const StaffWorkloadCalendar: React.FC = () => {
                                   : "#1F2937",
                             }}
                           >
-                            Verification
+                            Đơn xác minh
                           </Typography>
                         </Stack>
                         <Typography variant="caption" sx={{ color: "#6B7280" }}>
@@ -748,8 +747,8 @@ const StaffWorkloadCalendar: React.FC = () => {
                         sx={{ fontWeight: 700, color: "#1F2937", mb: 2 }}
                       >
                         {selectedType === "booking"
-                          ? "📋 Danh sách Booking chưa gán"
-                          : "✅ Danh sách Verification chưa gán"}
+                          ? "📋 Danh sách đơn hàng chưa gán"
+                          : "✅ Danh sách xác minh chưa gán"}
                       </Typography>
 
                       {loadingItems && (
@@ -768,7 +767,7 @@ const StaffWorkloadCalendar: React.FC = () => {
                         selectedType === "booking" &&
                         unassignedBookings.length === 0 && (
                           <Alert severity="info" sx={{ borderRadius: 2 }}>
-                            Không có booking nào chưa được gán nhân viên
+                            Không có đơn hàng nào chưa được gán nhân viên
                           </Alert>
                         )}
 
@@ -776,7 +775,7 @@ const StaffWorkloadCalendar: React.FC = () => {
                         selectedType === "verification" &&
                         unassignedVerifications.length === 0 && (
                           <Alert severity="info" sx={{ borderRadius: 2 }}>
-                            Không có verification nào chưa được gán nhân viên
+                            Không có đơn xác minh nào chưa được gán nhân viên
                           </Alert>
                         )}
 
@@ -1059,7 +1058,6 @@ const StaffWorkloadCalendar: React.FC = () => {
           {/* Right Side - Staff List */}
           <Grid item xs={12} md={4} sx={{ overflowY: "auto" }}>
             <Box sx={{ p: 3 }}>
-              {/* Staff List - Show when booking/verification is selected */}
               {selectedBooking || selectedVerification ? (
                 <>
                   <Typography
@@ -1380,8 +1378,8 @@ const StaffWorkloadCalendar: React.FC = () => {
                     Chọn công việc
                   </Typography>
                   <Typography variant="body2">
-                    Vui lòng chọn một booking hoặc verification để xem danh sách
-                    nhân viên
+                    Vui lòng chọn một đơn hàng hoặc đơn xác minh để xem danh
+                    sách nhân viên
                   </Typography>
                 </Box>
               )}
