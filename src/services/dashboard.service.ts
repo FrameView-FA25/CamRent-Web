@@ -61,6 +61,32 @@ export interface WorkSlot {
   isActive: boolean;
 }
 
+export interface BookingStatusCount {
+  status: string;
+  statusText: string;
+  count: number;
+}
+
+export interface AdminDashboardResponse {
+  totalUsers: number;
+  totalRenters: number;
+  totalOwners: number;
+  totalStaffs: number;
+  totalBranchManagers: number;
+  totalBranches: number;
+  totalCameras: number;
+  totalAccessories: number;
+  totalCombos: number;
+  totalBookings: number;
+  bookingsByStatus: BookingStatusCount[];
+  totalCapturedRevenue: number;
+  totalRefundedAmount: number;
+  dailyStats: TimeSeriesStat[];
+  monthlyStats: TimeSeriesStat[];
+  openDisputes: number;
+  resolvedDisputes: number;
+}
+
 /**
  * Lấy dữ liệu thống kê dashboard cho Owner
  */
@@ -183,6 +209,32 @@ export const dashboardService = {
     }
 
     const json = (await response.json()) as WorkSlot[];
+    return json;
+  },
+
+  async getAdminDashboard(): Promise<AdminDashboardResponse> {
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      throw new Error("Không tìm thấy token xác thực. Vui lòng đăng nhập lại.");
+    }
+
+    const response = await fetch(`${API_BASE_URL}/Dashboard/admin`, {
+      method: "GET",
+      headers: {
+        accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.message ||
+          `Không thể tải dữ liệu thống kê admin (mã ${response.status})`
+      );
+    }
+
+    const json = (await response.json()) as AdminDashboardResponse;
     return json;
   },
 };

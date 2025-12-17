@@ -18,7 +18,6 @@ import {
   Avatar,
 } from "@mui/material";
 import {
-  Assignment,
   CheckCircle,
   ExpandMore,
   ExpandLess,
@@ -26,8 +25,6 @@ import {
   Block,
   CheckCircleOutline,
   Person,
-  LocalShipping,
-  AssignmentReturn,
   Warning,
 } from "@mui/icons-material";
 import type { Booking, Staff } from "@/types/booking.types";
