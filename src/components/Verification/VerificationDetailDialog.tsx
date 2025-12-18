@@ -836,6 +836,7 @@ export default function VerificationDetailModal({
         onClose={handleCloseAssignStaff}
         staffList={staffList}
         onAssign={handleAssignStaff}
+        verificationDate={verification.inspectionDate}
       />
 
       {/* Status Update Dialog */}

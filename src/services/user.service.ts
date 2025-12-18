@@ -76,6 +76,8 @@ export interface UserProfileResponse {
   updatedAt: string;
   createdByUserId: string | null;
   updatedByUserId: string | null;
+  signatureAssetId: string | null;
+  avatarId: string | null;
 }
 
 export interface UpdateUserProfileRequest {
