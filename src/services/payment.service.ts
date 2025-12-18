@@ -2,7 +2,8 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 export interface AuthorizePaymentRequest {
   bookingId: string;
-  mode: "Deposit" | "FullPayment";
+  mode: "Deposit" | "Rental";
+  method: "PayOs" | "Wallet" | "Cash";
 }
 
 export interface AuthorizePaymentResponse {
@@ -81,7 +82,7 @@ export async function createPayOsPayment(
     throw new Error("Vui lòng đăng nhập để thực hiện thanh toán");
   }
 
-  console.log("Creating PayOS payment for ID:", paymentId);
+  console.log("Creating PayOS payment for ID:", paymentId, request);
 
   const response = await fetch(`${API_BASE_URL}/Payments/${paymentId}/payos`, {
     method: "POST",
@@ -127,6 +128,10 @@ export async function createPayOsPayment(
       throw new Error("Invalid response format from PayOS");
     }
   } catch (parseError) {
+    console.warn(
+      "Response is not JSON, treating as plain text URL",
+      parseError
+    );
     // If not JSON, treat as plain text URL
     checkoutUrl = responseText;
   }
@@ -156,13 +161,15 @@ export async function createPayOsPayment(
  */
 export async function initiatePayment(
   bookingId: string,
-  mode: "Deposit" | "FullPayment" = "Deposit"
+  mode: "Deposit" | "Rental" = "Deposit",
+  amount: number
 ): Promise<string> {
   try {
     // Step 1: Authorize payment
     const authResponse = await authorizePayment({
       bookingId,
       mode,
+      method: "PayOs",
     });
 
     console.log("Payment authorized:", authResponse.paymentId);
@@ -176,9 +183,12 @@ export async function initiatePayment(
     console.log("PayOS checkout URL:", payosResponse.checkoutUrl);
 
     return payosResponse.checkoutUrl;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Payment initiation failed:", error);
-    throw new Error(error.message || "Không thể khởi tạo thanh toán");
+    if (error instanceof Error) {
+      throw new Error(error.message || "Không thể khởi tạo thanh toán");
+    }
+    throw new Error("Không thể khởi tạo thanh toán");
   }
 }
 

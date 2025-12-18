@@ -22,8 +22,8 @@ import DashboardAdmin from "../pages/Admin/Dashboard/Dashboard";
 import AccountManagement from "../pages/Admin/AccountManagement/AccountManagement";
 import AgencyManagement from "../pages/Admin/AgencyManagement/AgencyManagement";
 import DeviceManagement from "../pages/Admin/DeviceManagement/DeviceManagement";
-import AdminProfile from "../pages/Admin/Profile/AdminProfile";
-import OwnerProfile from "../pages/Owner/Profile/OwnerProfile";
+// import AdminProfile from "../pages/Admin/Profile/AdminProfile";
+// import OwnerProfile from "../pages/Owner/Profile/OwnerProfile";
 import VerificationManagement from "../pages/Owner/VerificationManagement/VerificationManagement";
 import Wallet from "../pages/Owner/Wallet/Wallet";
 import ManagerLayout from "../layouts/ManagerLayout/ManagerLayout";
@@ -31,7 +31,7 @@ import DashboardManager from "@/pages/Manager/Dashboard";
 import BookingManagement from "@/pages/Manager/Booking";
 import StaffLayout from "../layouts/StaffLayout/StaffLayout";
 import CheckBooking from "../pages/Staff/CheckBooking";
-import ManagerProfile from "../pages/Manager/ManagerProfile";
+// import ManagerProfile from "../pages/Manager/ManagerProfile";
 import StaffManagement from "../pages/Manager/StaffManagement";
 import BookingDetail from "../pages/Staff/BookingDetail";
 import Verifications from "../pages/Staff/InspectionsVerify";
@@ -46,14 +46,15 @@ import CheckoutPage from "@/pages/Renter/CheckoutPage";
 import { ChatPage } from "@/pages/Renter/ChatPage";
 import ComparePage from "@/pages/Home/ComparePage";
 import CameraQrHistory from "@/pages/Owner/QRScanner/CameraQrHistory";
-import RenterProfile from "@/pages/Renter/RenterProfile";
+// import RenterProfile from "@/pages/Renter/RenterProfile";
 import ContractTemplateManagement from "@/pages/Manager/ContractTemplateManagement";
 import CustomerList from "@/pages/Owner/CustomerList/CustomerList";
 import PaymentSuccess from "@/components/Payment/PaymentSuccess";
 import PaymentFailed from "@/components/Payment/PaymentFailed";
-import StaffProfile from "@/pages/Staff/StaffProfile";
+// import StaffProfile from "@/pages/Staff/StaffProfile";
 import StaffDashboard from "@/pages/Staff/StaffDashboard";
 import StaffSchedule from "@/pages/Staff/StaffSchedule";
+import UserProfile from "../pages/Profile/UserProfile";
 const routes: RouteObject[] = [
   {
     path: "/",
@@ -147,7 +148,7 @@ const routes: RouteObject[] = [
       },
       {
         path: "profile",
-        element: <OwnerProfile />,
+        element: <UserProfile />,
       },
       {
         path: "verifications",
@@ -193,7 +194,7 @@ const routes: RouteObject[] = [
       },
       {
         path: "profile",
-        element: <AdminProfile />,
+        element: <UserProfile />,
       },
     ],
   },
@@ -235,7 +236,7 @@ const routes: RouteObject[] = [
       },
       {
         path: "profile",
-        element: <ManagerProfile />,
+        element: <UserProfile />,
       },
     ],
   },
@@ -273,7 +274,7 @@ const routes: RouteObject[] = [
       },
       {
         path: "profile",
-        element: <StaffProfile />,
+        element: <UserProfile />,
       },
     ],
   },
@@ -299,7 +300,7 @@ const routes: RouteObject[] = [
       },
       {
         path: "profile",
-        element: <RenterProfile />,
+        element: <UserProfile />,
       },
       {
         path: "chat",
