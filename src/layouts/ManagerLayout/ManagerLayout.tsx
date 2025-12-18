@@ -25,7 +25,6 @@ import {
 } from "@mui/icons-material";
 import { useAuth } from "../../hooks/useAuth";
 import { colors } from "../../theme/colors";
-import ImportContactsIcon from "@mui/icons-material/ImportContacts";
 const DRAWER_WIDTH = 280;
 
 const menuItems = [

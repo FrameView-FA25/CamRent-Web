@@ -86,7 +86,7 @@ interface BookingStatus {
   statusText: string;
   count: number;
 }
-interface TimeSeriesStat {
+export interface TimeSeriesStat {
   date: string;
   bookingCount: number;
   capturedRevenue: number;
