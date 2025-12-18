@@ -19,7 +19,12 @@ import { useNavigate } from "react-router-dom";
 import { colors } from "../../theme/colors";
 import type { Booking } from "../../types/booking.types";
 import { getOrderStatusInfo } from "../../utils/order.utils";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
 
+dayjs.extend(utc);
+dayjs.extend(timezone);
 interface OrderCardProps {
   booking: Booking;
   onMenuOpen: (event: React.MouseEvent<HTMLElement>) => void;
@@ -36,13 +41,7 @@ const OrderCard: React.FC<OrderCardProps> = ({ booking, onMenuOpen }) => {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("vi-VN", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    return dayjs(dateString).tz("Asia/Ho_Chi_Minh").format("DD/MM/YYYY HH:mm");
   };
 
   const formatLocation = (location: Booking["location"]) => {
