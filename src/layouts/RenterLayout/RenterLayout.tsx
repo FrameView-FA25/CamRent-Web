@@ -29,7 +29,7 @@ import { colors } from "../../theme/colors";
 const DRAWER_WIDTH = 280;
 
 const menuItems = [
-  { text: "Trang Chủ", icon: <HomeIcon />, path: "/renter/dashboard" },
+  { text: "Trang Chủ", icon: <HomeIcon />, path: "/" },
   { text: "Sản Phẩm", icon: <CameraIcon />, path: "/products" },
   { text: "Đơn Hàng", icon: <OrdersIcon />, path: "/renter/my-orders" },
   {
