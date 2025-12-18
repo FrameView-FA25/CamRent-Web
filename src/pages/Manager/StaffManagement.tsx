@@ -35,6 +35,7 @@ import { fetchStaffList } from "../../services/booking.service";
 import type { Staff } from "../../types/booking.types";
 import AddStaffDialog from "../../components/Modal/Manager/AddStaffDialog";
 import StaffWorkloadCalendar from "@/components/Staff/StaffWorkloadCalendar";
+import IndividualStaffSchedule from "@/components/Staff/IndividualStaffSchedule";
 import { toast } from "react-toastify";
 import { colors } from "../../theme/colors";
 
@@ -47,7 +48,7 @@ const StaffManagement: React.FC = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [openAddDialog, setOpenAddDialog] = useState(false);
-  const [currentTab, setCurrentTab] = useState(0); // 0: Staff List, 1: Workload
+  const [currentTab, setCurrentTab] = useState(0); // 0: Staff List, 1: Workload, 2: Individual Schedule
 
   useEffect(() => {
     loadStaff();
@@ -243,13 +244,15 @@ const StaffManagement: React.FC = () => {
             }}
           >
             <Tab label={`Danh sách nhân viên (${staffList.length})`} />
-            <Tab label="Lịch làm việc" />
+            <Tab label="Công việc chưa gán" />
+            <Tab label="Lịch cá nhân" />
           </Tabs>
         </Paper>
 
         {/* Tab Content */}
         {currentTab === 0 && (
           <>
+            {/* ...existing code... */}
             {/* Stats Card */}
             <Box
               sx={{
@@ -741,8 +744,11 @@ const StaffManagement: React.FC = () => {
           </>
         )}
 
-        {/* Tab 2: Workload Calendar */}
+        {/* Tab 1: Workload Calendar */}
         {currentTab === 1 && <StaffWorkloadCalendar />}
+
+        {/* Tab 2: Individual Staff Schedule */}
+        {currentTab === 2 && <IndividualStaffSchedule />}
 
         {/* Add Staff Dialog */}
         <AddStaffDialog

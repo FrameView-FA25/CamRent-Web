@@ -52,7 +52,6 @@ export const AssignStaffDialog: React.FC<AssignStaffDialogProps> = ({
   open,
   onClose,
   selectedBooking,
-  staffList,
   selectedStaff,
   onStaffChange,
   loading,
@@ -701,7 +700,6 @@ export const AssignStaffDialog: React.FC<AssignStaffDialogProps> = ({
             !selectedStaff || loading || !selectedStaffWorkload?.isAvailable
           }
           sx={{
-            bgcolor: "#111827",
             fontWeight: 500,
             px: 3,
             "&:hover": {

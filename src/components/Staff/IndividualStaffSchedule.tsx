@@ -8,42 +8,31 @@ import {
   Chip,
   CircularProgress,
   Alert,
-  Button,
-  Menu,
+  Select,
   MenuItem,
+  FormControl,
+  InputLabel,
   Card,
   CardContent,
   Tooltip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemAvatar,
+  Menu,
   Avatar,
-  Divider,
 } from "@mui/material";
 import {
   ChevronLeft,
   ChevronRight,
   ArrowDropDown,
   Refresh,
-  Person,
-  Assignment,
-  VerifiedUser,
-  CheckCircleOutline,
-  Block,
+  LocalShipping,
+  AssignmentReturn,
   Camera,
+  VerifiedUser,
 } from "@mui/icons-material";
 import { colors } from "../../theme/colors";
 import { staffService } from "../../services/staff.service";
-import { dashboardService } from "../../services/dashboard.service";
-import type {
-  UnassignedBooking,
-  UnassignedVerification,
-} from "../../services/staff.service";
+import type { StaffScheduleEvent } from "../../services/staff.service";
+import { fetchStaffList } from "../../services/booking.service";
+import type { Staff } from "../../types/booking.types";
 import { toast } from "react-toastify";
 import dayjs, { Dayjs } from "dayjs";
 import isoWeek from "dayjs/plugin/isoWeek";
@@ -52,7 +41,6 @@ import "dayjs/locale/vi";
 dayjs.extend(isoWeek);
 dayjs.locale("vi");
 
-// Interfaces
 interface WorkSlot {
   id: string;
   slotIndex: number;
@@ -61,69 +49,99 @@ interface WorkSlot {
   isActive: boolean;
 }
 
-interface CalendarEvent {
-  id: string;
-  type: "booking" | "verification";
-  code: string;
-  title: string;
-  date: string;
-  slotIndex: number;
-  data: UnassignedBooking | UnassignedVerification;
-}
-
-interface AssignDialogState {
-  open: boolean;
-  event: CalendarEvent | null;
-  slot: WorkSlot | null;
-  date: Dayjs | null;
-}
-
-interface StaffAvailabilityType {
-  staffId: string;
-  staffName: string;
-  isAvailable: boolean;
-  conflictingBookings: number;
-  conflictingVerifications: number;
-  todayPickupBookings: number;
-  todayReturnBookings: number;
-}
-
 const getVietnameseDayName = (dayIndex: number): string => {
   const dayNames = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
   return dayNames[dayIndex];
 };
 
-const StaffWorkloadCalendar: React.FC = () => {
+const getInitials = (name: string): string => {
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+};
+
+const getAvatarColor = (userId: string): string => {
+  const colorsList = [
+    "#FF6B6B",
+    "#4ECDC4",
+    "#45B7D1",
+    "#FFA07A",
+    "#98D8C8",
+    "#F7DC6F",
+    "#BB8FCE",
+    "#85C1E2",
+  ];
+  const index =
+    userId.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0) %
+    colorsList.length;
+  return colorsList[index];
+};
+
+const IndividualStaffSchedule: React.FC = () => {
   const [currentWeekStart, setCurrentWeekStart] = useState<Dayjs>(
     dayjs().startOf("isoWeek")
   );
-  const [workSlots, setWorkSlots] = useState<WorkSlot[]>([]);
-  const [unassignedBookings, setUnassignedBookings] = useState<
-    UnassignedBooking[]
-  >([]);
-  const [unassignedVerifications, setUnassignedVerifications] = useState<
-    UnassignedVerification[]
-  >([]);
+  const [staffList, setStaffList] = useState<Staff[]>([]);
+  const [selectedStaffId, setSelectedStaffId] = useState<string>("");
+  const [scheduleEvents, setScheduleEvents] = useState<StaffScheduleEvent[]>(
+    []
+  );
+  const [workSlots] = useState<WorkSlot[]>([
+    {
+      id: "1",
+      slotIndex: 1,
+      startTime: "08:00",
+      endTime: "09:00",
+      isActive: true,
+    },
+    {
+      id: "2",
+      slotIndex: 2,
+      startTime: "09:00",
+      endTime: "10:00",
+      isActive: true,
+    },
+    {
+      id: "3",
+      slotIndex: 3,
+      startTime: "10:00",
+      endTime: "11:00",
+      isActive: true,
+    },
+    {
+      id: "4",
+      slotIndex: 4,
+      startTime: "11:00",
+      endTime: "12:00",
+      isActive: true,
+    },
+    {
+      id: "5",
+      slotIndex: 5,
+      startTime: "13:00",
+      endTime: "14:00",
+      isActive: true,
+    },
+    {
+      id: "6",
+      slotIndex: 6,
+      startTime: "14:00",
+      endTime: "15:00",
+      isActive: true,
+    },
+  ]);
   const [loading, setLoading] = useState(false);
+  const [loadingStaff, setLoadingStaff] = useState(false);
   const [yearMenuAnchor, setYearMenuAnchor] = useState<null | HTMLElement>(
     null
   );
   const [weekMenuAnchor, setWeekMenuAnchor] = useState<null | HTMLElement>(
     null
   );
-  const [assignDialog, setAssignDialog] = useState<AssignDialogState>({
-    open: false,
-    event: null,
-    slot: null,
-    date: null,
-  });
-  const [staffAvailability, setStaffAvailability] = useState<
-    StaffAvailabilityType[]
-  >([]);
-  const [loadingStaff, setLoadingStaff] = useState(false);
-  const [assigning, setAssigning] = useState(false);
 
-  // Calculate week days
   const weekDays = useMemo(() => {
     return Array.from({ length: 7 }, (_, i) => currentWeekStart.add(i, "day"));
   }, [currentWeekStart]);
@@ -160,116 +178,59 @@ const StaffWorkloadCalendar: React.FC = () => {
     return weeks;
   }, [currentWeekStart]);
 
-  // Map events to calendar
-  const calendarEvents = useMemo(() => {
-    const events: CalendarEvent[] = [];
-
-    // Add bookings
-    unassignedBookings.forEach((booking) => {
-      const startDate = dayjs(booking.startDate);
-      console.log("Booking", booking);
-      if (
-        startDate.isAfter(currentWeekStart.subtract(1, "day")) &&
-        startDate.isBefore(currentWeekStart.add(8, "day"))
-      ) {
-        events.push({
-          id: booking.id,
-          type: "booking",
-          code: booking.code,
-          title: `Lấy hàng - ${booking.renterName}`,
-          date: startDate.format("YYYY-MM-DD"),
-          slotIndex: 1, // Default slot
-          data: booking,
-        });
-      }
-    });
-
-    // Add verifications
-    unassignedVerifications.forEach((verification) => {
-      const verDate = dayjs(verification.verificationDate);
-      if (
-        verDate.isAfter(currentWeekStart.subtract(1, "day")) &&
-        verDate.isBefore(currentWeekStart.add(8, "day"))
-      ) {
-        events.push({
-          id: verification.id,
-          type: "verification",
-          code: verification.code,
-          title: `Kiểm tra - ${verification.fullName}`,
-          date: verDate.format("YYYY-MM-DD"),
-          slotIndex: 1, // Default slot
-          data: verification,
-        });
-      }
-    });
-
-    return events;
-  }, [unassignedBookings, unassignedVerifications, currentWeekStart]);
+  const selectedStaff = useMemo(() => {
+    return staffList.find((s) => s.userId === selectedStaffId);
+  }, [staffList, selectedStaffId]);
 
   useEffect(() => {
-    loadWorkSlots();
-    loadUnassignedItems();
+    loadStaffList();
   }, []);
 
-  const loadWorkSlots = async () => {
-    setLoading(true);
-    try {
-      const slots = await dashboardService.getWorkSlots();
-      setWorkSlots(slots.filter((slot) => slot.isActive));
-    } catch (err: any) {
-      console.error("Failed to load work slots:", err);
-      toast.error("Không thể tải danh sách ca làm việc");
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    if (selectedStaffId) {
+      loadStaffSchedule();
     }
-  };
+  }, [selectedStaffId, currentWeekStart]);
 
-  const loadUnassignedItems = async () => {
-    setLoading(true);
-    try {
-      const [bookings, verifications] = await Promise.all([
-        staffService.getUnassignedBookings(),
-        staffService.getUnassignedVerifications(),
-      ]);
-      setUnassignedBookings(bookings);
-      setUnassignedVerifications(verifications);
-    } catch (err: any) {
-      console.error("Error loading unassigned items:", err);
-      toast.error("Không thể tải danh sách công việc chưa phân công");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadStaffAvailability = async (
-    slot: WorkSlot,
-    date: Dayjs,
-    type: "booking" | "verification"
-  ) => {
+  const loadStaffList = async () => {
     setLoadingStaff(true);
     try {
-      const startDateTime = date
-        .hour(parseInt(slot.startTime.split(":")[0]))
-        .minute(parseInt(slot.startTime.split(":")[1]))
-        .second(0);
-
-      const endDateTime = date
-        .hour(parseInt(slot.endTime.split(":")[0]))
-        .minute(parseInt(slot.endTime.split(":")[1]))
-        .second(0);
-
-      const data = await staffService.getAvailableStaff(
-        startDateTime.toISOString(),
-        endDateTime.toISOString(),
-        type
-      );
-
-      setStaffAvailability(data.staffs);
-    } catch (err: any) {
-      console.error("Error loading staff availability:", err);
-      setStaffAvailability([]);
+      const { staff, error } = await fetchStaffList();
+      if (error) {
+        toast.error("Không thể tải danh sách nhân viên");
+      } else {
+        setStaffList(staff);
+        if (staff.length > 0) {
+          setSelectedStaffId(staff[0].userId);
+        }
+      }
+    } catch (err) {
+      console.error("Error loading staff list:", err);
+      toast.error("Không thể tải danh sách nhân viên");
     } finally {
       setLoadingStaff(false);
+    }
+  };
+
+  const loadStaffSchedule = async () => {
+    if (!selectedStaffId) return;
+
+    setLoading(true);
+    try {
+      const fromDate = currentWeekStart.toISOString();
+      const toDate = currentWeekStart.add(7, "day").toISOString();
+
+      const events = await staffService.getStaffSchedule(
+        selectedStaffId,
+        fromDate,
+        toDate
+      );
+      setScheduleEvents(events);
+    } catch (err: any) {
+      console.error("Error loading staff schedule:", err);
+      toast.error("Không thể tải lịch làm việc");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -308,111 +269,60 @@ const StaffWorkloadCalendar: React.FC = () => {
     handleWeekClose();
   };
 
-  const handleEventClick = (
-    event: CalendarEvent,
-    slot: WorkSlot,
-    date: Dayjs
-  ) => {
-    setAssignDialog({
-      open: true,
-      event,
-      slot,
-      date,
-    });
-    loadStaffAvailability(slot, date, event.type);
-  };
-
-  const handleCloseDialog = () => {
-    setAssignDialog({
-      open: false,
-      event: null,
-      slot: null,
-      date: null,
-    });
-    setStaffAvailability([]);
-  };
-
-  const handleAssignStaff = async (staffId: string) => {
-    if (!assignDialog.event) return;
-
-    setAssigning(true);
-    try {
-      if (assignDialog.event.type === "booking") {
-        await staffService.assignStaffToBooking(assignDialog.event.id, staffId);
-        toast.success(
-          `Đã gán nhân viên cho đơn hàng ${assignDialog.event.code}`
-        );
-      } else {
-        await staffService.assignStaffToVerification(
-          assignDialog.event.id,
-          staffId
-        );
-        toast.success(
-          `Đã gán nhân viên cho đơn xác minh ${assignDialog.event.code}`
-        );
-      }
-      await loadUnassignedItems();
-      handleCloseDialog();
-    } catch (err: any) {
-      console.error("Error assigning staff:", err);
-      toast.error(err?.message || "Không thể gán nhân viên");
-    } finally {
-      setAssigning(false);
-    }
-  };
-
   const getEventForSlotAndDay = (
     slotIndex: number,
     dayIndex: number
-  ): CalendarEvent | null => {
+  ): StaffScheduleEvent | null => {
+    if (!scheduleEvents.length) return null;
+
     const targetDay = weekDays[dayIndex];
+    const slot = workSlots.find((s) => s.slotIndex === slotIndex);
+    if (!slot) return null;
+
+    const startHour = parseInt(slot.startTime.split(":")[0]);
+    const endHour = parseInt(slot.endTime.split(":")[0]);
+
     return (
-      calendarEvents.find(
-        (event) =>
-          event.slotIndex === slotIndex &&
-          dayjs(event.date).isSame(targetDay, "day")
-      ) || null
+      scheduleEvents.find((event) => {
+        const eventDate = dayjs(event.startAt);
+        const eventHour = eventDate.hour();
+
+        return (
+          eventDate.isSame(targetDay, "day") &&
+          eventHour >= startHour &&
+          eventHour < endHour
+        );
+      }) || null
     );
   };
 
-  const getAvailabilityColor = (staff: StaffAvailabilityType) => {
-    if (!staff.isAvailable) {
-      return {
-        bgcolor: "#FEE2E2",
-        borderColor: "#DC2626",
-        color: "#991B1B",
-      };
+  const getEventColor = (eventType: string) => {
+    switch (eventType) {
+      case "BookingPickup":
+        return {
+          border: "#10B981",
+          bg: "#D1FAE5",
+          icon: LocalShipping,
+        };
+      case "BookingReturn":
+        return {
+          border: "#F59E0B",
+          bg: "#FEF3C7",
+          icon: AssignmentReturn,
+        };
+      case "Verification":
+        return {
+          border: "#8B5CF6",
+          bg: "#EDE9FE",
+          icon: Camera,
+        };
+      default:
+        return {
+          border: "#6B7280",
+          bg: "#F3F4F6",
+          icon: VerifiedUser,
+        };
     }
-
-    const totalWorkload =
-      staff.conflictingBookings +
-      staff.conflictingVerifications +
-      staff.todayPickupBookings +
-      staff.todayReturnBookings;
-
-    if (totalWorkload === 0)
-      return {
-        bgcolor: "#D1FAE5",
-        borderColor: "#10B981",
-        color: "#065F46",
-      };
-    if (totalWorkload <= 3)
-      return {
-        bgcolor: "#DBEAFE",
-        borderColor: "#3B82F6",
-        color: "#1E40AF",
-      };
-    if (totalWorkload <= 6)
-      return {
-        bgcolor: "#FEF3C7",
-        borderColor: "#F59E0B",
-        color: "#92400E",
-      };
-    return {
-      bgcolor: "#FEE2E2",
-      borderColor: "#EF4444",
-      color: "#991B1B",
-    };
   };
 
   return (
@@ -427,7 +337,7 @@ const StaffWorkloadCalendar: React.FC = () => {
             mb: 0.5,
           }}
         >
-          Thời khóa biểu tuần
+          Lịch làm việc cá nhân
         </Typography>
         <Typography
           variant="body2"
@@ -435,11 +345,11 @@ const StaffWorkloadCalendar: React.FC = () => {
             color: "#6B7280",
           }}
         >
-          Lịch làm việc của bạn theo tuần và các ca đã được phân công
+          Xem chi tiết lịch làm việc của từng nhân viên
         </Typography>
       </Box>
 
-      {/* Week Navigation */}
+      {/* Staff Selection & Week Navigation */}
       <Paper
         sx={{
           p: 2,
@@ -455,6 +365,74 @@ const StaffWorkloadCalendar: React.FC = () => {
           flexWrap="wrap"
           gap={2}
         >
+          {/* Staff Selection */}
+          <FormControl sx={{ minWidth: 300 }}>
+            <InputLabel>Chọn nhân viên</InputLabel>
+            <Select
+              value={selectedStaffId}
+              onChange={(e) => setSelectedStaffId(e.target.value)}
+              label="Chọn nhân viên"
+              disabled={loadingStaff}
+              sx={{
+                borderRadius: 2,
+                "& .MuiOutlinedInput-notchedOutline": {
+                  borderColor: colors.primary.light,
+                },
+                "&:hover .MuiOutlinedInput-notchedOutline": {
+                  borderColor: colors.primary.main,
+                },
+                "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                  borderColor: colors.primary.main,
+                },
+              }}
+              renderValue={(value) => {
+                const staff = staffList.find((s) => s.userId === value);
+                if (!staff) return "";
+                return (
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                    <Avatar
+                      sx={{
+                        width: 32,
+                        height: 32,
+                        bgcolor: getAvatarColor(staff.userId),
+                        fontSize: "0.875rem",
+                      }}
+                    >
+                      {getInitials(staff.fullName)}
+                    </Avatar>
+                    <Typography>{staff.fullName}</Typography>
+                  </Stack>
+                );
+              }}
+            >
+              {staffList.map((staff) => (
+                <MenuItem key={staff.userId} value={staff.userId}>
+                  <Stack direction="row" alignItems="center" spacing={2}>
+                    <Avatar
+                      sx={{
+                        width: 32,
+                        height: 32,
+                        bgcolor: getAvatarColor(staff.userId),
+                        fontSize: "0.875rem",
+                      }}
+                    >
+                      {getInitials(staff.fullName)}
+                    </Avatar>
+                    <Box>
+                      <Typography sx={{ fontWeight: 600 }}>
+                        {staff.fullName}
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: "#6B7280" }}>
+                        {staff.email}
+                      </Typography>
+                    </Box>
+                  </Stack>
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          {/* Year & Week Selection */}
           <Stack direction="row" alignItems="center" spacing={2}>
             <Chip
               label={currentWeekStart.year()}
@@ -492,6 +470,7 @@ const StaffWorkloadCalendar: React.FC = () => {
             </Menu>
           </Stack>
 
+          {/* Week Navigation */}
           <Stack direction="row" alignItems="center" spacing={1}>
             <IconButton onClick={handlePreviousWeek} size="small">
               <ChevronLeft />
@@ -539,27 +518,77 @@ const StaffWorkloadCalendar: React.FC = () => {
             </IconButton>
           </Stack>
 
+          {/* Refresh Button */}
           <Tooltip title="Làm mới" arrow>
             <IconButton
-              onClick={() => {
-                loadWorkSlots();
-                loadUnassignedItems();
-              }}
+              onClick={loadStaffSchedule}
+              disabled={loading}
               sx={{
                 backgroundColor: "#F97316",
                 color: "#FFFFFF",
                 "&:hover": {
                   backgroundColor: "#EA580C",
                 },
+                "&:disabled": {
+                  backgroundColor: "#F3F4F6",
+                  color: "#9CA3AF",
+                },
               }}
             >
-              <Refresh />
+              {loading ? (
+                <CircularProgress size={24} sx={{ color: "#FFFFFF" }} />
+              ) : (
+                <Refresh />
+              )}
             </IconButton>
           </Tooltip>
         </Stack>
       </Paper>
 
-      {loading ? (
+      {/* Selected Staff Info */}
+      {selectedStaff && (
+        <Paper
+          sx={{
+            p: 2,
+            mb: 3,
+            borderRadius: 3,
+            boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+            background: `linear-gradient(135deg, ${colors.primary.lighter} 0%, #FFFFFF 100%)`,
+          }}
+        >
+          <Stack direction="row" alignItems="center" spacing={2}>
+            <Avatar
+              sx={{
+                width: 60,
+                height: 60,
+                bgcolor: getAvatarColor(selectedStaff.userId),
+                fontSize: "1.5rem",
+                fontWeight: 700,
+              }}
+            >
+              {getInitials(selectedStaff.fullName)}
+            </Avatar>
+            <Box>
+              <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                {selectedStaff.fullName}
+              </Typography>
+              <Stack direction="row" spacing={2} sx={{ mt: 0.5 }}>
+                <Typography variant="body2" sx={{ color: "#6B7280" }}>
+                  📧 {selectedStaff.email}
+                </Typography>
+                {selectedStaff.phoneNumber && (
+                  <Typography variant="body2" sx={{ color: "#6B7280" }}>
+                    📱 {selectedStaff.phoneNumber}
+                  </Typography>
+                )}
+              </Stack>
+            </Box>
+          </Stack>
+        </Paper>
+      )}
+
+      {/* Calendar */}
+      {loading || loadingStaff ? (
         <Box
           sx={{
             display: "flex",
@@ -570,6 +599,10 @@ const StaffWorkloadCalendar: React.FC = () => {
         >
           <CircularProgress size={48} />
         </Box>
+      ) : !selectedStaffId ? (
+        <Alert severity="info" sx={{ borderRadius: 2 }}>
+          Vui lòng chọn nhân viên để xem lịch làm việc
+        </Alert>
       ) : (
         <Paper
           sx={{
@@ -693,8 +726,12 @@ const StaffWorkloadCalendar: React.FC = () => {
                 </Box>
 
                 {/* Event Cells */}
-                {weekDays.map((day, dayIndex) => {
+                {weekDays.map((_, dayIndex) => {
                   const event = getEventForSlotAndDay(slot.slotIndex, dayIndex);
+                  const eventColor = event
+                    ? getEventColor(event.eventType)
+                    : null;
+                  const EventIcon = eventColor?.icon;
 
                   return (
                     <Box
@@ -705,22 +742,51 @@ const StaffWorkloadCalendar: React.FC = () => {
                         position: "relative",
                       }}
                     >
-                      {event && (
-                        <Tooltip title={`Click để gán nhân viên`} arrow>
+                      {event && eventColor && EventIcon && (
+                        <Tooltip
+                          title={
+                            <Box>
+                              <Typography
+                                variant="body2"
+                                sx={{ fontWeight: 600, mb: 0.5 }}
+                              >
+                                {event.title}
+                              </Typography>
+                              <Typography
+                                variant="caption"
+                                sx={{ display: "block" }}
+                              >
+                                Thời gian:{" "}
+                                {dayjs(event.startAt).format("HH:mm")}
+                              </Typography>
+                              {event.bookingId && (
+                                <Typography
+                                  variant="caption"
+                                  sx={{ display: "block" }}
+                                >
+                                  Mã đơn: {event.bookingId}
+                                </Typography>
+                              )}
+                              {event.verificationId && (
+                                <Typography
+                                  variant="caption"
+                                  sx={{ display: "block" }}
+                                >
+                                  Mã kiểm tra: {event.verificationId}
+                                </Typography>
+                              )}
+                            </Box>
+                          }
+                          arrow
+                          placement="top"
+                        >
                           <Card
-                            onClick={() => handleEventClick(event, slot, day)}
                             sx={{
                               height: "100%",
                               cursor: "pointer",
-                              border:
-                                event.type === "booking"
-                                  ? "2px solid #8B5CF6"
-                                  : "2px solid #F59E0B",
+                              border: `2px solid ${eventColor.border}`,
                               borderRadius: 1,
-                              backgroundColor:
-                                event.type === "booking"
-                                  ? "#EDE9FE"
-                                  : "#FEF3C7",
+                              backgroundColor: eventColor.bg,
                               transition: "all 0.2s",
                               "&:hover": {
                                 boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
@@ -737,30 +803,30 @@ const StaffWorkloadCalendar: React.FC = () => {
                                   alignItems="center"
                                   spacing={0.5}
                                 >
-                                  {event.type === "booking" ? (
-                                    <Camera
-                                      sx={{ fontSize: 14, color: "#8B5CF6" }}
-                                    />
-                                  ) : (
-                                    <VerifiedUser
-                                      sx={{ fontSize: 14, color: "#F59E0B" }}
-                                    />
-                                  )}
+                                  <EventIcon
+                                    sx={{
+                                      fontSize: 14,
+                                      color: eventColor.border,
+                                    }}
+                                  />
                                   <Typography
                                     variant="caption"
                                     sx={{
                                       fontWeight: 600,
-                                      color:
-                                        event.type === "booking"
-                                          ? "#8B5CF6"
-                                          : "#F59E0B",
+                                      color: eventColor.border,
                                       fontSize: "0.7rem",
                                       overflow: "hidden",
                                       textOverflow: "ellipsis",
                                       whiteSpace: "nowrap",
                                     }}
                                   >
-                                    {event.code}
+                                    {event.eventType ===
+                                    ("BookingReturn" as any)
+                                      ? "Lấy hàng"
+                                      : event.eventType ===
+                                        ("BookingReturn" as any)
+                                      ? "Trả hàng"
+                                      : "Kiểm tra"}
                                   </Typography>
                                 </Stack>
                                 <Typography
@@ -775,7 +841,7 @@ const StaffWorkloadCalendar: React.FC = () => {
                                     WebkitBoxOrient: "vertical",
                                   }}
                                 >
-                                  {event.title}
+                                  {dayjs(event.startAt).format("HH:mm")}
                                 </Typography>
                               </Stack>
                             </CardContent>
@@ -803,13 +869,13 @@ const StaffWorkloadCalendar: React.FC = () => {
                   sx={{
                     width: 16,
                     height: 16,
-                    backgroundColor: "#EDE9FE",
-                    border: "2px solid #8B5CF6",
+                    backgroundColor: "#D1FAE5",
+                    border: "2px solid #10B981",
                     borderRadius: 0.5,
                   }}
                 />
                 <Typography variant="caption" sx={{ color: "#6B7280" }}>
-                  Đơn hàng chưa gán
+                  Lấy hàng
                 </Typography>
               </Stack>
               <Stack direction="row" spacing={1} alignItems="center">
@@ -823,157 +889,29 @@ const StaffWorkloadCalendar: React.FC = () => {
                   }}
                 />
                 <Typography variant="caption" sx={{ color: "#6B7280" }}>
-                  Xác minh chưa gán
+                  Trả hàng
+                </Typography>
+              </Stack>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Box
+                  sx={{
+                    width: 16,
+                    height: 16,
+                    backgroundColor: "#EDE9FE",
+                    border: "2px solid #8B5CF6",
+                    borderRadius: 0.5,
+                  }}
+                />
+                <Typography variant="caption" sx={{ color: "#6B7280" }}>
+                  Kiểm tra
                 </Typography>
               </Stack>
             </Stack>
           </Box>
         </Paper>
       )}
-
-      {/* Assignment Dialog */}
-      <Dialog
-        open={assignDialog.open}
-        onClose={handleCloseDialog}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          <Stack direction="row" alignItems="center" spacing={1}>
-            {assignDialog.event?.type === "booking" ? (
-              <Assignment sx={{ color: "#8B5CF6" }} />
-            ) : (
-              <VerifiedUser sx={{ color: "#F59E0B" }} />
-            )}
-            <Typography variant="h6" sx={{ fontWeight: 700 }}>
-              Gán nhân viên - {assignDialog.event?.code}
-            </Typography>
-          </Stack>
-          {assignDialog.slot && assignDialog.date && (
-            <Typography variant="caption" sx={{ color: "#6B7280", mt: 1 }}>
-              Ca {assignDialog.slot.slotIndex} -{" "}
-              {assignDialog.date.format("DD/MM/YYYY")} (
-              {assignDialog.slot.startTime.substring(0, 5)} -{" "}
-              {assignDialog.slot.endTime.substring(0, 5)})
-            </Typography>
-          )}
-        </DialogTitle>
-
-        <DialogContent dividers>
-          {loadingStaff ? (
-            <Box sx={{ textAlign: "center", py: 4 }}>
-              <CircularProgress size={40} />
-              <Typography variant="body2" sx={{ mt: 2, color: "#6B7280" }}>
-                Đang kiểm tra nhân viên khả dụng...
-              </Typography>
-            </Box>
-          ) : staffAvailability.length === 0 ? (
-            <Alert severity="info">
-              Không có nhân viên khả dụng cho khung giờ này
-            </Alert>
-          ) : (
-            <List>
-              {staffAvailability.map((staff, index) => {
-                const colorScheme = getAvailabilityColor(staff);
-                return (
-                  <React.Fragment key={staff.staffId}>
-                    {index > 0 && <Divider />}
-                    <ListItem
-                      sx={{
-                        border: `2px solid ${colorScheme.borderColor}`,
-                        borderRadius: 2,
-                        mb: 1,
-                        bgcolor: colorScheme.bgcolor,
-                        opacity: staff.isAvailable ? 1 : 0.6,
-                      }}
-                    >
-                      <ListItemAvatar>
-                        <Avatar
-                          sx={{
-                            bgcolor: staff.isAvailable
-                              ? colors.primary.main
-                              : "#9CA3AF",
-                          }}
-                        >
-                          <Person />
-                        </Avatar>
-                      </ListItemAvatar>
-                      <ListItemText
-                        primary={
-                          <Stack
-                            direction="row"
-                            spacing={1}
-                            alignItems="center"
-                          >
-                            <Typography sx={{ fontWeight: 600 }}>
-                              {staff.staffName}
-                            </Typography>
-                            {staff.isAvailable ? (
-                              <CheckCircleOutline
-                                sx={{ fontSize: 16, color: "#10B981" }}
-                              />
-                            ) : (
-                              <Block sx={{ fontSize: 16, color: "#DC2626" }} />
-                            )}
-                          </Stack>
-                        }
-                        secondary={
-                          <Stack spacing={0.5} sx={{ mt: 0.5 }}>
-                            <Stack direction="row" spacing={1} flexWrap="wrap">
-                              <Chip
-                                label={`${staff.conflictingBookings} Đơn hàng`}
-                                size="small"
-                                sx={{ fontSize: "0.65rem", height: 20 }}
-                              />
-                              <Chip
-                                label={`${staff.conflictingVerifications} Xác minh`}
-                                size="small"
-                                sx={{ fontSize: "0.65rem", height: 20 }}
-                              />
-                              <Chip
-                                label={`${staff.todayPickupBookings} Lấy hàng`}
-                                size="small"
-                                sx={{ fontSize: "0.65rem", height: 20 }}
-                              />
-                              <Chip
-                                label={`${staff.todayReturnBookings} Trả hàng`}
-                                size="small"
-                                sx={{ fontSize: "0.65rem", height: 20 }}
-                              />
-                            </Stack>
-                          </Stack>
-                        }
-                      />
-                      {staff.isAvailable && (
-                        <Button
-                          variant="contained"
-                          size="small"
-                          disabled={assigning}
-                          onClick={() => handleAssignStaff(staff.staffId)}
-                          sx={{
-                            bgcolor: colors.primary.main,
-                            "&:hover": {
-                              bgcolor: colors.primary.dark,
-                            },
-                          }}
-                        >
-                          {assigning ? "Đang gán..." : "Gán"}
-                        </Button>
-                      )}
-                    </ListItem>
-                  </React.Fragment>
-                );
-              })}
-            </List>
-          )}
-        </DialogContent>
-
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>Đóng</Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   );
 };
 
-export default StaffWorkloadCalendar;
+export default IndividualStaffSchedule;
