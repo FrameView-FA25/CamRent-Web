@@ -12,7 +12,6 @@ import {
   ListItemIcon,
   ListItemText,
   ListItemButton,
-  Stack,
 } from "@mui/material";
 import {
   Menu as MenuIcon,
@@ -55,7 +54,7 @@ const StaffLayout: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -197,51 +196,6 @@ const StaffLayout: React.FC = () => {
           p: 2,
         }}
       >
-        {/* User Profile */}
-        <Stack
-          direction="row"
-          spacing={1.5}
-          alignItems="center"
-          sx={{
-            p: 1.5,
-            borderRadius: 1.5,
-            bgcolor: "#F9FAFB",
-            mb: 1,
-          }}
-        >
-          <Avatar
-            sx={{
-              width: 40,
-              height: 40,
-              bgcolor: "#3B82F6",
-            }}
-            src="/user-avatar.jpg"
-          >
-            {user?.fullName ? user.fullName.charAt(0) : "O"}
-          </Avatar>
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography
-              sx={{
-                fontSize: "0.9375rem",
-                fontWeight: 600,
-                color: "#1F2937",
-                lineHeight: 1.3,
-              }}
-            >
-              {user?.fullName || "Nhân viên"}
-            </Typography>
-            <Typography
-              sx={{
-                fontSize: "0.8125rem",
-                color: "#6B7280",
-                lineHeight: 1.3,
-              }}
-            >
-              {user?.roles?.join(", ") || "Vai trò người dùng"}
-            </Typography>
-          </Box>
-        </Stack>
-
         {/* Logout Button */}
         <ListItemButton
           onClick={handleLogout}

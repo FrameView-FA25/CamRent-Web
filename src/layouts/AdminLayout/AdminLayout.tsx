@@ -12,7 +12,6 @@ import {
   ListItemIcon,
   ListItemText,
   ListItemButton,
-  Stack,
 } from "@mui/material";
 import {
   Menu as MenuIcon,
@@ -24,7 +23,6 @@ import {
   Person as PersonIcon,
 } from "@mui/icons-material";
 import { useAuth } from "../../hooks/useAuth";
-import { formatRoles, getRoleLabel } from "../../utils/roleUtils";
 
 const DRAWER_WIDTH = 280;
 
@@ -48,8 +46,7 @@ const AdminLayout: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { user, logout } = useAuth();
-  const roleDisplay = formatRoles(user?.roles);
+  const { logout } = useAuth();
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -177,51 +174,6 @@ const AdminLayout: React.FC = () => {
           p: 2,
         }}
       >
-        {/* User Profile */}
-        <Stack
-          direction="row"
-          spacing={1.5}
-          alignItems="center"
-          sx={{
-            p: 1.5,
-            borderRadius: 1.5,
-            bgcolor: "#F9FAFB",
-            mb: 1,
-          }}
-        >
-          <Avatar
-            sx={{
-              width: 40,
-              height: 40,
-              bgcolor: "#DC2626",
-            }}
-            src="/admin-avatar.jpg"
-          >
-            {user?.fullName ? user.fullName.charAt(0) : "A"}
-          </Avatar>
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography
-              sx={{
-                fontSize: "0.9375rem",
-                fontWeight: 600,
-                color: "#1F2937",
-                lineHeight: 1.3,
-              }}
-            >
-              {user?.fullName || getRoleLabel("Admin")}
-            </Typography>
-            <Typography
-              sx={{
-                fontSize: "0.8125rem",
-                color: "#6B7280",
-                lineHeight: 1.3,
-              }}
-            >
-              {roleDisplay || getRoleLabel("Admin")}
-            </Typography>
-          </Box>
-        </Stack>
-
         {/* Logout Button */}
         <ListItemButton
           onClick={handleLogout}

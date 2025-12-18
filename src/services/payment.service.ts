@@ -161,8 +161,7 @@ export async function createPayOsPayment(
  */
 export async function initiatePayment(
   bookingId: string,
-  mode: "Deposit" | "Rental" = "Deposit",
-  amount: number
+  mode: "Deposit" | "Rental" = "Deposit"
 ): Promise<string> {
   try {
     // Step 1: Authorize payment
@@ -195,7 +194,7 @@ export async function initiatePayment(
 /**
  * Get payment details
  */
-export async function getPaymentDetails(paymentId: string): Promise<any> {
+export async function getPaymentDetails(paymentId: string): Promise<unknown> {
   const token = localStorage.getItem("accessToken");
   if (!token) {
     throw new Error("Vui lòng đăng nhập");
