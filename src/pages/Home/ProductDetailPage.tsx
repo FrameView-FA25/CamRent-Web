@@ -183,7 +183,6 @@ const ProductDetailPage: React.FC = () => {
     }, 1000);
   };
 
-  // ✅ Handle "Thuê ngay" - Add to cart then go to checkout
   const handleBuyNow = async () => {
     if (!camera) return;
 
@@ -198,7 +197,7 @@ const ProductDetailPage: React.FC = () => {
 
       setBuyingNow(true);
 
-      // Step 1: Try to add to cart (skip error if already in cart)
+      // Step 1: Add to cart
       const addToCartResponse = await fetch(
         `${API_BASE_URL}/Bookings/AddToCart`,
         {
@@ -238,11 +237,24 @@ const ProductDetailPage: React.FC = () => {
       }
 
       const cartData = await cartResponse.json();
+      console.log("Cart data from API:", cartData);
 
-      // Step 3: Navigate to checkout with cart items
+      // ✅ Transform cart items to match expected format
+      const formattedItems =
+        cartData.items?.map((item: any) => ({
+          itemId: item.itemId,
+          itemName: item.itemName || item.name || "Unknown Item",
+          itemType: item.itemType || "Camera",
+          unitPrice: item.unitPrice || item.price || 0,
+          quantity: item.quantity || 1,
+        })) || [];
+
+      console.log("Formatted items:", formattedItems);
+
+      // Step 3: Navigate to checkout with formatted cart items
       navigate("/checkout", {
         state: {
-          items: cartData.items || [],
+          items: formattedItems,
         },
       });
 

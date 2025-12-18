@@ -68,7 +68,6 @@ const ProductPage: React.FC = () => {
     cameras,
     loading: camerasLoading,
     error: camerasError,
-    total: totalCameras,
   } = useCameras();
 
   const {
@@ -82,23 +81,40 @@ const ProductPage: React.FC = () => {
     currentTab === 0 ? loadingAvailable || camerasLoading : accessoriesLoading;
   const error = currentTab === 0 ? camerasError : accessoriesError;
 
+  // Filter verified cameras
+  const verifiedCameras = useMemo(() => {
+    return cameras.filter((c) => c.isConfirmed === true);
+  }, [cameras]);
+
+  const verifiedAvailableCameras = useMemo(() => {
+    return availableCameras.filter((c) => c.isConfirmed === true);
+  }, [availableCameras]);
+
+  // Calculate categories from verified cameras only
   const categories = useMemo(() => {
     const items =
       currentTab === 0
         ? filteredByDate
-          ? availableCameras
-          : cameras
+          ? verifiedAvailableCameras
+          : verifiedCameras
         : accessories;
     const brands = new Set(items.map((c) => c.brand));
     return ["All", ...Array.from(brands)];
-  }, [cameras, accessories, currentTab, filteredByDate, availableCameras]);
+  }, [
+    verifiedCameras,
+    accessories,
+    currentTab,
+    filteredByDate,
+    verifiedAvailableCameras,
+  ]);
 
+  // Filter products (only verified cameras)
   const filteredProducts = useMemo(() => {
     const items =
       currentTab === 0
         ? filteredByDate
-          ? availableCameras
-          : cameras
+          ? verifiedAvailableCameras
+          : verifiedCameras
         : accessories;
 
     if (!searchQuery) {
@@ -121,22 +137,22 @@ const ProductPage: React.FC = () => {
       return matchesSearch && matchesCategory;
     });
   }, [
-    cameras,
+    verifiedCameras,
     accessories,
     searchQuery,
     selectedCategory,
     currentTab,
     filteredByDate,
-    availableCameras,
+    verifiedAvailableCameras,
   ]);
 
-  // Calculate category counts
+  // Calculate category counts (only verified cameras)
   const categoryCounts = useMemo(() => {
     const items =
       currentTab === 0
         ? filteredByDate
-          ? availableCameras
-          : cameras
+          ? verifiedAvailableCameras
+          : verifiedCameras
         : accessories;
     const counts: Record<string, number> = { All: items.length };
 
@@ -145,7 +161,13 @@ const ProductPage: React.FC = () => {
     });
 
     return counts;
-  }, [cameras, accessories, currentTab, filteredByDate, availableCameras]);
+  }, [
+    verifiedCameras,
+    accessories,
+    currentTab,
+    filteredByDate,
+    verifiedAvailableCameras,
+  ]);
 
   // Handle tab change
   const handleTabChange = (newTab: number) => {
@@ -226,7 +248,7 @@ const ProductPage: React.FC = () => {
         const errorText = await response.text();
         console.error("Error response:", errorText);
         throw new Error(
-          `Failed to fetch available cameras: ${response.status} - ${errorText}`
+          `Ngày bắt đầu phải trước ngày kết thúc hoặc không có camera khả dụng`
         );
       }
 
@@ -234,13 +256,18 @@ const ProductPage: React.FC = () => {
       console.log("Available cameras data:", data);
 
       if (data.status && data.cameras) {
-        setAvailableCameras(data.cameras);
+        // Filter only verified cameras
+        const verifiedResults = data.cameras.filter(
+          (c) => c.isVerified === true
+        );
+
+        setAvailableCameras(verifiedResults);
         setFilteredByDate(true);
         setSelectedCategory("All"); // Reset category filter
 
         toast.success(
           `Tìm thấy ${
-            data.cameras.length
+            verifiedResults.length
           } camera khả dụng từ ${startDate.toLocaleDateString(
             "vi-VN"
           )} đến ${endDate.toLocaleDateString("vi-VN")}`
@@ -272,7 +299,11 @@ const ProductPage: React.FC = () => {
       <ProductHeader
         currentTab={currentTab}
         onTabChange={handleTabChange}
-        totalCameras={filteredByDate ? availableCameras.length : totalCameras}
+        totalCameras={
+          filteredByDate
+            ? verifiedAvailableCameras.length
+            : verifiedCameras.length
+        }
         totalAccessories={totalAccessories}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
@@ -303,8 +334,8 @@ const ProductPage: React.FC = () => {
           totalProducts={
             currentTab === 0
               ? filteredByDate
-                ? availableCameras.length
-                : totalCameras
+                ? verifiedAvailableCameras.length
+                : verifiedCameras.length
               : totalAccessories
           }
           compareCount={compareIds.length}
