@@ -47,11 +47,11 @@ const menuItems = [
     icon: <ProductsIcon />,
     path: "/manager/products",
   },
-  {
-    text: "Quản lý hợp đồng",
-    icon: <ImportContactsIcon />,
-    path: "/manager/contracts",
-  },
+  // {
+  //   text: "Quản lý hợp đồng",
+  //   icon: <ImportContactsIcon />,
+  //   path: "/manager/contracts",
+  // },
   { text: "Hồ sơ", icon: <PersonIcon />, path: "/manager/profile" },
   // { text: "Cài đặt", icon: <SettingsIcon />, path: "/manager/settings" },
 ];

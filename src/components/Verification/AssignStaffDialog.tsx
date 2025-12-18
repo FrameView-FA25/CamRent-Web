@@ -5,10 +5,6 @@ import {
   DialogContent,
   DialogActions,
   Button,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Box,
   Typography,
   CircularProgress,
@@ -19,20 +15,17 @@ import {
   Paper,
   Collapse,
   IconButton,
+  Avatar,
 } from "@mui/material";
 import {
-  Assignment,
   CheckCircle,
-  LocalShipping,
-  AssignmentReturn,
   ExpandMore,
   ExpandLess,
-  TrendingUp,
-  TrendingFlat,
-  TrendingDown,
   CalendarToday,
   Block,
   CheckCircleOutline,
+  Person,
+  Warning,
   VerifiedUser,
 } from "@mui/icons-material";
 import { colors } from "../../theme/colors";
@@ -47,7 +40,7 @@ interface AssignStaffDialogProps {
   onClose: () => void;
   staffList: Staff[];
   onAssign: (staffId: string) => Promise<boolean>;
-  verificationDate?: string; // Ngày hẹn xác minh
+  verificationDate?: string;
 }
 
 interface StaffWorkloadInfo extends AvailableStaffItem {
@@ -57,7 +50,6 @@ interface StaffWorkloadInfo extends AvailableStaffItem {
 const AssignStaffDialog: React.FC<AssignStaffDialogProps> = ({
   open,
   onClose,
-  staffList,
   onAssign,
   verificationDate,
 }) => {
@@ -66,7 +58,7 @@ const AssignStaffDialog: React.FC<AssignStaffDialogProps> = ({
   const [loadingWorkload, setLoadingWorkload] = useState(false);
   const [workloadData, setWorkloadData] = useState<StaffWorkloadInfo[]>([]);
   const [workloadError, setWorkloadError] = useState<string | null>(null);
-  const [showWorkloadDetails, setShowWorkloadDetails] = useState(false);
+  const [expandedStaff, setExpandedStaff] = useState<string | null>(null);
 
   useEffect(() => {
     if (open && verificationDate) {
@@ -89,15 +81,15 @@ const AssignStaffDialog: React.FC<AssignStaffDialogProps> = ({
       const data = await staffService.getAvailableStaff(
         startOfDay.toISOString(),
         endOfDay.toISOString(),
-        "verification" // Chỉ check availability cho verification
+        "verification"
       );
 
       // Transform data and calculate total workload
       const workloadInfo: StaffWorkloadInfo[] = data.staffs.map((staff) => ({
         ...staff,
         totalWorkload:
-          staff.assignedBookings +
-          staff.assignedVerifications +
+          staff.conflictingBookings +
+          staff.conflictingVerifications +
           staff.todayPickupBookings +
           staff.todayReturnBookings,
       }));
@@ -128,53 +120,6 @@ const AssignStaffDialog: React.FC<AssignStaffDialogProps> = ({
     }
   };
 
-  const getWorkloadLevel = (
-    total: number,
-    isAvailable: boolean
-  ): {
-    color: string;
-    label: string;
-    icon: React.ReactElement;
-    bgColor: string;
-  } => {
-    if (!isAvailable) {
-      return {
-        color: "#DC2626",
-        label: "Không khả dụng",
-        icon: <Block sx={{ fontSize: 16 }} />,
-        bgColor: "#FEE2E2",
-      };
-    }
-
-    if (total === 0)
-      return {
-        color: "#10B981",
-        label: "Rảnh",
-        icon: <TrendingDown sx={{ fontSize: 16 }} />,
-        bgColor: "#F0FDF4",
-      };
-    if (total <= 3)
-      return {
-        color: "#3B82F6",
-        label: "Bình thường",
-        icon: <TrendingFlat sx={{ fontSize: 16 }} />,
-        bgColor: "#EFF6FF",
-      };
-    if (total <= 6)
-      return {
-        color: "#F59E0B",
-        label: "Bận",
-        icon: <TrendingUp sx={{ fontSize: 16 }} />,
-        bgColor: "#FFFBEB",
-      };
-    return {
-      color: "#EF4444",
-      label: "Rất bận",
-      icon: <TrendingUp sx={{ fontSize: 16 }} />,
-      bgColor: "#FEF2F2",
-    };
-  };
-
   const getStaffWorkload = (staffId: string): StaffWorkloadInfo | undefined => {
     return workloadData.find((w) => w.staffId === staffId);
   };
@@ -182,16 +127,17 @@ const AssignStaffDialog: React.FC<AssignStaffDialogProps> = ({
   const selectedStaffWorkload = selectedStaffId
     ? getStaffWorkload(selectedStaffId)
     : null;
-  const selectedStaffLevel = selectedStaffWorkload
-    ? getWorkloadLevel(
-        selectedStaffWorkload.totalWorkload,
-        selectedStaffWorkload.isAvailable
-      )
-    : null;
 
   // Count available and unavailable staff
   const availableCount = workloadData.filter((s) => s.isAvailable).length;
   const unavailableCount = workloadData.length - availableCount;
+
+  const handleStaffClick = (staffId: string, isAvailable: boolean) => {
+    if (isAvailable) {
+      setSelectedStaffId(staffId);
+      setExpandedStaff(expandedStaff === staffId ? null : staffId);
+    }
+  };
 
   const handleAssign = async () => {
     if (!selectedStaffId) return;
@@ -199,7 +145,7 @@ const AssignStaffDialog: React.FC<AssignStaffDialogProps> = ({
     // Check if selected staff is available
     const staffInfo = getStaffWorkload(selectedStaffId);
     if (staffInfo && !staffInfo.isAvailable) {
-      return; // Don't proceed if staff is not available
+      return;
     }
 
     setLoading(true);
@@ -216,23 +162,23 @@ const AssignStaffDialog: React.FC<AssignStaffDialogProps> = ({
     setSelectedStaffId("");
     setWorkloadData([]);
     setWorkloadError(null);
-    setShowWorkloadDetails(false);
+    setExpandedStaff(null);
     onClose();
   };
 
   return (
     <Dialog
       open={open}
-      onClose={handleClose}
+      onClose={() => !loading && handleClose()}
       maxWidth="md"
       fullWidth
       PaperProps={{
         sx: {
-          borderRadius: 3,
+          borderRadius: 2,
         },
       }}
     >
-      <DialogTitle sx={{ fontWeight: 600, color: "#1F2937" }}>
+      <DialogTitle sx={{ fontWeight: 600, pb: 1 }}>
         <Stack direction="row" alignItems="center" spacing={1}>
           <VerifiedUser sx={{ color: colors.primary.main }} />
           <Typography variant="h6" sx={{ fontWeight: 700 }}>
@@ -240,9 +186,10 @@ const AssignStaffDialog: React.FC<AssignStaffDialogProps> = ({
           </Typography>
         </Stack>
       </DialogTitle>
+      <Divider />
 
-      <DialogContent>
-        <Box sx={{ pt: 2 }}>
+      <DialogContent sx={{ pt: 3 }}>
+        <Box>
           {/* Verification Date Info */}
           {verificationDate && (
             <Paper
@@ -251,463 +198,536 @@ const AssignStaffDialog: React.FC<AssignStaffDialogProps> = ({
                 p: 2,
                 mb: 3,
                 bgcolor: "#F9FAFB",
-                borderRadius: 2,
+                borderRadius: 1.5,
                 border: "1px solid #E5E7EB",
               }}
             >
               <Stack direction="row" alignItems="center" spacing={1} mb={1}>
                 <CalendarToday sx={{ fontSize: 18, color: "#6B7280" }} />
                 <Typography
-                  variant="body2"
-                  sx={{ fontWeight: 600, color: "#1F2937" }}
+                  variant="subtitle2"
+                  sx={{ fontWeight: 600, color: "#374151" }}
                 >
                   Thông tin xác minh
                 </Typography>
               </Stack>
-              <Typography variant="body2" sx={{ color: "#6B7280" }}>
-                Ngày hẹn xác minh:{" "}
-                <strong>
-                  {new Date(verificationDate).toLocaleDateString("vi-VN", {
-                    weekday: "long",
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  })}
-                </strong>
-              </Typography>
-              <Typography variant="body2" sx={{ color: "#6B7280" }}>
-                Giờ hẹn:{" "}
-                <strong>
-                  {new Date(verificationDate).toLocaleTimeString("vi-VN", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </strong>
-              </Typography>
+              <Stack spacing={0.5}>
+                <Stack direction="row" spacing={1}>
+                  <Typography
+                    variant="body2"
+                    sx={{ color: "#6B7280", minWidth: 80 }}
+                  >
+                    Ngày hẹn:
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{ fontWeight: 500, color: "#111827" }}
+                  >
+                    {new Date(verificationDate).toLocaleDateString("vi-VN", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </Typography>
+                </Stack>
+              </Stack>
             </Paper>
           )}
 
           {/* Availability Summary */}
           {!loadingWorkload && workloadData.length > 0 && (
-            <Paper
-              elevation={0}
-              sx={{
-                p: 2,
-                mb: 3,
-                bgcolor: "#ECFDF5",
-                borderRadius: 2,
-                border: "1px solid #A7F3D0",
-              }}
-            >
-              <Stack direction="row" spacing={2} alignItems="center">
-                <Chip
-                  icon={<CheckCircleOutline />}
-                  label={`${availableCount} Nhân viên khả dụng`}
-                  size="small"
-                  sx={{
-                    bgcolor: "#10B981",
-                    color: "white",
-                    fontWeight: 600,
-                  }}
-                />
-                {unavailableCount > 0 && (
-                  <Chip
-                    icon={<Block />}
-                    label={`${unavailableCount} Không khả dụng`}
-                    size="small"
-                    sx={{
-                      bgcolor: "#EF4444",
-                      color: "white",
-                      fontWeight: 600,
-                    }}
-                  />
-                )}
-              </Stack>
-            </Paper>
-          )}
-
-          {/* Workload Summary Toggle */}
-          {verificationDate && (
-            <Paper
-              elevation={0}
-              sx={{
-                mb: 3,
-                border: "1px solid #E5E7EB",
-                borderRadius: 2,
-                overflow: "hidden",
-              }}
-            >
+            <Stack direction="row" spacing={2} mb={3}>
               <Box
-                onClick={() => setShowWorkloadDetails(!showWorkloadDetails)}
                 sx={{
+                  flex: 1,
                   p: 2,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  cursor: "pointer",
-                  bgcolor: "#FAFAFA",
-                  "&:hover": {
-                    bgcolor: "#F5F5F5",
-                  },
+                  bgcolor: "#F9FAFB",
+                  borderRadius: 1.5,
+                  border: "1px solid #E5E7EB",
                 }}
               >
-                <Typography
-                  variant="body2"
-                  sx={{ fontWeight: 600, color: "#1F2937" }}
+                <Stack
+                  direction="row"
+                  alignItems="center"
+                  justifyContent="space-between"
                 >
-                  📊 Xem tình trạng công việc nhân viên ({workloadData.length}{" "}
-                  nhân viên)
-                </Typography>
-                <IconButton size="small">
-                  {showWorkloadDetails ? <ExpandLess /> : <ExpandMore />}
-                </IconButton>
+                  <Box>
+                    <Typography variant="caption" sx={{ color: "#6B7280" }}>
+                      Khả dụng
+                    </Typography>
+                    <Typography
+                      variant="h5"
+                      sx={{ fontWeight: 600, color: "#111827" }}
+                    >
+                      {availableCount}
+                    </Typography>
+                  </Box>
+                  <CheckCircleOutline sx={{ fontSize: 28, color: "#10B981" }} />
+                </Stack>
               </Box>
 
-              <Collapse in={showWorkloadDetails}>
-                <Divider />
-                <Box sx={{ p: 2 }}>
-                  {loadingWorkload && (
-                    <Box sx={{ textAlign: "center", py: 3 }}>
-                      <CircularProgress size={32} />
-                      <Typography
-                        variant="body2"
-                        sx={{ mt: 1, color: "#6B7280" }}
-                      >
-                        Đang tải thông tin nhân viên...
-                      </Typography>
-                    </Box>
-                  )}
-
-                  {workloadError && (
-                    <Alert severity="warning" sx={{ borderRadius: 2 }}>
-                      {workloadError}
-                    </Alert>
-                  )}
-
-                  {!loadingWorkload &&
-                    !workloadError &&
-                    workloadData.length === 0 && (
-                      <Alert severity="info" sx={{ borderRadius: 2 }}>
-                        Không có dữ liệu nhân viên cho ngày này
-                      </Alert>
-                    )}
-
-                  {!loadingWorkload &&
-                    !workloadError &&
-                    workloadData.length > 0 && (
-                      <Box sx={{ maxHeight: 300, overflowY: "auto" }}>
-                        <Stack spacing={1.5}>
-                          {workloadData.map((staff) => {
-                            const level = getWorkloadLevel(
-                              staff.totalWorkload,
-                              staff.isAvailable
-                            );
-                            const isSelected =
-                              selectedStaffId === staff.staffId;
-
-                            return (
-                              <Paper
-                                key={staff.staffId}
-                                elevation={0}
-                                sx={{
-                                  p: 2,
-                                  border: isSelected
-                                    ? `2px solid ${colors.primary.main}`
-                                    : "1px solid #E5E7EB",
-                                  borderRadius: 2,
-                                  bgcolor: isSelected
-                                    ? colors.primary.lighter
-                                    : level.bgColor,
-                                  transition: "all 0.2s",
-                                  cursor: staff.isAvailable
-                                    ? "pointer"
-                                    : "not-allowed",
-                                  opacity: staff.isAvailable ? 1 : 0.6,
-                                  "&:hover": staff.isAvailable
-                                    ? {
-                                        borderColor: colors.primary.main,
-                                        boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-                                      }
-                                    : {},
-                                }}
-                                onClick={() =>
-                                  staff.isAvailable &&
-                                  setSelectedStaffId(staff.staffId)
-                                }
-                              >
-                                <Stack
-                                  direction="row"
-                                  justifyContent="space-between"
-                                  alignItems="center"
-                                  mb={1.5}
-                                >
-                                  <Box sx={{ flex: 1 }}>
-                                    <Stack
-                                      direction="row"
-                                      alignItems="center"
-                                      spacing={1}
-                                    >
-                                      <Typography
-                                        variant="body2"
-                                        sx={{
-                                          fontWeight: 600,
-                                          color: "#1F2937",
-                                        }}
-                                      >
-                                        {staff.staffName}
-                                      </Typography>
-                                      {staff.isAvailable && (
-                                        <CheckCircleOutline
-                                          sx={{
-                                            fontSize: 16,
-                                            color: "#10B981",
-                                          }}
-                                        />
-                                      )}
-                                    </Stack>
-                                    <Typography
-                                      variant="caption"
-                                      sx={{ color: "#6B7280" }}
-                                    >
-                                      Tổng: {staff.totalWorkload} công việc
-                                    </Typography>
-                                  </Box>
-                                  <Chip
-                                    icon={level.icon}
-                                    label={level.label}
-                                    size="small"
-                                    sx={{
-                                      bgcolor: level.color + "20",
-                                      color: level.color,
-                                      fontWeight: 600,
-                                    }}
-                                  />
-                                </Stack>
-
-                                <Stack
-                                  direction="row"
-                                  spacing={1}
-                                  flexWrap="wrap"
-                                >
-                                  <Chip
-                                    icon={<Assignment sx={{ fontSize: 14 }} />}
-                                    label={`${staff.assignedBookings} Bookings`}
-                                    size="small"
-                                    sx={{
-                                      fontSize: "0.7rem",
-                                      height: 24,
-                                      bgcolor: "#EFF6FF",
-                                      color: "#1E40AF",
-                                    }}
-                                  />
-                                  <Chip
-                                    icon={<CheckCircle sx={{ fontSize: 14 }} />}
-                                    label={`${staff.assignedVerifications} Xác nhận`}
-                                    size="small"
-                                    sx={{
-                                      fontSize: "0.7rem",
-                                      height: 24,
-                                      bgcolor: "#F0FDF4",
-                                      color: "#065F46",
-                                    }}
-                                  />
-                                  <Chip
-                                    icon={
-                                      <LocalShipping sx={{ fontSize: 14 }} />
-                                    }
-                                    label={`${staff.todayPickupBookings} Pickups`}
-                                    size="small"
-                                    sx={{
-                                      fontSize: "0.7rem",
-                                      height: 24,
-                                      bgcolor: "#FFFBEB",
-                                      color: "#92400E",
-                                    }}
-                                  />
-                                  <Chip
-                                    icon={
-                                      <AssignmentReturn sx={{ fontSize: 14 }} />
-                                    }
-                                    label={`${staff.todayReturnBookings} Returns`}
-                                    size="small"
-                                    sx={{
-                                      fontSize: "0.7rem",
-                                      height: 24,
-                                      bgcolor: "#F5F3FF",
-                                      color: "#5B21B6",
-                                    }}
-                                  />
-                                </Stack>
-
-                                {/* Show conflicts if any */}
-                                {(staff.conflictingVerifications > 0 ||
-                                  staff.conflictingBookings > 0) && (
-                                  <Alert
-                                    severity="warning"
-                                    sx={{ mt: 1, py: 0.5 }}
-                                  >
-                                    <Typography variant="caption">
-                                      ⚠️ Xung đột:{" "}
-                                      {staff.conflictingVerifications > 0 &&
-                                        `${staff.conflictingVerifications} verification`}
-                                      {staff.conflictingVerifications > 0 &&
-                                        staff.conflictingBookings > 0 &&
-                                        ", "}
-                                      {staff.conflictingBookings > 0 &&
-                                        `${staff.conflictingBookings} booking`}
-                                    </Typography>
-                                  </Alert>
-                                )}
-                              </Paper>
-                            );
-                          })}
-                        </Stack>
-                      </Box>
-                    )}
-                </Box>
-              </Collapse>
-            </Paper>
+              <Box
+                sx={{
+                  flex: 1,
+                  p: 2,
+                  bgcolor: "#F9FAFB",
+                  borderRadius: 1.5,
+                  border: "1px solid #E5E7EB",
+                }}
+              >
+                <Stack
+                  direction="row"
+                  alignItems="center"
+                  justifyContent="space-between"
+                >
+                  <Box>
+                    <Typography variant="caption" sx={{ color: "#6B7280" }}>
+                      Không khả dụng
+                    </Typography>
+                    <Typography
+                      variant="h5"
+                      sx={{ fontWeight: 600, color: "#111827" }}
+                    >
+                      {unavailableCount}
+                    </Typography>
+                  </Box>
+                  <Block sx={{ fontSize: 28, color: "#EF4444" }} />
+                </Stack>
+              </Box>
+            </Stack>
           )}
 
-          {/* Staff Selection Dropdown */}
-          <FormControl fullWidth>
-            <InputLabel>Chọn nhân viên</InputLabel>
-            <Select
-              value={selectedStaffId}
-              onChange={(e) => setSelectedStaffId(e.target.value)}
-              label="Chọn nhân viên"
-              disabled={loading}
+          {/* Staff List */}
+          <Typography
+            variant="subtitle2"
+            sx={{ fontWeight: 600, color: "#374151", mb: 2 }}
+          >
+            Danh sách nhân viên ({workloadData.length})
+          </Typography>
+
+          {loadingWorkload && (
+            <Box sx={{ textAlign: "center", py: 4 }}>
+              <CircularProgress size={36} />
+              <Typography variant="body2" sx={{ mt: 2, color: "#6B7280" }}>
+                Đang tải thông tin nhân viên...
+              </Typography>
+            </Box>
+          )}
+
+          {workloadError && (
+            <Alert severity="error" sx={{ borderRadius: 1.5 }}>
+              {workloadError}
+            </Alert>
+          )}
+
+          {!loadingWorkload && !workloadError && workloadData.length === 0 && (
+            <Alert severity="info" sx={{ borderRadius: 1.5 }}>
+              Không có dữ liệu nhân viên cho khoảng thời gian này
+            </Alert>
+          )}
+
+          {!loadingWorkload && !workloadError && workloadData.length > 0 && (
+            <Box
               sx={{
-                borderRadius: 2,
+                maxHeight: 400,
+                overflowY: "auto",
+                pr: 1,
+                "&::-webkit-scrollbar": {
+                  width: "6px",
+                },
+                "&::-webkit-scrollbar-track": {
+                  bgcolor: "#F3F4F6",
+                  borderRadius: "3px",
+                },
+                "&::-webkit-scrollbar-thumb": {
+                  bgcolor: "#D1D5DB",
+                  borderRadius: "3px",
+                  "&:hover": {
+                    bgcolor: "#9CA3AF",
+                  },
+                },
               }}
             >
-              {staffList.length === 0 ? (
-                <MenuItem disabled>Không có nhân viên</MenuItem>
-              ) : (
-                staffList.map((staff) => {
-                  const workload = getStaffWorkload(staff.userId);
-                  const level = workload
-                    ? getWorkloadLevel(
-                        workload.totalWorkload,
-                        workload.isAvailable
-                      )
-                    : null;
-                  const isAvailable = workload?.isAvailable ?? true;
+              <Stack spacing={1.5}>
+                {workloadData.map((staff) => {
+                  const isSelected = selectedStaffId === staff.staffId;
+                  const isExpanded = expandedStaff === staff.staffId;
 
                   return (
-                    <MenuItem
-                      key={staff.userId}
-                      value={staff.userId}
-                      disabled={!isAvailable}
+                    <Paper
+                      key={staff.staffId}
+                      elevation={0}
+                      sx={{
+                        border: isSelected
+                          ? "2px solid #111827"
+                          : "1px solid #E5E7EB",
+                        borderRadius: 1.5,
+                        transition: "all 0.2s",
+                        cursor: staff.isAvailable ? "pointer" : "not-allowed",
+                        opacity: staff.isAvailable ? 1 : 0.6,
+                        "&:hover": staff.isAvailable
+                          ? {
+                              borderColor: "#9CA3AF",
+                              boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                            }
+                          : {},
+                      }}
                     >
-                      <Stack
-                        direction="row"
-                        justifyContent="space-between"
-                        alignItems="center"
-                        sx={{ width: "100%" }}
+                      <Box
+                        sx={{ p: 2 }}
+                        onClick={() =>
+                          handleStaffClick(staff.staffId, staff.isAvailable)
+                        }
                       >
-                        <Box>
+                        {/* Staff Header */}
+                        <Stack
+                          direction="row"
+                          justifyContent="space-between"
+                          alignItems="center"
+                          mb={1.5}
+                        >
                           <Stack
                             direction="row"
                             alignItems="center"
-                            spacing={0.5}
+                            spacing={1.5}
                           >
-                            <Typography
-                              variant="body2"
-                              sx={{ fontWeight: 600 }}
+                            <Avatar
+                              sx={{
+                                bgcolor: staff.isAvailable
+                                  ? "#111827"
+                                  : "#9CA3AF",
+                                width: 36,
+                                height: 36,
+                              }}
                             >
-                              {staff.fullName}
-                            </Typography>
-                            {isAvailable && (
-                              <CheckCircleOutline
-                                sx={{ fontSize: 14, color: "#10B981" }}
-                              />
-                            )}
+                              <Person sx={{ fontSize: 20 }} />
+                            </Avatar>
+                            <Box>
+                              <Stack
+                                direction="row"
+                                alignItems="center"
+                                spacing={1}
+                              >
+                                <Typography
+                                  variant="body2"
+                                  sx={{
+                                    fontWeight: 600,
+                                    color: "#111827",
+                                  }}
+                                >
+                                  {staff.staffName}
+                                </Typography>
+                                {staff.isAvailable ? (
+                                  <CheckCircleOutline
+                                    sx={{
+                                      fontSize: 16,
+                                      color: "#10B981",
+                                    }}
+                                  />
+                                ) : (
+                                  <Block
+                                    sx={{
+                                      fontSize: 16,
+                                      color: "#EF4444",
+                                    }}
+                                  />
+                                )}
+                              </Stack>
+                              <Typography
+                                variant="caption"
+                                sx={{ color: "#6B7280" }}
+                              >
+                                {staff.isAvailable ? "Sẵn sàng" : "Có xung đột"}
+                              </Typography>
+                            </Box>
                           </Stack>
-                          <Typography
-                            variant="caption"
-                            sx={{ color: "#6B7280" }}
-                          >
-                            {staff.email}
-                          </Typography>
-                        </Box>
-                        {level && (
+
+                          <IconButton size="small">
+                            {isExpanded ? <ExpandLess /> : <ExpandMore />}
+                          </IconButton>
+                        </Stack>
+
+                        {/* Workload Summary */}
+                        <Stack
+                          direction="row"
+                          spacing={1}
+                          flexWrap="wrap"
+                          gap={0.5}
+                        >
                           <Chip
-                            label={level.label}
+                            label={`${staff.conflictingBookings} Đơn hàng`}
                             size="small"
                             sx={{
-                              bgcolor: level.color + "20",
-                              color: level.color,
-                              fontWeight: 600,
+                              fontSize: "0.7rem",
+                              height: 24,
+                              bgcolor: "#F3F4F6",
+                              color: "#374151",
+                              border: "none",
                             }}
                           />
-                        )}
-                      </Stack>
-                    </MenuItem>
-                  );
-                })
-              )}
-            </Select>
-          </FormControl>
+                          <Chip
+                            label={`${staff.conflictingVerifications} Đơn xác minh`}
+                            size="small"
+                            sx={{
+                              fontSize: "0.7rem",
+                              height: 24,
+                              bgcolor: "#F3F4F6",
+                              color: "#374151",
+                              border: "none",
+                            }}
+                          />
+                          <Chip
+                            label={`${staff.todayPickupBookings} Trả hàng`}
+                            size="small"
+                            sx={{
+                              fontSize: "0.7rem",
+                              height: 24,
+                              bgcolor: "#F3F4F6",
+                              color: "#374151",
+                              border: "none",
+                            }}
+                          />
+                          <Chip
+                            label={`${staff.todayReturnBookings} Nhận hàng`}
+                            size="small"
+                            sx={{
+                              fontSize: "0.7rem",
+                              height: 24,
+                              bgcolor: "#F3F4F6",
+                              color: "#374151",
+                              border: "none",
+                            }}
+                          />
+                        </Stack>
+                      </Box>
 
-          {/* Selected Staff Workload Alert */}
-          {selectedStaffWorkload && selectedStaffLevel && (
+                      {/* Expanded Details */}
+                      <Collapse in={isExpanded}>
+                        <Divider />
+                        <Box sx={{ p: 2, bgcolor: "#FAFAFA" }}>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              fontWeight: 600,
+                              color: "#374151",
+                              display: "block",
+                              mb: 1.5,
+                            }}
+                          >
+                            Chi tiết công việc:
+                          </Typography>
+                          <Stack spacing={1}>
+                            <Stack
+                              direction="row"
+                              justifyContent="space-between"
+                              alignItems="center"
+                            >
+                              <Typography
+                                variant="caption"
+                                sx={{ color: "#6B7280" }}
+                              >
+                                Đơn hàng đã gán
+                              </Typography>
+                              <Typography
+                                variant="caption"
+                                sx={{ fontWeight: 600, color: "#111827" }}
+                              >
+                                {staff.assignedBookings}
+                              </Typography>
+                            </Stack>
+                            <Stack
+                              direction="row"
+                              justifyContent="space-between"
+                              alignItems="center"
+                            >
+                              <Typography
+                                variant="caption"
+                                sx={{ color: "#6B7280" }}
+                              >
+                                Đơn xác minh đã gán
+                              </Typography>
+                              <Typography
+                                variant="caption"
+                                sx={{ fontWeight: 600, color: "#111827" }}
+                              >
+                                {staff.assignedVerifications}
+                              </Typography>
+                            </Stack>
+                            <Stack
+                              direction="row"
+                              justifyContent="space-between"
+                              alignItems="center"
+                            >
+                              <Typography
+                                variant="caption"
+                                sx={{ color: "#6B7280" }}
+                              >
+                                Đơn hàng xung đột
+                              </Typography>
+                              <Typography
+                                variant="caption"
+                                sx={{ fontWeight: 600, color: "#111827" }}
+                              >
+                                {staff.conflictingBookings}
+                              </Typography>
+                            </Stack>
+                            <Stack
+                              direction="row"
+                              justifyContent="space-between"
+                              alignItems="center"
+                            >
+                              <Typography
+                                variant="caption"
+                                sx={{ color: "#6B7280" }}
+                              >
+                                Đơn xác minh xung đột
+                              </Typography>
+                              <Typography
+                                variant="caption"
+                                sx={{ fontWeight: 600, color: "#111827" }}
+                              >
+                                {staff.conflictingVerifications}
+                              </Typography>
+                            </Stack>
+                            <Stack
+                              direction="row"
+                              justifyContent="space-between"
+                              alignItems="center"
+                            >
+                              <Typography
+                                variant="caption"
+                                sx={{ color: "#6B7280" }}
+                              >
+                                Trả hàng hôm nay
+                              </Typography>
+                              <Typography
+                                variant="caption"
+                                sx={{ fontWeight: 600, color: "#111827" }}
+                              >
+                                {staff.todayPickupBookings}
+                              </Typography>
+                            </Stack>
+                            <Stack
+                              direction="row"
+                              justifyContent="space-between"
+                              alignItems="center"
+                            >
+                              <Typography
+                                variant="caption"
+                                sx={{ color: "#6B7280" }}
+                              >
+                                Nhận hàng hôm nay
+                              </Typography>
+                              <Typography
+                                variant="caption"
+                                sx={{ fontWeight: 600, color: "#111827" }}
+                              >
+                                {staff.todayReturnBookings}
+                              </Typography>
+                            </Stack>
+
+                            {(staff.conflictingBookings > 0 ||
+                              staff.conflictingVerifications > 0) && (
+                              <Alert
+                                severity="warning"
+                                icon={<Warning fontSize="small" />}
+                                sx={{ mt: 1, py: 0.5 }}
+                              >
+                                <Typography variant="caption">
+                                  Có{" "}
+                                  {staff.conflictingBookings +
+                                    staff.conflictingVerifications}{" "}
+                                  công việc xung đột
+                                </Typography>
+                              </Alert>
+                            )}
+
+                            {staff.isAvailable && !isSelected && (
+                              <Button
+                                fullWidth
+                                variant="outlined"
+                                size="small"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedStaffId(staff.staffId);
+                                }}
+                                sx={{
+                                  mt: 1,
+                                  borderColor: "#D1D5DB",
+                                  color: "#374151",
+                                  "&:hover": {
+                                    borderColor: "#9CA3AF",
+                                    bgcolor: "#F9FAFB",
+                                  },
+                                }}
+                              >
+                                Chọn nhân viên
+                              </Button>
+                            )}
+                          </Stack>
+                        </Box>
+                      </Collapse>
+                    </Paper>
+                  );
+                })}
+              </Stack>
+            </Box>
+          )}
+
+          {/* Selected Staff Summary */}
+          {selectedStaffWorkload && (
             <Alert
-              severity={
-                !selectedStaffWorkload.isAvailable
-                  ? "error"
-                  : selectedStaffWorkload.totalWorkload === 0
-                  ? "success"
-                  : selectedStaffWorkload.totalWorkload <= 3
-                  ? "info"
-                  : selectedStaffWorkload.totalWorkload <= 6
-                  ? "warning"
-                  : "error"
+              severity={selectedStaffWorkload.isAvailable ? "success" : "error"}
+              icon={
+                selectedStaffWorkload.isAvailable ? (
+                  <CheckCircleOutline />
+                ) : (
+                  <Block />
+                )
               }
-              icon={selectedStaffLevel.icon}
-              sx={{ mt: 2, borderRadius: 2 }}
+              sx={{ mt: 3, borderRadius: 1.5 }}
             >
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                Nhân viên đã chọn: {selectedStaffWorkload.staffName}
+              <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                Nhân viên được chọn: {selectedStaffWorkload.staffName}
               </Typography>
               <Typography variant="caption">
-                Trạng thái: <strong>{selectedStaffLevel.label}</strong>
-                {selectedStaffWorkload.isAvailable &&
-                  ` (${selectedStaffWorkload.totalWorkload} công việc trong ngày)`}
+                {selectedStaffWorkload.isAvailable
+                  ? `${selectedStaffWorkload.totalWorkload} công việc (${selectedStaffWorkload.conflictingBookings} đơn hàng, ${selectedStaffWorkload.conflictingVerifications} đơn xác minh bị trùng)`
+                  : "Nhân viên không khả dụng do có xung đột lịch"}
               </Typography>
             </Alert>
           )}
         </Box>
       </DialogContent>
 
-      <DialogActions sx={{ p: 3 }}>
+      <Divider />
+      <DialogActions sx={{ p: 2.5 }}>
         <Button
-          variant="outlined"
           onClick={handleClose}
           disabled={loading}
           sx={{
-            borderColor: colors.border.light,
-            color: colors.text.primary,
-            textTransform: "none",
-            fontWeight: 600,
+            color: "#6B7280",
+            fontWeight: 500,
             "&:hover": {
               bgcolor: "#F3F4F6",
             },
           }}
         >
-          Hủy
+          Hủy bỏ
         </Button>
         <Button
-          variant="contained"
           onClick={handleAssign}
+          variant="contained"
+          startIcon={loading ? null : <CheckCircle />}
           disabled={
             !selectedStaffId || loading || !selectedStaffWorkload?.isAvailable
           }
           sx={{
             bgcolor: colors.primary.main,
-            color: "white",
-            textTransform: "none",
-            fontWeight: 600,
+            fontWeight: 500,
+            px: 3,
             "&:hover": {
               bgcolor: colors.primary.dark,
             },
@@ -717,10 +737,7 @@ const AssignStaffDialog: React.FC<AssignStaffDialogProps> = ({
           }}
         >
           {loading ? (
-            <>
-              <CircularProgress size={20} sx={{ mr: 1, color: "white" }} />
-              Đang gán...
-            </>
+            <CircularProgress size={20} sx={{ color: "white" }} />
           ) : (
             "Xác nhận gán"
           )}

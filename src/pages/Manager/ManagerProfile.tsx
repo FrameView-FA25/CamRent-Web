@@ -115,8 +115,8 @@ const ManagerProfile: React.FC = () => {
       const data = await userService.getCurrentUserProfile();
       setProfileData({
         ...data,
-        signatureAssetId: null,
-        avatarId: null,
+        signatureAssetId: data.signatureAssetId || null,
+        avatarId: data.avatarId || null,
       });
 
       setUserData({
@@ -407,7 +407,7 @@ const ManagerProfile: React.FC = () => {
       </Box>
     );
   }
-
+  console.log("Rendered with profileData:", profileData);
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       {/* Header */}
