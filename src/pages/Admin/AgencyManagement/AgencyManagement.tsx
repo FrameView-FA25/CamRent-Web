@@ -22,10 +22,9 @@ import {
   CircularProgress,
   Alert,
   Chip,
-  Avatar,
   ListItemIcon,
   ListItemText,
-  Tooltip,
+  Avatar,
 } from "@mui/material";
 import {
   Search as SearchIcon,
@@ -46,6 +45,7 @@ import type { Branch, UserMembership } from "../../../types/branch.types";
 import AssignStaffDialog from "../../../components/Modal/Admin/Branchs/AssignStaffDialog";
 import AssignManagerDialog from "../../../components/Modal/Admin/Branchs/AssignManagerDialog";
 import RemoveMemberDialog from "../../../components/Modal/Admin/Branchs/RemoveMemberDialog";
+import BranchMembersDialog from "../../../components/Modal/Admin/Branchs/BranchMembersDialog";
 
 const formatAddress = (agency: Branch): string => {
   if (!agency.address) return "Chưa cập nhật";
@@ -115,6 +115,8 @@ const AgencyManagement: React.FC = () => {
     province?: string;
     district?: string;
   }>({});
+
+  const [openMembersDialog, setOpenMembersDialog] = useState(false);
 
   const fetchAgencies = async () => {
     try {
@@ -234,7 +236,22 @@ const AgencyManagement: React.FC = () => {
     setMemberMenuAnchor(null);
   };
 
-  const handleOpenRemoveMemberDialog = () => {
+  // Mở dialog quản lý nhân viên cho 1 chi nhánh
+  const handleOpenMembersDialog = (branch: Branch) => {
+    setSelectedBranch(branch);
+    setOpenMembersDialog(true);
+  };
+
+  // Đóng dialog quản lý nhân viên
+  const handleCloseMembersDialog = () => {
+    setOpenMembersDialog(false);
+    setSelectedBranch(null);
+  };
+
+  const handleOpenRemoveMemberDialog = (member?: UserMembership) => {
+    if (member) {
+      setSelectedMember(member);
+    }
     setOpenRemoveMemberDialog(true);
     setMemberMenuAnchor(null);
   };
@@ -554,7 +571,10 @@ const AgencyManagement: React.FC = () => {
                                   }
                                   sx={{
                                     opacity: 0.6,
-                                    "&:hover": { opacity: 1, color: "#DC2626" },
+                                    "&:hover": {
+                                      opacity: 1,
+                                      color: "#DC2626",
+                                    },
                                   }}
                                 >
                                   <MoreVertIcon fontSize="small" />
@@ -564,7 +584,10 @@ const AgencyManagement: React.FC = () => {
                           ) : (
                             <Typography
                               variant="body2"
-                              sx={{ color: "#9CA3AF", fontStyle: "italic" }}
+                              sx={{
+                                color: "#9CA3AF",
+                                fontStyle: "italic",
+                              }}
                             >
                               Chưa có quản lý
                             </Typography>
@@ -572,115 +595,41 @@ const AgencyManagement: React.FC = () => {
                         </TableCell>
                         <TableCell>
                           {members.length > 0 ? (
-                            <Tooltip
-                              title={
-                                <Box sx={{ p: 1 }}>
-                                  {members.map((member, index) => (
-                                    <Box
-                                      key={member.userId}
-                                      sx={{
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "space-between",
-                                        gap: 2,
-                                        mb: index < members.length - 1 ? 1 : 0,
-                                        pb: index < members.length - 1 ? 1 : 0,
-                                        borderBottom:
-                                          index < members.length - 1
-                                            ? "1px solid rgba(255,255,255,0.1)"
-                                            : "none",
-                                      }}
-                                    >
-                                      <Box>
-                                        <Typography
-                                          variant="caption"
-                                          sx={{
-                                            fontWeight: 500,
-                                            display: "block",
-                                          }}
-                                        >
-                                          {member.fullName}
-                                        </Typography>
-                                        <Typography
-                                          variant="caption"
-                                          sx={{
-                                            display: "block",
-                                            opacity: 0.7,
-                                            fontSize: "0.7rem",
-                                          }}
-                                        >
-                                          {member.email}
-                                        </Typography>
-                                      </Box>
-                                      <IconButton
-                                        size="small"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleMemberMenuClick(
-                                            e,
-                                            agency,
-                                            member
-                                          );
-                                        }}
-                                        sx={{
-                                          color: "white",
-                                          "&:hover": {
-                                            bgcolor: "rgba(255,255,255,0.1)",
-                                          },
-                                        }}
-                                      >
-                                        <MoreVertIcon fontSize="small" />
-                                      </IconButton>
-                                    </Box>
-                                  ))}
-                                </Box>
-                              }
-                              arrow
-                              placement="left"
-                              slotProps={{
-                                tooltip: {
-                                  sx: {
-                                    bgcolor: "#1F2937",
-                                    maxWidth: 300,
+                            <Box
+                              onClick={() => handleOpenMembersDialog(agency)}
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 1,
+                                cursor: "pointer",
+                                "&:hover": {
+                                  "& .MuiSvgIcon-root": {
+                                    color: "#FF5722",
+                                  },
+                                  "& .MuiTypography-root": {
+                                    color: "#FF5722",
                                   },
                                 },
                               }}
                             >
-                              <Box
+                              <PeopleIcon
                                 sx={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: 1,
-                                  cursor: "pointer",
-                                  "&:hover": {
-                                    "& .MuiSvgIcon-root": {
-                                      color: "#FF5722",
-                                    },
-                                    "& .MuiTypography-root": {
-                                      color: "#FF5722",
-                                    },
-                                  },
+                                  color: "#6B7280",
+                                  fontSize: 20,
+                                  transition: "color 0.2s",
+                                }}
+                              />
+                              <Typography
+                                variant="body2"
+                                sx={{
+                                  color: "#6B7280",
+                                  fontWeight: 500,
+                                  transition: "color 0.2s",
                                 }}
                               >
-                                <PeopleIcon
-                                  sx={{
-                                    color: "#6B7280",
-                                    fontSize: 20,
-                                    transition: "color 0.2s",
-                                  }}
-                                />
-                                <Typography
-                                  variant="body2"
-                                  sx={{
-                                    color: "#6B7280",
-                                    fontWeight: 500,
-                                    transition: "color 0.2s",
-                                  }}
-                                >
-                                  {members.length} người
-                                </Typography>
-                              </Box>
-                            </Tooltip>
+                                {members.length} người
+                              </Typography>
+                            </Box>
                           ) : (
                             <Typography
                               variant="body2"
@@ -760,7 +709,7 @@ const AgencyManagement: React.FC = () => {
           },
         }}
       >
-        <MenuItem onClick={handleOpenRemoveMemberDialog}>
+        <MenuItem onClick={() => handleOpenRemoveMemberDialog()}>
           <ListItemIcon>
             <PersonRemoveIcon sx={{ color: "#DC2626" }} fontSize="small" />
           </ListItemIcon>
@@ -896,7 +845,7 @@ const AgencyManagement: React.FC = () => {
         onSuccess={handleAssignSuccess}
       />
 
-      {/* Assign Manager Dialog */}
+      {/* Dialog gán quản lý */}
       <AssignManagerDialog
         open={openAssignManagerDialog}
         onClose={handleCloseAssignManagerDialog}
@@ -904,7 +853,16 @@ const AgencyManagement: React.FC = () => {
         onSuccess={handleAssignSuccess}
       />
 
-      {/* Remove Member Dialog */}
+      {/* Dialog quản lý nhân viên */}
+      <BranchMembersDialog
+        open={openMembersDialog}
+        onClose={handleCloseMembersDialog}
+        branch={selectedBranch}
+        members={selectedBranch ? getBranchMembers(selectedBranch.id) : []}
+        onRemoveMember={(member) => handleOpenRemoveMemberDialog(member)}
+      />
+
+      {/* Dialog xóa nhân viên */}
       <RemoveMemberDialog
         open={openRemoveMemberDialog}
         onClose={handleCloseRemoveMemberDialog}

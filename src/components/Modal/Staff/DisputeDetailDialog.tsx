@@ -43,6 +43,7 @@ const DisputeDetailDialog: React.FC<DisputeDetailDialogProps> = ({
     amount: 0,
     notes: "",
   });
+  const [otherType, setOtherType] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -87,6 +88,10 @@ const DisputeDetailDialog: React.FC<DisputeDetailDialogProps> = ({
       setError("Số tiền phải lớn hơn 0");
       return;
     }
+    if (newItem.type === "Other" && !otherType.trim()) {
+      setError("Vui lòng nhập loại bồi thường khi chọn 'Khác'");
+      return;
+    }
     if (!newItem.notes.trim()) {
       setError("Vui lòng nhập ghi chú");
       return;
@@ -96,9 +101,15 @@ const DisputeDetailDialog: React.FC<DisputeDetailDialogProps> = ({
     setError(null);
 
     try {
-      await onAddItem(dispute.id, newItem);
+      const payload: AddDisputeItemRequest =
+        newItem.type === "Other" && otherType.trim()
+          ? { ...newItem, type: otherType.trim() }
+          : newItem;
+
+      await onAddItem(dispute.id, payload);
       setShowAddItem(false);
       setNewItem({ type: "Money", amount: 0, notes: "" });
+      setOtherType("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Có lỗi xảy ra");
     } finally {
@@ -277,7 +288,7 @@ const DisputeDetailDialog: React.FC<DisputeDetailDialogProps> = ({
                 <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
                   <TextField
                     select
-                    label="Loại"
+                    label="Loại bồi thường"
                     value={newItem.type}
                     onChange={(e) =>
                       setNewItem({ ...newItem, type: e.target.value })
@@ -285,9 +296,21 @@ const DisputeDetailDialog: React.FC<DisputeDetailDialogProps> = ({
                     size="small"
                     fullWidth
                   >
-                    <MenuItem value="PayOS">PayOS</MenuItem>
-                    <MenuItem value="Money">Tiền mặt</MenuItem>
+                    <MenuItem value="Damage">Thiệt hại</MenuItem>
+                    <MenuItem value="Missing">Mất thiết bị</MenuItem>
+                    <MenuItem value="Late">Trễ hẹn</MenuItem>
+                    <MenuItem value="Other">Khác</MenuItem>
                   </TextField>
+
+                  {newItem.type === "Other" && (
+                    <TextField
+                      label="Nhập loại bồi thường"
+                      value={otherType}
+                      onChange={(e) => setOtherType(e.target.value)}
+                      size="small"
+                      fullWidth
+                    />
+                  )}
 
                   <TextField
                     label="Số tiền"
@@ -322,6 +345,7 @@ const DisputeDetailDialog: React.FC<DisputeDetailDialogProps> = ({
                       onClick={() => {
                         setShowAddItem(false);
                         setNewItem({ type: "Money", amount: 0, notes: "" });
+                        setOtherType("");
                         setError(null);
                       }}
                       size="small"

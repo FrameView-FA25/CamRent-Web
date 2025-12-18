@@ -12,6 +12,8 @@ import {
   CircularProgress,
   Dialog,
   DialogContent,
+  DialogTitle,
+  DialogActions,
   Stepper,
   Step,
   StepLabel,
@@ -19,6 +21,11 @@ import {
   IconButton,
   Stack,
   Collapse,
+  Snackbar,
+  FormControl,
+  RadioGroup,
+  FormControlLabel,
+  Radio,
 } from "@mui/material";
 import {
   ArrowBack,
@@ -36,6 +43,8 @@ import {
   ExpandLess,
   CheckCircle,
   Cancel,
+  CreditCard,
+  Money,
 } from "@mui/icons-material";
 import {
   fetchBookingById,
@@ -49,12 +58,13 @@ import {
   format,
 } from "../../utils/booking.utils";
 import { getItemName } from "../../helpers/booking.helper";
+import { initiatePayment } from "../../services/payment.service";
 
 const steps = [
   "Đơn hàng mới",
   "Đã xác nhận",
-  "Đang giao hàng",
   "Đã giao hàng",
+  "Đã trả hàng",
   "Hoàn thành",
 ];
 
@@ -70,9 +80,18 @@ const BookingDetail: React.FC = () => {
   const [rentalDetailExpanded, setRentalDetailExpanded] = useState(false);
   const [paidDetailExpanded, setPaidDetailExpanded] = useState(false);
   const [unpaidDetailExpanded, setUnpaidDetailExpanded] = useState(false);
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<"PayOs" | "Cash">("PayOs");
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success" as "success" | "error" | "info",
+  });
 
   const loadBookingDetail = useCallback(async () => {
     if (!id) return;
+    console.log("Loading booking detail for ID:", id);
 
     setLoading(true);
     setError(null);
@@ -113,6 +132,110 @@ const BookingDetail: React.FC = () => {
     setDeliveryPhotos([]);
   };
 
+  const handlePayment = () => {
+    if (!booking?.id) {
+      setSnackbar({
+        open: true,
+        message: "Không tìm thấy thông tin đơn hàng. Vui lòng thử lại.",
+        severity: "error",
+      });
+      return;
+    }
+    setPaymentDialogOpen(true);
+  };
+
+  const handleConfirmPayment = async () => {
+    if (!booking?.id) {
+      setSnackbar({
+        open: true,
+        message: "Không tìm thấy thông tin đơn hàng. Vui lòng thử lại.",
+        severity: "error",
+      });
+      return;
+    }
+
+    setPaymentDialogOpen(false);
+    setPaymentLoading(true);
+
+    try {
+      const token = localStorage.getItem("accessToken");
+
+      if (paymentMethod === "Cash") {
+        // Gọi API authorize với phương thức Cash
+        const response = await fetch(
+          `https://camrent-backend.up.railway.app/api/Payments/authorize`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              bookingId: booking.id,
+              mode: "Rental", // Thanh toán phần còn lại
+              method: "Cash",
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(errorText || "Không thể xác nhận thanh toán");
+        }
+
+        setSnackbar({
+          open: true,
+          message: "Xác nhận thanh toán tiền mặt thành công!",
+          severity: "success",
+        });
+
+        // Reload booking data để cập nhật trạng thái
+        await loadBookingDetail();
+      } else {
+        // Xử lý thanh toán qua PayOS như cũ
+        const unpaidAmount =
+          booking.snapshotRentalTotal +
+          booking.snapshotDepositAmount -
+          booking.snapshotPlatformFeePercent * booking.snapshotRentalTotal;
+
+        const checkoutUrl = await initiatePayment(
+          booking.id,
+          "Rental",
+          unpaidAmount
+        );
+
+        if (!checkoutUrl) {
+          throw new Error("Không nhận được URL thanh toán từ hệ thống");
+        }
+
+        setSnackbar({
+          open: true,
+          message: "Đang chuyển hướng đến trang thanh toán...",
+          severity: "success",
+        });
+
+        setTimeout(() => {
+          window.location.href = checkoutUrl;
+        }, 1000);
+      }
+    } catch (error) {
+      console.error("Payment error:", error);
+      setSnackbar({
+        open: true,
+        message:
+          (error as Error).message ||
+          "Không thể xử lý thanh toán. Vui lòng thử lại.",
+        severity: "error",
+      });
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar({ ...snackbar, open: false });
+  };
+
   const getStatusNumber = (statusText: string): number => {
     const statusMap: Record<string, number> = {
       Pending: 0,
@@ -120,17 +243,13 @@ const BookingDetail: React.FC = () => {
       Delivering: 2,
       Delivered: 3,
       Completed: 4,
-      Cancelled: -1, // Đơn bị hủy không hiển thị progress
+      Cancelled: -1,
     };
     return statusMap[statusText] ?? 0;
   };
 
   const getActiveStep = (statusNumber: number) => {
-    // Nếu đơn hàng bị hủy, không hiển thị step nào
     if (statusNumber === -1) return -1;
-
-    // Trả về step hiện tại (đã hoàn thành step này)
-    // VD: Confirmed (1) -> đã hoàn thành step 0 và step 1
     return statusNumber;
   };
 
@@ -229,7 +348,7 @@ const BookingDetail: React.FC = () => {
           </Box>
         </Box>
 
-        {/* Stepper - Chỉ hiển thị nếu đơn hàng không bị hủy */}
+        {/* Stepper */}
         {statusNumber !== -1 && (
           <Paper elevation={0} sx={{ p: 4, mb: 3, borderRadius: 3 }}>
             <Stepper activeStep={getActiveStep(statusNumber)} alternativeLabel>
@@ -809,6 +928,7 @@ const BookingDetail: React.FC = () => {
               borderRadius: 3,
               display: "flex",
               flexDirection: "column",
+              gridColumn: { xs: "1 / -1", lg: "1 / -1" },
             }}
           >
             <Box
@@ -1085,6 +1205,42 @@ const BookingDetail: React.FC = () => {
                           )}
                         </Typography>
                       </Box>
+
+                      {/* Nút Thanh Toán */}
+                      <Button
+                        variant="contained"
+                        startIcon={
+                          paymentLoading ? (
+                            <CircularProgress size={20} color="inherit" />
+                          ) : (
+                            <Payment />
+                          )
+                        }
+                        fullWidth
+                        disabled={paymentLoading}
+                        sx={{
+                          mt: 2,
+                          bgcolor: "#F97316",
+                          color: "white",
+                          textTransform: "none",
+                          fontWeight: 600,
+                          py: 1.2,
+                          borderRadius: 2,
+                          "&:hover": {
+                            bgcolor: "#EA580C",
+                          },
+                          "&:disabled": {
+                            bgcolor: "#FED7AA",
+                            color: "white",
+                          },
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlePayment();
+                        }}
+                      >
+                        {paymentLoading ? "Đang xử lý..." : "Thanh toán ngay"}
+                      </Button>
                     </Stack>
                   </Box>
                 </Collapse>
@@ -1163,6 +1319,203 @@ const BookingDetail: React.FC = () => {
             </Box>
           </DialogContent>
         </Dialog>
+
+        {/* Payment Method Dialog */}
+        <Dialog
+          open={paymentDialogOpen}
+          onClose={() => setPaymentDialogOpen(false)}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle>
+            <Typography variant="h6" sx={{ fontWeight: 700, color: "#1F2937" }}>
+              Chọn phương thức thanh toán
+            </Typography>
+          </DialogTitle>
+          <DialogContent>
+            <FormControl component="fieldset" fullWidth sx={{ mt: 2 }}>
+              <RadioGroup
+                value={paymentMethod}
+                onChange={(e) =>
+                  setPaymentMethod(e.target.value as "PayOs" | "Cash")
+                }
+              >
+                {/* PayOS Payment */}
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 3,
+                    mb: 2,
+                    border: `2px solid ${
+                      paymentMethod === "PayOs" ? "#F97316" : "#E5E7EB"
+                    }`,
+                    borderRadius: 2,
+                    cursor: "pointer",
+                    transition: "all 0.2s",
+                    "&:hover": {
+                      borderColor: "#F97316",
+                      bgcolor: "#FFF7ED",
+                    },
+                  }}
+                  onClick={() => setPaymentMethod("PayOs")}
+                >
+                  <FormControlLabel
+                    value="PayOs"
+                    control={<Radio />}
+                    label={
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 2,
+                        }}
+                      >
+                        <CreditCard sx={{ color: "#F97316", fontSize: 28 }} />
+                        <Box>
+                          <Typography
+                            variant="body1"
+                            sx={{ fontWeight: 700, color: "#1F2937" }}
+                          >
+                            Chuyển khoản ngân hàng
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            sx={{ color: "#6B7280" }}
+                          >
+                            Thanh toán qua cổng PayOS
+                          </Typography>
+                        </Box>
+                      </Box>
+                    }
+                    sx={{ m: 0, width: "100%" }}
+                  />
+                </Paper>
+
+                {/* Cash Payment */}
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 3,
+                    border: `2px solid ${
+                      paymentMethod === "Cash" ? "#F97316" : "#E5E7EB"
+                    }`,
+                    borderRadius: 2,
+                    cursor: "pointer",
+                    transition: "all 0.2s",
+                    "&:hover": {
+                      borderColor: "#F97316",
+                      bgcolor: "#FFF7ED",
+                    },
+                  }}
+                  onClick={() => setPaymentMethod("Cash")}
+                >
+                  <FormControlLabel
+                    value="Cash"
+                    control={<Radio />}
+                    label={
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 2,
+                        }}
+                      >
+                        <Money sx={{ color: "#059669", fontSize: 28 }} />
+                        <Box>
+                          <Typography
+                            variant="body1"
+                            sx={{ fontWeight: 700, color: "#1F2937" }}
+                          >
+                            Tiền mặt
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            sx={{ color: "#6B7280" }}
+                          >
+                            Thanh toán trực tiếp bằng tiền mặt
+                          </Typography>
+                        </Box>
+                      </Box>
+                    }
+                    sx={{ m: 0, width: "100%" }}
+                  />
+                </Paper>
+              </RadioGroup>
+            </FormControl>
+
+            {booking && (
+              <Alert severity="info" sx={{ mt: 3, borderRadius: 2 }}>
+                <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                  Số tiền cần thanh toán:
+                </Typography>
+                <Typography
+                  variant="h6"
+                  sx={{ color: "#F97316", fontWeight: 700 }}
+                >
+                  {formatCurrency(
+                    booking.snapshotRentalTotal +
+                      booking.snapshotDepositAmount -
+                      booking.snapshotPlatformFeePercent *
+                        booking.snapshotRentalTotal
+                  )}
+                </Typography>
+              </Alert>
+            )}
+          </DialogContent>
+          <DialogActions sx={{ p: 3, pt: 0 }}>
+            <Button
+              onClick={() => setPaymentDialogOpen(false)}
+              variant="outlined"
+              sx={{
+                borderColor: "#E5E7EB",
+                color: "#6B7280",
+                textTransform: "none",
+                fontWeight: 600,
+                "&:hover": {
+                  borderColor: "#9CA3AF",
+                  bgcolor: "#F9FAFB",
+                },
+              }}
+            >
+              Hủy
+            </Button>
+            <Button
+              onClick={handleConfirmPayment}
+              variant="contained"
+              disabled={paymentLoading}
+              sx={{
+                bgcolor: "#F97316",
+                textTransform: "none",
+                fontWeight: 600,
+                "&:hover": {
+                  bgcolor: "#EA580C",
+                },
+              }}
+            >
+              {paymentLoading ? (
+                <CircularProgress size={24} sx={{ color: "white" }} />
+              ) : (
+                "Xác nhận thanh toán"
+              )}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Snackbar for notifications */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={6000}
+          onClose={handleCloseSnackbar}
+          anchorOrigin={{ vertical: "top", horizontal: "right" }}
+        >
+          <Alert
+            onClose={handleCloseSnackbar}
+            severity={snackbar.severity}
+            sx={{ width: "100%" }}
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
       </Container>
     </Box>
   );

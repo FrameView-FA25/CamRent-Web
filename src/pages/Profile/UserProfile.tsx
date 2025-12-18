@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Container,
@@ -15,6 +15,7 @@ import {
   Snackbar,
   Tab,
   Tabs,
+  CircularProgress,
   Chip,
 } from "@mui/material";
 import {
@@ -24,9 +25,16 @@ import {
   PhotoCamera as PhotoCameraIcon,
   Lock as LockIcon,
   Person as PersonIcon,
+  AccountBalance as AccountBalanceIcon,
 } from "@mui/icons-material";
+import { getRoleLabel } from "../../utils/roleUtils";
 import { authService } from "../../services/auth.service";
-import { userService } from "../../services/user.service";
+import {
+  userService,
+  type UserProfileResponse,
+} from "../../services/user.service";
+import { toast } from "react-toastify";
+
 interface TabPanelProps {
   children?: React.ReactNode;
   index: number;
@@ -53,22 +61,34 @@ const TabPanel: React.FC<TabPanelProps> = ({ children, value, index }) => (
   </Box>
 );
 
-const StaffProfile: React.FC = () => {
+const UserProfile: React.FC = () => {
   const [tabValue, setTabValue] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
   const [showNotification, setShowNotification] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState("");
-  const [userId, setUserId] = useState<string | null>(null);
+  const [notificationSeverity, setNotificationSeverity] = useState<
+    "success" | "error"
+  >("success");
+  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const [profileData, setProfileData] = useState({
+    id: "",
     fullName: "",
     email: "",
-    phoneNumber: "",
+    phone: "",
     address: "",
     role: "",
-    createdAt: "",
     joinDate: "",
-    status: "Active",
+    status: "",
+    avatar: "",
+  });
+
+  const [bankData, setBankData] = useState({
+    bankName: "",
+    accountNumber: "",
+    accountName: "",
   });
 
   const [passwordData, setPasswordData] = useState({
@@ -77,98 +97,132 @@ const StaffProfile: React.FC = () => {
     confirmPassword: "",
   });
 
-  const showSuccess = (message: string) => {
+  // Kiểm tra role có cần thông tin ngân hàng không
+  const needsBankInfo = () => {
+    const rolesNeedBank = ["Owner", "Renter"];
+    return rolesNeedBank.includes(profileData.role);
+  };
+
+  const showNotificationMessage = (
+    message: string,
+    severity: "success" | "error" = "success"
+  ) => {
     setNotificationMessage(message);
+    setNotificationSeverity(severity);
     setShowNotification(true);
   };
 
-  const showError = (message: string) => {
-    setNotificationMessage(message);
-    setShowNotification(true);
-  };
+  const fetchProfile = async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
+      const data: UserProfileResponse =
+        await userService.getCurrentUserProfile();
+
+      // Helper function để lấy role string
+      const getUserRole = (): string => {
+        if (data.roles && data.roles.length > 0) {
+          const roleValue = data.roles[0].role;
+          // Nếu role là array, lấy phần tử đầu tiên, nếu không thì trả về string
+          return Array.isArray(roleValue)
+            ? roleValue[0] || ""
+            : roleValue || "";
+        }
+        return "";
+      };
+
+      // Helper function để lấy avatar string
+      const getAvatarUrl = (): string => {
+        if (!data.avatar) return "";
+        // Nếu avatar là array, lấy phần tử đầu tiên, nếu không thì trả về string
+        return Array.isArray(data.avatar) ? data.avatar[0] || "" : data.avatar;
+      };
+
+      setProfileData({
+        id: data.id || "",
+        fullName: data.fullName || "",
+        email: data.email || "",
+        phone: data.phone || "",
+        address: data.address || "",
+        role: getUserRole(),
+        joinDate: data.createdAt
+          ? new Date(data.createdAt).toLocaleDateString("vi-VN")
+          : "",
+        status: data.status || "",
+        avatar: getAvatarUrl(),
+      });
+
+      setBankData({
+        bankName: data.bankName || "",
+        accountNumber: data.bankAccountNumber || "",
+        accountName: data.bankAccountName || "",
+      });
+    } catch (err) {
+      console.error("Fetch user profile failed", err);
+      const message = err instanceof Error ? err.message : "Tải hồ sơ thất bại";
+      setError(message);
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
+  };
   useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const data = await userService.getCurrentUserProfile();
-        setUserId(data.id);
-        setProfileData({
-          fullName: data.fullName || "",
-          email: data.email || "",
-          phoneNumber: data.phone || "",
-          address: data.address || "",
-          role:
-            (data.roles && data.roles.length > 0 && data.roles[0].role) ||
-            "Staff",
-          createdAt: data.createdAt || "",
-          joinDate: data.createdAt || "",
-          status: data.status === "Ban" ? "Ban" : "Active",
-        });
-      } catch (err) {
-        console.error("Fetch staff profile failed", err);
-        const message =
-          err instanceof Error ? err.message : "Tải hồ sơ thất bại";
-        showError(message);
-      }
-    };
-
     fetchProfile();
   }, []);
 
   const handleSave = async () => {
-    if (!userId) {
-      showError("Không tìm thấy người dùng");
-      return;
-    }
-
     try {
-      await userService.updateUserProfile(userId, {
+      setIsLoading(true);
+      await userService.updateUserProfile(profileData.id, {
         fullName: profileData.fullName,
-        phone: profileData.phoneNumber,
+        phone: profileData.phone,
         address: profileData.address,
-        bankNo: null,
-        bankName: null,
-        bankAccName: null,
+        bankNo: bankData.accountNumber || null,
+        bankName: bankData.bankName || null,
+        bankAccName: bankData.accountName || null,
       });
-
       setIsEditing(false);
-      showSuccess("Cập nhật thông tin thành công!");
+      showNotificationMessage("Cập nhật thông tin thành công!");
+      fetchProfile();
     } catch (err) {
-      console.error("Update staff profile failed", err);
+      console.error("Update user profile failed", err);
       const message =
-        err instanceof Error ? err.message : "Cập nhật thông tin thất bại!";
-      showError(message);
+        err instanceof Error ? err.message : "Cập nhật thông tin thất bại";
+      showNotificationMessage(message, "error");
+      toast.error(message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // Hàm đổi mật khẩu cho user đã đăng nhập
-  const handleChangePassword = async () => {
-    // Validate
+  const handlePasswordUpdate = async () => {
     if (
       !passwordData.currentPassword ||
       !passwordData.newPassword ||
       !passwordData.confirmPassword
     ) {
-      showError("Vui lòng điền đầy đủ thông tin!");
+      showNotificationMessage("Vui lòng điền đầy đủ thông tin!", "error");
       return;
     }
 
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      showError("Mật khẩu xác nhận không khớp!");
+      showNotificationMessage("Mật khẩu xác nhận không khớp!", "error");
       return;
     }
 
     if (passwordData.newPassword.length < 6) {
-      showError("Mật khẩu mới phải có ít nhất 6 ký tự!");
+      showNotificationMessage("Mật khẩu mới phải có ít nhất 6 ký tự!", "error");
       return;
     }
 
     try {
+      setIsLoading(true);
       await authService.changePassword({
         currentPassword: passwordData.currentPassword,
         newPassword: passwordData.newPassword,
       });
-      showSuccess("Đổi mật khẩu thành công!");
+      showNotificationMessage("Cập nhật mật khẩu thành công!");
       setPasswordData({
         currentPassword: "",
         newPassword: "",
@@ -176,8 +230,32 @@ const StaffProfile: React.FC = () => {
       });
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : "Đổi mật khẩu thất bại!";
-      showError(errorMessage);
+        error instanceof Error ? error.message : "Cập nhật mật khẩu thất bại!";
+      showNotificationMessage(errorMessage, "error");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAvatarChange = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      try {
+        setIsLoading(true);
+        // Tạo FormData và thêm file avatar
+        const formData = new FormData();
+        formData.append("avatar", file);
+        await userService.updateUserProfile(profileData.id, formData);
+        showNotificationMessage("Cập nhật ảnh đại diện thành công!");
+        fetchProfile();
+      } catch (error) {
+        showNotificationMessage("Cập nhật ảnh đại diện thất bại!", "error");
+        console.error("Update avatar failed", error);
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -203,14 +281,16 @@ const StaffProfile: React.FC = () => {
           variant="contained"
           startIcon={<SaveIcon />}
           onClick={handleSave}
-          sx={{ bgcolor: "#1F2937", "&:hover": { bgcolor: "#111827" } }}
+          disabled={isLoading}
+          sx={{ bgcolor: "#DC2626", "&:hover": { bgcolor: "#B91C1C" } }}
         >
-          Lưu
+          {isLoading ? <CircularProgress size={20} color="inherit" /> : "Lưu"}
         </Button>
         <Button
           variant="outlined"
           startIcon={<CancelIcon />}
           onClick={() => setIsEditing(false)}
+          disabled={isLoading}
         >
           Hủy
         </Button>
@@ -236,7 +316,11 @@ const StaffProfile: React.FC = () => {
           fullWidth
           label={field.label}
           type={field.type || "text"}
-          value={data[field.field]}
+          value={
+            field.field === "role"
+              ? getRoleLabel(data[field.field])
+              : data[field.field]
+          }
           onChange={(e) =>
             handleFieldChange(setter, data, field.field, e.target.value)
           }
@@ -248,6 +332,40 @@ const StaffProfile: React.FC = () => {
       ))}
     </Box>
   );
+
+  const getInitials = (name: string) => {
+    if (!name) return "";
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  if (loading) {
+    return (
+      <Container
+        maxWidth="lg"
+        sx={{ py: 4, display: "flex", justifyContent: "center" }}
+      >
+        <CircularProgress />
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+        <Button variant="contained" onClick={fetchProfile}>
+          Thử lại
+        </Button>
+      </Container>
+    );
+  }
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -264,7 +382,7 @@ const StaffProfile: React.FC = () => {
           Thông Tin Cá Nhân
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          Quản lý thông tin tài khoản và bảo mật của bạn.
+          Quản lý thông tin tài khoản và cài đặt bảo mật của bạn
         </Typography>
       </Box>
 
@@ -302,29 +420,40 @@ const StaffProfile: React.FC = () => {
                   sx={{ position: "relative", display: "inline-block", mb: 2 }}
                 >
                   <Avatar
+                    src={profileData.avatar}
                     sx={{
                       width: 120,
                       height: 120,
-                      bgcolor: "#1F2937",
+                      bgcolor: "#DC2626",
                       fontSize: "3rem",
                       fontWeight: 700,
                     }}
                   >
-                    {profileData.fullName.charAt(0)}
+                    {getInitials(profileData.fullName)}
                   </Avatar>
-                  <IconButton
-                    sx={{
-                      position: "absolute",
-                      bottom: 0,
-                      right: 0,
-                      bgcolor: "white",
-                      boxShadow: 2,
-                      "&:hover": { bgcolor: "#F3F4F6" },
-                    }}
-                    size="small"
-                  >
-                    <PhotoCameraIcon fontSize="small" />
-                  </IconButton>
+                  <input
+                    accept="image/*"
+                    style={{ display: "none" }}
+                    id="avatar-upload"
+                    type="file"
+                    onChange={handleAvatarChange}
+                  />
+                  <label htmlFor="avatar-upload">
+                    <IconButton
+                      component="span"
+                      sx={{
+                        position: "absolute",
+                        bottom: 0,
+                        right: 0,
+                        bgcolor: "white",
+                        boxShadow: 2,
+                        "&:hover": { bgcolor: "#F3F4F6" },
+                      }}
+                      size="small"
+                    >
+                      <PhotoCameraIcon fontSize="small" />
+                    </IconButton>
+                  </label>
                 </Box>
 
                 <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>
@@ -335,14 +464,16 @@ const StaffProfile: React.FC = () => {
                   color="text.secondary"
                   sx={{ mb: 1 }}
                 >
-                  {profileData.role}
+                  {getRoleLabel(profileData.role)}
                 </Typography>
-                <Chip
-                  label={profileData.status}
-                  color="success"
-                  size="small"
-                  sx={{ mb: 1 }}
-                />
+                {profileData.status && (
+                  <Chip
+                    label={profileData.status}
+                    color="success"
+                    size="small"
+                    sx={{ mb: 1 }}
+                  />
+                )}
                 <Typography
                   variant="caption"
                   color="text.secondary"
@@ -362,6 +493,14 @@ const StaffProfile: React.FC = () => {
                       {profileData.email}
                     </Typography>
                   </Box>
+                  {profileData.phone && (
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <AccountBalanceIcon fontSize="small" color="action" />
+                      <Typography variant="body2" color="text.secondary">
+                        {profileData.phone}
+                      </Typography>
+                    </Box>
+                  )}
                 </Stack>
               </Box>
             </CardContent>
@@ -385,6 +524,14 @@ const StaffProfile: React.FC = () => {
                     icon={<PersonIcon />}
                     iconPosition="start"
                   />
+                  {/* Chỉ hiển thị tab Ngân Hàng cho Owner và Renter */}
+                  {needsBankInfo() && (
+                    <Tab
+                      label="Ngân Hàng"
+                      icon={<AccountBalanceIcon />}
+                      iconPosition="start"
+                    />
+                  )}
                   <Tab
                     label="Bảo Mật"
                     icon={<LockIcon />}
@@ -412,14 +559,14 @@ const StaffProfile: React.FC = () => {
                   {renderFieldRow(
                     [
                       { label: "Họ và Tên", field: "fullName" },
-                      { label: "Email", field: "email" },
+                      { label: "Email", field: "email", disabled: true },
                     ],
                     profileData,
                     setProfileData
                   )}
                   {renderFieldRow(
                     [
-                      { label: "Số Điện Thoại", field: "phoneNumber" },
+                      { label: "Số Điện Thoại", field: "phone" },
                       { label: "Chức Vụ", field: "role", disabled: true },
                     ],
                     profileData,
@@ -440,8 +587,56 @@ const StaffProfile: React.FC = () => {
                 </Stack>
               </TabPanel>
 
-              {/* Tab 2: Security */}
-              <TabPanel value={tabValue} index={1}>
+              {/* Tab 2: Bank Information - Chỉ cho Owner và Renter */}
+              {needsBankInfo() && (
+                <TabPanel value={tabValue} index={1}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      mb: 3,
+                    }}
+                  >
+                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                      Thông Tin Ngân Hàng
+                    </Typography>
+                    {renderEditButtons()}
+                  </Box>
+
+                  {profileData.role === "Owner" && (
+                    <Alert severity="info" sx={{ mb: 3 }}>
+                      Vui lòng cập nhật thông tin ngân hàng để nhận thanh toán
+                      từ việc cho thuê thiết bị
+                    </Alert>
+                  )}
+
+                  {profileData.role === "Renter" && (
+                    <Alert severity="info" sx={{ mb: 3 }}>
+                      Thông tin ngân hàng để nhận hoàn tiền cọc hoặc hoàn tiền
+                      khi hủy đơn
+                    </Alert>
+                  )}
+
+                  <Stack spacing={3}>
+                    {renderFieldRow(
+                      [
+                        { label: "Tên Ngân Hàng", field: "bankName" },
+                        { label: "Số Tài Khoản", field: "accountNumber" },
+                      ],
+                      bankData,
+                      setBankData
+                    )}
+                    {renderFieldRow(
+                      [{ label: "Tên Chủ Tài Khoản", field: "accountName" }],
+                      bankData,
+                      setBankData
+                    )}
+                  </Stack>
+                </TabPanel>
+              )}
+
+              {/* Tab 3: Security - Index động dựa vào có tab Bank hay không */}
+              <TabPanel value={tabValue} index={needsBankInfo() ? 2 : 1}>
                 <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
                   Đổi Mật Khẩu
                 </Typography>
@@ -485,13 +680,18 @@ const StaffProfile: React.FC = () => {
                   )}
                   <Button
                     variant="contained"
-                    onClick={handleChangePassword}
+                    onClick={handlePasswordUpdate}
+                    disabled={isLoading}
                     sx={{
-                      bgcolor: "#1F2937",
-                      "&:hover": { bgcolor: "#111827" },
+                      bgcolor: "#DC2626",
+                      "&:hover": { bgcolor: "#B91C1C" },
                     }}
                   >
-                    Cập Nhật Mật Khẩu
+                    {isLoading ? (
+                      <CircularProgress size={20} color="inherit" />
+                    ) : (
+                      "Cập Nhật Mật Khẩu"
+                    )}
                   </Button>
                 </Stack>
               </TabPanel>
@@ -509,7 +709,7 @@ const StaffProfile: React.FC = () => {
       >
         <Alert
           onClose={() => setShowNotification(false)}
-          severity="success"
+          severity={notificationSeverity}
           sx={{ width: "100%" }}
         >
           {notificationMessage}
@@ -519,4 +719,4 @@ const StaffProfile: React.FC = () => {
   );
 };
 
-export default StaffProfile;
+export default UserProfile;
