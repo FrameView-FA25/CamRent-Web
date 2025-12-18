@@ -10,11 +10,6 @@ export interface TopRentedAsset {
   grossRevenue: number;
 }
 
-export interface TimeSeriesStat {
-  date: string;
-  bookingCount: number;
-  capturedRevenue: number;
-}
 
 export interface OwnerDashboardResponse {
   totalCameras: number;
@@ -86,7 +81,28 @@ export interface AdminDashboardResponse {
   openDisputes: number;
   resolvedDisputes: number;
 }
-
+interface BookingStatus {
+  status: string;
+  statusText: string;
+  count: number;
+}
+interface TimeSeriesStat {
+  date: string;
+  bookingCount: number;
+  capturedRevenue: number;
+}
+interface ManagerDashboardResponse {
+  branchId: string;
+  branchName: string;
+  camerasInBranch: number;
+  accessoriesInBranch: number;
+  totalBookings: number;
+  bookingsByStatus: BookingStatus[];
+  totalCapturedRevenue: number;
+  openDisputes: number;
+  dailyStats: TimeSeriesStat[];
+  monthlyStats: TimeSeriesStat[];
+}
 /**
  * Lấy dữ liệu thống kê dashboard cho Owner
  */
@@ -238,3 +254,31 @@ export const dashboardService = {
     return json;
   },
 };
+export const dashboardServiceManager = {
+  getManagerDashboard: async (): Promise<ManagerDashboardResponse> => {
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      throw new Error("Không tìm thấy token xác thực. Vui lòng đăng nhập lại.");
+    }
+
+    const response = await fetch(`${API_BASE_URL}/Dashboard/manager`, {
+      method: "GET",
+      headers: {
+        accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.message ||
+          `Không thể tải dữ liệu thống kê manager (mã ${response.status})`
+      );
+    }
+
+    const json = (await response.json()) as ManagerDashboardResponse;
+    return json;
+  },
+};
+
