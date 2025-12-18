@@ -106,7 +106,16 @@ const MainLayout: React.FC = () => {
     const storedRole = localStorage.getItem("role");
     const roleFromUser = Array.isArray(user?.roles) ? user?.roles[0] : null;
     const role = storedRole || roleFromUser || "";
-    navigate(`/${role}/dashboard`);
+    console.log("Determined role for navigation:", role);
+    if (role === "Renter") {
+      navigate("/renter/my-orders");
+    } else if (role === "Owner") {
+      navigate("/owner/dashboard");
+    } else if (role === "Staff") {
+      navigate("/staff/check-booking");
+    } else if (role === "BranchManager") {
+      navigate("/manager/dashboard");
+    }
   };
 
   const handleCartOpen = () => {
