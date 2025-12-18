@@ -124,7 +124,6 @@ const UserProfile: React.FC = () => {
       const getUserRole = (): string => {
         if (data.roles && data.roles.length > 0) {
           const roleValue = data.roles[0].role;
-          // Nếu role là array, lấy phần tử đầu tiên, nếu không thì trả về string
           return Array.isArray(roleValue)
             ? roleValue[0] || ""
             : roleValue || "";
@@ -132,11 +131,15 @@ const UserProfile: React.FC = () => {
         return "";
       };
 
-      // Helper function để lấy avatar string
+      // 🔹 Helper function để lấy URL avatar từ object avatar backend
       const getAvatarUrl = (): string => {
         if (!data.avatar) return "";
-        // Nếu avatar là array, lấy phần tử đầu tiên, nếu không thì trả về string
-        return Array.isArray(data.avatar) ? data.avatar[0] || "" : data.avatar;
+        // backend trả avatar là object FileAsset { id, url, ... }
+        const raw = data.avatar.url || "";
+        if (!raw) return "";
+
+        // Nếu chỉ là path tương đối thì cứ trả lại, backend có thể handle reverse proxy
+        return raw;
       };
 
       setProfileData({
@@ -237,25 +240,34 @@ const UserProfile: React.FC = () => {
     }
   };
 
+  // 🔹 Dùng API /UserProfiles/me/avatar, cập nhật luôn URL avatar mới
   const handleAvatarChange = async (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     const file = event.target.files?.[0];
-    if (file) {
-      try {
-        setIsLoading(true);
-        // Tạo FormData và thêm file avatar
-        const formData = new FormData();
-        formData.append("avatar", file);
-        await userService.updateUserProfile(profileData.id, formData);
-        showNotificationMessage("Cập nhật ảnh đại diện thành công!");
-        fetchProfile();
-      } catch (error) {
-        showNotificationMessage("Cập nhật ảnh đại diện thất bại!", "error");
-        console.error("Update avatar failed", error);
-      } finally {
-        setIsLoading(false);
-      }
+    if (!file) return;
+
+    try {
+      setIsLoading(true);
+      const newUrl = await userService.updateMyAvatar(file);
+
+      // Thêm query để tránh cache ảnh cũ
+      const finalUrl = newUrl
+        ? `${newUrl}${newUrl.includes("?") ? "&" : "?"}t=${Date.now()}`
+        : "";
+
+      setProfileData((prev) => ({
+        ...prev,
+        avatar: finalUrl || prev.avatar,
+      }));
+
+      showNotificationMessage("Cập nhật ảnh đại diện thành công!");
+      // Optionally: fetchProfile(); // nếu muốn đồng bộ thêm thông tin khác
+    } catch (error) {
+      showNotificationMessage("Cập nhật ảnh đại diện thất bại!", "error");
+      console.error("Update avatar failed", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 

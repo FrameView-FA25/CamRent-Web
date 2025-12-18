@@ -192,17 +192,7 @@ const BookingDetail: React.FC = () => {
         // Reload booking data để cập nhật trạng thái
         await loadBookingDetail();
       } else {
-        // Xử lý thanh toán qua PayOS như cũ
-        const unpaidAmount =
-          booking.snapshotRentalTotal +
-          booking.snapshotDepositAmount -
-          booking.snapshotPlatformFeePercent * booking.snapshotRentalTotal;
-
-        const checkoutUrl = await initiatePayment(
-          booking.id,
-          "Rental",
-          unpaidAmount
-        );
+        const checkoutUrl = await initiatePayment(booking.id, "Rental");
 
         if (!checkoutUrl) {
           throw new Error("Không nhận được URL thanh toán từ hệ thống");

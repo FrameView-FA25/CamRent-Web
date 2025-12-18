@@ -57,6 +57,15 @@ export interface UpdateUserRequest {
   status: "Active" | "Ban";
 }
 
+// Thêm interface cho FileAsset backend trả về
+export interface FileAssetResponse {
+  id: string;
+  url: string;
+  contentType: string;
+  sizeBytes: number | null;
+  label: string | null;
+}
+
 export interface UserProfileResponse {
   id: string;
   email: string;
@@ -68,7 +77,7 @@ export interface UserProfileResponse {
   bankAccountNumber: string | null;
   bankName: string | null;
   bankAccountName: string | null;
-  avatar: string[] | null;
+  avatar: FileAssetResponse | null;
   roles: Array<{
     role: string;
   }>;
@@ -259,5 +268,37 @@ export const userService = {
       const errText = await response.text().catch(() => "");
       throw new Error(errText || "Cập nhật thông tin người dùng thất bại");
     }
+  },
+  async updateMyAvatar(file: File): Promise<string> {
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      throw new Error("Không tìm thấy token xác thực. Vui lòng đăng nhập lại.");
+    }
+
+    const formData = new FormData();
+    // Backend dùng property Avatar trong UpdateAvatarRequest, nên key phải là "Avatar"
+    formData.append("Avatar", file);
+
+    const response = await fetch(`${API_BASE_URL}/UserProfiles/me/avatar`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        // KHÔNG set Content-Type để browser tự set multipart/form-data
+      },
+      body: formData,
+    });
+
+    if (response.status === 401) {
+      localStorage.removeItem("accessToken");
+      throw new Error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+    }
+
+    if (!response.ok) {
+      const errText = await response.text().catch(() => "");
+      throw new Error(errText || "Cập nhật ảnh đại diện thất bại");
+    }
+
+    const data = (await response.json()) as { assetId: string; url: string };
+    return data.url; // 🔹 trả về URL avatar mới
   },
 };

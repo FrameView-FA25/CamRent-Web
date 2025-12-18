@@ -12,7 +12,6 @@ import {
   ListItemIcon,
   ListItemText,
   ListItemButton,
-  Stack,
 } from "@mui/material";
 import {
   Menu as MenuIcon,
@@ -46,7 +45,7 @@ const RenterLayout: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -183,49 +182,6 @@ const RenterLayout: React.FC = () => {
           flexShrink: 0,
         }}
       >
-        <Stack
-          direction="row"
-          spacing={1.5}
-          alignItems="center"
-          sx={{
-            p: 1.5,
-            borderRadius: 1.5,
-            bgcolor: colors.neutral[50],
-            mb: 1,
-          }}
-        >
-          <Avatar
-            sx={{
-              width: 40,
-              height: 40,
-              bgcolor: colors.primary.main,
-            }}
-          >
-            {user?.fullName ? user.fullName.charAt(0) : "R"}
-          </Avatar>
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography
-              sx={{
-                fontSize: "0.9375rem",
-                fontWeight: 600,
-                color: colors.text.primary,
-                lineHeight: 1.3,
-              }}
-            >
-              {user?.fullName || "Renter"}
-            </Typography>
-            <Typography
-              sx={{
-                fontSize: "0.8125rem",
-                color: colors.text.secondary,
-                lineHeight: 1.3,
-              }}
-            >
-              {user?.email || "renter@camrent.com"}
-            </Typography>
-          </Box>
-        </Stack>
-
         <ListItemButton
           onClick={handleLogout}
           sx={{
