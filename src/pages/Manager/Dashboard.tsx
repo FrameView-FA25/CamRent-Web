@@ -1,205 +1,251 @@
-import React from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Box,
   Grid,
   Paper,
   Typography,
   Card,
-  CardContent,
-  LinearProgress,
-  TextField,
-  InputAdornment,
+  CircularProgress,
+  Alert,
+  Chip,
+  ToggleButton,
+  ToggleButtonGroup,
 } from "@mui/material";
 import {
-  TrendingUp as TrendingUpIcon,
-  Search as SearchIcon,
-  ShowChart as ShowChartIcon,
+  PhotoCamera as PhotoCameraIcon,
+  Extension as ExtensionIcon,
+  Event as EventIcon,
+  AttachMoney as AttachMoneyIcon,
+  Warning as WarningIcon,
 } from "@mui/icons-material";
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip as RechartsTooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import { dashboardServiceManager } from "../../services/dashboard.service";
+
+interface BookingStatus {
+  status: string;
+  statusText: string;
+  count: number;
+}
+
+interface TimeSeriesStat {
+  date: string;
+  bookingCount: number;
+  capturedRevenue: number;
+}
+
+interface DashboardData {
+  branchId: string;
+  branchName: string;
+  camerasInBranch: number;
+  accessoriesInBranch: number;
+  totalBookings: number;
+  bookingsByStatus: BookingStatus[];
+  totalCapturedRevenue: number;
+  openDisputes: number;
+  dailyStats?: TimeSeriesStat[];
+  monthlyStats?: TimeSeriesStat[];
+}
+
+type ChartPeriod = "daily" | "monthly";
+
+const CURRENCY_FORMATTER = new Intl.NumberFormat("vi-VN", {
+  style: "currency",
+  currency: "VND",
+  maximumFractionDigits: 0,
+});
+
+const COMPACT_CURRENCY_FORMATTER = new Intl.NumberFormat("vi-VN", {
+  style: "currency",
+  currency: "VND",
+  notation: "compact",
+  maximumFractionDigits: 1,
+});
+
+const formatCurrency = (amount: number) => CURRENCY_FORMATTER.format(amount);
+
+const formatChartLabel = (dateString: string, period: ChartPeriod) => {
+  const date = new Date(dateString);
+  return period === "daily"
+    ? date.toLocaleDateString("vi-VN", {
+        day: "2-digit",
+        month: "2-digit",
+      })
+    : date.toLocaleDateString("vi-VN", {
+        month: "short",
+        year: "numeric",
+      });
+};
 
 const DashboardManager: React.FC = () => {
-  const statsCards = [
-    {
-      title: "Total Bookings",
-      value: "$8,903",
-      icon: <ShowChartIcon sx={{ fontSize: 24 }} />,
-      chart: [20, 35, 25, 40, 30, 45, 35],
-    },
-    {
-      title: "Total Status",
-      value: "$8,903",
-      icon: <ShowChartIcon sx={{ fontSize: 24 }} />,
-      chart: [30, 20, 40, 25, 45, 30, 40],
-    },
-    {
-      title: "Total User",
-      value: "$8,903",
-      icon: <ShowChartIcon sx={{ fontSize: 24 }} />,
-      chart: [25, 40, 20, 45, 30, 35, 40],
-    },
-    {
-      title: "Total Orders",
-      value: "$8,903",
-      icon: <ShowChartIcon sx={{ fontSize: 24 }} />,
-      chart: [35, 25, 40, 30, 45, 25, 35],
-    },
-  ];
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(
+    null
+  );
+  const [chartPeriod, setChartPeriod] = useState<ChartPeriod>("monthly");
 
-  const monthlyRevenue = [
-    { week: "Week 01", progress: 85, color: "#EF4444" },
-    { week: "Week 01", progress: 92, color: "#F97316" },
-    { week: "Week 01", progress: 78, color: "#EF4444" },
-    { week: "Week 01", progress: 45, color: "#F59E0B" },
-  ];
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
 
-  const trafficSeller = [
-    { price: "$7.31", amount: "0.31", total: "$124.00" },
-    { price: "$7.31", amount: "0.31", total: "$25.00" },
-    { price: "$7.31", amount: "0.12", total: "$61.00" },
-    { price: "$5.72", amount: "0.48", total: "$315.00" },
-  ];
-
-  const trendingOrders = [
-    {
-      name: "Canon R50",
-      image:
-        "https://cdn.vjshop.vn/may-anh/mirrorless/canon/canon-eos-r50/black-18-45/canon-eos-r50-lens-18-45mm-500x500.jpg",
-      orders: "All Orders",
-    },
-    {
-      name: "Sony A7C",
-      image:
-        "https://cdn.vjshop.vn/may-anh/mirrorless/sony/sony-alpha-a7c/sony-a7c-black-1-1000x1000.jpg",
-      orders: "All Orders",
-    },
-    {
-      name: "Fujifilm XT30",
-      image:
-        "https://binhminhdigital.com/storedata/images/product/may-anh-fujifilm-xt5-silver-body-only-chinh-hang-1.jpg",
-      orders: "Best Seller",
-      isBest: true,
-    },
-    {
-      name: "Canon M50",
-      image:
-        "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Canon_EOS_60D_01.jpg/1200px-Canon_EOS_60D_01.jpg",
-      orders: "All Orders",
-    },
-  ];
-
-  const renderMiniChart = (data: number[], color: string) => {
-    const max = Math.max(...data);
-    const points = data
-      .map((value, index) => {
-        const x = (index / (data.length - 1)) * 100;
-        const y = 100 - (value / max) * 100;
-        return `${x},${y}`;
-      })
-      .join(" ");
-
-    return (
-      <svg
-        width="80"
-        height="40"
-        viewBox="0 0 100 100"
-        preserveAspectRatio="none"
-      >
-        <polyline
-          points={points}
-          fill="none"
-          stroke={color}
-          strokeWidth="4"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    );
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await dashboardServiceManager.getManagerDashboard();
+      setDashboardData(data);
+    } catch (err: any) {
+      console.error("Error loading dashboard:", err);
+      setError(err?.message || "Không thể tải dữ liệu dashboard");
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case "confirmed":
+        return "#10B981";
+      case "pending":
+        return "#F59E0B";
+      case "completed":
+        return "#3B82F6";
+      case "cancelled":
+        return "#EF4444";
+      default:
+        return "#6B7280";
+    }
+  };
+
+  const dailyStats = useMemo(
+    () => dashboardData?.dailyStats ?? [],
+    [dashboardData?.dailyStats]
+  );
+
+  const monthlyStats = useMemo(() => {
+    const stats = dashboardData?.monthlyStats ?? [];
+    if (stats.length === 0) return [];
+
+    const targetYear = new Date(stats[0].date).getFullYear();
+    const monthMap = new Map<number, TimeSeriesStat>(
+      stats.map((stat) => [new Date(stat.date).getMonth(), stat])
+    );
+
+    return Array.from({ length: 12 }, (_, monthIndex) => {
+      const existing = monthMap.get(monthIndex);
+      if (existing) {
+        return existing;
+      }
+
+      return {
+        date: new Date(Date.UTC(targetYear, monthIndex, 1)).toISOString(),
+        bookingCount: 0,
+        capturedRevenue: 0,
+      };
+    });
+  }, [dashboardData?.monthlyStats]);
+
+  const chartStats = useMemo(
+    () => (chartPeriod === "daily" ? dailyStats : monthlyStats),
+    [chartPeriod, dailyStats, monthlyStats]
+  );
+
+  const chartData = useMemo(
+    () =>
+      chartStats.map((stat) => ({
+        ...stat,
+        label: formatChartLabel(stat.date, chartPeriod),
+      })),
+    [chartStats, chartPeriod]
+  );
+
+  const currentStat = chartStats[chartStats.length - 1];
+  const previousStat = chartStats[chartStats.length - 2];
+
+  const handleChartPeriodChange = (
+    _: React.MouseEvent<HTMLElement>,
+    value: ChartPeriod | null
+  ) => {
+    if (value) {
+      setChartPeriod(value);
+    }
+  };
+
+  if (loading) {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "100vh",
+          bgcolor: "#F5F5F5",
+        }}
+      >
+        <CircularProgress size={48} sx={{ color: "#FF6B35" }} />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ bgcolor: "#F5F5F5", minHeight: "100vh", p: 3 }}>
+        <Alert severity="error" sx={{ borderRadius: 2 }}>
+          {error}
+        </Alert>
+      </Box>
+    );
+  }
+
+  if (!dashboardData) {
+    return (
+      <Box sx={{ bgcolor: "#F5F5F5", minHeight: "100vh", p: 3 }}>
+        <Alert severity="info" sx={{ borderRadius: 2 }}>
+          Không có dữ liệu
+        </Alert>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ bgcolor: "#F5F5F5", minHeight: "100vh", p: 3 }}>
       {/* Header */}
-      <Box
-        sx={{
-          mb: 4,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-        }}
-      >
-        <Box>
-          <Typography
-            variant="h4"
-            sx={{ fontWeight: 600, color: "#1F2937", mb: 0.5 }}
-          >
-            Welcome, Jhonny
-          </Typography>
-          <Typography variant="body2" sx={{ color: "#6B7280" }}>
-            Dashboard & Analytics
-          </Typography>
-        </Box>
-        <TextField
-          size="small"
-          placeholder="Search..."
+      <Box sx={{ mb: 4 }}>
+        <Typography
+          variant="caption"
           sx={{
-            bgcolor: "white",
-            borderRadius: 2,
-            width: 250,
-            "& .MuiOutlinedInput-root": {
-              borderRadius: 2,
-            },
+            color: "#6B7280",
+            textTransform: "uppercase",
+            letterSpacing: 1,
+            fontWeight: 600,
           }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon sx={{ color: "#9CA3AF" }} />
-              </InputAdornment>
-            ),
-          }}
-        />
+        >
+          TRUNG TÂM QUẢN LY {dashboardData.branchName.toUpperCase()}
+        </Typography>
+        <Typography
+          variant="h4"
+          sx={{ fontWeight: 700, color: "#1F2937", mt: 1 }}
+        >
+          Tổng quan hoạt động kinh doanh
+        </Typography>
+        <Typography variant="body2" sx={{ color: "#6B7280", mt: 0.5 }}>
+          Theo dõi doanh thu, số lượng booking và hiệu suất thiết bị trong một
+          bảng điều khiển trực quan.
+        </Typography>
       </Box>
 
       {/* Stats Cards */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        {statsCards.map((card, index) => (
-          <Grid key={index} size={{ xs: 12, sm: 6, lg: 3 }}>
-            <Paper
-              elevation={0}
-              sx={{
-                p: 2.5,
-                borderRadius: 3,
-                bgcolor: "white",
-                border: "1px solid #E5E7EB",
-              }}
-            >
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-start",
-                  mb: 2,
-                }}
-              >
-                <Box>
-                  <Typography variant="body2" sx={{ color: "#6B7280", mb: 1 }}>
-                    {card.title}
-                  </Typography>
-                  <Typography
-                    variant="h5"
-                    sx={{ fontWeight: 700, color: "#1F2937" }}
-                  >
-                    {card.value}
-                  </Typography>
-                </Box>
-                {renderMiniChart(card.chart, "#F97316")}
-              </Box>
-            </Paper>
-          </Grid>
-        ))}
-      </Grid>
-
-      {/* Monthly Revenue & Traffic Seller */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid size={{ xs: 12, lg: 6 }}>
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        {/* Cameras */}
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <Paper
             elevation={0}
             sx={{
@@ -207,151 +253,53 @@ const DashboardManager: React.FC = () => {
               borderRadius: 3,
               bgcolor: "white",
               border: "1px solid #E5E7EB",
+              borderTop: "4px solid #10B981",
             }}
           >
             <Box
               sx={{
                 display: "flex",
                 justifyContent: "space-between",
-                alignItems: "center",
-                mb: 3,
+                alignItems: "flex-start",
               }}
             >
-              <Typography
-                variant="h6"
-                sx={{ fontWeight: 600, color: "#1F2937" }}
-              >
-                Monthly Revenue
-              </Typography>
-              <Typography variant="body2" sx={{ color: "#6B7280" }}>
-                January
-              </Typography>
-            </Box>
-            <Box>
-              {monthlyRevenue.map((item, index) => (
-                <Box key={index} sx={{ mb: 2.5 }}>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      mb: 1,
-                    }}
-                  >
-                    <Typography variant="body2" sx={{ color: "#6B7280" }}>
-                      {item.week}
-                    </Typography>
-                  </Box>
-                  <LinearProgress
-                    variant="determinate"
-                    value={item.progress}
-                    sx={{
-                      height: 12,
-                      borderRadius: 2,
-                      bgcolor: "#F3F4F6",
-                      "& .MuiLinearProgress-bar": {
-                        bgcolor: item.color,
-                        borderRadius: 2,
-                      },
-                    }}
-                  />
-                </Box>
-              ))}
-            </Box>
-          </Paper>
-        </Grid>
-
-        <Grid size={{ xs: 12, lg: 6 }}>
-          <Paper
-            elevation={0}
-            sx={{
-              p: 3,
-              borderRadius: 3,
-              bgcolor: "white",
-              border: "1px solid #E5E7EB",
-            }}
-          >
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                mb: 3,
-              }}
-            >
-              <Typography
-                variant="h6"
-                sx={{ fontWeight: 600, color: "#1F2937" }}
-              >
-                Traffic Seller
-              </Typography>
-              <Typography variant="body2" sx={{ color: "#6B7280" }}>
-                January
-              </Typography>
-            </Box>
-            <Box>
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  mb: 2,
-                  px: 1,
-                }}
-              >
-                <Typography
-                  variant="caption"
-                  sx={{ color: "#9CA3AF", fontWeight: 600 }}
-                >
-                  Price
-                </Typography>
-                <Typography
-                  variant="caption"
-                  sx={{ color: "#9CA3AF", fontWeight: 600 }}
-                >
-                  Amount
-                </Typography>
-                <Typography
-                  variant="caption"
-                  sx={{ color: "#9CA3AF", fontWeight: 600 }}
-                >
-                  Total
-                </Typography>
-              </Box>
-              {trafficSeller.map((item, index) => (
+              <Box>
                 <Box
-                  key={index}
                   sx={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 2,
+                    bgcolor: "#ECFDF5",
                     display: "flex",
-                    justifyContent: "space-between",
-                    py: 1.5,
-                    px: 1,
-                    borderBottom:
-                      index < trafficSeller.length - 1
-                        ? "1px solid #F3F4F6"
-                        : "none",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    mb: 2,
                   }}
                 >
-                  <Typography variant="body2" sx={{ color: "#1F2937" }}>
-                    {item.price}
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: "#1F2937" }}>
-                    {item.amount}
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{ color: "#1F2937", fontWeight: 600 }}
-                  >
-                    {item.total}
-                  </Typography>
+                  <PhotoCameraIcon sx={{ fontSize: 24, color: "#10B981" }} />
                 </Box>
-              ))}
+                <Typography
+                  variant="body2"
+                  sx={{ color: "#6B7280", mb: 0.5, fontWeight: 500 }}
+                >
+                  Tổng camera
+                </Typography>
+                <Typography
+                  variant="h4"
+                  sx={{ fontWeight: 700, color: "#1F2937" }}
+                >
+                  {dashboardData.camerasInBranch}
+                </Typography>
+                <Typography variant="caption" sx={{ color: "#6B7280" }}>
+                  Số lượng camera bạn đang cho thuê.
+                </Typography>
+              </Box>
             </Box>
           </Paper>
         </Grid>
-      </Grid>
 
-      {/* Trending Order & Order Timing Chart */}
-      <Grid container spacing={3}>
-        <Grid size={{ xs: 12 }}>
+        {/* Accessories */}
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <Paper
             elevation={0}
             sx={{
@@ -359,75 +307,366 @@ const DashboardManager: React.FC = () => {
               borderRadius: 3,
               bgcolor: "white",
               border: "1px solid #E5E7EB",
+              borderTop: "4px solid #6366F1",
             }}
           >
             <Box
               sx={{
                 display: "flex",
                 justifyContent: "space-between",
-                alignItems: "center",
-                mb: 3,
+                alignItems: "flex-start",
               }}
             >
-              <Typography
-                variant="h6"
-                sx={{ fontWeight: 600, color: "#1F2937" }}
-              >
-                Trending Order For Month
-              </Typography>
-              <Typography variant="body2" sx={{ color: "#6B7280" }}>
-                January
-              </Typography>
+              <Box>
+                <Box
+                  sx={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 2,
+                    bgcolor: "#EEF2FF",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    mb: 2,
+                  }}
+                >
+                  <ExtensionIcon sx={{ fontSize: 24, color: "#6366F1" }} />
+                </Box>
+                <Typography
+                  variant="body2"
+                  sx={{ color: "#6B7280", mb: 0.5, fontWeight: 500 }}
+                >
+                  Tổng phụ kiện
+                </Typography>
+                <Typography
+                  variant="h4"
+                  sx={{ fontWeight: 700, color: "#1F2937" }}
+                >
+                  {dashboardData.accessoriesInBranch}
+                </Typography>
+                <Typography variant="caption" sx={{ color: "#6B7280" }}>
+                  Số lượng phụ kiện bạn đang cho thuê.
+                </Typography>
+              </Box>
             </Box>
-            <Grid container spacing={3}>
-              {trendingOrders.map((order, index) => (
-                <Grid key={index} size={{ xs: 12, sm: 6, md: 3 }}>
-                  <Card
-                    elevation={0}
-                    sx={{
-                      borderRadius: 3,
-                      overflow: "hidden",
-                      border: "1px solid #E5E7EB",
-                      position: "relative",
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        height: 300,
-                        backgroundImage: `url(${order.image})`,
-                        backgroundSize: "cover",
-                        backgroundPosition: "center",
-                      }}
-                    />
-                    <CardContent sx={{ p: 2 }}>
-                      <Typography
-                        variant="h6"
-                        sx={{ fontWeight: 600, color: "#1F2937", mb: 0.5 }}
-                      >
-                        {order.name}
-                      </Typography>
-                      <Box
-                        sx={{
-                          display: "inline-block",
-                          px: 2,
-                          py: 0.5,
-                          borderRadius: 2,
-                          bgcolor: order.isBest ? "#F97316" : "#E5E7EB",
-                          color: order.isBest ? "white" : "#6B7280",
-                        }}
-                      >
-                        <Typography variant="caption" sx={{ fontWeight: 600 }}>
-                          {order.orders}
-                        </Typography>
-                      </Box>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              ))}
-            </Grid>
           </Paper>
         </Grid>
 
+        {/* Total Bookings */}
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+          <Paper
+            elevation={0}
+            sx={{
+              p: 3,
+              borderRadius: 3,
+              bgcolor: "white",
+              border: "1px solid #E5E7EB",
+              borderTop: "4px solid #F59E0B",
+            }}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+              }}
+            >
+              <Box>
+                <Box
+                  sx={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 2,
+                    bgcolor: "#FFFBEB",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    mb: 2,
+                  }}
+                >
+                  <EventIcon sx={{ fontSize: 24, color: "#F59E0B" }} />
+                </Box>
+                <Typography
+                  variant="body2"
+                  sx={{ color: "#6B7280", mb: 0.5, fontWeight: 500 }}
+                >
+                  Tổng lượt booking
+                </Typography>
+                <Typography
+                  variant="h4"
+                  sx={{ fontWeight: 700, color: "#1F2937" }}
+                >
+                  {dashboardData.totalBookings}
+                </Typography>
+                <Typography variant="caption" sx={{ color: "#6B7280" }}>
+                  Tổng số đơn thuê liên quan tới thiết bị của bạn.
+                </Typography>
+              </Box>
+            </Box>
+          </Paper>
+        </Grid>
+
+        {/* Total Revenue */}
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+          <Paper
+            elevation={0}
+            sx={{
+              p: 3,
+              borderRadius: 3,
+              bgcolor: "white",
+              border: "1px solid #E5E7EB",
+              borderTop: "4px solid #F59E0B",
+            }}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+              }}
+            >
+              <Box sx={{ width: "100%" }}>
+                <Box
+                  sx={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 2,
+                    bgcolor: "#FFFBEB",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    mb: 2,
+                  }}
+                >
+                  <AttachMoneyIcon sx={{ fontSize: 24, color: "#F59E0B" }} />
+                </Box>
+                <Typography
+                  variant="body2"
+                  sx={{ color: "#6B7280", mb: 0.5, fontWeight: 500 }}
+                >
+                  Tổng doanh thu ước tính
+                </Typography>
+                <Typography
+                  variant="h4"
+                  sx={{ fontWeight: 700, color: "#1F2937" }}
+                >
+                  {formatCurrency(dashboardData.totalCapturedRevenue)}
+                </Typography>
+                <Typography variant="caption" sx={{ color: "#6B7280" }}>
+                  Tổng doanh thu ước tính từ các booking.
+                </Typography>
+              </Box>
+            </Box>
+          </Paper>
+        </Grid>
+      </Grid>
+
+      {/* Revenue Chart */}
+      <Box sx={{ mb: 4 }}>
+        <Card
+          elevation={0}
+          sx={{
+            border: "1px solid #E5E7EB",
+            borderRadius: 3,
+            bgcolor: "white",
+            boxShadow: "0 1px 2px rgba(15,23,42,0.08)",
+          }}
+        >
+          <Box sx={{ p: 3 }}>
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: { xs: "column", sm: "row" },
+                justifyContent: "space-between",
+                alignItems: { xs: "flex-start", sm: "center" },
+                gap: 2,
+                mb: 3,
+              }}
+            >
+              <Box>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    color: "#1F2937",
+                    fontWeight: 700,
+                    fontSize: "1.125rem",
+                    mb: 0.5,
+                  }}
+                >
+                  Hiệu suất thiết bị
+                </Typography>
+                <Typography variant="body2" sx={{ color: "#6B7280" }}>
+                  Theo dõi lượt thuê và doanh thu thu được của bạn.
+                </Typography>
+              </Box>
+              <ToggleButtonGroup
+                size="small"
+                color="primary"
+                exclusive
+                value={chartPeriod}
+                onChange={handleChartPeriodChange}
+                sx={{
+                  "& .MuiToggleButton-root": {
+                    textTransform: "none",
+                    fontWeight: 500,
+                    px: 3,
+                    "&.Mui-selected": {
+                      bgcolor: "#F97316",
+                      color: "white",
+                      "&:hover": {
+                        bgcolor: "#EA580C",
+                      },
+                    },
+                  },
+                }}
+              >
+                <ToggleButton value="daily">Ngày</ToggleButton>
+                <ToggleButton value="monthly">Tháng</ToggleButton>
+              </ToggleButtonGroup>
+            </Box>
+
+            {chartStats.length === 0 ? (
+              <Box
+                sx={{
+                  textAlign: "center",
+                  py: 6,
+                }}
+              >
+                <Typography variant="body2" sx={{ color: "#9CA3AF" }}>
+                  Chưa có dữ liệu để hiển thị
+                </Typography>
+              </Box>
+            ) : (
+              <>
+                <Box sx={{ width: "100%", height: 300 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart
+                      data={chartData}
+                      margin={{ top: 10, right: 16, left: 24, bottom: 0 }}
+                    >
+                      <defs>
+                        <linearGradient
+                          id="colorRevenue"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="5%"
+                            stopColor="#F97316"
+                            stopOpacity={0.8}
+                          />
+                          <stop
+                            offset="95%"
+                            stopColor="#F97316"
+                            stopOpacity={0.05}
+                          />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke="#E5E7EB"
+                        vertical={false}
+                      />
+                      <XAxis
+                        dataKey="label"
+                        tick={{ fontSize: 11, fill: "#6B7280" }}
+                        tickLine={false}
+                        axisLine={{ stroke: "#E5E7EB" }}
+                      />
+                      <YAxis
+                        tick={{ fontSize: 11, fill: "#6B7280" }}
+                        tickLine={false}
+                        axisLine={{ stroke: "#E5E7EB" }}
+                        width={72}
+                        tickFormatter={(value: number) =>
+                          value === 0
+                            ? "0"
+                            : COMPACT_CURRENCY_FORMATTER.format(value)
+                        }
+                      />
+                      <RechartsTooltip
+                        formatter={(value: number) => formatCurrency(value)}
+                        labelFormatter={(label: string) =>
+                          `Thời gian: ${label}`
+                        }
+                        contentStyle={{
+                          borderRadius: 8,
+                          border: "1px solid #E5E7EB",
+                          boxShadow: "0 8px 24px rgba(15,23,42,0.12)",
+                        }}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="capturedRevenue"
+                        stroke="#F97316"
+                        strokeWidth={2}
+                        fillOpacity={1}
+                        fill="url(#colorRevenue)"
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </Box>
+
+                <Box
+                  sx={{
+                    mt: 3,
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: 4,
+                  }}
+                >
+                  <Box>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: "#6B7280",
+                        textTransform: "uppercase",
+                        fontWeight: 600,
+                      }}
+                    >
+                      Thời điểm hiện tại
+                    </Typography>
+                    <Typography
+                      variant="h5"
+                      sx={{ color: "#0F172A", fontWeight: 700 }}
+                    >
+                      {currentStat
+                        ? formatCurrency(currentStat.capturedRevenue)
+                        : "0 ₫"}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: "#6B7280",
+                        textTransform: "uppercase",
+                        fontWeight: 600,
+                      }}
+                    >
+                      Kỳ trước
+                    </Typography>
+                    <Typography
+                      variant="h5"
+                      sx={{ color: "#0F172A", fontWeight: 700 }}
+                    >
+                      {previousStat
+                        ? formatCurrency(previousStat.capturedRevenue)
+                        : "0 ₫"}
+                    </Typography>
+                  </Box>
+                </Box>
+              </>
+            )}
+          </Box>
+        </Card>
+      </Box>
+
+      {/* Bookings by Status & Disputes */}
+      <Grid container spacing={3}>
+        {/* Bookings by Status */}
         <Grid size={{ xs: 12, lg: 8 }}>
           <Paper
             elevation={0}
@@ -436,30 +675,91 @@ const DashboardManager: React.FC = () => {
               borderRadius: 3,
               bgcolor: "white",
               border: "1px solid #E5E7EB",
-              height: 400,
             }}
           >
             <Typography
               variant="h6"
-              sx={{ fontWeight: 600, color: "#1F2937", mb: 3 }}
+              sx={{ fontWeight: 700, color: "#1F2937", mb: 3 }}
             >
-              Order Timing Chart
+              Phân bố trạng thái booking
             </Typography>
-            <Box
-              sx={{
-                height: 300,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Typography variant="body2" sx={{ color: "#9CA3AF" }}>
-                Chart visualization will be here
-              </Typography>
-            </Box>
+
+            {dashboardData.bookingsByStatus.length === 0 ? (
+              <Box
+                sx={{
+                  textAlign: "center",
+                  py: 6,
+                }}
+              >
+                <Typography variant="body2" sx={{ color: "#9CA3AF" }}>
+                  Chưa có booking nào
+                </Typography>
+              </Box>
+            ) : (
+              <Grid container spacing={2}>
+                {dashboardData.bookingsByStatus.map((status, index) => (
+                  <Grid key={index} size={{ xs: 12, sm: 6, md: 4 }}>
+                    <Card
+                      elevation={0}
+                      sx={{
+                        p: 3,
+                        borderRadius: 2,
+                        bgcolor: "#F9FAFB",
+                        border: "1px solid #E5E7EB",
+                        position: "relative",
+                        overflow: "hidden",
+                        "&::before": {
+                          content: '""',
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          width: "4px",
+                          height: "100%",
+                          bgcolor: getStatusColor(status.status),
+                        },
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          mb: 2,
+                        }}
+                      >
+                        <Chip
+                          label={status.statusText}
+                          size="small"
+                          sx={{
+                            bgcolor: getStatusColor(status.status),
+                            color: "white",
+                            fontWeight: 600,
+                            fontSize: "0.75rem",
+                          }}
+                        />
+                      </Box>
+                      <Typography
+                        variant="h3"
+                        sx={{
+                          fontWeight: 700,
+                          color: "#1F2937",
+                          mb: 0.5,
+                        }}
+                      >
+                        {status.count}
+                      </Typography>
+                      <Typography variant="body2" sx={{ color: "#6B7280" }}>
+                        đơn booking
+                      </Typography>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+            )}
           </Paper>
         </Grid>
 
+        {/* Open Disputes */}
         <Grid size={{ xs: 12, lg: 4 }}>
           <Paper
             elevation={0}
@@ -468,63 +768,76 @@ const DashboardManager: React.FC = () => {
               borderRadius: 3,
               bgcolor: "white",
               border: "1px solid #E5E7EB",
-              height: 400,
+              height: "100%",
             }}
           >
             <Typography
               variant="h6"
-              sx={{ fontWeight: 600, color: "#1F2937", mb: 3 }}
+              sx={{ fontWeight: 700, color: "#1F2937", mb: 3 }}
             >
-              Total Earnings
+              Tranh chấp đang mở
             </Typography>
-            <Grid container spacing={2}>
-              <Grid size={{ xs: 6 }}>
-                <Box
+
+            <Box
+              sx={{
+                textAlign: "center",
+                py: 4,
+              }}
+            >
+              <Box
+                sx={{
+                  width: 80,
+                  height: 80,
+                  borderRadius: "50%",
+                  bgcolor:
+                    dashboardData.openDisputes > 0 ? "#FEF2F2" : "#ECFDF5",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  margin: "0 auto",
+                  mb: 2,
+                }}
+              >
+                <WarningIcon
                   sx={{
-                    textAlign: "center",
-                    p: 2,
-                    bgcolor: "#FFF7ED",
+                    fontSize: 40,
+                    color:
+                      dashboardData.openDisputes > 0 ? "#EF4444" : "#10B981",
+                  }}
+                />
+              </Box>
+              <Typography
+                variant="h2"
+                sx={{
+                  fontWeight: 700,
+                  color: "#1F2937",
+                  mb: 1,
+                }}
+              >
+                {dashboardData.openDisputes}
+              </Typography>
+              <Typography variant="body2" sx={{ color: "#6B7280", mb: 2 }}>
+                {dashboardData.openDisputes > 0
+                  ? "tranh chấp cần xử lý"
+                  : "Không có tranh chấp"}
+              </Typography>
+              {dashboardData.openDisputes > 0 && (
+                <Alert
+                  severity="warning"
+                  icon={<WarningIcon fontSize="small" />}
+                  sx={{
+                    mt: 2,
                     borderRadius: 2,
+                    textAlign: "left",
                   }}
                 >
-                  <TrendingUpIcon
-                    sx={{ fontSize: 40, color: "#F97316", mb: 1 }}
-                  />
-                  <Typography
-                    variant="h5"
-                    sx={{ fontWeight: 700, color: "#1F2937", mb: 0.5 }}
-                  >
-                    $6,242
+                  <Typography variant="caption">
+                    Vui lòng xử lý các tranh chấp đang mở để đảm bảo chất lượng
+                    dịch vụ
                   </Typography>
-                  <Typography variant="caption" sx={{ color: "#6B7280" }}>
-                    Today
-                  </Typography>
-                </Box>
-              </Grid>
-              <Grid size={{ xs: 6 }}>
-                <Box
-                  sx={{
-                    textAlign: "center",
-                    p: 2,
-                    bgcolor: "#FFF7ED",
-                    borderRadius: 2,
-                  }}
-                >
-                  <TrendingUpIcon
-                    sx={{ fontSize: 40, color: "#F97316", mb: 1 }}
-                  />
-                  <Typography
-                    variant="h5"
-                    sx={{ fontWeight: 700, color: "#1F2937", mb: 0.5 }}
-                  >
-                    $54,758
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: "#6B7280" }}>
-                    Month
-                  </Typography>
-                </Box>
-              </Grid>
-            </Grid>
+                </Alert>
+              )}
+            </Box>
           </Paper>
         </Grid>
       </Grid>
