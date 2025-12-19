@@ -51,8 +51,8 @@ export const BookingTabs: React.FC<BookingTabsProps> = ({
           })`}
         />
         <Tab
-          label={`Đang thuê (${
-            bookings.filter((b) => b.statusText === "Đang thuê").length
+          label={`Đã nhận máy (${
+            bookings.filter((b) => b.statusText === "Đã nhận máy").length
           })`}
         />
         <Tab

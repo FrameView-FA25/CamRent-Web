@@ -16,7 +16,7 @@ import { colors } from "../../theme/colors";
 import { ShoppingCart } from "@mui/icons-material";
 import type { Booking } from "../../types/booking.types";
 import { toast } from "react-toastify";
-import OrderStats from "../../components/Order/OrderStats";
+// import OrderStats from "../../components/Order/OrderStats";
 import OrderFilters from "../../components/Order/OrderFilters";
 import OrderCard from "../../components/Order/OrderCard";
 import { ORDER_TABS } from "../../utils/order.utils";
@@ -100,14 +100,14 @@ const OrderPage: React.FC = () => {
     return matchesSearch && matchesTab;
   });
 
-  const stats = {
-    total: bookings.length,
-    pending: bookings.filter((b) => b.status === "PendingApproval").length,
-    active: bookings.filter((b) =>
-      ["Confirmed", "InProgress"].includes(b.status)
-    ).length,
-    completed: bookings.filter((b) => b.status === "Completed").length,
-  };
+  // const stats = {
+  //   total: bookings.length,
+  //   pending: bookings.filter((b) => b.status === "PendingApproval").length,
+  //   active: bookings.filter((b) =>
+  //     ["Confirmed", "InProgress"].includes(b.status)
+  //   ).length,
+  //   completed: bookings.filter((b) => b.status === "Completed").length,
+  // };
 
   return (
     <Box sx={{ bgcolor: colors.background.default, minHeight: "100vh", py: 4 }}>
@@ -165,8 +165,8 @@ const OrderPage: React.FC = () => {
           </Alert>
         )}
 
-        {/* Stats Overview */}
-        <OrderStats stats={stats} />
+        {/* Stats Overview
+        <OrderStats stats={stats} /> */}
 
         {/* Search & Filter */}
         <OrderFilters
