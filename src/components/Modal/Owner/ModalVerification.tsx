@@ -33,7 +33,12 @@ import type {
   VerificationItemType,
 } from "../../../types/verification.types";
 import { verificationService } from "../../../services/verification.service";
+import {
+  workSlotService,
+  type WorkSlot,
+} from "../../../services/workSlot.service";
 import type { Branch } from "../../../types/branch.types";
+import { toast } from "react-toastify";
 
 interface FormErrors {
   name?: string;
@@ -105,6 +110,12 @@ export default function ModalVerification({
   } | null>(null);
   const [errors, setErrors] = useState<FormErrors>({});
 
+  // Work slots states
+  const [workSlots, setWorkSlots] = useState<WorkSlot[]>([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<string>("");
+  const [selectedSlotId, setSelectedSlotId] = useState<string>("");
+
   // Chuẩn hóa dữ liệu khởi tạo (đặc biệt khi ở chế độ chỉnh sửa)
   const computedInitialForm = useMemo(() => {
     if (isEditMode && initialData) {
@@ -137,6 +148,59 @@ export default function ModalVerification({
     () => unverifiedDevices.filter((device) => device.itemType === "Accessory"),
     [unverifiedDevices]
   );
+
+  // Fetch work slots when dialog opens
+  useEffect(() => {
+    if (!open) return;
+
+    const fetchWorkSlots = async () => {
+      try {
+        setLoadingSlots(true);
+        const slots = await workSlotService.getWorkSlots();
+        const activeSlots = slots
+          .filter((slot) => slot.isActive)
+          .sort((a, b) => a.slotIndex - b.slotIndex);
+        setWorkSlots(activeSlots);
+      } catch (error) {
+        console.error("Error fetching work slots:", error);
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Không thể tải khung giờ làm việc"
+        );
+        setWorkSlots([]);
+      } finally {
+        setLoadingSlots(false);
+      }
+    };
+
+    fetchWorkSlots();
+  }, [open]);
+
+  // Parse inspectionDate when initialData changes
+  useEffect(() => {
+    if (
+      open &&
+      isEditMode &&
+      initialData?.inspectionDate &&
+      workSlots.length > 0
+    ) {
+      const dateObj = new Date(initialData.inspectionDate);
+      const dateStr = dateObj.toISOString().split("T")[0];
+      setSelectedDate(dateStr);
+
+      const timeStr = dateObj.toTimeString().slice(0, 5);
+      const matchingSlot = workSlots.find(
+        (slot) => slot.startTime.slice(0, 5) === timeStr
+      );
+      if (matchingSlot) {
+        setSelectedSlotId(matchingSlot.id);
+      }
+    } else if (open && !isEditMode) {
+      setSelectedDate("");
+      setSelectedSlotId("");
+    }
+  }, [open, isEditMode, initialData?.inspectionDate, workSlots]);
 
   // Cập nhật các field cấp 1 của form
   const handleInputChange = (
@@ -171,6 +235,47 @@ export default function ModalVerification({
 
       return next;
     });
+  };
+
+  // Handle date change
+  const handleDateChange = (value: string) => {
+    setSelectedDate(value);
+    setSelectedSlotId(""); // Reset slot when date changes
+
+    // Clear inspectionDate in form
+    setFormData((prev: CreateVerificationRequest) => ({
+      ...prev,
+      inspectionDate: "",
+    }));
+
+    if (errors.inspectionDate) {
+      setErrors((prev) => ({ ...prev, inspectionDate: undefined }));
+    }
+  };
+
+  // Handle slot change
+  const handleSlotChange = (value: string) => {
+    setSelectedSlotId(value);
+
+    const slot = workSlots.find((s) => s.id === value);
+    if (slot && selectedDate) {
+      const dateTime = `${selectedDate}T${slot.startTime}`;
+      setFormData((prev: CreateVerificationRequest) => ({
+        ...prev,
+        inspectionDate: dateTime,
+      }));
+
+      if (errors.inspectionDate) {
+        setErrors((prev) => ({ ...prev, inspectionDate: undefined }));
+      }
+    }
+  };
+
+  // Format slot time
+  const formatSlotTime = (slot: WorkSlot) => {
+    const start = slot.startTime.slice(0, 5);
+    const end = slot.endTime.slice(0, 5);
+    return `Ca ${slot.slotIndex}: ${start} - ${end}`;
   };
 
   // Xử lý riêng cho số điện thoại: chỉ cho nhập số, giới hạn độ dài
@@ -309,8 +414,10 @@ export default function ModalVerification({
       newErrors.phoneNumber = "Số điện thoại phải có 10 số và bắt đầu bằng 0";
     }
 
-    if (!formData.inspectionDate) {
+    if (!selectedDate) {
       newErrors.inspectionDate = "Vui lòng chọn ngày kiểm tra";
+    } else if (!selectedSlotId) {
+      newErrors.inspectionDate = "Vui lòng chọn khung giờ";
     }
 
     if (!formData.branchId) {
@@ -388,6 +495,8 @@ export default function ModalVerification({
   const handleClose = () => {
     setFormData(getEmptyForm());
     setSelectedDeviceIds(new Set());
+    setSelectedDate("");
+    setSelectedSlotId("");
     setMessage(null);
     setIsLoading(false);
     setErrors({});
@@ -410,6 +519,8 @@ export default function ModalVerification({
       .map((id) => unverifiedDevices.find((d) => d.itemId === id))
       .filter((device): device is UnverifiedDevice => device !== undefined);
   }, [selectedDeviceIds, unverifiedDevices]);
+
+  const minDate = new Date().toISOString().split("T")[0];
 
   return (
     <Dialog
@@ -562,21 +673,23 @@ export default function ModalVerification({
                 }}
               />
             </Box>
+
             <Box sx={{ display: "flex", gap: 2.5 }}>
               <TextField
                 fullWidth
                 label="Ngày kiểm tra"
-                type="datetime-local"
-                value={formData.inspectionDate}
-                onChange={(e) =>
-                  handleInputChange("inspectionDate", e.target.value)
-                }
+                type="date"
+                value={selectedDate}
+                onChange={(e) => handleDateChange(e.target.value)}
                 error={Boolean(errors.inspectionDate)}
                 helperText={errors.inspectionDate || " "}
                 disabled={isLoading}
                 slotProps={{
                   inputLabel: {
                     shrink: true,
+                  },
+                  htmlInput: {
+                    min: minDate,
                   },
                 }}
                 sx={{
@@ -600,6 +713,58 @@ export default function ModalVerification({
               <TextField
                 fullWidth
                 select
+                label="Khung giờ"
+                value={selectedSlotId}
+                onChange={(e) => handleSlotChange(e.target.value)}
+                error={Boolean(
+                  errors.inspectionDate && selectedDate && !selectedSlotId
+                )}
+                helperText={
+                  !selectedDate
+                    ? "Chọn ngày trước"
+                    : loadingSlots
+                    ? "Đang tải khung giờ..."
+                    : " "
+                }
+                disabled={isLoading || !selectedDate || loadingSlots}
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: 1.5,
+                    bgcolor: "#F8FAFC",
+                    "& fieldset": {
+                      borderColor: "#E2E8F0",
+                    },
+                    "&:hover fieldset": {
+                      borderColor: "#FF6B35",
+                    },
+                    "&.Mui-focused fieldset": {
+                      borderColor: "#FF6B35",
+                      borderWidth: 2,
+                    },
+                  },
+                }}
+              >
+                {loadingSlots ? (
+                  <MenuItem disabled>
+                    <CircularProgress size={20} sx={{ mr: 1 }} />
+                    Đang tải...
+                  </MenuItem>
+                ) : workSlots.length === 0 ? (
+                  <MenuItem disabled>Không có khung giờ nào</MenuItem>
+                ) : (
+                  workSlots.map((slot) => (
+                    <MenuItem key={slot.id} value={slot.id}>
+                      {formatSlotTime(slot)}
+                    </MenuItem>
+                  ))
+                )}
+              </TextField>
+            </Box>
+
+            <Box sx={{ display: "flex", gap: 2.5 }}>
+              <TextField
+                fullWidth
+                select
                 label="Chi nhánh"
                 value={formData.branchId}
                 onChange={(e) => handleInputChange("branchId", e.target.value)}
@@ -607,7 +772,7 @@ export default function ModalVerification({
                 disabled={isLoading || isLoadingBranches}
                 helperText={
                   errors.branchId ||
-                  (isLoadingBranches ? "Đang tải danh sách chi nhánh..." : "")
+                  (isLoadingBranches ? "Đang tải danh sách chi nhánh..." : " ")
                 }
                 sx={{
                   "& .MuiOutlinedInput-root": {
@@ -913,7 +1078,9 @@ export default function ModalVerification({
           <Button
             type="submit"
             variant="contained"
-            disabled={isLoading || devicesLoading}
+            disabled={
+              isLoading || devicesLoading || !selectedDate || !selectedSlotId
+            }
             startIcon={
               isLoading ? (
                 <CircularProgress size={20} sx={{ color: "white" }} />
@@ -931,9 +1098,14 @@ export default function ModalVerification({
               fontWeight: 600,
               textTransform: "none",
               boxShadow: "0 2px 8px rgba(255, 107, 53, 0.25)",
+              color: "white",
               "&:hover": {
                 bgcolor: "#E85D2A",
                 boxShadow: "0 4px 12px rgba(255, 107, 53, 0.35)",
+              },
+              "&:disabled": {
+                bgcolor: "#CBD5E1",
+                color: "#94A3B8",
               },
             }}
           >
