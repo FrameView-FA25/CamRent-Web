@@ -68,7 +68,7 @@ const OrderDetailPage: React.FC = () => {
 
       const token = localStorage.getItem("accessToken");
       if (!token) {
-        toast.warning("Please login to view order details");
+        toast.warning("Vui lòng đăng nhập để xem chi tiết đơn hàng");
         navigate("/login");
         return;
       }
@@ -86,19 +86,13 @@ const OrderDetailPage: React.FC = () => {
       }
 
       const data = await response.json();
-
-      // Update statusText if it's "Chờ thanh toán"
-      if (data.statusText === "Chờ thanh toán") {
-        data.statusText = "Chờ xác nhận";
-      }
-
       setOrder(data);
     } catch (err) {
       console.error("Error fetching order details:", err);
       setError(
         err instanceof Error ? err.message : "Failed to load order details"
       );
-      toast.error("Failed to load order details");
+      toast.error("Không thể tải chi tiết đơn hàng");
     } finally {
       setLoading(false);
     }
@@ -145,17 +139,17 @@ const OrderDetailPage: React.FC = () => {
     try {
       const token = localStorage.getItem("accessToken");
       if (!token) {
-        toast.warning("Please login");
+        toast.warning("Vui lòng đăng nhập");
         return;
       }
 
       // TODO: Implement cancel order API call
-      toast.success("Order cancelled successfully");
+      toast.success("Đã hủy đơn hàng thành công");
       setOpenCancelDialog(false);
-      fetchOrderDetail(); // Refresh order data
+      fetchOrderDetail();
     } catch (err) {
       console.error("Error cancelling order:", err);
-      toast.error("Failed to cancel order");
+      toast.error("Không thể hủy đơn hàng");
     }
   };
 
@@ -164,7 +158,82 @@ const OrderDetailPage: React.FC = () => {
   };
 
   const handleDownloadContract = () => {
-    toast.info("Contract download feature coming soon");
+    toast.info("Tính năng tải hợp đồng sẽ sớm có");
+  };
+
+  // Get image URL from media array
+  const getImageUrl = (media: any[]): string | null => {
+    if (!media || media.length === 0) return null;
+    return media[0]?.url || null;
+  };
+
+  // Calculate payment details from payment lines
+  const calculatePaymentDetails = () => {
+    if (!order || !order.payments || order.payments.length === 0) {
+      return {
+        rentalAmount: order?.snapshotRentalTotal || 0,
+        depositAmount: order?.snapshotDepositAmount || 0,
+        platformFee:
+          (order?.snapshotRentalTotal || 0) *
+          (order?.snapshotPlatformFeePercent || 0),
+        totalAmount: 0,
+        paidAmount: 0,
+        paymentStatus: "Chưa thanh toán",
+      };
+    }
+
+    let totalRental = 0;
+    let totalDeposit = 0;
+    let totalPaid = 0;
+
+    // Sum up all payment lines
+    order.payments.forEach((payment) => {
+      if (payment && payment.lines && Array.isArray(payment.lines)) {
+        payment.lines.forEach((line) => {
+          if (line.type === "rental" || line.type === "rental_advance") {
+            totalRental += line.amount;
+            if (
+              payment.status === "Captured" ||
+              payment.status === "Authorized"
+            ) {
+              totalPaid += line.capturedAmount || line.amount;
+            }
+          } else if (line.type === "device_deposit") {
+            totalDeposit += line.amount;
+          }
+        });
+      }
+    });
+
+    // Use snapshot values if no payment lines
+    const rentalAmount = totalRental || order.snapshotRentalTotal;
+    const depositAmount = totalDeposit || order.snapshotDepositAmount;
+    const platformFee = rentalAmount * order.snapshotPlatformFeePercent;
+    const totalAmount = rentalAmount + depositAmount + platformFee;
+
+    // Determine payment status
+    let paymentStatus = "Chưa thanh toán";
+    const hasAuthorized = order.payments.some(
+      (p) => p && p.status === "Authorized"
+    );
+    const hasCaptured = order.payments.some(
+      (p) => p && p.status === "Captured"
+    );
+
+    if (hasCaptured) {
+      paymentStatus = "Đã thanh toán";
+    } else if (hasAuthorized) {
+      paymentStatus = "Đã ủy quyền";
+    }
+
+    return {
+      rentalAmount,
+      depositAmount,
+      platformFee,
+      totalAmount,
+      paidAmount: totalPaid,
+      paymentStatus,
+    };
   };
 
   if (loading) {
@@ -215,7 +284,7 @@ const OrderDetailPage: React.FC = () => {
               variant="h6"
               sx={{ color: colors.text.secondary, mt: 2, mb: 1 }}
             >
-              {error || "Order not found"}
+              {error || "Không tìm thấy đơn hàng"}
             </Typography>
             <Button
               variant="contained"
@@ -232,7 +301,7 @@ const OrderDetailPage: React.FC = () => {
               }}
               onClick={() => navigate("/renter/my-orders")}
             >
-              Quay trở lại đơn hàng
+              Quay lại đơn hàng
             </Button>
           </Paper>
         </Container>
@@ -242,10 +311,7 @@ const OrderDetailPage: React.FC = () => {
 
   const statusInfo = getOrderStatusInfo(order.status, order.statusText);
   const rentalDays = calculateRentalDays(order.pickupAt, order.returnAt);
-  const platformFee =
-    order.snapshotRentalTotal * order.snapshotPlatformFeePercent;
-  const totalAmount =
-    order.snapshotRentalTotal + order.snapshotDepositAmount + platformFee;
+  const paymentDetails = calculatePaymentDetails();
 
   return (
     <Box sx={{ bgcolor: colors.background.default, minHeight: "100vh", py: 4 }}>
@@ -264,7 +330,7 @@ const OrderDetailPage: React.FC = () => {
           }}
           onClick={() => navigate("/renter/my-orders")}
         >
-          Quay trở lại đơn hàng
+          Quay lại đơn hàng
         </Button>
 
         {/* Header */}
@@ -325,23 +391,25 @@ const OrderDetailPage: React.FC = () => {
             </Box>
 
             <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
-              <Button
-                variant="outlined"
-                startIcon={<FileText size={18} />}
-                sx={{
-                  borderColor: colors.primary.main,
-                  color: colors.primary.main,
-                  textTransform: "none",
-                  fontWeight: 600,
-                  "&:hover": {
-                    borderColor: colors.primary.dark,
-                    bgcolor: colors.primary.lighter,
-                  },
-                }}
-                onClick={handleViewContract}
-              >
-                Xem hợp đồng
-              </Button>
+              {order.contracts && order.contracts.length > 0 && (
+                <Button
+                  variant="outlined"
+                  startIcon={<FileText size={18} />}
+                  sx={{
+                    borderColor: colors.primary.main,
+                    color: colors.primary.main,
+                    textTransform: "none",
+                    fontWeight: 600,
+                    "&:hover": {
+                      borderColor: colors.primary.dark,
+                      bgcolor: colors.primary.lighter,
+                    },
+                  }}
+                  onClick={handleViewContract}
+                >
+                  Xem hợp đồng
+                </Button>
+              )}
 
               <Button
                 variant="outlined"
@@ -357,7 +425,7 @@ const OrderDetailPage: React.FC = () => {
                   },
                 }}
               >
-                Contact Support
+                Liên hệ hỗ trợ
               </Button>
 
               {order.status === "PendingApproval" && (
@@ -376,7 +444,7 @@ const OrderDetailPage: React.FC = () => {
                   }}
                   onClick={() => setOpenCancelDialog(true)}
                 >
-                  Cancel Order
+                  Hủy đơn
                 </Button>
               )}
             </Box>
@@ -411,86 +479,144 @@ const OrderDetailPage: React.FC = () => {
               </Typography>
 
               <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                {order.items.map((item, index) => (
-                  <Box
-                    key={index}
-                    sx={{
-                      display: "flex",
-                      gap: 2,
-                      p: 2,
-                      bgcolor: colors.neutral[50],
-                      borderRadius: 2,
-                      border: `1px solid ${colors.border.light}`,
-                    }}
-                  >
+                {order.items.map((item, index) => {
+                  const imageUrl = getImageUrl(item.media);
+
+                  return (
                     <Box
+                      key={index}
                       sx={{
-                        width: 80,
-                        height: 80,
-                        borderRadius: 2,
-                        bgcolor: colors.neutral[100],
                         display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        flexShrink: 0,
+                        gap: 2,
+                        p: 2,
+                        bgcolor: colors.neutral[50],
+                        borderRadius: 2,
+                        border: `1px solid ${colors.border.light}`,
                       }}
                     >
-                      <Camera size={32} color={colors.neutral[400]} />
-                    </Box>
-
-                    <Box sx={{ flex: 1 }}>
                       <Box
                         sx={{
+                          width: 80,
+                          height: 80,
+                          borderRadius: 2,
+                          bgcolor: colors.neutral[100],
                           display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "start",
-                          mb: 1,
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                          overflow: "hidden",
                         }}
                       >
-                        <Box>
-                          <Typography
-                            variant="body1"
-                            sx={{
-                              fontWeight: 700,
-                              color: colors.text.primary,
-                              mb: 0.5,
+                        {imageUrl ? (
+                          <img
+                            src={imageUrl}
+                            alt={item.itemName}
+                            style={{
+                              width: "100%",
+                              height: "100%",
+                              objectFit: "cover",
                             }}
-                          >
-                            {item.itemName || "Camera"}
-                          </Typography>
-                          <Chip
-                            label={item.itemType}
-                            size="small"
-                            sx={{
-                              bgcolor: colors.primary.lighter,
-                              color: colors.primary.main,
-                              fontWeight: 600,
-                              fontSize: "0.75rem",
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = "none";
+                              const parent = target.parentElement;
+                              if (parent) {
+                                const icon = document.createElement("div");
+                                icon.innerHTML =
+                                  '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"></path><circle cx="12" cy="13" r="3"></circle></svg>';
+                                icon.style.color = colors.neutral[400];
+                                parent.appendChild(icon);
+                              }
                             }}
                           />
-                        </Box>
-                        <Typography
-                          variant="h6"
-                          sx={{ fontWeight: 700, color: colors.primary.main }}
-                        >
-                          {formatCurrency(item.unitPrice)}/ngày
-                        </Typography>
+                        ) : (
+                          <Camera size={32} color={colors.neutral[400]} />
+                        )}
                       </Box>
 
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          color: colors.text.secondary,
-                          display: "block",
-                          fontFamily: "monospace",
-                          mt: 1,
-                        }}
-                      >
-                        ID: {item.itemId.slice(0, 13)}...
-                      </Typography>
+                      <Box sx={{ flex: 1 }}>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "start",
+                            mb: 1,
+                          }}
+                        >
+                          <Box>
+                            <Typography
+                              variant="body1"
+                              sx={{
+                                fontWeight: 700,
+                                color: colors.text.primary,
+                                mb: 0.5,
+                              }}
+                            >
+                              {item.itemName || "Camera"}
+                            </Typography>
+                            <Chip
+                              label={item.itemType}
+                              size="small"
+                              sx={{
+                                bgcolor: colors.primary.lighter,
+                                color: colors.primary.main,
+                                fontWeight: 600,
+                                fontSize: "0.75rem",
+                              }}
+                            />
+                          </Box>
+                          <Typography
+                            variant="h6"
+                            sx={{ fontWeight: 700, color: colors.primary.main }}
+                          >
+                            {formatCurrency(item.unitPrice)}/ngày
+                          </Typography>
+                        </Box>
+
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            color: colors.text.secondary,
+                            display: "block",
+                            fontFamily: "monospace",
+                            mt: 1,
+                          }}
+                        >
+                          ID: {item.itemId.slice(0, 13)}...
+                        </Typography>
+
+                        <Box
+                          sx={{
+                            display: "flex",
+                            gap: 2,
+                            mt: 1,
+                            p: 1.5,
+                            bgcolor: colors.background.paper,
+                            borderRadius: 1,
+                          }}
+                        >
+                          <Box>
+                            <Typography
+                              variant="caption"
+                              sx={{ color: colors.text.secondary }}
+                            >
+                              Tiền cọc
+                            </Typography>
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                fontWeight: 600,
+                                color: colors.text.primary,
+                              }}
+                            >
+                              {formatCurrency(item.depositAmount)}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      </Box>
                     </Box>
-                  </Box>
-                ))}
+                  );
+                })}
               </Box>
             </Paper>
 
@@ -663,7 +789,9 @@ const OrderDetailPage: React.FC = () => {
                                   <XCircle size={16} />
                                 )
                               }
-                              label={inspection.passed ? "Passed" : "Failed"}
+                              label={
+                                inspection.passed ? "Đạt yêu cầu" : "Không đạt"
+                              }
                               size="small"
                               sx={{
                                 bgcolor: inspection.passed
@@ -689,14 +817,14 @@ const OrderDetailPage: React.FC = () => {
                               display: "block",
                             }}
                           >
-                            Section: {inspection.section} • Label:{" "}
+                            Phần: {inspection.section} • Nhãn:{" "}
                             {inspection.label}
                           </Typography>
                           <Typography
                             variant="body2"
                             sx={{ color: colors.text.primary, mt: 0.5 }}
                           >
-                            Value: {inspection.value}
+                            Giá trị: {inspection.value}
                           </Typography>
                           {inspection.notes && (
                             <Typography
@@ -707,7 +835,7 @@ const OrderDetailPage: React.FC = () => {
                                 fontStyle: "italic",
                               }}
                             >
-                              Notes: {inspection.notes}
+                              Ghi chú: {inspection.notes}
                             </Typography>
                           )}
                         </Box>
@@ -746,6 +874,7 @@ const OrderDetailPage: React.FC = () => {
                                     loading="lazy"
                                     style={{
                                       width: "100%",
+                                      height: "100px",
                                       objectFit: "cover",
                                     }}
                                   />
@@ -787,10 +916,10 @@ const OrderDetailPage: React.FC = () => {
                 >
                   <Avatar
                     src={
-                      Array.isArray(order.renter.avatar)
-                        ? order.renter.avatar[0]
-                        : typeof order.renter.avatar === "string"
+                      typeof order.renter.avatar === "string"
                         ? order.renter.avatar
+                        : Array.isArray(order.renter.avatar) && order.renter.avatar.length > 0
+                        ? order.renter.avatar[0]
                         : undefined
                     }
                     sx={{
@@ -850,7 +979,7 @@ const OrderDetailPage: React.FC = () => {
                     </Box>
                   )}
 
-                  {order.renter.phoneNumber && (
+                  {order.renter.phone && (
                     <Box sx={{ display: "flex", gap: 2 }}>
                       <Phone
                         size={20}
@@ -872,7 +1001,7 @@ const OrderDetailPage: React.FC = () => {
                           variant="body2"
                           sx={{ fontWeight: 600, color: colors.text.primary }}
                         >
-                          {order.renter.phoneNumber}
+                          {order.renter.phone}
                         </Typography>
                       </Box>
                     </Box>
@@ -916,7 +1045,7 @@ const OrderDetailPage: React.FC = () => {
                     variant="body2"
                     sx={{ fontWeight: 600, color: colors.text.primary }}
                   >
-                    {formatCurrency(order.snapshotRentalTotal)}
+                    {formatCurrency(paymentDetails.rentalAmount)}
                   </Typography>
                 </Box>
 
@@ -931,14 +1060,13 @@ const OrderDetailPage: React.FC = () => {
                     variant="body2"
                     sx={{ color: colors.text.secondary }}
                   >
-                    Tiền cọc ({(order.snapshotDepositPercent * 100).toFixed(0)}
-                    %)
+                    Tiền cọc
                   </Typography>
                   <Typography
                     variant="body2"
                     sx={{ fontWeight: 600, color: colors.text.primary }}
                   >
-                    {formatCurrency(order.snapshotDepositAmount)}
+                    {formatCurrency(paymentDetails.depositAmount)}
                   </Typography>
                 </Box>
 
@@ -960,7 +1088,7 @@ const OrderDetailPage: React.FC = () => {
                     variant="body2"
                     sx={{ fontWeight: 600, color: colors.text.primary }}
                   >
-                    {formatCurrency(platformFee)}
+                    {formatCurrency(paymentDetails.platformFee)}
                   </Typography>
                 </Box>
 
@@ -986,9 +1114,32 @@ const OrderDetailPage: React.FC = () => {
                     variant="h6"
                     sx={{ fontWeight: 700, color: colors.primary.main }}
                   >
-                    {formatCurrency(totalAmount)}
+                    {formatCurrency(paymentDetails.totalAmount)}
                   </Typography>
                 </Box>
+
+                {paymentDetails.paidAmount > 0 && (
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
+                    <Typography
+                      variant="body2"
+                      sx={{ color: colors.text.secondary }}
+                    >
+                      Đã thanh toán
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      sx={{ fontWeight: 600, color: colors.status.success }}
+                    >
+                      {formatCurrency(paymentDetails.paidAmount)}
+                    </Typography>
+                  </Box>
+                )}
 
                 <Typography
                   variant="caption"
@@ -1009,24 +1160,42 @@ const OrderDetailPage: React.FC = () => {
                     alignItems: "center",
                     gap: 2,
                     p: 2,
-                    bgcolor: colors.status.successLight,
+                    bgcolor:
+                      paymentDetails.paymentStatus === "Đã thanh toán"
+                        ? colors.status.successLight
+                        : colors.status.warningLight,
                     borderRadius: 2,
                     mt: 1,
                   }}
                 >
-                  <Shield size={20} color={colors.status.success} />
+                  <Shield
+                    size={20}
+                    color={
+                      paymentDetails.paymentStatus === "Đã thanh toán"
+                        ? colors.status.success
+                        : colors.status.warning
+                    }
+                  />
                   <Box>
                     <Typography
                       variant="body2"
-                      sx={{ color: colors.status.success, fontWeight: 700 }}
+                      sx={{
+                        color:
+                          paymentDetails.paymentStatus === "Đã thanh toán"
+                            ? colors.status.success
+                            : colors.status.warning,
+                        fontWeight: 700,
+                      }}
                     >
-                      Đã thanh toán
+                      {paymentDetails.paymentStatus}
                     </Typography>
                     <Typography
                       variant="caption"
                       sx={{ color: colors.text.secondary }}
                     >
-                      Đơn hàng của bạn đã được xử lý
+                      {paymentDetails.paymentStatus === "Đã thanh toán"
+                        ? "Đơn hàng đã được xử lý"
+                        : "Đang chờ thanh toán"}
                     </Typography>
                   </Box>
                 </Box>
@@ -1142,44 +1311,44 @@ const OrderDetailPage: React.FC = () => {
               }}
             >
               <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
-                Camera Rental Agreement
+                Hợp đồng thuê thiết bị Camera
               </Typography>
               <Typography variant="body2" sx={{ mb: 2 }}>
-                Contract ID: {order.id}
+                Mã hợp đồng: {order.id}
               </Typography>
               <Typography variant="body2" sx={{ mb: 2 }}>
-                This agreement is made between CamRent and{" "}
-                {order.renter?.fullName || "Customer"}.
+                Hợp đồng này được ký kết giữa CamRent và{" "}
+                {order.renter?.fullName || "Khách hàng"}.
               </Typography>
               <Typography variant="body2" sx={{ mb: 1 }}>
-                <strong>Terms and Conditions:</strong>
+                <strong>Điều khoản và điều kiện:</strong>
               </Typography>
               <Typography variant="body2" component="div" sx={{ mb: 2 }}>
                 <ol>
                   <li>
-                    Rental period: {formatDate(order.pickupAt)} to{" "}
-                    {formatDate(order.returnAt)} ({rentalDays} days)
+                    Thời gian thuê: {formatDate(order.pickupAt)} đến{" "}
+                    {formatDate(order.returnAt)} ({rentalDays} ngày)
                   </li>
                   <li>
-                    Total rental fee:{" "}
-                    {formatCurrency(order.snapshotRentalTotal)}
+                    Tổng phí thuê: {formatCurrency(paymentDetails.rentalAmount)}
                   </li>
                   <li>
-                    Deposit amount:{" "}
-                    {formatCurrency(order.snapshotDepositAmount)}
+                    Tiền cọc: {formatCurrency(paymentDetails.depositAmount)}
                   </li>
-                  <li>Platform fee: {formatCurrency(platformFee)}</li>
-                  <li>Equipment must be returned in original condition</li>
-                  <li>Any damages will be deducted from the deposit</li>
-                  <li>Late returns will incur additional charges</li>
+                  <li>
+                    Phí nền tảng: {formatCurrency(paymentDetails.platformFee)}
+                  </li>
+                  <li>Thiết bị phải được trả lại trong tình trạng ban đầu</li>
+                  <li>Bất kỳ hư hỏng nào sẽ được trừ vào tiền cọc</li>
+                  <li>Trả muộn sẽ phát sinh phí bổ sung</li>
                 </ol>
               </Typography>
               <Typography
                 variant="body2"
                 sx={{ fontStyle: "italic", color: colors.text.secondary }}
               >
-                Please read carefully before signing. This is a legally binding
-                document.
+                Vui lòng đọc kỹ trước khi ký. Đây là tài liệu có tính pháp lý
+                ràng buộc.
               </Typography>
             </Box>
           </DialogContent>
@@ -1195,7 +1364,7 @@ const OrderDetailPage: React.FC = () => {
               }}
               onClick={handleDownloadContract}
             >
-              Download PDF
+              Tải PDF
             </Button>
             <Button
               variant="contained"
@@ -1210,7 +1379,7 @@ const OrderDetailPage: React.FC = () => {
               }}
               onClick={() => setOpenContractDialog(false)}
             >
-              Close
+              Đóng
             </Button>
           </DialogActions>
         </Dialog>
@@ -1224,7 +1393,7 @@ const OrderDetailPage: React.FC = () => {
         >
           <DialogTitle>
             <Typography variant="h6" sx={{ fontWeight: 700 }}>
-              Cancel Order
+              Hủy đơn hàng
             </Typography>
           </DialogTitle>
           <DialogContent>
@@ -1242,12 +1411,12 @@ const OrderDetailPage: React.FC = () => {
               >
                 <AlertCircle size={24} color={colors.status.error} />
                 <Typography variant="body2" sx={{ color: colors.text.primary }}>
-                  Are you sure you want to cancel this order? This action cannot
-                  be undone.
+                  Bạn có chắc muốn hủy đơn hàng này? Hành động này không thể
+                  hoàn tác.
                 </Typography>
               </Box>
               <Typography variant="body2" sx={{ color: colors.text.secondary }}>
-                Order ID: <strong>{order.id.slice(0, 13)}...</strong>
+                Mã đơn hàng: <strong>{order.id.slice(0, 13)}...</strong>
               </Typography>
             </Box>
           </DialogContent>
@@ -1262,7 +1431,7 @@ const OrderDetailPage: React.FC = () => {
               }}
               onClick={() => setOpenCancelDialog(false)}
             >
-              Keep Order
+              Giữ đơn hàng
             </Button>
             <Button
               variant="contained"
@@ -1278,7 +1447,7 @@ const OrderDetailPage: React.FC = () => {
               }}
               onClick={handleCancelOrder}
             >
-              Yes, Cancel Order
+              Xác nhận hủy
             </Button>
           </DialogActions>
         </Dialog>
