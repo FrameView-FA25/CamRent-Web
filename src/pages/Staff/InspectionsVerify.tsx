@@ -45,7 +45,7 @@ import {
   updateInspection,
   deleteInspection,
 } from "../../services/inspection.service";
-import InspectionDialog from "../../components/Modal/Staff/InspectionDialog";
+import InspectionFormDialog from "../../components/Modal/Staff/InspectionFormDialog";
 import { verificationService } from "../../services/verification.service";
 import type {
   Verification,
@@ -1206,10 +1206,11 @@ const Inspections: React.FC = () => {
       </Container>
 
       {/* Dialogs */}
-      <InspectionDialog
+      <InspectionFormDialog
         open={openDialog}
         onClose={() => setOpenDialog(false)}
         onSubmit={handleSubmitInspection}
+        inspectionType="Verification" // Thêm prop này
         defaultValues={
           dialogRow
             ? {

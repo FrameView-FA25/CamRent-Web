@@ -64,7 +64,9 @@ import {
 } from "../../utils/booking.utils";
 import { getItemName } from "../../helpers/booking.helper";
 import { useNavigate } from "react-router-dom";
-import CheckBookingDialog from "../../components/Modal/Staff/CheckBookingDialog";
+// import CheckBookingDialog from "../../components/Modal/Staff/CheckBookingDialog";
+import InspectionFormDialog from "../../components/Modal/Staff/InspectionFormDialog";
+
 import {
   createInspection,
   updateInspection,
@@ -75,6 +77,7 @@ import type {
   VerificationItem,
   VerificationItemType,
 } from "../../types/verification.types";
+
 import InspectionListDialog, {
   type InspectionListItem,
 } from "../../components/Modal/Staff/InspectionListDialog";
@@ -1485,10 +1488,11 @@ const CheckBookings: React.FC = () => {
 
       {/* Inspection Modal */}
       {selectedBookingId && (
-        <CheckBookingDialog
+        <InspectionFormDialog
           open={inspectionModalOpen}
           onClose={handleCloseInspection}
           onSubmit={handleInspectionSuccess}
+          inspectionType="Booking" // Thêm prop này
           defaultValues={{
             verifyId: selectedBookingId,
             items: (
@@ -1498,7 +1502,6 @@ const CheckBookings: React.FC = () => {
                 (it) => it.itemType === "Camera" || it.itemType === "Accessory"
               )
               .map((it) => {
-                // Chuyển itemType từ string sang format phù hợp
                 let itemTypeStr: VerificationItemType = "1";
                 if (it.itemType === "Camera") itemTypeStr = "1";
                 else if (it.itemType === "Accessory") itemTypeStr = "2";
@@ -1509,8 +1512,6 @@ const CheckBookings: React.FC = () => {
                   itemType: itemTypeStr,
                 };
               }),
-            ItemType: "",
-            Type: "Booking",
           }}
         />
       )}
