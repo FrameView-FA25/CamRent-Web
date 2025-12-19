@@ -1065,6 +1065,7 @@ export default function VerificationDetailModal({
                                     "&:disabled": {
                                       bgcolor: "#FCDAD0",
                                     },
+                                    color: "white",
                                   }}
                                 >
                                   {signing && signingContractId === contract.id

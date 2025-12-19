@@ -924,31 +924,56 @@ export default function VerificationManagement() {
           </ListItemIcon>
           <ListItemText primary="Xem chi tiết" />
         </MenuItem>
-        <MenuItem
-          onClick={() => {
-            if (!menuVerification) return;
-            handleOpenEditModal(menuVerification);
-            handleCloseActionMenu();
-          }}
-        >
-          <ListItemIcon>
-            <EditIcon fontSize="small" sx={{ color: "#1D4ED8" }} />
-          </ListItemIcon>
-          <ListItemText primary="Chỉnh sửa yêu cầu" />
-        </MenuItem>
-        <MenuItem
-          onClick={() => {
-            if (!menuVerification) return;
-            handleCloseActionMenu();
-            handleDeleteVerification(menuVerification.id);
-          }}
-          sx={{ color: "#B91C1C" }}
-        >
-          <ListItemIcon>
-            <DeleteIcon fontSize="small" sx={{ color: "#B91C1C" }} />
-          </ListItemIcon>
-          <ListItemText primary="Xoá yêu cầu" />
-        </MenuItem>
+
+        {/* Chỉ hiện nút chỉnh sửa nếu trạng thái không phải "approved" */}
+        {menuVerification && menuVerification.status !== "Approved" && (
+          <MenuItem
+            onClick={() => {
+              if (!menuVerification) return;
+              handleOpenEditModal(menuVerification);
+              handleCloseActionMenu();
+            }}
+          >
+            <ListItemIcon>
+              <EditIcon fontSize="small" sx={{ color: "#1D4ED8" }} />
+            </ListItemIcon>
+            <ListItemText primary="Chỉnh sửa yêu cầu" />
+          </MenuItem>
+        )}
+
+        {/* Chỉ hiện nút xóa nếu trạng thái không phải "approved" */}
+        {menuVerification && menuVerification.status !== "Approved" && (
+          <MenuItem
+            onClick={() => {
+              if (!menuVerification) return;
+              handleCloseActionMenu();
+              handleDeleteVerification(menuVerification.id);
+            }}
+            sx={{ color: "#B91C1C" }}
+          >
+            <ListItemIcon>
+              <DeleteIcon fontSize="small" sx={{ color: "#B91C1C" }} />
+            </ListItemIcon>
+            <ListItemText primary="Xoá yêu cầu" />
+          </MenuItem>
+        )}
+
+        {/* Thông báo nếu yêu cầu đã được duyệt */}
+        {menuVerification && menuVerification.status === "approved" && (
+          <Box sx={{ px: 2, py: 1.5, borderTop: "1px solid #E2E8F0" }}>
+            <Typography
+              variant="caption"
+              sx={{
+                color: "#64748B",
+                fontStyle: "italic",
+                display: "block",
+                textAlign: "center",
+              }}
+            >
+              Yêu cầu đã duyệt không thể chỉnh sửa hoặc xóa
+            </Typography>
+          </Box>
+        )}
       </Menu>
 
       {/* Modal tạo yêu cầu xác minh */}
