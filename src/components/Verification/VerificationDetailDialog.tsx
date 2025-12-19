@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -20,6 +20,7 @@ import {
   Modal,
   TextField,
   Alert,
+  CircularProgress,
 } from "@mui/material";
 import {
   Close as CloseIcon,
@@ -43,6 +44,24 @@ import { SignatureDialog } from "@/pages/Manager/Verification/components/dialogs
 import AssignStaffDialog from "./AssignStaffDialog";
 import { verificationService } from "../../services/verification.service";
 import { toast } from "react-toastify";
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+interface InspectionForm {
+  id: string;
+  templateId: string;
+  templateName: string;
+  staffId: string;
+  staffName: string;
+  itemType: string;
+  itemId: string;
+  type: string;
+  handoverType: string | null;
+  inspectionTypeId: string;
+  branchId: string | null;
+  overallPassed: boolean;
+  createdAt: string;
+}
 
 interface VerificationDetailModalProps {
   open: boolean;
@@ -77,14 +96,61 @@ export default function VerificationDetailModal({
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<string>("");
 
-  // New state for confirmation dialog
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [pendingStatusUpdate, setPendingStatusUpdate] = useState<{
     status: string;
     note: string;
   } | null>(null);
 
+  // New states for inspection forms
+  const [inspectionForms, setInspectionForms] = useState<InspectionForm[]>([]);
+  const [loadingInspections, setLoadingInspections] = useState(false);
+
   const signatureRef = useRef<SignatureCanvas | null>(null);
+
+  // Fetch inspection forms when dialog opens
+  useEffect(() => {
+    if (open && verification?.id) {
+      fetchInspectionForms();
+    }
+  }, [open, verification?.id]);
+
+  const fetchInspectionForms = async () => {
+    if (!verification?.id) return;
+
+    try {
+      setLoadingInspections(true);
+      const token = localStorage.getItem("accessToken");
+
+      const response = await fetch(
+        `${API_BASE_URL}/inspection-forms/verification/${verification.id}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Không thể tải dữ liệu kiểm tra");
+      }
+
+      const data: InspectionForm[] = await response.json();
+      setInspectionForms(data);
+    } catch (error) {
+      console.error("Error fetching inspection forms:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Không thể tải dữ liệu kiểm tra"
+      );
+      setInspectionForms([]);
+    } finally {
+      setLoadingInspections(false);
+    }
+  };
 
   if (!verification) return null;
 
@@ -133,8 +199,6 @@ export default function VerificationDetailModal({
     });
   };
 
-  // Nhóm inspections theo itemName
-
   const canCreateContract = ["approved", "completed"].includes(
     verification.status.toLowerCase()
   );
@@ -164,7 +228,7 @@ export default function VerificationDetailModal({
       setContractLoading(true);
 
       const previewResponse = await fetch(
-        `https://camrent-backend.up.railway.app/api/Contracts/${contractId}/preview`,
+        `${API_BASE_URL}/api/Contracts/${contractId}/preview`,
         {
           method: "GET",
           headers: {
@@ -295,7 +359,6 @@ export default function VerificationDetailModal({
   };
 
   const handleConfirmStatusUpdate = () => {
-    // Lưu thông tin và mở dialog xác nhận
     setPendingStatusUpdate({
       status: selectedStatus,
       note: statusNote,
@@ -686,40 +749,188 @@ export default function VerificationDetailModal({
               )}
             </Paper>
 
-            {/* Chi tiết kiểm tra - existing code... */}
-            {verification.inspections &&
-              verification.inspections.length > 0 && (
-                <Paper
-                  elevation={0}
+            {/* Chi tiết kiểm tra */}
+            <Paper
+              elevation={0}
+              sx={{
+                p: 3,
+                border: "1px solid #E2E8F0",
+                borderRadius: 2,
+              }}
+            >
+              <Typography
+                variant="h6"
+                fontWeight={600}
+                sx={{ color: "#1E293B", mb: 2 }}
+              >
+                Chi Tiết Kiểm Tra ({inspectionForms.length})
+              </Typography>
+
+              {loadingInspections ? (
+                <Box
                   sx={{
-                    p: 3,
-                    border: "1px solid #E2E8F0",
-                    borderRadius: 2,
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    py: 4,
                   }}
                 >
-                  {/* ...existing inspection code... */}
-                </Paper>
-              )}
-
-            {(!verification.inspections ||
-              verification.inspections.length === 0) && (
-              <Paper
-                elevation={0}
-                sx={{
-                  p: 3,
-                  border: "1px solid #E2E8F0",
-                  borderRadius: 2,
-                  textAlign: "center",
-                }}
-              >
-                <Typography
-                  variant="body2"
-                  sx={{ color: "#94A3B8", fontStyle: "italic" }}
+                  <CircularProgress size={40} sx={{ color: "#FF6B35" }} />
+                </Box>
+              ) : inspectionForms.length > 0 ? (
+                <TableContainer>
+                  <Table>
+                    <TableHead>
+                      <TableRow sx={{ bgcolor: "#F8FAFC" }}>
+                        <TableCell
+                          sx={{
+                            fontWeight: 700,
+                            color: "#475569",
+                            fontSize: "0.875rem",
+                          }}
+                        >
+                          Template
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            fontWeight: 700,
+                            color: "#475569",
+                            fontSize: "0.875rem",
+                          }}
+                        >
+                          Nhân viên
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            fontWeight: 700,
+                            color: "#475569",
+                            fontSize: "0.875rem",
+                          }}
+                        >
+                          Loại thiết bị
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            fontWeight: 700,
+                            color: "#475569",
+                            fontSize: "0.875rem",
+                          }}
+                        >
+                          Kết quả
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            fontWeight: 700,
+                            color: "#475569",
+                            fontSize: "0.875rem",
+                          }}
+                        >
+                          Ngày kiểm tra
+                        </TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {inspectionForms.map((form, index) => (
+                        <TableRow
+                          key={form.id}
+                          sx={{
+                            bgcolor: index % 2 === 0 ? "#FFFFFF" : "#FAFAFA",
+                          }}
+                        >
+                          <TableCell>
+                            <Typography
+                              sx={{
+                                fontWeight: 600,
+                                color: "#1E293B",
+                                fontSize: "0.875rem",
+                              }}
+                            >
+                              {form.templateName}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography
+                              sx={{
+                                color: "#64748B",
+                                fontSize: "0.875rem",
+                              }}
+                            >
+                              {form.staffName}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Chip
+                              label={form.itemType}
+                              size="small"
+                              sx={{
+                                bgcolor:
+                                  form.itemType === "Camera"
+                                    ? "#EFF6FF"
+                                    : "#F0FDF4",
+                                color:
+                                  form.itemType === "Camera"
+                                    ? "#3B82F6"
+                                    : "#10B981",
+                                fontWeight: 600,
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Chip
+                              icon={
+                                form.overallPassed ? (
+                                  <CheckCircleIcon />
+                                ) : (
+                                  <CancelIcon />
+                                )
+                              }
+                              label={form.overallPassed ? "Đạt" : "Không đạt"}
+                              size="small"
+                              sx={{
+                                bgcolor: form.overallPassed
+                                  ? "#D1FAE5"
+                                  : "#FEE2E2",
+                                color: form.overallPassed
+                                  ? "#059669"
+                                  : "#DC2626",
+                                fontWeight: 600,
+                                "& .MuiChip-icon": {
+                                  color: "inherit",
+                                },
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Typography
+                              sx={{
+                                color: "#64748B",
+                                fontSize: "0.875rem",
+                              }}
+                            >
+                              {formatDate(form.createdAt)}
+                            </Typography>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              ) : (
+                <Box
+                  sx={{
+                    textAlign: "center",
+                    py: 4,
+                  }}
                 >
-                  Chưa có dữ liệu kiểm tra nào
-                </Typography>
-              </Paper>
-            )}
+                  <Typography
+                    variant="body2"
+                    sx={{ color: "#94A3B8", fontStyle: "italic" }}
+                  >
+                    Chưa có dữ liệu kiểm tra nào
+                  </Typography>
+                </Box>
+              )}
+            </Paper>
           </Box>
         </DialogContent>
 
@@ -933,7 +1144,7 @@ export default function VerificationDetailModal({
               <WarningIcon sx={{ color: "#F97316", fontSize: 28 }} />
             </Box>
             <Typography variant="h6" sx={{ fontWeight: 700, color: "#1E293B" }}>
-              Xác nhận ký hợp đồng
+              Xác nhận cập nhật trạng thái
             </Typography>
           </Box>
         </DialogTitle>
@@ -1015,7 +1226,7 @@ export default function VerificationDetailModal({
               },
             }}
           >
-            Xác nhận ký hợp đồng
+            Xác nhận
           </Button>
         </DialogActions>
       </Dialog>

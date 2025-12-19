@@ -13,6 +13,13 @@ export const BookingTabs: React.FC<BookingTabsProps> = ({
   setSelectedTab,
   bookings,
 }) => {
+  const getStatusCount = (status: string) => {
+    return bookings.filter((b) => b.status === status).length;
+  };
+
+  // Exclude Draft from total count
+  const visibleBookings = bookings.filter((b) => b.status !== "Draft");
+
   return (
     <Paper elevation={0} sx={{ borderRadius: 3, overflow: "hidden", mb: 3 }}>
       <Tabs
@@ -39,32 +46,14 @@ export const BookingTabs: React.FC<BookingTabsProps> = ({
           },
         }}
       >
-        <Tab label={`Tất cả (${bookings.length})`} />
-        <Tab
-          label={`Chờ xác nhận (${
-            bookings.filter((b) => b.statusText === "Chờ xác nhận").length
-          })`}
-        />
-        <Tab
-          label={`Đã xác nhận (${
-            bookings.filter((b) => b.statusText === "Đã xác nhận").length
-          })`}
-        />
-        <Tab
-          label={`Đã nhận máy (${
-            bookings.filter((b) => b.statusText === "Đã nhận máy").length
-          })`}
-        />
-        <Tab
-          label={`Hoàn thành (${
-            bookings.filter((b) => b.statusText === "Hoàn thành").length
-          })`}
-        />
-        <Tab
-          label={`Đã hủy (${
-            bookings.filter((b) => b.statusText === "Đã hủy").length
-          })`}
-        />
+        <Tab label={`Tất cả (${visibleBookings.length})`} />
+        <Tab label={`Chờ xác nhận (${getStatusCount("PendingApproval")})`} />
+        <Tab label={`Đã xác nhận (${getStatusCount("Confirmed")})`} />
+        <Tab label={`Đã nhận máy (${getStatusCount("PickedUp")})`} />
+        <Tab label={`Đã trả máy (${getStatusCount("Returned")})`} />
+        <Tab label={`Hoàn thành (${getStatusCount("Completed")})`} />
+        <Tab label={`Đã hủy (${getStatusCount("Cancelled")})`} />
+        <Tab label={`Quá hạn (${getStatusCount("Overdue")})`} />
       </Tabs>
     </Paper>
   );
