@@ -18,6 +18,7 @@ import {
   Chip,
   Stack,
   Typography,
+  Tooltip,
 } from "@mui/material";
 import {
   Clear,
@@ -27,10 +28,21 @@ import {
 } from "@mui/icons-material";
 import type { VerificationItem } from "../../../types/verification.types";
 import { toast } from "react-toastify";
+import {
+  getActiveChecklistTemplate,
+  submitChecklist,
+  updateInspection,
+} from "@/services/inspection.service";
+import type {
+  ChecklistTemplateDetail,
+  InspectionMethod,
+} from "@/types/inspection.types";
 
 type InspectionDefaultValues = {
   verifyId?: string;
   items?: VerificationItem[];
+  branchId?: string;
+  handoverType?: number; // 0 = Pickup, 1 = Return (chỉ dùng cho Booking)
 };
 
 export type InspectionType = "Booking" | "Verification";
@@ -40,30 +52,15 @@ export interface InspectionFormDialogProps {
   onClose: () => void;
   onSubmit: (data: Record<string, unknown>) => void;
   defaultValues?: Partial<InspectionDefaultValues>;
-  inspectionType: InspectionType; // NEW: Phân biệt loại inspection
+  inspectionType: InspectionType;
 }
-
-// Danh sách kiểm tra thiết bị camera (như phiếu bảo dưỡng xe)
-const DEFAULT_CHECKLIST = [
-  { label: "Vỏ máy (vết xước, móp)" },
-  { label: "Ống kính (sạch sẽ, trầy xước)" },
-  { label: "Màn hình LCD" },
-  { label: "Nút bấm chức năng" },
-  { label: "Chụp ảnh" },
-  { label: "Quay video" },
-  { label: "Pin (dung lượng, tiếp xúc)" },
-  { label: "Sạc pin" },
-  { label: "Dây cáp kết nối" },
-  { label: "Thẻ nhớ" },
-];
 
 type ChecklistItem = {
   id: string;
   label: string;
-  checkPhysical: boolean;
-  checkFunction: boolean;
-  checkClean: boolean;
-  needRepair: boolean;
+  sectionName: string;
+  allowedMethods: InspectionMethod[]; // Phương pháp được phép cho item này
+  selectedMethodIds: string[]; // Các phương pháp đã chọn
   passed: boolean;
   notes: string;
   images: File[];
@@ -79,47 +76,91 @@ const InspectionFormDialog: React.FC<InspectionFormDialogProps> = ({
 }) => {
   const verifyId = defaultValues?.verifyId || "";
   const items: VerificationItem[] = defaultValues?.items || [];
+  const branchId = defaultValues?.branchId;
+  const handoverType = defaultValues?.handoverType;
 
   const [selectedItemId, setSelectedItemId] = React.useState<string>("");
   const [selectedItemType, setSelectedItemType] = React.useState<string>("");
 
-  // Khởi tạo checklist
-  const [checklist, setChecklist] = React.useState<ChecklistItem[]>(
-    DEFAULT_CHECKLIST.map((item, idx) => ({
-      id: `item-${idx}`,
-      label: item.label,
-      checkPhysical: false,
-      checkFunction: false,
-      checkClean: false,
-      needRepair: false,
-      passed: true,
-      notes: "",
-      images: [],
-      imagePreviews: [],
-    }))
-  );
+  // Checklist từ template active
+  const [checklist, setChecklist] = React.useState<ChecklistItem[]>([]);
+  const [loadingTemplate, setLoadingTemplate] = React.useState(false);
+  const [templateError, setTemplateError] = React.useState<string | null>(null);
+  const [activeTemplate, setActiveTemplate] =
+    React.useState<ChecklistTemplateDetail | null>(null);
+  const [submitting, setSubmitting] = React.useState(false);
 
   // Reset khi mở dialog
   React.useEffect(() => {
     if (open) {
       setSelectedItemId("");
       setSelectedItemType("");
-      setChecklist(
-        DEFAULT_CHECKLIST.map((item, idx) => ({
-          id: `item-${idx}`,
-          label: item.label,
-          checkPhysical: false,
-          checkFunction: false,
-          checkClean: false,
-          needRepair: false,
-          passed: true,
-          notes: "",
-          images: [],
-          imagePreviews: [],
-        }))
-      );
+      setChecklist([]);
+      setActiveTemplate(null);
+      setTemplateError(null);
+      setSubmitting(false);
     }
   }, [open]);
+
+  // Load template khi đã chọn loại thiết bị
+  React.useEffect(() => {
+    const loadTemplate = async () => {
+      if (!selectedItemType) return;
+
+      const itemTypeNumber =
+        selectedItemType === "Camera"
+          ? 1
+          : selectedItemType === "Accessory"
+          ? 2
+          : selectedItemType === "Combo"
+          ? 3
+          : 0;
+
+      if (!itemTypeNumber) {
+        setTemplateError("Không xác định được loại thiết bị để tải checklist.");
+        return;
+      }
+
+      try {
+        setLoadingTemplate(true);
+        setTemplateError(null);
+        const inspectionTypeNumber = inspectionType === "Booking" ? 1 : 2;
+        const template = await getActiveChecklistTemplate(
+          itemTypeNumber,
+          inspectionTypeNumber
+        );
+        setActiveTemplate(template);
+        const rows: ChecklistItem[] = [];
+        template.sections.forEach((section) => {
+          section.items.forEach((item) => {
+            rows.push({
+              id: item.id,
+              label: item.label,
+              sectionName: section.name,
+              allowedMethods: item.allowedMethods || [],
+              selectedMethodIds: [],
+              passed: true,
+              notes: "",
+              images: [],
+              imagePreviews: [],
+            });
+          });
+        });
+        setChecklist(rows);
+      } catch (err) {
+        const message =
+          err instanceof Error
+            ? err.message
+            : "Không thể tải checklist từ hệ thống.";
+        setTemplateError(message);
+        toast.error(message);
+      } finally {
+        setLoadingTemplate(false);
+      }
+    };
+
+    loadTemplate();
+  }, [inspectionType, selectedItemType]);
 
   const handleItemSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const itemId = e.target.value;
@@ -137,6 +178,40 @@ const InspectionFormDialog: React.FC<InspectionFormDialogProps> = ({
     }
   };
 
+  const handleMethodToggle = (itemId: string, methodId: string) => {
+    setChecklist((prev) =>
+      prev.map((item) => {
+        if (item.id === itemId) {
+          const isSelected = item.selectedMethodIds.includes(methodId);
+          const newMethodIds = isSelected
+            ? item.selectedMethodIds.filter((id) => id !== methodId)
+            : [...item.selectedMethodIds, methodId];
+          return {
+            ...item,
+            selectedMethodIds: newMethodIds,
+          };
+        }
+        return item;
+      })
+    );
+  };
+
+  const handleCheckAllMethods = (itemId: string, checked: boolean) => {
+    setChecklist((prev) =>
+      prev.map((item) => {
+        if (item.id === itemId) {
+          return {
+            ...item,
+            selectedMethodIds: checked
+              ? item.allowedMethods.map((m) => m.id)
+              : [],
+          };
+        }
+        return item;
+      })
+    );
+  };
+
   const handleChecklistChange = (
     id: string,
     field: keyof ChecklistItem,
@@ -144,21 +219,6 @@ const InspectionFormDialog: React.FC<InspectionFormDialogProps> = ({
   ) => {
     setChecklist((prev) =>
       prev.map((item) => (item.id === id ? { ...item, [field]: value } : item))
-    );
-  };
-
-  const handleCheckAll = (id: string, checked: boolean) => {
-    setChecklist((prev) =>
-      prev.map((item) =>
-        item.id === id
-          ? {
-              ...item,
-              checkPhysical: checked,
-              checkFunction: checked,
-              checkClean: checked,
-            }
-          : item
-      )
     );
   };
 
@@ -197,6 +257,8 @@ const InspectionFormDialog: React.FC<InspectionFormDialogProps> = ({
           const newPreviews = item.imagePreviews.filter(
             (_, idx) => idx !== imageIndex
           );
+          // Cleanup object URLs
+          item.imagePreviews.forEach((url) => URL.revokeObjectURL(url));
           return {
             ...item,
             images: newImages,
@@ -208,9 +270,14 @@ const InspectionFormDialog: React.FC<InspectionFormDialogProps> = ({
     );
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!selectedItemId) {
       toast.error("Vui lòng chọn thiết bị!");
+      return;
+    }
+
+    if (checklist.length === 0) {
+      toast.error("Không có mục kiểm tra nào!");
       return;
     }
 
@@ -227,28 +294,87 @@ const InspectionFormDialog: React.FC<InspectionFormDialogProps> = ({
       }
     };
 
-    // Chuyển checklist thành array các inspection items
-    const inspectionItems = checklist.map((item) => ({
-      ItemId: selectedItemId,
-      ItemType: getItemTypeNumber(selectedItemType),
-      Type: inspectionType, // Sử dụng prop inspectionType
-      Booking: verifyId,
-      InspectionTypeId: verifyId,
-      Label: item.label,
-      CheckPhysical: item.checkPhysical,
-      CheckFunction: item.checkFunction,
-      CheckClean: item.checkClean,
-      NeedRepair: item.needRepair,
-      Passed: item.passed,
-      Notes: item.notes,
-      images: item.images,
-    }));
+    try {
+      setSubmitting(true);
 
-    onSubmit({ items: inspectionItems });
+      const itemTypeNumber = getItemTypeNumber(selectedItemType);
+      const inspectionTypeNumber = inspectionType === "Booking" ? 1 : 2;
+
+      // Submit checklist
+      const submitResult = await submitChecklist({
+        itemType: itemTypeNumber,
+        itemId: selectedItemId,
+        type: inspectionTypeNumber,
+        handoverType:
+          inspectionType === "Booking" ? handoverType ?? null : null,
+        inspectionTypeId: verifyId,
+        branchId: branchId ?? null,
+        passed: null, // Để backend tự tính
+        rows: checklist.map((item) => ({
+          section: item.sectionName,
+          label: item.label,
+          methodIds: item.selectedMethodIds,
+          passed: item.passed,
+          notes: item.notes,
+        })),
+      });
+
+      // Upload ảnh cho từng inspection row
+      for (let i = 0; i < checklist.length; i++) {
+        const item = checklist[i];
+        const inspectionId = submitResult.inspectionIds[i];
+
+        if (item.images.length > 0 && inspectionId) {
+          const formData = new FormData();
+          item.images.forEach((file) => {
+            formData.append("files", file);
+          });
+
+          try {
+            await updateInspection(inspectionId, formData);
+          } catch (err) {
+            console.error(
+              `Lỗi upload ảnh cho inspection ${inspectionId}:`,
+              err
+            );
+            toast.warning(
+              `Không thể upload ảnh cho mục "${item.label}". Vui lòng thử lại sau.`
+            );
+          }
+        }
+      }
+
+      toast.success("Tạo phiếu kiểm tra thành công!");
+      onSubmit({ success: true, inspectionIds: submitResult.inspectionIds });
+      onClose();
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Không thể tạo phiếu kiểm tra. Vui lòng thử lại.";
+      toast.error(message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const passedCount = checklist.filter((item) => item.passed).length;
   const failedCount = checklist.length - passedCount;
+
+  // Lấy tất cả phương pháp unique từ tất cả items để hiển thị header
+  const allMethods = React.useMemo(() => {
+    const methodMap = new Map<string, InspectionMethod>();
+    checklist.forEach((item) => {
+      item.allowedMethods.forEach((method) => {
+        if (!methodMap.has(method.id)) {
+          methodMap.set(method.id, method);
+        }
+      });
+    });
+    return Array.from(methodMap.values()).sort(
+      (a, b) => a.sortOrder - b.sortOrder
+    );
+  }, [checklist]);
 
   // Cấu hình theo loại inspection
   const inspectionConfig = {
@@ -362,10 +488,20 @@ const InspectionFormDialog: React.FC<InspectionFormDialogProps> = ({
         </Box>
 
         {/* Thống kê */}
-        <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
+        <Stack direction="row" spacing={2} sx={{ mb: 2 }} flexWrap="wrap">
           <Chip label={`Tổng: ${checklist.length} mục`} color="default" />
           <Chip label={`Đạt: ${passedCount}`} color="success" />
           <Chip label={`Không đạt: ${failedCount}`} color="error" />
+          {loadingTemplate && <Chip label="Đang tải checklist..." />}
+          {activeTemplate && (
+            <Chip
+              label={`Checklist: ${activeTemplate.name}`}
+              color={activeTemplate.isActive ? "success" : "default"}
+            />
+          )}
+          {templateError && (
+            <Chip label={templateError} color="error" variant="outlined" />
+          )}
         </Stack>
 
         {/* Bảng checklist */}
@@ -395,16 +531,28 @@ const InspectionFormDialog: React.FC<InspectionFormDialogProps> = ({
                 >
                   Chọn tất cả
                 </TableCell>
-                <TableCell
-                  sx={{
-                    fontWeight: 700,
-                    textAlign: "center",
-                    border: "1px solid #ddd",
-                  }}
-                  colSpan={4}
-                >
-                  Phương pháp thực hiện
-                </TableCell>
+                {allMethods.length > 0 ? (
+                  <TableCell
+                    sx={{
+                      fontWeight: 700,
+                      textAlign: "center",
+                      border: "1px solid #ddd",
+                    }}
+                    colSpan={allMethods.length}
+                  >
+                    Phương pháp thực hiện
+                  </TableCell>
+                ) : (
+                  <TableCell
+                    sx={{
+                      fontWeight: 700,
+                      textAlign: "center",
+                      border: "1px solid #ddd",
+                    }}
+                  >
+                    Phương pháp thực hiện
+                  </TableCell>
+                )}
                 <TableCell
                   sx={{
                     fontWeight: 700,
@@ -440,242 +588,244 @@ const InspectionFormDialog: React.FC<InspectionFormDialogProps> = ({
                 </TableCell>
               </TableRow>
               <TableRow sx={{ bgcolor: "#F3F4F6" }}>
-                <TableCell
-                  sx={{
-                    fontWeight: 600,
-                    textAlign: "center",
-                    border: "1px solid #ddd",
-                    width: "5%",
-                  }}
-                >
-                  Tình trạng vật lý
-                </TableCell>
-                <TableCell
-                  sx={{
-                    fontWeight: 600,
-                    textAlign: "center",
-                    border: "1px solid #ddd",
-                    width: "5%",
-                  }}
-                >
-                  Kiểm tra Chức năng
-                </TableCell>
-                <TableCell
-                  sx={{
-                    fontWeight: 600,
-                    textAlign: "center",
-                    border: "1px solid #ddd",
-                    width: "5%",
-                  }}
-                >
-                  Vệ sinh
-                </TableCell>
-                <TableCell
-                  sx={{
-                    fontWeight: 600,
-                    textAlign: "center",
-                    border: "1px solid #ddd",
-                    width: "5%",
-                  }}
-                >
-                  Hư hỏng
-                </TableCell>
+                {allMethods.length > 0 ? (
+                  allMethods.map((method) => (
+                    <TableCell
+                      key={method.id}
+                      sx={{
+                        fontWeight: 600,
+                        textAlign: "center",
+                        border: "1px solid #ddd",
+                        fontSize: "0.75rem",
+                      }}
+                    >
+                      <Tooltip title={method.code}>
+                        <span>{method.name}</span>
+                      </Tooltip>
+                    </TableCell>
+                  ))
+                ) : (
+                  <TableCell
+                    sx={{
+                      fontWeight: 600,
+                      textAlign: "center",
+                      border: "1px solid #ddd",
+                    }}
+                  >
+                    Không có phương pháp
+                  </TableCell>
+                )}
               </TableRow>
             </TableHead>
             <TableBody>
-              {checklist.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell sx={{ border: "1px solid #ddd" }}>
-                    <Typography variant="body2">{item.label}</Typography>
-                  </TableCell>
+              {checklist.length === 0 ? (
+                <TableRow>
                   <TableCell
-                    sx={{ textAlign: "center", border: "1px solid #ddd" }}
+                    colSpan={allMethods.length + 5}
+                    sx={{ textAlign: "center", py: 4 }}
                   >
-                    <Checkbox
-                      checked={
-                        item.checkPhysical &&
-                        item.checkFunction &&
-                        item.checkClean
-                      }
-                      indeterminate={
-                        (item.checkPhysical ||
-                          item.checkFunction ||
-                          item.checkClean) &&
-                        !(
-                          item.checkPhysical &&
-                          item.checkFunction &&
-                          item.checkClean
-                        )
-                      }
-                      onChange={(e) =>
-                        handleCheckAll(item.id, e.target.checked)
-                      }
-                      size="small"
-                      color="primary"
-                    />
-                  </TableCell>
-                  <TableCell
-                    sx={{ textAlign: "center", border: "1px solid #ddd" }}
-                  >
-                    <Checkbox
-                      checked={item.checkPhysical}
-                      onChange={(e) =>
-                        handleChecklistChange(
-                          item.id,
-                          "checkPhysical",
-                          e.target.checked
-                        )
-                      }
-                      size="small"
-                    />
-                  </TableCell>
-                  <TableCell
-                    sx={{ textAlign: "center", border: "1px solid #ddd" }}
-                  >
-                    <Checkbox
-                      checked={item.checkFunction}
-                      onChange={(e) =>
-                        handleChecklistChange(
-                          item.id,
-                          "checkFunction",
-                          e.target.checked
-                        )
-                      }
-                      size="small"
-                    />
-                  </TableCell>
-                  <TableCell
-                    sx={{ textAlign: "center", border: "1px solid #ddd" }}
-                  >
-                    <Checkbox
-                      checked={item.checkClean}
-                      onChange={(e) =>
-                        handleChecklistChange(
-                          item.id,
-                          "checkClean",
-                          e.target.checked
-                        )
-                      }
-                      size="small"
-                    />
-                  </TableCell>
-                  <TableCell
-                    sx={{ textAlign: "center", border: "1px solid #ddd" }}
-                  >
-                    <Checkbox
-                      checked={item.needRepair}
-                      onChange={(e) =>
-                        handleChecklistChange(
-                          item.id,
-                          "needRepair",
-                          e.target.checked
-                        )
-                      }
-                      size="small"
-                      color="warning"
-                    />
-                  </TableCell>
-                  <TableCell
-                    sx={{ textAlign: "center", border: "1px solid #ddd" }}
-                  >
-                    <Checkbox
-                      checked={item.passed}
-                      onChange={(e) =>
-                        handleChecklistChange(
-                          item.id,
-                          "passed",
-                          e.target.checked
-                        )
-                      }
-                      color={item.passed ? "success" : "error"}
-                      size="small"
-                    />
-                  </TableCell>
-                  <TableCell sx={{ border: "1px solid #ddd" }}>
-                    <TextField
-                      size="small"
-                      placeholder="Ghi chú..."
-                      value={item.notes}
-                      onChange={(e) =>
-                        handleChecklistChange(item.id, "notes", e.target.value)
-                      }
-                      fullWidth
-                      multiline
-                      rows={1}
-                    />
-                  </TableCell>
-                  <TableCell sx={{ border: "1px solid #ddd" }}>
-                    <Box
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 1,
-                        flexWrap: "wrap",
-                      }}
-                    >
-                      <IconButton
-                        component="label"
-                        size="small"
-                        sx={{ color: "#0ea5e9" }}
-                      >
-                        <PhotoCamera fontSize="small" />
-                        <input
-                          type="file"
-                          accept="image/*"
-                          multiple
-                          hidden
-                          onChange={(e) =>
-                            handleImageUpload(item.id, e.target.files)
-                          }
-                        />
-                      </IconButton>
-                      <Typography variant="caption" color="text.secondary">
-                        ({item.imagePreviews.length}/3)
-                      </Typography>
-                      {item.imagePreviews.map((preview, idx) => (
-                        <Box key={idx} sx={{ position: "relative" }}>
-                          <img
-                            src={preview}
-                            alt={`preview-${idx}`}
-                            style={{
-                              width: 40,
-                              height: 40,
-                              objectFit: "cover",
-                              borderRadius: 4,
-                              border: "1px solid #ddd",
-                            }}
-                          />
-                          <IconButton
-                            size="small"
-                            onClick={() => handleRemoveImage(item.id, idx)}
-                            sx={{
-                              position: "absolute",
-                              top: -8,
-                              right: -8,
-                              bgcolor: "white",
-                              padding: "2px",
-                              "&:hover": { bgcolor: "#fee" },
-                            }}
-                          >
-                            <Clear sx={{ fontSize: 14 }} />
-                          </IconButton>
-                        </Box>
-                      ))}
-                    </Box>
+                    {loadingTemplate
+                      ? "Đang tải checklist..."
+                      : templateError
+                      ? templateError
+                      : "Chưa chọn thiết bị hoặc không có checklist"}
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                checklist.map((item) => {
+                  const allMethodsSelected =
+                    item.allowedMethods.length > 0 &&
+                    item.allowedMethods.every((m) =>
+                      item.selectedMethodIds.includes(m.id)
+                    );
+                  const someMethodsSelected =
+                    item.allowedMethods.some((m) =>
+                      item.selectedMethodIds.includes(m.id)
+                    ) && !allMethodsSelected;
+
+                  return (
+                    <TableRow key={item.id}>
+                      <TableCell sx={{ border: "1px solid #ddd" }}>
+                        <Typography variant="body2">{item.label}</Typography>
+                      </TableCell>
+                      <TableCell
+                        sx={{ textAlign: "center", border: "1px solid #ddd" }}
+                      >
+                        {item.allowedMethods.length > 0 ? (
+                          <Checkbox
+                            checked={allMethodsSelected}
+                            indeterminate={someMethodsSelected}
+                            onChange={(e) =>
+                              handleCheckAllMethods(item.id, e.target.checked)
+                            }
+                            size="small"
+                            color="primary"
+                            disabled={item.allowedMethods.length === 0}
+                          />
+                        ) : (
+                          <Typography variant="caption" color="text.secondary">
+                            -
+                          </Typography>
+                        )}
+                      </TableCell>
+                      {allMethods.length > 0 ? (
+                        allMethods.map((method) => {
+                          const isAllowed = item.allowedMethods.some(
+                            (m) => m.id === method.id
+                          );
+                          const isSelected = item.selectedMethodIds.includes(
+                            method.id
+                          );
+
+                          return (
+                            <TableCell
+                              key={method.id}
+                              sx={{
+                                textAlign: "center",
+                                border: "1px solid #ddd",
+                              }}
+                            >
+                              {isAllowed ? (
+                                <Checkbox
+                                  checked={isSelected}
+                                  onChange={() =>
+                                    handleMethodToggle(item.id, method.id)
+                                  }
+                                  size="small"
+                                  color="primary"
+                                />
+                              ) : (
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                >
+                                  -
+                                </Typography>
+                              )}
+                            </TableCell>
+                          );
+                        })
+                      ) : (
+                        <TableCell
+                          sx={{ textAlign: "center", border: "1px solid #ddd" }}
+                        >
+                          <Typography variant="caption" color="text.secondary">
+                            -
+                          </Typography>
+                        </TableCell>
+                      )}
+                      <TableCell
+                        sx={{ textAlign: "center", border: "1px solid #ddd" }}
+                      >
+                        <Checkbox
+                          checked={item.passed}
+                          onChange={(e) =>
+                            handleChecklistChange(
+                              item.id,
+                              "passed",
+                              e.target.checked
+                            )
+                          }
+                          color={item.passed ? "success" : "error"}
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell sx={{ border: "1px solid #ddd" }}>
+                        <TextField
+                          size="small"
+                          placeholder="Ghi chú..."
+                          value={item.notes}
+                          onChange={(e) =>
+                            handleChecklistChange(
+                              item.id,
+                              "notes",
+                              e.target.value
+                            )
+                          }
+                          fullWidth
+                          multiline
+                          rows={1}
+                        />
+                      </TableCell>
+                      <TableCell sx={{ border: "1px solid #ddd" }}>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 1,
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          <IconButton
+                            component="label"
+                            size="small"
+                            sx={{ color: "#0ea5e9" }}
+                          >
+                            <PhotoCamera fontSize="small" />
+                            <input
+                              type="file"
+                              accept="image/*"
+                              multiple
+                              hidden
+                              onChange={(e) =>
+                                handleImageUpload(item.id, e.target.files)
+                              }
+                            />
+                          </IconButton>
+                          <Typography variant="caption" color="text.secondary">
+                            ({item.imagePreviews.length}/3)
+                          </Typography>
+                          {item.imagePreviews.map((preview, idx) => (
+                            <Box key={idx} sx={{ position: "relative" }}>
+                              <img
+                                src={preview}
+                                alt={`preview-${idx}`}
+                                style={{
+                                  width: 40,
+                                  height: 40,
+                                  objectFit: "cover",
+                                  borderRadius: 4,
+                                  border: "1px solid #ddd",
+                                }}
+                              />
+                              <IconButton
+                                size="small"
+                                onClick={() => handleRemoveImage(item.id, idx)}
+                                sx={{
+                                  position: "absolute",
+                                  top: -8,
+                                  right: -8,
+                                  bgcolor: "white",
+                                  padding: "2px",
+                                  "&:hover": { bgcolor: "#fee" },
+                                }}
+                              >
+                                <Clear sx={{ fontSize: 14 }} />
+                              </IconButton>
+                            </Box>
+                          ))}
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
             </TableBody>
           </Table>
         </Box>
       </DialogContent>
       <DialogActions sx={{ justifyContent: "space-between", px: 3, pb: 2 }}>
-        <Button onClick={onClose} sx={{ borderRadius: 2 }}>
+        <Button
+          onClick={onClose}
+          sx={{ borderRadius: 2 }}
+          disabled={submitting}
+        >
           Hủy
         </Button>
         <Button
           onClick={handleSubmit}
           variant="contained"
+          disabled={submitting || checklist.length === 0}
           sx={{
             borderRadius: 2,
             bgcolor: config.badgeColor,
@@ -685,9 +835,13 @@ const InspectionFormDialog: React.FC<InspectionFormDialogProps> = ({
               bgcolor: config.badgeColor,
               opacity: 0.9,
             },
+            "&:disabled": {
+              bgcolor: "#ccc",
+              color: "#666",
+            },
           }}
         >
-          Tạo phiếu kiểm tra
+          {submitting ? "Đang xử lý..." : "Tạo phiếu kiểm tra"}
         </Button>
       </DialogActions>
     </Dialog>

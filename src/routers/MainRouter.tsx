@@ -57,6 +57,7 @@ import StaffSchedule from "@/pages/Staff/StaffSchedule";
 import UserProfile from "../pages/Profile/UserProfile";
 // admin
 import WorkSlotManagement from "@/pages/Admin/WorkSlotManagement/WorkSlotManagement";
+import InspectionManagement from "@/pages/Admin/InspectionManagement/InspectionManagement";
 const routes: RouteObject[] = [
   {
     path: "/",
@@ -197,6 +198,10 @@ const routes: RouteObject[] = [
       {
         path: "work-slots",
         element: <WorkSlotManagement />,
+      },
+      {
+        path: "inspections",
+        element: <InspectionManagement />,
       },
       {
         path: "profile",

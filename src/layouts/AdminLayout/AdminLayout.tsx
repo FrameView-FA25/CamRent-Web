@@ -22,6 +22,7 @@ import {
   ExitToApp as LogoutIcon,
   Person as PersonIcon,
   Schedule as ScheduleIcon,
+  AssignmentTurnedIn as ChecklistIcon,
 } from "@mui/icons-material";
 import { useAuth } from "../../hooks/useAuth";
 
@@ -44,6 +45,11 @@ const menuItems = [
     text: "Khung giờ làm việc",
     icon: <ScheduleIcon />,
     path: "/admin/work-slots",
+  },
+  {
+    text: "Phiếu kiểm tra",
+    icon: <ChecklistIcon />,
+    path: "/admin/inspections",
   },
   { text: "Hồ sơ", icon: <PersonIcon />, path: "/admin/profile" },
 ];
