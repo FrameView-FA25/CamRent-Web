@@ -36,15 +36,21 @@ import {
   X as XIcon,
   CreditCard,
   Wallet,
+  Clock,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs, { Dayjs } from "dayjs";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
 import { colors } from "../../theme/colors";
 import { toast } from "react-toastify";
 import SignatureCanvas from "react-signature-canvas";
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 interface CartItemWithQuantity {
   itemId: string;
@@ -52,6 +58,22 @@ interface CartItemWithQuantity {
   itemType: string;
   unitPrice: number;
   quantity: number;
+  media?: string[];
+}
+
+interface WorkSlot {
+  id: string;
+  slotIndex: number;
+  startTime: string;
+  endTime: string;
+  isActive: boolean;
+}
+
+interface UnavailableRange {
+  bookingId: string;
+  startUtc: string;
+  endUtc: string;
+  status: string;
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -138,9 +160,19 @@ const CheckoutPage: React.FC = () => {
   const [country] = useState("Vietnam");
   const [province, setProvince] = useState("");
   const [district, setDistrict] = useState("");
-  const [pickupAt, setPickupAt] = useState<Dayjs | null>(null);
-  const [returnAt, setReturnAt] = useState<Dayjs | null>(null);
+  const [pickupDate, setPickupDate] = useState<Dayjs | null>(null);
+  const [returnDate, setReturnDate] = useState<Dayjs | null>(null);
+  const [pickupSlotId, setPickupSlotId] = useState<string>("");
+  const [returnSlotId, setReturnSlotId] = useState<string>("");
   const [loading, setLoading] = useState(false);
+
+  // Work slots and unavailable ranges
+  const [workSlots, setWorkSlots] = useState<WorkSlot[]>([]);
+  const [unavailableRanges, setUnavailableRanges] = useState<
+    UnavailableRange[]
+  >([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [loadingRanges, setLoadingRanges] = useState(false);
 
   // Contract state
   const [bookingId, setBookingId] = useState<string | null>(null);
@@ -163,7 +195,159 @@ const CheckoutPage: React.FC = () => {
     }
   }, [items, navigate]);
 
+  // Fetch work slots on mount
+  useEffect(() => {
+    fetchWorkSlots();
+  }, []);
+
+  // Fetch unavailable ranges when items change
+  useEffect(() => {
+    if (items && items.length > 0) {
+      fetchUnavailableRanges(items[0].itemId, items[0].itemType);
+    }
+  }, [items]);
+
+  // Auto-set return slot when pickup slot changes
+  useEffect(() => {
+    if (pickupSlotId && !returnSlotId) {
+      setReturnSlotId(pickupSlotId);
+    }
+  }, [pickupSlotId]);
+
   const cartItems: CartItemWithQuantity[] = items || [];
+
+  // Fetch work slots
+  const fetchWorkSlots = async () => {
+    try {
+      setLoadingSlots(true);
+      const token = localStorage.getItem("accessToken");
+
+      const response = await fetch(`${API_BASE_URL}/WorkSlots`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Không thể tải khung giờ làm việc");
+      }
+
+      const data: WorkSlot[] = await response.json();
+      const activeSlots = data.filter((slot) => slot.isActive);
+      setWorkSlots(activeSlots);
+
+      // Auto-select first slot
+      if (activeSlots.length > 0 && !pickupSlotId) {
+        const firstSlot = activeSlots[0];
+        setPickupSlotId(firstSlot.id);
+        setReturnSlotId(firstSlot.id);
+      }
+    } catch (error) {
+      console.error("Error fetching work slots:", error);
+      toast.error("Không thể tải khung giờ làm việc");
+    } finally {
+      setLoadingSlots(false);
+    }
+  };
+
+  // Fetch unavailable ranges for item
+  const fetchUnavailableRanges = async (itemId: string, itemType: string) => {
+    try {
+      setLoadingRanges(true);
+      const token = localStorage.getItem("accessToken");
+
+      const response = await fetch(
+        `${API_BASE_URL}/Bookings/items/${itemId}/unavailable-ranges?type=${itemType}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Không thể tải thông tin lịch đặt");
+      }
+
+      const data: UnavailableRange[] = await response.json();
+      setUnavailableRanges(data);
+    } catch (error) {
+      console.error("Error fetching unavailable ranges:", error);
+      toast.warning("Không thể tải thông tin lịch đặt thiết bị");
+    } finally {
+      setLoadingRanges(false);
+    }
+  };
+
+  // Get working hours range
+  const getWorkingHours = () => {
+    if (workSlots.length === 0) return null;
+
+    const sortedSlots = [...workSlots].sort(
+      (a, b) => a.slotIndex - b.slotIndex
+    );
+    const firstSlot = sortedSlots[0];
+    const lastSlot = sortedSlots[sortedSlots.length - 1];
+
+    return {
+      start: firstSlot.startTime,
+      end: lastSlot.endTime,
+    };
+  };
+
+  // Get slot by ID
+  const getSlotById = (slotId: string): WorkSlot | undefined => {
+    return workSlots.find((slot) => slot.id === slotId);
+  };
+
+  // Check if date+slot combination is available
+  const isDateSlotAvailable = (date: Dayjs | null, slotId: string): boolean => {
+    if (!date || !slotId) return true;
+
+    const slot = getSlotById(slotId);
+    if (!slot) return false;
+
+    // Create datetime from date + slot start time
+    const [hours, minutes] = slot.startTime.split(":").map(Number);
+    const dateTime = date.hour(hours).minute(minutes).second(0).millisecond(0);
+
+    // Check against unavailable ranges
+    for (const range of unavailableRanges) {
+      const rangeStart = dayjs(range.startUtc).tz("Asia/Ho_Chi_Minh");
+      const rangeEnd = dayjs(range.endUtc).tz("Asia/Ho_Chi_Minh");
+
+      // Check if datetime falls within unavailable range
+      if (
+        dateTime.valueOf() >= rangeStart.valueOf() &&
+        dateTime.valueOf() < rangeEnd.valueOf()
+      ) {
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  // Disable dates that are fully booked for selected slot
+  const shouldDisableDate = (date: Dayjs | Date): boolean => {
+    if (!pickupSlotId) return false;
+
+    // Convert Date to Dayjs if needed
+    const dayjsDate = dayjs.isDayjs(date) ? date : dayjs(date);
+    
+    return !isDateSlotAvailable(dayjsDate, pickupSlotId);
+  };
+
+  // Get available slots for a date
+  const getAvailableSlotsForDate = (date: Dayjs | null): WorkSlot[] => {
+    if (!date) return workSlots;
+
+    return workSlots.filter((slot) => isDateSlotAvailable(date, slot.id));
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("vi-VN", {
@@ -179,14 +363,62 @@ const CheckoutPage: React.FC = () => {
   };
 
   const calculateRentalDays = () => {
-    if (!pickupAt || !returnAt) return 0;
-    const days = returnAt.diff(pickupAt, "day");
+    if (!pickupDate || !returnDate) return 0;
+    const days = returnDate.diff(pickupDate, "day");
     return days > 0 ? days : 0;
   };
 
   const calculateTotal = () => {
     const days = calculateRentalDays();
     return calculateSubtotal() * (days || 1);
+  };
+
+  // Handle pickup date change
+  const handlePickupDateChange = (value: Dayjs | null | Date) => {
+    // Convert Date to Dayjs if needed
+    const dayjsValue = value && dayjs.isDayjs(value) ? value : value ? dayjs(value) : null;
+    setPickupDate(dayjsValue);
+
+    // Check availability
+    if (dayjsValue && pickupSlotId) {
+      if (!isDateSlotAvailable(dayjsValue, pickupSlotId)) {
+        toast.warning(
+          "Khung giờ này đã được đặt. Vui lòng chọn khung giờ khác"
+        );
+      }
+    }
+  };
+
+  // Handle return date change
+  const handleReturnDateChange = (value: Dayjs | null | Date) => {
+    // Convert Date to Dayjs if needed
+    const dayjsValue = value && dayjs.isDayjs(value) ? value : value ? dayjs(value) : null;
+    setReturnDate(dayjsValue);
+
+    if (pickupDate && dayjsValue && dayjsValue.isBefore(pickupDate)) {
+      toast.error("Ngày trả phải sau ngày nhận");
+      setReturnDate(pickupDate);
+    }
+
+    // Check availability
+    if (dayjsValue && returnSlotId) {
+      if (!isDateSlotAvailable(dayjsValue, returnSlotId)) {
+        toast.warning(
+          "Khung giờ này đã được đặt. Vui lòng chọn khung giờ khác"
+        );
+      }
+    }
+  };
+
+  // Handle pickup slot change
+  const handlePickupSlotChange = (slotId: string) => {
+    setPickupSlotId(slotId);
+    setReturnSlotId(slotId); // Auto-set return slot to same as pickup
+
+    // Check availability
+    if (pickupDate && !isDateSlotAvailable(pickupDate, slotId)) {
+      toast.warning("Khung giờ này đã được đặt cho ngày đã chọn");
+    }
   };
 
   // Step 1: Create booking
@@ -197,12 +429,37 @@ const CheckoutPage: React.FC = () => {
       return;
     }
 
-    if (!pickupAt || !returnAt) {
+    if (!pickupDate || !returnDate) {
       toast.error("Vui lòng chọn ngày nhận và ngày trả");
       return;
     }
 
-    if (returnAt.isBefore(pickupAt)) {
+    if (!pickupSlotId || !returnSlotId) {
+      toast.error("Vui lòng chọn khung giờ nhận và trả");
+      return;
+    }
+
+    // Get slots
+    const pickupSlot = getSlotById(pickupSlotId);
+    const returnSlot = getSlotById(returnSlotId);
+
+    if (!pickupSlot || !returnSlot) {
+      toast.error("Khung giờ không hợp lệ");
+      return;
+    }
+
+    // Check availability
+    if (!isDateSlotAvailable(pickupDate, pickupSlotId)) {
+      toast.error("Ngày và giờ nhận đã được đặt. Vui lòng chọn thời gian khác");
+      return;
+    }
+
+    if (!isDateSlotAvailable(returnDate, returnSlotId)) {
+      toast.error("Ngày và giờ trả đã được đặt. Vui lòng chọn thời gian khác");
+      return;
+    }
+
+    if (returnDate.isBefore(pickupDate)) {
       toast.error("Ngày trả phải sau ngày nhận");
       return;
     }
@@ -211,15 +468,37 @@ const CheckoutPage: React.FC = () => {
       setLoading(true);
       const token = localStorage.getItem("accessToken");
 
+      // Create pickup datetime
+      const [pickupHours, pickupMinutes] = pickupSlot.startTime
+        .split(":")
+        .map(Number);
+      const pickupDateTime = pickupDate
+        .hour(pickupHours)
+        .minute(pickupMinutes)
+        .second(0)
+        .millisecond(0);
+
+      // Create return datetime
+      const [returnHours, returnMinutes] = returnSlot.startTime
+        .split(":")
+        .map(Number);
+      const returnDateTime = returnDate
+        .hour(returnHours)
+        .minute(returnMinutes)
+        .second(0)
+        .millisecond(0);
+
       const bookingData = {
         location: {
           country,
           province,
           district,
         },
-        pickupAt: pickupAt.toISOString(),
-        returnAt: returnAt.toISOString(),
+        pickupAt: pickupDateTime.toISOString(),
+        returnAt: returnDateTime.toISOString(),
       };
+
+      console.log("Booking data:", bookingData);
 
       const response = await fetch(`${API_BASE_URL}/Bookings`, {
         method: "POST",
@@ -478,6 +757,10 @@ const CheckoutPage: React.FC = () => {
     return null;
   }
 
+  const workingHours = getWorkingHours();
+  const availablePickupSlots = getAvailableSlotsForDate(pickupDate);
+  const availableReturnSlots = getAvailableSlotsForDate(returnDate);
+
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <Box
@@ -543,6 +826,25 @@ const CheckoutPage: React.FC = () => {
               ))}
             </Stepper>
           </Paper>
+
+          {/* Working Hours Info */}
+          {workingHours && activeStep === 0 && (
+            <Alert
+              severity="info"
+              icon={<Clock size={20} />}
+              sx={{ mb: 3, borderRadius: 2 }}
+            >
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                Giờ làm việc: {workingHours.start} - {workingHours.end}
+              </Typography>
+              <Typography
+                variant="caption"
+                sx={{ color: colors.text.secondary }}
+              >
+                Vui lòng chọn khung giờ trong giờ làm việc
+              </Typography>
+            </Alert>
+          )}
 
           {/* Main Content */}
           <Box
@@ -662,73 +964,189 @@ const CheckoutPage: React.FC = () => {
                       </Typography>
                     </Box>
 
-                    <Stack spacing={3}>
-                      <DateTimePicker
-                        label="Chọn Ngày & Giờ Nhận"
-                        value={pickupAt}
-                        onChange={(newValue) =>
-                          setPickupAt(newValue as Dayjs | null)
-                        }
-                        minDateTime={dayjs()}
-                        slotProps={{
-                          textField: {
-                            required: true,
-                            fullWidth: true,
-                            sx: {
-                              "& .MuiOutlinedInput-root": {
-                                "&:hover fieldset": {
-                                  borderColor: colors.primary.main,
-                                },
-                                "&.Mui-focused fieldset": {
-                                  borderColor: colors.primary.main,
-                                },
-                              },
-                            },
-                          },
+                    {loadingSlots || loadingRanges ? (
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "center",
+                          py: 4,
                         }}
-                      />
-
-                      <DateTimePicker
-                        label="Chọn Ngày & Giờ Trả"
-                        value={returnAt}
-                        onChange={(newValue) =>
-                          setReturnAt(newValue as Dayjs | null)
-                        }
-                        minDateTime={pickupAt || dayjs()}
-                        slotProps={{
-                          textField: {
-                            required: true,
-                            fullWidth: true,
-                            sx: {
-                              "& .MuiOutlinedInput-root": {
-                                "&:hover fieldset": {
-                                  borderColor: colors.primary.main,
-                                },
-                                "&.Mui-focused fieldset": {
-                                  borderColor: colors.primary.main,
-                                },
-                              },
-                            },
-                          },
-                        }}
-                      />
-
-                      {pickupAt && returnAt && (
-                        <Alert
-                          severity="info"
-                          sx={{
-                            borderRadius: 2,
-                            "& .MuiAlert-icon": {
-                              color: colors.status.info,
-                            },
-                          }}
-                        >
-                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                            Thời gian thuê: {calculateRentalDays()} ngày
+                      >
+                        <CircularProgress size={32} />
+                      </Box>
+                    ) : (
+                      <Stack spacing={3}>
+                        {/* Pickup Date & Slot */}
+                        <Box>
+                          <Typography
+                            variant="subtitle2"
+                            sx={{ mb: 1, fontWeight: 600 }}
+                          >
+                            Ngày & Giờ Nhận
                           </Typography>
-                        </Alert>
-                      )}
-                    </Stack>
+                          <Stack spacing={2}>
+                            <DatePicker
+                              label="Chọn Ngày Nhận"
+                              value={pickupDate}
+                              onChange={handlePickupDateChange}
+                              minDate={dayjs()}
+                              shouldDisableDate={shouldDisableDate}
+                              slotProps={{
+                                textField: {
+                                  required: true,
+                                  fullWidth: true,
+                                  sx: {
+                                    "& .MuiOutlinedInput-root": {
+                                      "&:hover fieldset": {
+                                        borderColor: colors.primary.main,
+                                      },
+                                      "&.Mui-focused fieldset": {
+                                        borderColor: colors.primary.main,
+                                      },
+                                    },
+                                  },
+                                },
+                              }}
+                            />
+
+                            <TextField
+                              fullWidth
+                              select
+                              required
+                              label="Chọn Khung Giờ Nhận"
+                              value={pickupSlotId}
+                              onChange={(e) =>
+                                handlePickupSlotChange(e.target.value)
+                              }
+                              disabled={!pickupDate}
+                              sx={{
+                                "& .MuiOutlinedInput-root": {
+                                  "&:hover fieldset": {
+                                    borderColor: colors.primary.main,
+                                  },
+                                  "&.Mui-focused fieldset": {
+                                    borderColor: colors.primary.main,
+                                  },
+                                },
+                              }}
+                            >
+                              {availablePickupSlots.map((slot) => (
+                                <MenuItem key={slot.id} value={slot.id}>
+                                  {slot.startTime} - {slot.endTime}
+                                </MenuItem>
+                              ))}
+                            </TextField>
+                          </Stack>
+                        </Box>
+
+                        {/* Return Date & Slot */}
+                        <Box>
+                          <Typography
+                            variant="subtitle2"
+                            sx={{ mb: 1, fontWeight: 600 }}
+                          >
+                            Ngày & Giờ Trả
+                          </Typography>
+                          <Stack spacing={2}>
+                            <DatePicker
+                              label="Chọn Ngày Trả"
+                              value={returnDate}
+                              onChange={handleReturnDateChange}
+                              minDate={pickupDate || dayjs()}
+                              shouldDisableDate={shouldDisableDate}
+                              slotProps={{
+                                textField: {
+                                  required: true,
+                                  fullWidth: true,
+                                  sx: {
+                                    "& .MuiOutlinedInput-root": {
+                                      "&:hover fieldset": {
+                                        borderColor: colors.primary.main,
+                                      },
+                                      "&.Mui-focused fieldset": {
+                                        borderColor: colors.primary.main,
+                                      },
+                                    },
+                                  },
+                                },
+                              }}
+                            />
+
+                            <TextField
+                              fullWidth
+                              select
+                              required
+                              label="Chọn Khung Giờ Trả"
+                              value={returnSlotId}
+                              onChange={(e) => setReturnSlotId(e.target.value)}
+                              disabled={!returnDate}
+                              sx={{
+                                "& .MuiOutlinedInput-root": {
+                                  "&:hover fieldset": {
+                                    borderColor: colors.primary.main,
+                                  },
+                                  "&.Mui-focused fieldset": {
+                                    borderColor: colors.primary.main,
+                                  },
+                                },
+                              }}
+                            >
+                              {availableReturnSlots.map((slot) => (
+                                <MenuItem key={slot.id} value={slot.id}>
+                                  {slot.startTime} - {slot.endTime}
+                                </MenuItem>
+                              ))}
+                            </TextField>
+                          </Stack>
+                        </Box>
+
+                        {pickupDate && returnDate && (
+                          <Alert
+                            severity="info"
+                            sx={{
+                              borderRadius: 2,
+                              "& .MuiAlert-icon": {
+                                color: colors.status.info,
+                              },
+                            }}
+                          >
+                            <Typography
+                              variant="body2"
+                              sx={{ fontWeight: 600 }}
+                            >
+                              Thời gian thuê: {calculateRentalDays()} ngày
+                            </Typography>
+                          </Alert>
+                        )}
+
+                        {unavailableRanges.length > 0 && (
+                          <Alert severity="warning" sx={{ borderRadius: 2 }}>
+                            <Typography
+                              variant="caption"
+                              sx={{ fontWeight: 600, display: "block", mb: 1 }}
+                            >
+                              Lịch đã đặt:
+                            </Typography>
+                            {unavailableRanges.map((range, idx) => (
+                              <Typography
+                                key={idx}
+                                variant="caption"
+                                sx={{ display: "block" }}
+                              >
+                                •{" "}
+                                {dayjs(range.startUtc)
+                                  .tz("Asia/Ho_Chi_Minh")
+                                  .format("DD/MM/YYYY HH:mm")}{" "}
+                                -{" "}
+                                {dayjs(range.endUtc)
+                                  .tz("Asia/Ho_Chi_Minh")
+                                  .format("DD/MM/YYYY HH:mm")}
+                              </Typography>
+                            ))}
+                          </Alert>
+                        )}
+                      </Stack>
+                    )}
                   </Box>
 
                   {/* Submit Button */}
@@ -736,7 +1154,7 @@ const CheckoutPage: React.FC = () => {
                     type="submit"
                     fullWidth
                     variant="contained"
-                    disabled={loading}
+                    disabled={loading || loadingSlots || loadingRanges}
                     sx={{
                       mt: 4,
                       py: 1.5,
@@ -1069,9 +1487,32 @@ const CheckoutPage: React.FC = () => {
                           alignItems: "center",
                           justifyContent: "center",
                           flexShrink: 0,
+                          overflow: "hidden",
                         }}
                       >
-                        {item.itemType === "Camera" ? (
+                        {item.media && item.media.length > 0 ? (
+                          <img
+                            src={item.media[0]}
+                            alt={item.itemName}
+                            style={{
+                              width: "100%",
+                              height: "100%",
+                              objectFit: "cover",
+                            }}
+                            onError={(e) => {
+                              // Fallback to icon if image fails to load
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = "none";
+                              const parent = target.parentElement;
+                              if (parent) {
+                                parent.innerHTML =
+                                  item.itemType === "Camera"
+                                    ? '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"></path><circle cx="12" cy="13" r="3"></circle></svg>'
+                                    : '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>';
+                              }
+                            }}
+                          />
+                        ) : item.itemType === "Camera" ? (
                           <Camera size={28} color={colors.neutral[400]} />
                         ) : (
                           <Package size={28} color={colors.neutral[400]} />
@@ -1170,7 +1611,7 @@ const CheckoutPage: React.FC = () => {
                         Ngày thuê
                       </Typography>
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        {calculateRentalDays()} days
+                        {calculateRentalDays()} ngày
                       </Typography>
                     </Box>
                   )}
@@ -1212,8 +1653,8 @@ const CheckoutPage: React.FC = () => {
                     variant="caption"
                     sx={{ color: colors.text.secondary, display: "block" }}
                   >
-                    💡 Vui lòng xem xét kỹ thông tin thuê nhà của bạn trước khi
-                    xác nhận
+                    💡 Vui lòng xem xét kỹ thông tin thuê thiết bị của bạn trước
+                    khi xác nhận
                   </Typography>
                 </Box>
               </Paper>
