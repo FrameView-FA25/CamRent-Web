@@ -24,6 +24,7 @@ import {
   Schedule as ScheduleIcon,
 } from "@mui/icons-material";
 import { useAuth } from "../../hooks/useAuth";
+import { Home } from "lucide-react";
 
 const DRAWER_WIDTH = 280;
 
@@ -44,6 +45,11 @@ const menuItems = [
     text: "Khung giờ làm việc",
     icon: <ScheduleIcon />,
     path: "/admin/work-slots",
+  },
+  {
+    text: "Quản lý website",
+    icon: <Home />,
+    path: "/admin/website-management",
   },
   { text: "Hồ sơ", icon: <PersonIcon />, path: "/admin/profile" },
 ];
