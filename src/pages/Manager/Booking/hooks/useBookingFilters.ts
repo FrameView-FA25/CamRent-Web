@@ -1,6 +1,5 @@
 import { useState, useMemo } from "react";
-import type { Booking } from "@/types/booking.types";
-import { STATUS_MAP } from "../constants";
+import type { Booking } from "../../../../types/booking.types";
 
 export type SortOrder = "newest" | "alphabetical";
 
@@ -9,49 +8,58 @@ export const useBookingFilters = (bookings: Booking[]) => {
   const [selectedTab, setSelectedTab] = useState(0);
   const [sortOrder, setSortOrder] = useState<SortOrder>("newest");
 
-  const getStatusNumber = (statusText: string): number => {
-    return STATUS_MAP[statusText] ?? -1;
-  };
-
   const filteredBookings = useMemo(() => {
-    const filtered = bookings.filter((booking) => {
-      if (booking.statusText === "Giỏ hàng") {
-        return false;
-      }
+    // Exclude Draft bookings from Manager view
+    let filtered = bookings.filter((b) => b.status !== "Draft");
 
-      const matchesSearch =
-        booking.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        booking.renterId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        booking.items.some((item) =>
-          item.itemName.toLowerCase().includes(searchQuery.toLowerCase())
-        ) ||
-        booking.location.province.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        booking.location.district.toLowerCase().includes(searchQuery.toLowerCase());
+    // Filter by tab
+    if (selectedTab === 1) {
+      filtered = filtered.filter((b) => b.status === "PendingApproval");
+    } else if (selectedTab === 2) {
+      filtered = filtered.filter((b) => b.status === "Confirmed");
+    } else if (selectedTab === 3) {
+      filtered = filtered.filter((b) => b.status === "PickedUp");
+    } else if (selectedTab === 4) {
+      filtered = filtered.filter((b) => b.status === "Returned");
+    } else if (selectedTab === 5) {
+      filtered = filtered.filter((b) => b.status === "Completed");
+    } else if (selectedTab === 6) {
+      filtered = filtered.filter((b) => b.status === "Cancelled");
+    } else if (selectedTab === 7) {
+      filtered = filtered.filter((b) => b.status === "Overdue");
+    }
 
-      const bookingStatusNumber = getStatusNumber(booking.statusText);
-      const matchesTab =
-        selectedTab === 0 ||
-        (selectedTab === 1 && bookingStatusNumber === 0) ||
-        (selectedTab === 2 && bookingStatusNumber === 1) ||
-        (selectedTab === 3 && bookingStatusNumber === 2) ||
-        (selectedTab === 4 && bookingStatusNumber === 3) ||
-        (selectedTab === 5 && bookingStatusNumber === 4);
+    // Filter by search query
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (b) =>
+          b.id.toLowerCase().includes(query) ||
+          b.renterId.toLowerCase().includes(query) ||
+          b.renter?.fullName?.toLowerCase().includes(query) ||
+          b.renter?.phone?.toLowerCase().includes(query) ||
+          b.items.some(
+            (item) =>
+              item.itemName?.toLowerCase().includes(query) ||
+              item.itemId.toLowerCase().includes(query)
+          )
+      );
+    }
 
-      return matchesSearch && matchesTab;
-    });
+    // Sort
+    if (sortOrder === "newest") {
+      filtered = [...filtered].sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+    } else if (sortOrder === "alphabetical") {
+      filtered = [...filtered].sort((a, b) =>
+        (a.renter?.fullName || "").localeCompare(b.renter?.fullName || "")
+      );
+    }
 
-    // ✅ Apply sorting
-    return filtered.sort((a, b) => {
-      if (sortOrder === "newest") {
-        const dateA = new Date(a.createdAt || 0).getTime();
-        const dateB = new Date(b.createdAt || 0).getTime();
-        return dateB - dateA; // Descending order (newest first)
-      } else {
-        // Alphabetical by booking ID
-        return a.id.localeCompare(b.id, 'vi');
-      }
-    });
-  }, [bookings, searchQuery, selectedTab, sortOrder]);
+    return filtered;
+  }, [bookings, selectedTab, searchQuery, sortOrder]);
 
   return {
     searchQuery,

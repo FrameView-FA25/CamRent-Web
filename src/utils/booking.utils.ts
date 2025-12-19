@@ -24,26 +24,72 @@ export const formatDate = (dateString: string): string => {
   });
 };
 
-export const getStatusInfo = (statusText: string) => {
-  const statusMap: Record<
-    string,
-    {
-      label: string;
-      color: "warning" | "info" | "primary" | "success" | "error" | "default";
-    }
-  > = {
-    // Đã xác nhận: dùng màu xanh lá cho thống nhất với UI
-    "Đã xác nhận": { label: "Đã xác nhận", color: "success" },
-    "Đang thuê": { label: "Đang thuê", color: "primary" },
-    "Đã nhận máy": { label: "Đã giao máy", color: "primary" },
-    "Hoàn tất": { label: "Hoàn tất", color: "success" },
-    "Đã trả": { label: "Đã trả", color: "info" },
-    "Đã hủy": { label: "Đã hủy", color: "error" },
-    "Giỏ hàng": { label: "Giỏ hàng", color: "default" },
+export const getStatusInfo = (
+  status: string
+): {
+  label: string;
+  color: "default" | "primary" | "secondary" | "error" | "info" | "success" | "warning";
+  bgColor?: string;
+  textColor?: string;
+} => {
+  const statusMap: Record<string, any> = {
+    Draft: {
+      label: "Nháp",
+      color: "default" as const,
+      bgColor: "#F3F4F6",
+      textColor: "#6B7280",
+    },
+    PendingApproval: {
+      label: "Chờ xác nhận",
+      color: "warning" as const,
+      bgColor: "#FFF7ED",
+      textColor: "#F97316",
+    },
+    Confirmed: {
+      label: "Đã xác nhận",
+      color: "primary" as const,
+      bgColor: "#DBEAFE",
+      textColor: "#1D4ED8",
+    },
+    PickedUp: {
+      label: "Đã nhận máy",
+      color: "info" as const,
+      bgColor: "#E0E7FF",
+      textColor: "#4F46E5",
+    },
+    Returned: {
+      label: "Đã trả máy",
+      color: "secondary" as const,
+      bgColor: "#F3E8FF",
+      textColor: "#7C3AED",
+    },
+    Completed: {
+      label: "Hoàn thành",
+      color: "success" as const,
+      bgColor: "#D1FAE5",
+      textColor: "#059669",
+    },
+    Cancelled: {
+      label: "Đã hủy",
+      color: "error" as const,
+      bgColor: "#FEE2E2",
+      textColor: "#DC2626",
+    },
+    Overdue: {
+      label: "Quá hạn",
+      color: "error" as const,
+      bgColor: "#FEF2F2",
+      textColor: "#991B1B",
+    },
   };
 
   return (
-    statusMap[statusText] || { label: statusText, color: "default" as const }
+    statusMap[status] || {
+      label: status,
+      color: "default" as const,
+      bgColor: "#F3F4F6",
+      textColor: "#6B7280",
+    }
   );
 };
 
