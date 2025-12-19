@@ -734,6 +734,7 @@ const AssignStaffDialog: React.FC<AssignStaffDialogProps> = ({
             "&:disabled": {
               bgcolor: "#E5E7EB",
             },
+            color: "White",
           }}
         >
           {loading ? (
