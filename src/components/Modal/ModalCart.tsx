@@ -193,14 +193,20 @@ const CartModal: React.FC<CartModalProps> = ({ open, onClose }) => {
 
   const handleCheckout = () => {
     if (!cartData?.items || cartData.items.length === 0) {
-      toast.warning("Your cart is empty");
+      toast.warning("Giỏ hàng bạn đang trống");
       return;
     }
 
     const itemsWithQuantities: CartItemWithQuantity[] = cartData.items.map(
       (item) => ({
-        ...item,
+        itemId: item.itemId,
+        itemName: item.itemName,
+        itemType: item.itemType,
+        unitPrice: item.unitPrice,
+        depositAmount: item.depositAmount,
         quantity: itemQuantities[item.itemId] || 1,
+        media: item.media?.map((m: any) => m.url) || [],
+        unavailableRanges: item.unavailableRanges,
       })
     );
 

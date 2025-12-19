@@ -247,6 +247,7 @@ const ProductDetailPage: React.FC = () => {
           itemType: item.itemType || "Camera",
           unitPrice: item.unitPrice || item.price || 0,
           quantity: item.quantity || 1,
+          media: item.media?.map((m: any) => m.url) || [],
         })) || [];
 
       console.log("Formatted items:", formattedItems);
