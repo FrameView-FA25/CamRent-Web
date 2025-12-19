@@ -1053,18 +1053,22 @@ export default function CameraManagement() {
           },
         }}
       >
-        <MenuItem
-          onClick={() => {
-            if (!menuCamera) return;
-            handleOpenEdit(menuCamera);
-            handleCloseActionMenu();
-          }}
-        >
-          <ListItemIcon>
-            <EditIcon fontSize="small" sx={{ color: "#1D4ED8" }} />
-          </ListItemIcon>
-          <ListItemText primary="Chỉnh sửa camera" />
-        </MenuItem>
+        {/* Chỉ hiện nút chỉnh sửa nếu camera chưa được xác minh */}
+        {menuCamera && !menuCamera.isConfirmed && (
+          <MenuItem
+            onClick={() => {
+              if (!menuCamera) return;
+              handleOpenEdit(menuCamera);
+              handleCloseActionMenu();
+            }}
+          >
+            <ListItemIcon>
+              <EditIcon fontSize="small" sx={{ color: "#1D4ED8" }} />
+            </ListItemIcon>
+            <ListItemText primary="Chỉnh sửa camera" />
+          </MenuItem>
+        )}
+
         <MenuItem
           onClick={async () => {
             if (!menuCamera) return;
@@ -1077,21 +1081,47 @@ export default function CameraManagement() {
           </ListItemIcon>
           <ListItemText primary="Tạo QR code" />
         </MenuItem>
-        <Divider />
-        <MenuItem
-          onClick={async () => {
-            if (!menuCamera) return;
-            const cameraId = menuCamera.id;
-            handleCloseActionMenu();
-            await handleDeleteCamera(cameraId);
-          }}
-          sx={{ color: "#B91C1C" }}
-        >
-          <ListItemIcon>
-            <DeleteIcon fontSize="small" sx={{ color: "#B91C1C" }} />
-          </ListItemIcon>
-          <ListItemText primary="Xóa camera" />
-        </MenuItem>
+
+        {/* Chỉ hiện Divider nếu có nút chỉnh sửa */}
+        {menuCamera && !menuCamera.isConfirmed && <Divider />}
+
+        {/* Chỉ cho phép xóa nếu camera chưa được xác minh */}
+        {menuCamera && !menuCamera.isConfirmed && (
+          <MenuItem
+            onClick={async () => {
+              if (!menuCamera) return;
+              const cameraId = menuCamera.id;
+              handleCloseActionMenu();
+              await handleDeleteCamera(cameraId);
+            }}
+            sx={{ color: "#B91C1C" }}
+          >
+            <ListItemIcon>
+              <DeleteIcon fontSize="small" sx={{ color: "#B91C1C" }} />
+            </ListItemIcon>
+            <ListItemText primary="Xóa camera" />
+          </MenuItem>
+        )}
+
+        {/* Thông báo nếu camera đã xác minh */}
+        {menuCamera && menuCamera.isConfirmed && (
+          <>
+            <Divider />
+            <Box sx={{ px: 2, py: 1.5 }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: "#64748B",
+                  fontStyle: "italic",
+                  display: "block",
+                  textAlign: "center",
+                }}
+              >
+                Camera đã xác minh không thể chỉnh sửa hoặc xóa
+              </Typography>
+            </Box>
+          </>
+        )}
       </Menu>
 
       {/* Add Camera Modal */}
