@@ -202,7 +202,7 @@ const InspectionDialog: React.FC<InspectionDialogProps> = ({
 
   const handleSubmit = () => {
     if (!selectedItemId) {
-      alert("Vui lòng chọn thiết bị!");
+      toast.error("Vui lòng chọn thiết bị!");
       return;
     }
 
@@ -257,7 +257,7 @@ const InspectionDialog: React.FC<InspectionDialogProps> = ({
       <DialogTitle
         sx={{ fontWeight: 700, fontSize: 22, textAlign: "center", pb: 0 }}
       >
-        Phiếu kiểm tra thiết bị
+        Phiếu kiểm tra xác minh thiết bị
       </DialogTitle>
       <DialogContent sx={{ mt: 2 }}>
         {/* Chọn thiết bị */}
@@ -613,7 +613,12 @@ const InspectionDialog: React.FC<InspectionDialogProps> = ({
         <Button
           onClick={handleSubmit}
           variant="contained"
-          sx={{ borderRadius: 2, bgcolor: "#F97316", fontWeight: 600 }}
+          sx={{
+            borderRadius: 2,
+            bgcolor: "#F97316",
+            fontWeight: 600,
+            color: "white",
+          }}
         >
           Tạo phiếu kiểm tra
         </Button>

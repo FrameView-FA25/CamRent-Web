@@ -19,25 +19,31 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import { Clear, PhotoCamera } from "@mui/icons-material";
+import {
+  Clear,
+  PhotoCamera,
+  Assignment,
+  VerifiedUser,
+} from "@mui/icons-material";
 import type { VerificationItem } from "../../../types/verification.types";
 import { toast } from "react-toastify";
 
-type CheckBookingDefaultValues = {
+type InspectionDefaultValues = {
   verifyId?: string;
   items?: VerificationItem[];
-  ItemType?: string;
-  Type?: string;
 };
 
-export interface CheckBookingDialogProps {
+export type InspectionType = "Booking" | "Verification";
+
+export interface InspectionFormDialogProps {
   open: boolean;
   onClose: () => void;
   onSubmit: (data: Record<string, unknown>) => void;
-  defaultValues?: Partial<CheckBookingDefaultValues>;
+  defaultValues?: Partial<InspectionDefaultValues>;
+  inspectionType: InspectionType; // NEW: Phân biệt loại inspection
 }
 
-// Danh sách kiểm tra thiết bị camera
+// Danh sách kiểm tra thiết bị camera (như phiếu bảo dưỡng xe)
 const DEFAULT_CHECKLIST = [
   { label: "Vỏ máy (vết xước, móp)" },
   { label: "Ống kính (sạch sẽ, trầy xước)" },
@@ -64,11 +70,12 @@ type ChecklistItem = {
   imagePreviews: string[];
 };
 
-const CheckBookingDialog: React.FC<CheckBookingDialogProps> = ({
+const InspectionFormDialog: React.FC<InspectionFormDialogProps> = ({
   open,
   onClose,
   onSubmit,
   defaultValues,
+  inspectionType,
 }) => {
   const verifyId = defaultValues?.verifyId || "";
   const items: VerificationItem[] = defaultValues?.items || [];
@@ -224,7 +231,7 @@ const CheckBookingDialog: React.FC<CheckBookingDialogProps> = ({
     const inspectionItems = checklist.map((item) => ({
       ItemId: selectedItemId,
       ItemType: getItemTypeNumber(selectedItemType),
-      Type: "Booking",
+      Type: inspectionType, // Sử dụng prop inspectionType
       Booking: verifyId,
       InspectionTypeId: verifyId,
       Label: item.label,
@@ -243,6 +250,25 @@ const CheckBookingDialog: React.FC<CheckBookingDialogProps> = ({
   const passedCount = checklist.filter((item) => item.passed).length;
   const failedCount = checklist.length - passedCount;
 
+  // Cấu hình theo loại inspection
+  const inspectionConfig = {
+    Booking: {
+      title: "Phiếu kiểm tra đơn hàng",
+      badgeLabel: "Đơn hàng",
+      badgeColor: "#F97316" as const,
+      icon: Assignment,
+    },
+    Verification: {
+      title: "Phiếu kiểm tra xác minh thiết bị",
+      badgeLabel: "Xác minh",
+      badgeColor: "#3B82F6" as const,
+      icon: VerifiedUser,
+    },
+  };
+
+  const config = inspectionConfig[inspectionType];
+  const IconComponent = config.icon;
+
   return (
     <Dialog
       open={open}
@@ -256,9 +282,33 @@ const CheckBookingDialog: React.FC<CheckBookingDialogProps> = ({
       }}
     >
       <DialogTitle
-        sx={{ fontWeight: 700, fontSize: 22, textAlign: "center", pb: 0 }}
+        sx={{
+          fontWeight: 700,
+          fontSize: 22,
+          textAlign: "center",
+          pb: 1,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 2,
+        }}
       >
-        Phiếu kiểm tra đơn hàng
+        <IconComponent sx={{ color: config.badgeColor, fontSize: 28 }} />
+        <Box>
+          <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5 }}>
+            {config.title}
+          </Typography>
+          <Chip
+            label={config.badgeLabel}
+            size="small"
+            sx={{
+              bgcolor: `${config.badgeColor}15`,
+              color: config.badgeColor,
+              fontWeight: 600,
+              border: `1px solid ${config.badgeColor}40`,
+            }}
+          />
+        </Box>
       </DialogTitle>
       <DialogContent sx={{ mt: 2 }}>
         {/* Chọn thiết bị */}
@@ -616,9 +666,12 @@ const CheckBookingDialog: React.FC<CheckBookingDialogProps> = ({
           variant="contained"
           sx={{
             borderRadius: 2,
-            bgcolor: "#F97316",
+            bgcolor: config.badgeColor,
             fontWeight: 600,
-            color: "white",
+            "&:hover": {
+              bgcolor: config.badgeColor,
+              opacity: 0.9,
+            },
           }}
         >
           Tạo phiếu kiểm tra
@@ -628,4 +681,4 @@ const CheckBookingDialog: React.FC<CheckBookingDialogProps> = ({
   );
 };
 
-export default CheckBookingDialog;
+export default InspectionFormDialog;
