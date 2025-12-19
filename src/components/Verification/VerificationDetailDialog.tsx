@@ -102,28 +102,39 @@ export default function VerificationDetailModal({
     note: string;
   } | null>(null);
 
-  // New states for inspection forms
+  // States for inspection forms
   const [inspectionForms, setInspectionForms] = useState<InspectionForm[]>([]);
   const [loadingInspections, setLoadingInspections] = useState(false);
 
+  // State to track current verification data
+  const [currentVerification, setCurrentVerification] =
+    useState<Verification | null>(verification);
+
   const signatureRef = useRef<SignatureCanvas | null>(null);
+
+  // Sync verification data when prop changes
+  useEffect(() => {
+    if (verification) {
+      setCurrentVerification(verification);
+    }
+  }, [verification]);
 
   // Fetch inspection forms when dialog opens
   useEffect(() => {
-    if (open && verification?.id) {
+    if (open && currentVerification?.id) {
       fetchInspectionForms();
     }
-  }, [open, verification?.id]);
+  }, [open, currentVerification?.id]);
 
   const fetchInspectionForms = async () => {
-    if (!verification?.id) return;
+    if (!currentVerification?.id) return;
 
     try {
       setLoadingInspections(true);
       const token = localStorage.getItem("accessToken");
 
       const response = await fetch(
-        `${API_BASE_URL}/inspection-forms/verification/${verification.id}`,
+        `${API_BASE_URL}/inspection-forms/verification/${currentVerification.id}`,
         {
           method: "GET",
           headers: {
@@ -152,7 +163,36 @@ export default function VerificationDetailModal({
     }
   };
 
-  if (!verification) return null;
+  // Fetch updated verification data
+  const fetchUpdatedVerification = async () => {
+    if (!verification?.id) return;
+
+    try {
+      const token = localStorage.getItem("accessToken");
+      const response = await fetch(
+        `${API_BASE_URL}/api/Verifications/${verification.id}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Không thể tải thông tin yêu cầu");
+      }
+
+      const data: Verification = await response.json();
+      setCurrentVerification(data);
+    } catch (error) {
+      console.error("Error fetching verification:", error);
+      // Don't show toast error to avoid disturbing user
+    }
+  };
+
+  if (!currentVerification) return null;
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -200,12 +240,12 @@ export default function VerificationDetailModal({
   };
 
   const canCreateContract = ["approved", "completed"].includes(
-    verification.status.toLowerCase()
+    currentVerification.status.toLowerCase()
   );
-  const isApproved = verification.status.toLowerCase() === "approved";
-  const hasStaff = !!verification.staffName;
+  const isApproved = currentVerification.status.toLowerCase() === "approved";
+  const hasStaff = !!currentVerification.staffName;
   const hasContract =
-    verification.contracts && verification.contracts.length > 0;
+    currentVerification.contracts && currentVerification.contracts.length > 0;
 
   const handleCreateContract = async () => {
     if (hasContract) {
@@ -216,12 +256,15 @@ export default function VerificationDetailModal({
   };
 
   const handleViewContract = async () => {
-    if (!verification.contracts || verification.contracts.length === 0) {
+    if (
+      !currentVerification.contracts ||
+      currentVerification.contracts.length === 0
+    ) {
       toast.error("Không tìm thấy hợp đồng");
       return;
     }
 
-    const contractId = verification.contracts[0].id;
+    const contractId = currentVerification.contracts[0].id;
     const token = localStorage.getItem("accessToken");
 
     try {
@@ -279,7 +322,7 @@ export default function VerificationDetailModal({
 
   const handleConfirmContract = async () => {
     await handleContractConfirm(
-      verification,
+      currentVerification,
       setContractLoading,
       setPdfUrl,
       setCurrentContractId,
@@ -317,7 +360,7 @@ export default function VerificationDetailModal({
   const handleConfirmSignature = async () => {
     await handleSaveSignature(
       signatureRef,
-      verification,
+      currentVerification,
       currentContractId,
       handleCloseSignature,
       handleClosePdfDialog,
@@ -341,8 +384,14 @@ export default function VerificationDetailModal({
     if (!onAssignStaff || !verification) return false;
 
     const success = await onAssignStaff(verification.id, staffId);
-    if (success && onRefresh) {
-      onRefresh();
+    if (success) {
+      // Refresh verification data immediately after successful assignment
+      await fetchUpdatedVerification();
+
+      // Also refresh parent component data
+      if (onRefresh) {
+        onRefresh();
+      }
     }
     return success;
   };
@@ -373,11 +422,11 @@ export default function VerificationDetailModal({
   };
 
   const handleFinalConfirm = async () => {
-    if (!pendingStatusUpdate || !verification) return;
+    if (!pendingStatusUpdate || !currentVerification) return;
 
     try {
       await verificationService.updateVerificationStatus(
-        verification.id,
+        currentVerification.id,
         pendingStatusUpdate.status,
         pendingStatusUpdate.note || undefined
       );
@@ -431,7 +480,7 @@ export default function VerificationDetailModal({
               Chi Tiết Yêu Cầu Xác Minh
             </Typography>
             <Typography variant="body2" sx={{ color: "#64748B" }}>
-              Mã yêu cầu: {verification.id}
+              Mã yêu cầu: {currentVerification.id}
             </Typography>
           </Box>
           <IconButton
@@ -575,7 +624,7 @@ export default function VerificationDetailModal({
                     Tên khách hàng
                   </Typography>
                   <Typography variant="body1" sx={{ color: "#1E293B" }}>
-                    {verification.name}
+                    {currentVerification.name}
                   </Typography>
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
@@ -586,7 +635,7 @@ export default function VerificationDetailModal({
                     Số điện thoại
                   </Typography>
                   <Typography variant="body1" sx={{ color: "#1E293B" }}>
-                    {verification.phoneNumber}
+                    {currentVerification.phoneNumber}
                   </Typography>
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
@@ -597,7 +646,7 @@ export default function VerificationDetailModal({
                     Ngày kiểm tra
                   </Typography>
                   <Typography variant="body1" sx={{ color: "#1E293B" }}>
-                    {formatDate(verification.inspectionDate)}
+                    {formatDate(currentVerification.inspectionDate)}
                   </Typography>
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
@@ -608,8 +657,8 @@ export default function VerificationDetailModal({
                     Trạng thái
                   </Typography>
                   <Chip
-                    label={getStatusText(verification.status)}
-                    color={getStatusColor(verification.status)}
+                    label={getStatusText(currentVerification.status)}
+                    color={getStatusColor(currentVerification.status)}
                     size="small"
                     sx={{ fontWeight: 600 }}
                   />
@@ -622,7 +671,7 @@ export default function VerificationDetailModal({
                     Chi nhánh
                   </Typography>
                   <Typography variant="body1" sx={{ color: "#1E293B" }}>
-                    {verification.branchName}
+                    {currentVerification.branchName}
                   </Typography>
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
@@ -633,10 +682,10 @@ export default function VerificationDetailModal({
                     Nhân viên phụ trách
                   </Typography>
                   <Typography variant="body1" sx={{ color: "#1E293B" }}>
-                    {verification.staffName || "Chưa phân công"}
+                    {currentVerification.staffName || "Chưa phân công"}
                   </Typography>
                 </Grid>
-                {verification.notes && (
+                {currentVerification.notes && (
                   <Grid size={{ xs: 12 }}>
                     <Typography
                       variant="body2"
@@ -645,7 +694,7 @@ export default function VerificationDetailModal({
                       Ghi chú
                     </Typography>
                     <Typography variant="body1" sx={{ color: "#1E293B" }}>
-                      {verification.notes}
+                      {currentVerification.notes}
                     </Typography>
                   </Grid>
                 )}
@@ -667,9 +716,10 @@ export default function VerificationDetailModal({
                 fontWeight={600}
                 sx={{ color: "#1E293B", mb: 2 }}
               >
-                Danh Sách Thiết Bị ({verification.items?.length || 0})
+                Danh Sách Thiết Bị ({currentVerification.items?.length || 0})
               </Typography>
-              {verification.items && verification.items.length > 0 ? (
+              {currentVerification.items &&
+              currentVerification.items.length > 0 ? (
                 <TableContainer>
                   <Table>
                     <TableHead>
@@ -695,7 +745,7 @@ export default function VerificationDetailModal({
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {verification.items.map((item, index) => (
+                      {currentVerification.items.map((item, index) => (
                         <TableRow
                           key={item.itemId}
                           sx={{
@@ -1018,7 +1068,7 @@ export default function VerificationDetailModal({
       <CreateContractDialog
         open={contractDialogOpen}
         onClose={handleCloseContractDialog}
-        selectedVerification={verification}
+        selectedVerification={currentVerification}
         loading={contractLoading}
         onConfirm={handleConfirmContract}
       />
@@ -1047,7 +1097,7 @@ export default function VerificationDetailModal({
         onClose={handleCloseAssignStaff}
         staffList={staffList}
         onAssign={handleAssignStaff}
-        verificationDate={verification.inspectionDate}
+        verificationDate={currentVerification.inspectionDate}
       />
 
       {/* Status Update Dialog */}
