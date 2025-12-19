@@ -51,6 +51,8 @@ const menuItems = [
     text: "Phiếu kiểm tra",
     icon: <ChecklistIcon />,
     path: "/admin/inspections",
+  },
+  {
     text: "Quản lý website",
     icon: <Home />,
     path: "/admin/website-management",
