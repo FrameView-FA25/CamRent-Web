@@ -210,7 +210,7 @@ const InspectionFormDialog: React.FC<InspectionFormDialogProps> = ({
 
   const handleSubmit = () => {
     if (!selectedItemId) {
-      alert("Vui lòng chọn thiết bị!");
+      toast.error("Vui lòng chọn thiết bị!");
       return;
     }
 
@@ -293,22 +293,30 @@ const InspectionFormDialog: React.FC<InspectionFormDialogProps> = ({
           gap: 2,
         }}
       >
-        <IconComponent sx={{ color: config.badgeColor, fontSize: 28 }} />
-        <Box>
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 1,
+          }}
+        >
+          <IconComponent sx={{ color: config.badgeColor, fontSize: 28 }} />
           <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5 }}>
             {config.title}
           </Typography>
-          <Chip
-            label={config.badgeLabel}
-            size="small"
-            sx={{
-              bgcolor: `${config.badgeColor}15`,
-              color: config.badgeColor,
-              fontWeight: 600,
-              border: `1px solid ${config.badgeColor}40`,
-            }}
-          />
         </Box>
+
+        <Chip
+          label={config.badgeLabel}
+          size="small"
+          sx={{
+            bgcolor: `${config.badgeColor}15`,
+            color: config.badgeColor,
+            fontWeight: 600,
+            border: `1px solid ${config.badgeColor}40`,
+          }}
+        />
       </DialogTitle>
       <DialogContent sx={{ mt: 2 }}>
         {/* Chọn thiết bị */}
@@ -320,8 +328,12 @@ const InspectionFormDialog: React.FC<InspectionFormDialogProps> = ({
             onChange={handleItemSelect}
             fullWidth
             sx={{ flex: 2 }}
-            InputLabelProps={{
-              shrink: true,
+            slotProps={{
+              input: {
+                sx: {
+                  backgroundColor: "#f3f4f6",
+                },
+              },
             }}
           >
             <MenuItem value="">-- Chọn thiết bị --</MenuItem>
@@ -667,6 +679,7 @@ const InspectionFormDialog: React.FC<InspectionFormDialogProps> = ({
           sx={{
             borderRadius: 2,
             bgcolor: config.badgeColor,
+            color: "white",
             fontWeight: 600,
             "&:hover": {
               bgcolor: config.badgeColor,
