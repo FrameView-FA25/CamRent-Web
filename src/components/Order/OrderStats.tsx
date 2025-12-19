@@ -1,14 +1,16 @@
 import React from "react";
 import { Box, Paper, Typography } from "@mui/material";
-import { Package, Clock, Truck, CheckCircle } from "lucide-react";
+import { Package, Clock, CheckCircle, XCircle } from "lucide-react";
 import { colors } from "../../theme/colors";
 
 interface OrderStatsProps {
   stats: {
     total: number;
-    pending: number;
-    active: number;
+    pendingApproval: number;
+    confirmed: number;
+    pickedUp: number;
     completed: number;
+    cancelled: number;
   };
 }
 
@@ -23,15 +25,22 @@ const OrderStats: React.FC<OrderStatsProps> = ({ stats }) => {
     },
     {
       label: "Chờ duyệt",
-      value: stats.pending,
+      value: stats.pendingApproval,
       icon: <Clock size={32} />,
       color: "#FFC107",
       bgColor: "#FFFDE7",
     },
     {
-      label: "Đang thuê",
-      value: stats.active,
-      icon: <Truck size={32} />,
+      label: "Đã xác nhận",
+      value: stats.confirmed,
+      icon: <CheckCircle size={32} />,
+      color: "#2196F3",
+      bgColor: "#E3F2FD",
+    },
+    {
+      label: "Đã nhận máy",
+      value: stats.pickedUp,
+      icon: <CheckCircle size={32} />,
       color: "#FF9800",
       bgColor: "#FFF3E0",
     },
@@ -42,85 +51,86 @@ const OrderStats: React.FC<OrderStatsProps> = ({ stats }) => {
       color: "#4CAF50",
       bgColor: "#E8F5E9",
     },
+    {
+      label: "Đã hủy",
+      value: stats.cancelled,
+      icon: <XCircle size={32} />,
+      color: "#F44336",
+      bgColor: "#FFEBEE",
+    },
   ];
 
   return (
     <Box
       sx={{
-        display: "flex",
+        display: "grid",
+        gridTemplateColumns: {
+          xs: "repeat(2, 1fr)",
+          sm: "repeat(3, 1fr)",
+          lg: "repeat(6, 1fr)",
+        },
         gap: 3,
         mb: 4,
-        flexWrap: "wrap",
       }}
     >
       {statsConfig.map((stat, index) => (
-        <Box
+        <Paper
           key={index}
+          elevation={0}
           sx={{
-            flex: {
-              xs: "1 1 calc(50% - 12px)",
-              sm: "1 1 calc(25% - 18px)",
+            p: 3,
+            borderRadius: 3,
+            border: `1px solid ${colors.border.light}`,
+            bgcolor: colors.background.paper,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 2,
+            transition: "all 0.3s ease",
+            "&:hover": {
+              boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+              transform: "translateY(-2px)",
             },
-            minWidth: 0,
           }}
         >
-          <Paper
-            elevation={0}
+          <Box
             sx={{
-              p: 3,
-              borderRadius: 3,
-              border: `1px solid ${colors.border.light}`,
-              bgcolor: colors.background.paper,
+              width: 56,
+              height: 56,
+              borderRadius: 2,
+              bgcolor: stat.bgColor,
               display: "flex",
               alignItems: "center",
-              gap: 2.5,
-              transition: "all 0.3s ease",
-              "&:hover": {
-                boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-                transform: "translateY(-2px)",
-              },
+              justifyContent: "center",
+              color: stat.color,
             }}
           >
-            <Box
+            {stat.icon}
+          </Box>
+
+          <Box sx={{ textAlign: "center" }}>
+            <Typography
+              variant="h4"
               sx={{
-                width: 64,
-                height: 64,
-                borderRadius: 2,
-                bgcolor: stat.bgColor,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: stat.color,
-                flexShrink: 0,
+                fontWeight: 700,
+                color: colors.text.primary,
+                mb: 0.5,
+                lineHeight: 1,
               }}
             >
-              {stat.icon}
-            </Box>
-
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography
-                variant="h3"
-                sx={{
-                  fontWeight: 700,
-                  color: colors.text.primary,
-                  mb: 0.5,
-                  lineHeight: 1,
-                }}
-              >
-                {stat.value}
-              </Typography>
-              <Typography
-                variant="body2"
-                sx={{
-                  color: colors.text.secondary,
-                  fontWeight: 500,
-                }}
-              >
-                {stat.label}
-              </Typography>
-            </Box>
-          </Paper>
-        </Box>
+              {stat.value}
+            </Typography>
+            <Typography
+              variant="body2"
+              sx={{
+                color: colors.text.secondary,
+                fontWeight: 500,
+              }}
+            >
+              {stat.label}
+            </Typography>
+          </Box>
+        </Paper>
       ))}
     </Box>
   );
