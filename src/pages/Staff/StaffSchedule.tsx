@@ -70,11 +70,22 @@ const EventCell: React.FC<EventCellProps> = ({ event, onClick }) => {
   const color = isPick ? "#10B981" : isReturn ? "#F59E0B" : "#8B5CF6";
   const bgColor = isPick ? "#D1FAE5" : isReturn ? "#FEF3C7" : "#EDE9FE";
 
-  // Rút gọn tiêu đề cho event kiểm tra
+  // Chuẩn hoá và rút gọn tiêu đề cho mọi loại event để ô không bị dài quá
+  let baseTitle = event.title;
+
+  if (isPick) {
+    baseTitle = "Lấy hàng";
+  } else if (isReturn) {
+    baseTitle = "Trả hàng";
+  } else if (isVerification) {
+    baseTitle = "Kiểm tra thiết bị";
+  }
+
+  const MAX_TITLE_LENGTH = 18;
   const displayTitle =
-    isVerification && event.title.length > 15
-      ? `${event.title.substring(0, 15)}...`
-      : event.title;
+    baseTitle.length > MAX_TITLE_LENGTH
+      ? `${baseTitle.substring(0, MAX_TITLE_LENGTH)}...`
+      : baseTitle;
 
   return (
     <Tooltip
@@ -84,7 +95,7 @@ const EventCell: React.FC<EventCellProps> = ({ event, onClick }) => {
             {event.title}
           </Typography>
           <Typography variant="caption" sx={{ display: "block" }}>
-            Thời gian: {dayjs(event.startAt).format("HH:mm")}
+            Thời gian: {dayjs(event.startAt).format("HH:mm DD/MM/YYYY")}
           </Typography>
           {event.bookingId && (
             <Typography variant="caption" sx={{ display: "block" }}>
@@ -123,6 +134,7 @@ const EventCell: React.FC<EventCellProps> = ({ event, onClick }) => {
             transform: "scale(1.02)",
             zIndex: 1,
           },
+          textAlign: "center",
         }}
       >
         <Stack spacing={0.3} sx={{ overflow: "hidden", width: "100%" }}>
@@ -130,7 +142,7 @@ const EventCell: React.FC<EventCellProps> = ({ event, onClick }) => {
             direction="row"
             spacing={0.5}
             alignItems="center"
-            sx={{ minWidth: 0, width: "100%" }}
+            sx={{ minWidth: 0, width: "100%", justifyContent: "center" }}
           >
             {isPick ? (
               <LocalShipping sx={{ fontSize: 13, color, flexShrink: 0 }} />
@@ -152,6 +164,7 @@ const EventCell: React.FC<EventCellProps> = ({ event, onClick }) => {
                 flex: 1,
                 minWidth: 0,
                 maxWidth: "100%",
+                textAlign: "center",
               }}
             >
               {displayTitle}
@@ -168,7 +181,7 @@ const EventCell: React.FC<EventCellProps> = ({ event, onClick }) => {
               whiteSpace: "nowrap",
             }}
           >
-            {dayjs(event.startAt).format("HH:mm")}
+            {dayjs(event.startAt).format("HH:mm DD/MM/YYYY")}
           </Typography>
         </Stack>
       </Box>
@@ -207,8 +220,8 @@ const StaffSchedule: React.FC = () => {
   }, [currentWeekStart]);
 
   const weekRange = useMemo(() => {
-    const start = currentWeekStart.format("DD/MM");
-    const end = currentWeekStart.add(6, "day").format("DD/MM");
+    const start = currentWeekStart.format("DD/MM/YYYY");
+    const end = currentWeekStart.add(6, "day").format("DD/MM/YYYY");
     return `${start} - ${end}`;
   }, [currentWeekStart]);
 
@@ -583,7 +596,7 @@ const StaffSchedule: React.FC = () => {
                         color: isToday ? colors.primary.main : "#1F2937",
                       }}
                     >
-                      {day.format("DD/MM")}
+                      {day.format("DD/MM/YYYY")}
                     </Typography>
                   </Box>
                 );

@@ -173,10 +173,21 @@ export async function initiatePayment(
 
     console.log("Payment authorized:", authResponse.paymentId);
 
+    // Xác định ngữ cảnh hiện tại (staff hay không)
+    const pathname = window.location.pathname || "";
+    const isStaffContext = pathname.startsWith("/staff");
+
+    // Staff: hủy thanh toán quay thẳng về trang kiểm tra đơn hàng
+    // User khác: dùng trang payment-failed chung
+    const returnUrl = `${window.location.origin}/payment-success`;
+    const cancelUrl = isStaffContext
+      ? `${window.location.origin}/staff/check-booking`
+      : `${window.location.origin}/payment-failed`;
+
     // Step 2: Create PayOS payment link
     const payosResponse = await createPayOsPayment(authResponse.paymentId, {
-      returnUrl: `${window.location.origin}/payment-success`,
-      cancelUrl: `${window.location.origin}/payment-failed`,
+      returnUrl,
+      cancelUrl,
     });
 
     console.log("PayOS checkout URL:", payosResponse.checkoutUrl);
