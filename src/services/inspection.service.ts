@@ -1,3 +1,5 @@
+import type { ChecklistTemplateDetail } from "@/types/inspection.types";
+
 // URL cơ sở của API backend
 const API_BASE_URL = "https://camrent-backend.up.railway.app/api";
 
@@ -27,6 +29,69 @@ export interface InspectionDto {
     label?: string;
     contentType?: string;
   }>;
+}
+
+export interface SubmitChecklistRowRequest {
+  section: string;
+  label: string;
+  methodIds: string[];
+  passed?: boolean | null;
+  notes?: string;
+}
+
+export interface SubmitChecklistResultRequest {
+  itemType: number;
+  itemId: string;
+  type: number; // InspectionType: 1 = Booking, 2 = Verification
+  handoverType?: number | null; // HandoverType: 0 = Pickup, 1 = Return (chỉ dùng cho Booking)
+  inspectionTypeId: string; // BookingId hoặc VerificationRequestId
+  branchId?: string | null;
+  passed?: boolean | null;
+  rows: SubmitChecklistRowRequest[];
+}
+
+export interface SubmitChecklistResultResponse {
+  overallPassed?: boolean | null;
+  inspectionIds: string[];
+}
+
+// Lấy checklist template đang active theo itemType + inspectionType
+export async function getActiveChecklistTemplate(
+  itemType: number,
+  inspectionType?: number
+): Promise<ChecklistTemplateDetail> {
+  const token = localStorage.getItem("accessToken");
+  if (!token) throw new Error("Vui lòng đăng nhập để thực hiện thao tác này");
+
+  const params = new URLSearchParams();
+  params.append("itemType", String(itemType));
+  if (inspectionType !== undefined) {
+    params.append("inspectionType", String(inspectionType));
+  }
+
+  const response = await fetch(
+    `${API_BASE_URL}/inspection-checklists/active?${params.toString()}`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    let errorMessage = `Lấy checklist thất bại với mã lỗi ${response.status}`;
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.message || errorMessage;
+    } catch {
+      const errorText = await response.text().catch(() => "");
+      if (errorText) errorMessage = errorText;
+    }
+    throw new Error(errorMessage);
+  }
+
+  return (await response.json()) as ChecklistTemplateDetail;
 }
 
 export async function createInspection(
@@ -268,4 +333,53 @@ export async function getInspectionsByBookingId(
     return await response.json();
   }
   return [];
+}
+
+/**
+ * Submit checklist result (tạo nhiều inspection rows)
+ * POST /api/inspections/checklist
+ */
+export async function submitChecklist(
+  request: SubmitChecklistResultRequest
+): Promise<SubmitChecklistResultResponse> {
+  const token = localStorage.getItem("accessToken");
+  if (!token) throw new Error("Vui lòng đăng nhập để thực hiện thao tác này");
+
+  const response = await fetch(`${API_BASE_URL}/inspections/checklist`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      itemType: request.itemType,
+      itemId: request.itemId,
+      type: request.type,
+      handoverType: request.handoverType ?? null,
+      inspectionTypeId: request.inspectionTypeId,
+      branchId: request.branchId ?? null,
+      passed: request.passed ?? null,
+      rows: request.rows.map((row) => ({
+        section: row.section,
+        label: row.label,
+        methodIds: row.methodIds,
+        passed: row.passed ?? null,
+        notes: row.notes ?? "",
+      })),
+    }),
+  });
+
+  if (!response.ok) {
+    let errorMessage = `Submit checklist thất bại với mã lỗi ${response.status}`;
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.message || errorMessage;
+    } catch {
+      const errorText = await response.text().catch(() => "");
+      if (errorText) errorMessage = errorText;
+    }
+    throw new Error(errorMessage);
+  }
+
+  return (await response.json()) as SubmitChecklistResultResponse;
 }

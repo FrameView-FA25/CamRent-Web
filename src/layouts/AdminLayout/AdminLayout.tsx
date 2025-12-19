@@ -22,6 +22,7 @@ import {
   ExitToApp as LogoutIcon,
   Person as PersonIcon,
   Schedule as ScheduleIcon,
+  AssignmentTurnedIn as ChecklistIcon,
 } from "@mui/icons-material";
 import { useAuth } from "../../hooks/useAuth";
 import { Home } from "lucide-react";
@@ -47,6 +48,9 @@ const menuItems = [
     path: "/admin/work-slots",
   },
   {
+    text: "Phiếu kiểm tra",
+    icon: <ChecklistIcon />,
+    path: "/admin/inspections",
     text: "Quản lý website",
     icon: <Home />,
     path: "/admin/website-management",

@@ -57,6 +57,7 @@ import StaffSchedule from "@/pages/Staff/StaffSchedule";
 import UserProfile from "../pages/Profile/UserProfile";
 // admin
 import WorkSlotManagement from "@/pages/Admin/WorkSlotManagement/WorkSlotManagement";
+import InspectionManagement from "@/pages/Admin/InspectionManagement/InspectionManagement";
 import WebsiteManagement from "../pages/Admin/WebsiteManagement";
 import ManagerProfile from "@/pages/Manager/ManagerProfile";
 
@@ -200,6 +201,10 @@ const routes: RouteObject[] = [
       {
         path: "work-slots",
         element: <WorkSlotManagement />,
+      },
+      {
+        path: "inspections",
+        element: <InspectionManagement />,
       },
       {
         path: "profile",
