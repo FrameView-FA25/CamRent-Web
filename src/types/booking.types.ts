@@ -24,7 +24,7 @@ export interface BookingItem {
   unitPrice: number;
   quantity: number;
   depositAmount: number;
-
+  media: string[]; // URLs of images
   // ID mapping
   cameraId?: string;
   accessoryId?: string;
@@ -250,6 +250,13 @@ export interface BookingDetail extends Booking {
   branch?: Branch | null;
   createdAt: string;
   updatedAt: string;
+  payments?: BookingPayment[];
+}
+export interface BookingPayment {
+  bookingId: string;
+  booking: Booking;
+  lines: string;
+  status: string;
 }
 export interface RenterInfo {
   renterId: string;

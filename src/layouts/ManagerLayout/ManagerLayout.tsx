@@ -207,7 +207,7 @@ const ManagerLayout: React.FC = () => {
             <LogoutIcon />
           </ListItemIcon>
           <ListItemText
-            primary="Logout"
+            primary="Đăng xuất"
             primaryTypographyProps={{
               fontWeight: 500,
               fontSize: "0.9375rem",

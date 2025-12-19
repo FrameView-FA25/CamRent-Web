@@ -27,7 +27,7 @@ const OrderFilters: React.FC<OrderFiltersProps> = ({
     { label: "Tất cả", value: "all" },
     { label: "Chờ duyệt", value: "PendingApproval" },
     { label: "Đã xác nhận", value: "Confirmed" },
-    { label: "Đang thuê", value: "InProgress" },
+    { label: "Đã nhận máy", value: "PickedUp" },
     { label: "Hoàn thành", value: "Completed" },
     { label: "Đã hủy", value: "Cancelled" },
   ];

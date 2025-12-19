@@ -338,7 +338,7 @@ const CheckoutPage: React.FC = () => {
 
     // Convert Date to Dayjs if needed
     const dayjsDate = dayjs.isDayjs(date) ? date : dayjs(date);
-    
+
     return !isDateSlotAvailable(dayjsDate, pickupSlotId);
   };
 
@@ -376,7 +376,8 @@ const CheckoutPage: React.FC = () => {
   // Handle pickup date change
   const handlePickupDateChange = (value: Dayjs | null | Date) => {
     // Convert Date to Dayjs if needed
-    const dayjsValue = value && dayjs.isDayjs(value) ? value : value ? dayjs(value) : null;
+    const dayjsValue =
+      value && dayjs.isDayjs(value) ? value : value ? dayjs(value) : null;
     setPickupDate(dayjsValue);
 
     // Check availability
@@ -392,7 +393,8 @@ const CheckoutPage: React.FC = () => {
   // Handle return date change
   const handleReturnDateChange = (value: Dayjs | null | Date) => {
     // Convert Date to Dayjs if needed
-    const dayjsValue = value && dayjs.isDayjs(value) ? value : value ? dayjs(value) : null;
+    const dayjsValue =
+      value && dayjs.isDayjs(value) ? value : value ? dayjs(value) : null;
     setReturnDate(dayjsValue);
 
     if (pickupDate && dayjsValue && dayjsValue.isBefore(pickupDate)) {
@@ -707,8 +709,8 @@ const CheckoutPage: React.FC = () => {
         }, 1500);
       } else {
         // PayOs payment - create checkout URL
-        const returnUrl = `${window.location.origin}`;
-        const cancelUrl = `${window.location.origin}`;
+        const returnUrl = `${window.location.origin}?payment=success`;
+        const cancelUrl = `${window.location.origin}?payment=cancelled`;
 
         const payosResponse = await fetch(
           `${API_BASE_URL}/Payments/${paymentId}/payos`,

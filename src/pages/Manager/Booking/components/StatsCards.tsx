@@ -38,8 +38,8 @@ export const StatsCards: React.FC<StatsCardsProps> = ({ bookings }) => {
       iconColor: "#1D4ED8",
     },
     {
-      label: "Đang thuê",
-      count: bookings.filter((b) => b.statusText === "Đang thuê").length,
+      label: "Đã nhận máy",
+      count: bookings.filter((b) => b.statusText === "Đã nhận máy").length,
       icon: LocalShipping,
       bgColor: "#E0E7FF",
       iconColor: "#4F46E5",
