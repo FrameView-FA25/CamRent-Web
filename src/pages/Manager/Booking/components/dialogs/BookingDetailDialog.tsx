@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -13,6 +13,13 @@ import {
   ListItem,
   ListItemText,
   Avatar,
+  CircularProgress,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
 } from "@mui/material";
 import {
   Close as CloseIcon,
@@ -25,6 +32,8 @@ import {
   Description,
   CheckCircle,
   Image as ImageIcon,
+  Cancel as CancelIcon,
+  Assignment as AssignmentIcon,
 } from "@mui/icons-material";
 import type { Booking } from "@/types/booking.types";
 import {
@@ -32,6 +41,25 @@ import {
   formatDate,
   getStatusInfo,
 } from "../../../../../utils/booking.utils";
+import { toast } from "react-toastify";
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+interface InspectionForm {
+  id: string;
+  templateId: string;
+  templateName: string;
+  staffId: string;
+  staffName: string;
+  itemType: string;
+  itemId: string;
+  type: string;
+  handoverType: string | null;
+  inspectionTypeId: string;
+  branchId: string | null;
+  overallPassed: boolean;
+  createdAt: string;
+}
 
 interface BookingDetailDialogProps {
   open: boolean;
@@ -44,9 +72,59 @@ export const BookingDetailDialog: React.FC<BookingDetailDialogProps> = ({
   onClose,
   booking,
 }) => {
+  const [inspectionForms, setInspectionForms] = useState<InspectionForm[]>([]);
+  const [loadingInspections, setLoadingInspections] = useState(false);
+
+  // Fetch inspection forms when dialog opens
+  useEffect(() => {
+    if (open && booking?.id) {
+      fetchInspectionForms();
+    } else {
+      // Reset when dialog closes
+      setInspectionForms([]);
+    }
+  }, [open, booking?.id]);
+
+  const fetchInspectionForms = async () => {
+    if (!booking?.id) return;
+
+    try {
+      setLoadingInspections(true);
+      const token = localStorage.getItem("accessToken");
+
+      const response = await fetch(
+        `${API_BASE_URL}/inspection-forms/booking/${booking.id}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Không thể tải dữ liệu kiểm tra");
+      }
+
+      const data: InspectionForm[] = await response.json();
+      setInspectionForms(data);
+    } catch (error) {
+      console.error("Error fetching inspection forms:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Không thể tải dữ liệu kiểm tra"
+      );
+      setInspectionForms([]);
+    } finally {
+      setLoadingInspections(false);
+    }
+  };
+
   if (!booking) return null;
 
-  const statusInfo = getStatusInfo(booking.statusText);
+  const statusInfo = getStatusInfo(booking.status);
 
   // Calculate rental days
   const pickupDate = new Date(booking.pickupAt);
@@ -223,9 +301,17 @@ export const BookingDetailDialog: React.FC<BookingDetailDialogProps> = ({
                 <Person sx={{ fontSize: 20 }} />
                 Thông tin khách hàng
               </Typography>
-              <Typography variant="body2" sx={{ color: "#6B7280" }}>
-                ID: {booking.renterId}
-              </Typography>
+              <Box>
+                <Typography variant="body1" sx={{ fontWeight: 600, mb: 0.5 }}>
+                  {booking.renter?.fullName || "N/A"}
+                </Typography>
+                <Typography variant="body2" sx={{ color: "#6B7280", mb: 0.5 }}>
+                  {booking.renter?.phone || "N/A"}
+                </Typography>
+                <Typography variant="caption" sx={{ color: "#9CA3AF" }}>
+                  ID: {booking.renterId}
+                </Typography>
+              </Box>
             </Paper>
           </Box>
 
@@ -404,6 +490,198 @@ export const BookingDetailDialog: React.FC<BookingDetailDialogProps> = ({
           </Box>
         </Box>
 
+        {/* Inspection Forms Section - NEW */}
+        <Box sx={{ mt: 3 }}>
+          <Paper
+            elevation={0}
+            sx={{
+              p: 3,
+              bgcolor: "#F9FAFB",
+              borderRadius: 2,
+              border: "1px solid #E5E7EB",
+            }}
+          >
+            <Typography
+              variant="h6"
+              sx={{ fontWeight: 700, mb: 2, display: "flex", gap: 1 }}
+            >
+              <AssignmentIcon sx={{ fontSize: 20 }} />
+              Danh Sách Kiểm Tra ({inspectionForms.length})
+            </Typography>
+
+            {loadingInspections ? (
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  py: 4,
+                }}
+              >
+                <CircularProgress size={40} sx={{ color: "#F97316" }} />
+              </Box>
+            ) : inspectionForms.length > 0 ? (
+              <TableContainer>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow sx={{ bgcolor: "#F3F4F6" }}>
+                      <TableCell
+                        sx={{
+                          fontWeight: 700,
+                          color: "#475569",
+                          fontSize: "0.875rem",
+                        }}
+                      >
+                        Template
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          fontWeight: 700,
+                          color: "#475569",
+                          fontSize: "0.875rem",
+                        }}
+                      >
+                        Nhân viên
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          fontWeight: 700,
+                          color: "#475569",
+                          fontSize: "0.875rem",
+                        }}
+                      >
+                        Loại thiết bị
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          fontWeight: 700,
+                          color: "#475569",
+                          fontSize: "0.875rem",
+                        }}
+                      >
+                        Kết quả
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          fontWeight: 700,
+                          color: "#475569",
+                          fontSize: "0.875rem",
+                        }}
+                      >
+                        Ngày kiểm tra
+                      </TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {inspectionForms.map((form, index) => (
+                      <TableRow
+                        key={form.id}
+                        sx={{
+                          bgcolor: index % 2 === 0 ? "#FFFFFF" : "#FAFAFA",
+                          "&:hover": {
+                            bgcolor: "#F3F4F6",
+                          },
+                        }}
+                      >
+                        <TableCell>
+                          <Typography
+                            sx={{
+                              fontWeight: 600,
+                              color: "#1E293B",
+                              fontSize: "0.875rem",
+                            }}
+                          >
+                            {form.templateName}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography
+                            sx={{
+                              color: "#64748B",
+                              fontSize: "0.875rem",
+                            }}
+                          >
+                            {form.staffName}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={form.itemType}
+                            size="small"
+                            sx={{
+                              bgcolor:
+                                form.itemType === "Camera"
+                                  ? "#EFF6FF"
+                                  : "#F0FDF4",
+                              color:
+                                form.itemType === "Camera"
+                                  ? "#3B82F6"
+                                  : "#10B981",
+                              fontWeight: 600,
+                              fontSize: "0.75rem",
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            icon={
+                              form.overallPassed ? (
+                                <CheckCircle sx={{ fontSize: 16 }} />
+                              ) : (
+                                <CancelIcon sx={{ fontSize: 16 }} />
+                              )
+                            }
+                            label={form.overallPassed ? "Đạt" : "Không đạt"}
+                            size="small"
+                            sx={{
+                              bgcolor: form.overallPassed
+                                ? "#D1FAE5"
+                                : "#FEE2E2",
+                              color: form.overallPassed ? "#059669" : "#DC2626",
+                              fontWeight: 600,
+                              fontSize: "0.75rem",
+                              "& .MuiChip-icon": {
+                                color: "inherit",
+                              },
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Typography
+                            sx={{
+                              color: "#64748B",
+                              fontSize: "0.875rem",
+                            }}
+                          >
+                            {formatDate(form.createdAt)}
+                          </Typography>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            ) : (
+              <Box
+                sx={{
+                  textAlign: "center",
+                  py: 4,
+                }}
+              >
+                <AssignmentIcon
+                  sx={{ fontSize: 48, color: "#CBD5E1", mb: 1 }}
+                />
+                <Typography
+                  variant="body2"
+                  sx={{ color: "#94A3B8", fontStyle: "italic" }}
+                >
+                  Chưa có dữ liệu kiểm tra nào
+                </Typography>
+              </Box>
+            )}
+          </Paper>
+        </Box>
+
         {/* Contracts Section */}
         {booking.contracts && booking.contracts.length > 0 && (
           <Box sx={{ mt: 3 }}>
@@ -499,7 +777,7 @@ export const BookingDetailDialog: React.FC<BookingDetailDialogProps> = ({
           </Box>
         )}
 
-        {/* Inspections Section */}
+        {/* Old Inspections Section - Keep if still needed */}
         {booking.inspections && booking.inspections.length > 0 && (
           <Box sx={{ mt: 3 }}>
             <Paper
