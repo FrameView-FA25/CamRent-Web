@@ -19,7 +19,7 @@ import {
   Camera as CameraIcon,
   Receipt as OrdersIcon,
   Person as PersonIcon,
-  Settings as SettingsIcon,
+  // Settings as SettingsIcon,
   ExitToApp as LogoutIcon,
   Wallet as WalletIcon,
 } from "@mui/icons-material";
@@ -38,7 +38,7 @@ const menuItems = [
     path: "/renter/my-wallet",
   },
   { text: "Thông Tin Cá Nhân", icon: <PersonIcon />, path: "/renter/profile" },
-  { text: "Cài Đặt", icon: <SettingsIcon />, path: "/renter/settings" },
+  // { text: "Cài Đặt", icon: <SettingsIcon />, path: "/renter/settings" },
 ];
 
 const RenterLayout: React.FC = () => {
@@ -198,7 +198,7 @@ const RenterLayout: React.FC = () => {
             <LogoutIcon />
           </ListItemIcon>
           <ListItemText
-            primary="Logout"
+            primary="Đăng Xuất"
             primaryTypographyProps={{
               fontWeight: 500,
               fontSize: "0.9375rem",
