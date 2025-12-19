@@ -1,5 +1,6 @@
 ﻿// filepath: d:\Capstone\CamRent-Web\src\pages\Home\HomePage.tsx
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Box,
   Container,
@@ -55,6 +56,7 @@ const partners = [
 ];
 
 const HomePage: React.FC = () => {
+  const navigate = useNavigate();
   const [blocks, setBlocks] = useState<HomeBlock[]>([]);
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,7 +64,23 @@ const HomePage: React.FC = () => {
   useEffect(() => {
     fetchHomeData();
   }, []);
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const paymentStatus = urlParams.get("payment");
 
+    if (paymentStatus === "success") {
+      toast.success("Thanh toán thành công!");
+      // Xóa query parameter khỏi URL
+      window.history.replaceState({}, "", window.location.pathname);
+      // Redirect về trang đơn hàng sau 2 giây
+      setTimeout(() => {
+        navigate("/renter/my-orders");
+      }, 2000);
+    } else if (paymentStatus === "cancelled") {
+      toast.error("Thanh toán đã bị hủy");
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, [navigate]);
   const fetchHomeData = async () => {
     try {
       setLoading(true);
