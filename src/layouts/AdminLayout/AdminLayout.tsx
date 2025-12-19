@@ -21,6 +21,7 @@ import {
   Devices as DevicesIcon,
   ExitToApp as LogoutIcon,
   Person as PersonIcon,
+  Schedule as ScheduleIcon,
 } from "@mui/icons-material";
 import { useAuth } from "../../hooks/useAuth";
 
@@ -39,6 +40,11 @@ const menuItems = [
     path: "/admin/agencies",
   },
   { text: "Quản lý thiết bị", icon: <DevicesIcon />, path: "/admin/devices" },
+  {
+    text: "Khung giờ làm việc",
+    icon: <ScheduleIcon />,
+    path: "/admin/work-slots",
+  },
   { text: "Hồ sơ", icon: <PersonIcon />, path: "/admin/profile" },
 ];
 

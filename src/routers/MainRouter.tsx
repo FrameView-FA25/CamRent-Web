@@ -55,6 +55,8 @@ import PaymentFailed from "@/components/Payment/PaymentFailed";
 import StaffDashboard from "@/pages/Staff/StaffDashboard";
 import StaffSchedule from "@/pages/Staff/StaffSchedule";
 import UserProfile from "../pages/Profile/UserProfile";
+// admin
+import WorkSlotManagement from "@/pages/Admin/WorkSlotManagement/WorkSlotManagement";
 const routes: RouteObject[] = [
   {
     path: "/",
@@ -191,6 +193,10 @@ const routes: RouteObject[] = [
       {
         path: "devices",
         element: <DeviceManagement />,
+      },
+      {
+        path: "work-slots",
+        element: <WorkSlotManagement />,
       },
       {
         path: "profile",
