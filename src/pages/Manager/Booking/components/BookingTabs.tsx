@@ -1,5 +1,6 @@
 import React from "react";
-import { Paper, Tabs, Tab } from "@mui/material";
+import { Paper, Tabs, Tab, Box, Chip } from "@mui/material";
+import { Warning } from "@mui/icons-material";
 import type { Booking } from "../../../../types/booking.types";
 
 interface BookingTabsProps {
@@ -13,15 +14,12 @@ export const BookingTabs: React.FC<BookingTabsProps> = ({
   setSelectedTab,
   bookings,
 }) => {
-  const getStatusCount = (status: string) => {
-    return bookings.filter((b) => b.status === status).length;
-  };
-
-  // Exclude Draft from total count
-  const visibleBookings = bookings.filter((b) => b.status !== "Draft");
+  const getCount = (status: string) =>
+    bookings.filter((b) => b.status.toLowerCase() === status.toLowerCase())
+      .length;
 
   return (
-    <Paper elevation={0} sx={{ borderRadius: 3, overflow: "hidden", mb: 3 }}>
+    <Paper elevation={0} sx={{ mb: 3, borderRadius: 3, overflow: "hidden" }}>
       <Tabs
         value={selectedTab}
         onChange={(_, newValue) => setSelectedTab(newValue)}
@@ -29,31 +27,145 @@ export const BookingTabs: React.FC<BookingTabsProps> = ({
         scrollButtons="auto"
         sx={{
           borderBottom: 1,
-          borderColor: "#E5E7EB",
-          bgcolor: "#F9FAFB",
+          borderColor: "divider",
           "& .MuiTab-root": {
             textTransform: "none",
             fontWeight: 600,
-            color: "#6B7280",
-            minHeight: 56,
+            fontSize: "0.9rem",
+            minHeight: 48,
             "&.Mui-selected": {
               color: "#F97316",
             },
           },
           "& .MuiTabs-indicator": {
-            bgcolor: "#F97316",
+            backgroundColor: "#F97316",
             height: 3,
           },
         }}
       >
-        <Tab label={`Tất cả (${visibleBookings.length})`} />
-        <Tab label={`Chờ xác nhận (${getStatusCount("PendingApproval")})`} />
-        <Tab label={`Đã xác nhận (${getStatusCount("Confirmed")})`} />
-        <Tab label={`Đã nhận máy (${getStatusCount("PickedUp")})`} />
-        <Tab label={`Đã trả máy (${getStatusCount("Returned")})`} />
-        <Tab label={`Hoàn thành (${getStatusCount("Completed")})`} />
-        <Tab label={`Đã hủy (${getStatusCount("Cancelled")})`} />
-        <Tab label={`Quá hạn (${getStatusCount("Overdue")})`} />
+        <Tab
+          label={
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              Tất cả
+              <Chip
+                label={bookings.length}
+                size="small"
+                sx={{
+                  bgcolor: "#F3F4F6",
+                  color: "#1F2937",
+                  fontWeight: 700,
+                  height: 20,
+                  fontSize: "0.7rem",
+                }}
+              />
+            </Box>
+          }
+        />
+
+        <Tab
+          label={
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              Đã xác nhận
+              <Chip
+                label={getCount("Confirmed")}
+                size="small"
+                sx={{
+                  bgcolor: "#D1FAE5",
+                  color: "#059669",
+                  fontWeight: 700,
+                  height: 20,
+                  fontSize: "0.7rem",
+                }}
+              />
+            </Box>
+          }
+        />
+        <Tab
+          label={
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              Đang thuê
+              <Chip
+                label={getCount("PickedUp")}
+                size="small"
+                sx={{
+                  bgcolor: "#DBEAFE",
+                  color: "#2563EB",
+                  fontWeight: 700,
+                  height: 20,
+                  fontSize: "0.7rem",
+                }}
+              />
+            </Box>
+          }
+        />
+        <Tab
+          label={
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              Đã trả
+              <Chip
+                label={getCount("Returned")}
+                size="small"
+                sx={{
+                  bgcolor: "#E0E7FF",
+                  color: "#4F46E5",
+                  fontWeight: 700,
+                  height: 20,
+                  fontSize: "0.7rem",
+                }}
+              />
+            </Box>
+          }
+        />
+        <Tab
+          label={
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              Hoàn thành
+              <Chip
+                label={getCount("Completed")}
+                size="small"
+                sx={{
+                  bgcolor: "#D1FAE5",
+                  color: "#059669",
+                  fontWeight: 700,
+                  height: 20,
+                  fontSize: "0.7rem",
+                }}
+              />
+            </Box>
+          }
+        />
+        <Tab
+          label={
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              Đã hủy
+              <Chip
+                label={getCount("Cancelled")}
+                size="small"
+                sx={{
+                  bgcolor: "#FEE2E2",
+                  color: "#DC2626",
+                  fontWeight: 700,
+                  height: 20,
+                  fontSize: "0.7rem",
+                }}
+              />
+            </Box>
+          }
+        />
+        <Tab
+          label={
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <Warning sx={{ fontSize: 18, color: "#DC2626" }} />
+              Có vấn đề
+            </Box>
+          }
+          sx={{
+            color: "#DC2626",
+            "&.Mui-selected": {
+              color: "#DC2626",
+            },
+          }}
+        />
       </Tabs>
     </Paper>
   );

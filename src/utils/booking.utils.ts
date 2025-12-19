@@ -33,12 +33,7 @@ export const getStatusInfo = (
   textColor?: string;
 } => {
   const statusMap: Record<string, any> = {
-    Draft: {
-      label: "Nháp",
-      color: "default" as const,
-      bgColor: "#F3F4F6",
-      textColor: "#6B7280",
-    },
+    
     PendingApproval: {
       label: "Chờ xác nhận",
       color: "warning" as const,
@@ -54,7 +49,7 @@ export const getStatusInfo = (
     PickedUp: {
       label: "Đã nhận máy",
       color: "info" as const,
-      bgColor: "#E0E7FF",
+      bgColor: "#FFFFFF",
       textColor: "#4F46E5",
     },
     Returned: {

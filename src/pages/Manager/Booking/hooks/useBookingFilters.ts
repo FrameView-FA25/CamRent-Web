@@ -8,25 +8,35 @@ export const useBookingFilters = (bookings: Booking[]) => {
   const [selectedTab, setSelectedTab] = useState(0);
   const [sortOrder, setSortOrder] = useState<SortOrder>("newest");
 
-  const filteredBookings = useMemo(() => {
-    // Exclude Draft bookings from Manager view
-    let filtered = bookings.filter((b) => b.status !== "Draft");
+   const filteredBookings = useMemo(() => {
+    let filtered = [...bookings];
 
     // Filter by tab
     if (selectedTab === 1) {
-      filtered = filtered.filter((b) => b.status === "PendingApproval");
+      // Tab 1: Đã xác nhận
+      filtered = filtered.filter(
+        (b) => b.status.toLowerCase() === "confirmed"
+      );
     } else if (selectedTab === 2) {
-      filtered = filtered.filter((b) => b.status === "Confirmed");
+      // Tab 2: Đang thuê (PickedUp)
+      filtered = filtered.filter(
+        (b) => b.status.toLowerCase() === "pickedup"
+      );
     } else if (selectedTab === 3) {
-      filtered = filtered.filter((b) => b.status === "PickedUp");
+      // Tab 3: Đã trả
+      filtered = filtered.filter(
+        (b) => b.status.toLowerCase() === "returned"
+      );
     } else if (selectedTab === 4) {
-      filtered = filtered.filter((b) => b.status === "Returned");
+      // Tab 4: Hoàn thành
+      filtered = filtered.filter(
+        (b) => b.status.toLowerCase() === "completed"
+      );
     } else if (selectedTab === 5) {
-      filtered = filtered.filter((b) => b.status === "Completed");
-    } else if (selectedTab === 6) {
-      filtered = filtered.filter((b) => b.status === "Cancelled");
-    } else if (selectedTab === 7) {
-      filtered = filtered.filter((b) => b.status === "Overdue");
+      // Tab 5: Đã hủy
+      filtered = filtered.filter(
+        (b) => b.status.toLowerCase() === "cancelled"
+      );
     }
 
     // Filter by search query
