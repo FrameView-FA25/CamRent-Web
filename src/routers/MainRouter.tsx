@@ -58,6 +58,7 @@ import UserProfile from "../pages/Profile/UserProfile";
 // admin
 import WorkSlotManagement from "@/pages/Admin/WorkSlotManagement/WorkSlotManagement";
 import WebsiteManagement from "../pages/Admin/WebsiteManagement";
+import ManagerProfile from "@/pages/Manager/ManagerProfile";
 
 const routes: RouteObject[] = [
   {
@@ -248,7 +249,7 @@ const routes: RouteObject[] = [
       },
       {
         path: "profile",
-        element: <UserProfile />,
+        element: <ManagerProfile />,
       },
     ],
   },
