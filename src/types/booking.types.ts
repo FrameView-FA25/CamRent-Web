@@ -24,7 +24,7 @@ export interface BookingItem {
   unitPrice: number;
   quantity: number;
   depositAmount: number;
-
+  media: string[]; // URLs of images
   // ID mapping
   cameraId?: string;
   accessoryId?: string;
