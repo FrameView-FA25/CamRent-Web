@@ -280,6 +280,7 @@ const BookingManagement: React.FC = () => {
           onCancelBooking={handleCancelBookingClick}
           onViewDetails={handleViewDetails}
           bookingStatus={dialogState.selectedBooking?.status}
+          hasRenter={!!dialogState.selectedBooking?.renterId}
         />
 
         {/* Confirm/Cancel Booking Dialog */}

@@ -5,6 +5,7 @@ import {
   Description,
   CheckCircle,
   Cancel,
+  SwapHoriz,
 } from "@mui/icons-material";
 
 interface ContextMenuProps {
@@ -16,6 +17,7 @@ interface ContextMenuProps {
   onCancelBooking: () => void;
   onViewDetails: () => void;
   bookingStatus?: string;
+  hasRenter?: boolean;
 }
 
 export const ContextMenu: React.FC<ContextMenuProps> = ({
@@ -27,10 +29,12 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
   onCancelBooking,
   onViewDetails,
   bookingStatus = "PendingApproval",
+  hasRenter = false,
 }) => {
   const canConfirm = bookingStatus === "PendingApproval";
   const canCancel = !["Cancelled", "Completed"].includes(bookingStatus);
   const canViewContract = bookingStatus === "Confirmed";
+
   return (
     <Menu
       anchorEl={anchorEl}
@@ -54,7 +58,15 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
           },
         }}
       >
-        <Assignment sx={{ mr: 1.5, fontSize: 20 }} /> Phân công nhân viên
+        {hasRenter ? (
+          <>
+            <SwapHoriz sx={{ mr: 1.5, fontSize: 20 }} /> Thay đổi nhân viên
+          </>
+        ) : (
+          <>
+            <Assignment sx={{ mr: 1.5, fontSize: 20 }} /> Phân công nhân viên
+          </>
+        )}
       </MenuItem>
       {canViewContract && (
         <MenuItem
