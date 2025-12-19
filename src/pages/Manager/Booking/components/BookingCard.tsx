@@ -7,6 +7,7 @@ import {
   IconButton,
   Collapse,
   Divider,
+  Avatar,
 } from "@mui/material";
 import {
   ExpandMore,
@@ -38,7 +39,7 @@ export const BookingCard: React.FC<BookingCardProps> = ({
   onMenuClick,
 }) => {
   const [expanded, setExpanded] = useState(false);
-  const statusInfo = getStatusInfo(booking.statusText);
+  const statusInfo = getStatusInfo(booking.status);
 
   const handleExpandClick = () => {
     setExpanded(!expanded);
@@ -49,6 +50,14 @@ export const BookingCard: React.FC<BookingCardProps> = ({
   const returnDate = new Date(booking.returnAt);
   const diffTime = Math.abs(returnDate.getTime() - pickupDate.getTime());
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  // Get first image from item media
+  const getItemImage = (item: any) => {
+    if (item.media && item.media.length > 0) {
+      return item.media[0].url;
+    }
+    return null;
+  };
 
   return (
     <Paper
@@ -243,68 +252,99 @@ export const BookingCard: React.FC<BookingCardProps> = ({
               >
                 Sản phẩm ({booking.items.length})
               </Typography>
-              {booking.items.map((item, idx) => (
-                <Box
-                  key={idx}
-                  sx={{
-                    mb: 2,
-                    p: 2,
-                    bgcolor: "white",
-                    borderRadius: 2,
-                    border: "1px solid #E5E7EB",
-                  }}
-                >
+              {booking.items.map((item, idx) => {
+                const itemImage = getItemImage(item);
+
+                return (
                   <Box
-                    sx={{ display: "flex", alignItems: "flex-start", gap: 2 }}
+                    key={idx}
+                    sx={{
+                      mb: 2,
+                      p: 2,
+                      bgcolor: "white",
+                      borderRadius: 2,
+                      border: "1px solid #E5E7EB",
+                    }}
                   >
                     <Box
-                      sx={{
-                        width: 48,
-                        height: 48,
-                        borderRadius: 2,
-                        bgcolor: "#F3F4F6",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
+                      sx={{ display: "flex", alignItems: "flex-start", gap: 2 }}
                     >
-                      <Camera sx={{ color: "#F97316", fontSize: 24 }} />
-                    </Box>
-                    <Box sx={{ flex: 1 }}>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          fontWeight: 600,
-                          color: "#1F2937",
-                          mb: 0.5,
-                        }}
-                      >
-                        {item.itemName || item.itemType || "Camera"}
-                      </Typography>
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          color: "#6B7280",
-                          display: "block",
-                          mb: 0.5,
-                        }}
-                      >
-                        {item.itemType} • ID: {item.itemId.substring(0, 8)}...
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          color: "#F97316",
-                          fontWeight: 700,
-                          fontSize: "0.875rem",
-                        }}
-                      >
-                        {formatCurrency(item.unitPrice)}/ngày
-                      </Typography>
+                      {/* Image or Icon */}
+                      {itemImage ? (
+                        <Avatar
+                          src={itemImage}
+                          alt={item.itemName}
+                          variant="rounded"
+                          sx={{
+                            width: 56,
+                            height: 56,
+                            borderRadius: 2,
+                          }}
+                        />
+                      ) : (
+                        <Box
+                          sx={{
+                            width: 56,
+                            height: 56,
+                            borderRadius: 2,
+                            bgcolor: "#F3F4F6",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <Camera sx={{ color: "#F97316", fontSize: 28 }} />
+                        </Box>
+                      )}
+
+                      <Box sx={{ flex: 1 }}>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            fontWeight: 600,
+                            color: "#1F2937",
+                            mb: 0.5,
+                          }}
+                        >
+                          {item.itemName || item.itemType || "Camera"}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            color: "#6B7280",
+                            display: "block",
+                            mb: 0.5,
+                          }}
+                        >
+                          {item.itemType} • ID: {item.itemId.substring(0, 8)}...
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: "#F97316",
+                            fontWeight: 700,
+                            fontSize: "0.875rem",
+                          }}
+                        >
+                          {formatCurrency(item.unitPrice)}/ngày
+                        </Typography>
+                        {item.depositAmount > 0 && (
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: "#9CA3AF",
+                              display: "block",
+                              mt: 0.5,
+                            }}
+                          >
+                            Tiền cọc: {formatCurrency(item.depositAmount)}
+                          </Typography>
+                        )}
+                      </Box>
                     </Box>
                   </Box>
-                </Box>
-              ))}
+                );
+              })}
             </Box>
 
             {/* Middle Column - Rental Info */}

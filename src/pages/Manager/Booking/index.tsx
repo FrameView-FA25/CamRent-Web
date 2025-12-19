@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Container,
   Typography,
   CircularProgress,
   Alert,
+  Paper,
 } from "@mui/material";
 import { ShoppingCart } from "@mui/icons-material";
 import { ToastContainer } from "react-toastify";
@@ -35,6 +36,10 @@ import {
 } from "./handlers/bookingStatusHandlers";
 import { DEFAULT_ROWS_PER_PAGE } from "./constants";
 import { BookingDetailDialog } from "./components/dialogs/BookingDetailDialog";
+import { issueReportService } from "@/services/issueReport.service";
+import type { IssueReport } from "@/types/issueReport.types";
+import { IssueReportCard } from "./components/IssueReportCard";
+import { IssueReportDetailDialog } from "./components/dialogs/IssueReportDetailDialog";
 
 const BookingManagement: React.FC = () => {
   // Data hooks
@@ -65,6 +70,40 @@ const BookingManagement: React.FC = () => {
     "confirm" | "cancel"
   >("confirm");
   const [statusLoading, setStatusLoading] = useState(false);
+
+  // Issue reports state
+  const [issueReports, setIssueReports] = useState<IssueReport[]>([]);
+  const [loadingIssues, setLoadingIssues] = useState(false);
+  const [selectedIssueReport, setSelectedIssueReport] =
+    useState<IssueReport | null>(null);
+  const [issueDetailDialogOpen, setIssueDetailDialogOpen] = useState(false);
+  const [issueContextMenu, setIssueContextMenu] = useState<HTMLElement | null>(
+    null
+  );
+
+  // Load issue reports when tab is 7 (issues tab)
+  useEffect(() => {
+    if (selectedTab === 6) {
+      loadIssueReports();
+    }
+  }, [selectedTab]);
+
+  const loadIssueReports = async () => {
+    try {
+      setLoadingIssues(true);
+      const data = await issueReportService.getIssueReports("open", 50);
+      setIssueReports(data);
+    } catch (error) {
+      console.error("Error loading issue reports:", error);
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Không thể tải danh sách báo cáo vấn đề"
+      );
+    } finally {
+      setLoadingIssues(false);
+    }
+  };
 
   // Handlers for confirm/cancel booking
   const handleConfirmBookingClick = () => {
@@ -171,6 +210,20 @@ const BookingManagement: React.FC = () => {
     dialogState.setContextMenu(null);
   };
 
+  // Issue report handlers
+  const handleIssueMenuClick = (
+    event: React.MouseEvent<HTMLElement>,
+    report: IssueReport
+  ) => {
+    setIssueContextMenu(event.currentTarget);
+    setSelectedIssueReport(report);
+  };
+
+  const handleViewIssueDetail = () => {
+    setIssueDetailDialogOpen(true);
+    setIssueContextMenu(null);
+  };
+
   // Loading state
   if (loading) {
     return (
@@ -243,8 +296,8 @@ const BookingManagement: React.FC = () => {
         <SearchBar
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
-          onRefresh={loadBookings}
-          loading={loading}
+          onRefresh={selectedTab === 6 ? loadIssueReports : loadBookings}
+          loading={selectedTab === 6 ? loadingIssues : loading}
           sortOrder={sortOrder}
           onSortChange={setSortOrder}
         />
@@ -256,21 +309,63 @@ const BookingManagement: React.FC = () => {
           bookings={bookings}
         />
 
-        {/* Table */}
-        <BookingTable
-          filteredBookings={filteredBookings}
-          page={page}
-          rowsPerPage={rowsPerPage}
-          onPageChange={(_, newPage) => setPage(newPage)}
-          onRowsPerPageChange={(e) => {
-            setRowsPerPage(parseInt(e.target.value, 10));
-            setPage(0);
-          }}
-          onMenuClick={dialogState.handleMenuClick}
-          loading={loading}
-        />
+        {/* Content - Show Issue Reports or Regular Bookings */}
+        {selectedTab === 6 ? (
+          <Box>
+            {loadingIssues ? (
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  py: 8,
+                }}
+              >
+                <CircularProgress size={50} sx={{ color: "#F97316" }} />
+              </Box>
+            ) : issueReports.length > 0 ? (
+              issueReports.map((report) => (
+                <IssueReportCard
+                  key={report.id}
+                  report={report}
+                  onMenuClick={handleIssueMenuClick}
+                />
+              ))
+            ) : (
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 8,
+                  textAlign: "center",
+                  borderRadius: 3,
+                  border: "1px solid #E5E7EB",
+                }}
+              >
+                <Typography variant="h6" sx={{ color: "#9CA3AF", mb: 1 }}>
+                  Không có báo cáo vấn đề nào
+                </Typography>
+                <Typography variant="body2" sx={{ color: "#9CA3AF" }}>
+                  Tất cả đơn thuê đang hoạt động bình thường
+                </Typography>
+              </Paper>
+            )}
+          </Box>
+        ) : (
+          <BookingTable
+            filteredBookings={filteredBookings}
+            page={page}
+            rowsPerPage={rowsPerPage}
+            onPageChange={(_, newPage) => setPage(newPage)}
+            onRowsPerPageChange={(e) => {
+              setRowsPerPage(parseInt(e.target.value, 10));
+              setPage(0);
+            }}
+            onMenuClick={dialogState.handleMenuClick}
+            loading={loading}
+          />
+        )}
 
-        {/* Context Menu */}
+        {/* Context Menu - Regular Bookings */}
         <ContextMenu
           anchorEl={dialogState.contextMenu}
           onClose={() => dialogState.setContextMenu(null)}
@@ -281,6 +376,18 @@ const BookingManagement: React.FC = () => {
           onViewDetails={handleViewDetails}
           bookingStatus={dialogState.selectedBooking?.status}
           hasRenter={!!dialogState.selectedBooking?.renterId}
+        />
+
+        {/* Context Menu - Issue Reports */}
+        <ContextMenu
+          anchorEl={issueContextMenu}
+          onClose={() => setIssueContextMenu(null)}
+          onViewDetails={handleViewIssueDetail}
+          onAssignStaff={() => {}}
+          onViewContract={() => {}}
+          onConfirmBooking={() => {}}
+          onCancelBooking={() => {}}
+          bookingStatus="issues"
         />
 
         {/* Confirm/Cancel Booking Dialog */}
@@ -369,11 +476,20 @@ const BookingManagement: React.FC = () => {
             )
           }
         />
+
         {/* Booking Detail Dialog */}
         <BookingDetailDialog
           open={dialogState.detailDialogOpen}
           onClose={() => dialogState.setDetailDialogOpen(false)}
           booking={dialogState.selectedBooking}
+        />
+
+        {/* Issue Report Detail Dialog */}
+        <IssueReportDetailDialog
+          open={issueDetailDialogOpen}
+          onClose={() => setIssueDetailDialogOpen(false)}
+          report={selectedIssueReport}
+          onStatusUpdate={loadIssueReports}
         />
       </Container>
     </Box>

@@ -132,6 +132,14 @@ export const BookingDetailDialog: React.FC<BookingDetailDialogProps> = ({
   const diffTime = Math.abs(returnDate.getTime() - pickupDate.getTime());
   const rentalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
+  // Get first image from item media
+  const getItemImage = (item: any) => {
+    if (item.media && item.media.length > 0) {
+      return item.media[0].url;
+    }
+    return null;
+  };
+
   return (
     <Dialog
       open={open}
@@ -337,56 +345,99 @@ export const BookingDetailDialog: React.FC<BookingDetailDialogProps> = ({
               </Typography>
 
               <List sx={{ p: 0 }}>
-                {booking.items.map((item, index) => (
-                  <ListItem
-                    key={index}
-                    sx={{
-                      p: 2,
-                      mb: 1,
-                      bgcolor: "white",
-                      borderRadius: 2,
-                      border: "1px solid #E5E7EB",
-                    }}
-                  >
-                    <Avatar
+                {booking.items.map((item, index) => {
+                  const itemImage = getItemImage(item);
+
+                  return (
+                    <ListItem
+                      key={index}
                       sx={{
-                        mr: 2,
-                        bgcolor: "#FFF7ED",
-                        color: "#F97316",
+                        p: 2,
+                        mb: 1,
+                        bgcolor: "white",
+                        borderRadius: 2,
+                        border: "1px solid #E5E7EB",
                       }}
                     >
-                      <Camera />
-                    </Avatar>
-                    <ListItemText
-                      primary={item.itemName || item.itemType}
-                      secondary={
-                        <Box>
-                          <Typography
-                            variant="caption"
-                            sx={{ display: "block" }}
-                          >
-                            {item.itemType} • ID: {item.itemId.substring(0, 8)}
-                            ...
-                          </Typography>
-                          <Typography
-                            variant="body2"
-                            sx={{ color: "#F97316", fontWeight: 700, mt: 0.5 }}
-                          >
-                            {formatCurrency(item.unitPrice)}/ngày
-                          </Typography>
-                          {item.depositAmount > 0 && (
+                      {/* Image or Icon */}
+                      {itemImage ? (
+                        <Avatar
+                          src={itemImage}
+                          alt={item.itemName}
+                          variant="rounded"
+                          sx={{
+                            mr: 2,
+                            width: 64,
+                            height: 64,
+                            borderRadius: 2,
+                          }}
+                        />
+                      ) : (
+                        <Avatar
+                          sx={{
+                            mr: 2,
+                            width: 64,
+                            height: 64,
+                            bgcolor: "#FFF7ED",
+                            color: "#F97316",
+                            borderRadius: 2,
+                          }}
+                        >
+                          <Camera sx={{ fontSize: 32 }} />
+                        </Avatar>
+                      )}
+
+                      <ListItemText
+                        primary={item.itemName || item.itemType}
+                        secondary={
+                          <Box>
                             <Typography
                               variant="caption"
-                              sx={{ color: "#6B7280" }}
+                              sx={{ display: "block" }}
                             >
-                              Cọc: {formatCurrency(item.depositAmount)}
+                              {item.itemType} • ID:{" "}
+                              {item.itemId.substring(0, 8)}
+                              ...
                             </Typography>
-                          )}
-                        </Box>
-                      }
-                    />
-                  </ListItem>
-                ))}
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                color: "#F97316",
+                                fontWeight: 700,
+                                mt: 0.5,
+                              }}
+                            >
+                              {formatCurrency(item.unitPrice)}/ngày
+                            </Typography>
+                            {item.depositAmount > 0 && (
+                              <Typography
+                                variant="caption"
+                                sx={{ color: "#6B7280" }}
+                              >
+                                Cọc: {formatCurrency(item.depositAmount)}
+                              </Typography>
+                            )}
+                            {item.media && item.media.length > 1 && (
+                              <Box sx={{ mt: 0.5 }}>
+                                <Chip
+                                  icon={<ImageIcon sx={{ fontSize: 14 }} />}
+                                  label={`${item.media.length} ảnh`}
+                                  size="small"
+                                  sx={{
+                                    height: 20,
+                                    fontSize: "0.65rem",
+                                    bgcolor: "#F3F4F6",
+                                    color: "#6B7280",
+                                  }}
+                                />
+                              </Box>
+                            )}
+                          </Box>
+                        }
+                      />
+                    </ListItem>
+                  );
+                })}
               </List>
             </Paper>
 
@@ -490,7 +541,7 @@ export const BookingDetailDialog: React.FC<BookingDetailDialogProps> = ({
           </Box>
         </Box>
 
-        {/* Inspection Forms Section - NEW */}
+        {/* Inspection Forms Section */}
         <Box sx={{ mt: 3 }}>
           <Paper
             elevation={0}
