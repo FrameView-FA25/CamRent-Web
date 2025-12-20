@@ -100,7 +100,7 @@ const OrderCard: React.FC<OrderCardProps> = ({
       const token = localStorage.getItem("accessToken");
 
       const response = await fetch(
-        `${API_BASE_URL}/api/Bookings/${booking.id}/update-status?status=PickedUp`,
+        `${API_BASE_URL}/Bookings/${booking.id}/update-status?status=PickedUp`,
         {
           method: "PUT",
           headers: {

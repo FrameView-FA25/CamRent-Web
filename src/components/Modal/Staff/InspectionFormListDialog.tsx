@@ -117,7 +117,7 @@ const InspectionFormListDialog: React.FC<InspectionFormListDialogProps> = ({
   const [previewImage, setPreviewImage] = React.useState<string | null>(null);
 
   const handleAccordionChange =
-    (formId: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
+    (formId: string) => (_event: React.SyntheticEvent, isExpanded: boolean) => {
       setExpandedFormId(isExpanded ? formId : false);
     };
 

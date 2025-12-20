@@ -684,7 +684,7 @@ export const cameraService = {
 
       // Gọi API để lấy danh sách camera khả dụng
       const response = await fetch(
-        `${API_BASE_URL}/api/Cameras/available?${params.toString()}`,
+        `${API_BASE_URL}/Cameras/available?${params.toString()}`,
         {
           method: "GET",
           headers: {

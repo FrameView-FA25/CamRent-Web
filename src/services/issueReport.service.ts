@@ -52,7 +52,7 @@ export const issueReportService = {
   ): Promise<void> => {
     const token = localStorage.getItem("accessToken");
     const response = await fetch(
-      `${API_BASE_URL}/api/BookingIssueReports/${id}/status`,
+      `${API_BASE_URL}/BookingIssueReports/${id}/status`,
       {
         method: "PATCH",
         headers: {
