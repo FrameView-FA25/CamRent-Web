@@ -25,6 +25,7 @@ import {
   CheckCircle,
   Cancel,
   MoreVert,
+  Add,
 } from "@mui/icons-material";
 import {
   getDisputesByBookingId,
@@ -44,12 +45,14 @@ export interface BookingDisputeListDialogProps {
   open: boolean;
   onClose: () => void;
   bookingId: string;
+  onCreateDispute?: () => void; // Callback để mở dialog tạo tranh chấp
 }
 
 const BookingDisputeListDialog: React.FC<BookingDisputeListDialogProps> = ({
   open,
   onClose,
   bookingId,
+  onCreateDispute,
 }) => {
   const [disputes, setDisputes] = useState<Dispute[]>([]);
   const [loading, setLoading] = useState(false);
@@ -349,6 +352,20 @@ const BookingDisputeListDialog: React.FC<BookingDisputeListDialogProps> = ({
           )}
         </DialogContent>
         <DialogActions>
+          {onCreateDispute && (
+            <Button
+              variant="contained"
+              startIcon={<Add />}
+              onClick={onCreateDispute}
+              sx={{
+                bgcolor: "#F97316",
+                "&:hover": { bgcolor: "#EA580C" },
+                textTransform: "none",
+              }}
+            >
+              Tạo tranh chấp
+            </Button>
+          )}
           <Button onClick={onClose}>Đóng</Button>
         </DialogActions>
       </Dialog>

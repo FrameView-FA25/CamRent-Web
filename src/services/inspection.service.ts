@@ -5,13 +5,7 @@ const API_BASE_URL = "https://camrent-backend.up.railway.app/api";
 
 export type UpdateInspectionPayload = FormData;
 
-/**
- * Tạo bản kiểm tra thiết bị (Inspection) và upload file ảnh
- * Dành cho Staff để kiểm tra tình trạng thiết bị khi nhận/trả
- * FormData chứa: bookingId, itemId, condition, notes, và các file ảnh
- * @param formData - FormData chứa dữ liệu inspection và file ảnh (multipart/form-data)
- * @returns Promise chứa kết quả tạo inspection
- */
+// Interface cho inspection DTO (Data Transfer Object)
 export interface InspectionDto {
   id: string;
   bookingId: string;
@@ -31,31 +25,129 @@ export interface InspectionDto {
   }>;
 }
 
+// Request để submit một dòng trong checklist
 export interface SubmitChecklistRowRequest {
-  section: string;
-  label: string;
-  methodIds: string[];
-  passed?: boolean | null;
-  notes?: string;
+  itemId: string; // ID của checklist item (Guid)
+  methodIds: string[]; // Danh sách ID của các phương pháp kiểm tra
+  passed?: boolean | null; // Trạng thái đạt/không đạt
+  notes?: string; // Ghi chú
 }
 
-export interface SubmitChecklistResultRequest {
+// Request để tạo phiếu kiểm tra mới
+export interface CreateInspectionFormRequest {
+  itemType: number; // Loại thiết bị: 1 = Camera, 2 = Accessory, 3 = Combo
+  itemId: string; // ID của thiết bị (Guid)
+  type: number; // Loại kiểm tra: 1 = Booking, 2 = Verification
+  inspectionTypeId: string; // ID của booking hoặc verification request (Guid)
+  handoverType?: number | null; // Loại bàn giao: 0 = Pickup, 1 = Return (chỉ dùng cho Booking)
+  branchId?: string | null; // ID của chi nhánh (Guid)
+  passed?: boolean | null; // Trạng thái tổng thể đạt/không đạt
+  rows: SubmitChecklistRowRequest[]; // Danh sách các dòng checklist
+}
+
+// Response khi tạo phiếu kiểm tra thành công
+export interface CreateInspectionFormResponse {
+  id: string; // ID của phiếu kiểm tra (Guid)
+}
+
+// Request để cập nhật một dòng trong phiếu kiểm tra
+export interface UpdateInspectionFormRowRequest {
+  inspectionId: string; // ID của dòng kiểm tra (Guid)
+  methodIds?: string[]; // Danh sách ID của các phương pháp kiểm tra
+  passed?: boolean | null; // Trạng thái đạt/không đạt
+  notes?: string; // Ghi chú
+}
+
+// Request để cập nhật phiếu kiểm tra
+export interface UpdateInspectionFormRequest {
+  passed?: boolean | null; // Trạng thái tổng thể đạt/không đạt
+  rows: UpdateInspectionFormRowRequest[]; // Danh sách các dòng cần cập nhật
+}
+
+// Response chi tiết của phiếu kiểm tra
+export interface InspectionFormResponse {
+  id: string;
+  templateId: string;
+  templateName: string;
+  staffId?: string;
+  staffName?: string;
   itemType: number;
   itemId: string;
-  type: number; // InspectionType: 1 = Booking, 2 = Verification
-  handoverType?: number | null; // HandoverType: 0 = Pickup, 1 = Return (chỉ dùng cho Booking)
-  inspectionTypeId: string; // BookingId hoặc VerificationRequestId
+  type: number;
+  handoverType?: number | null;
+  inspectionTypeId: string;
   branchId?: string | null;
-  passed?: boolean | null;
-  rows: SubmitChecklistRowRequest[];
-}
-
-export interface SubmitChecklistResultResponse {
   overallPassed?: boolean | null;
-  inspectionIds: string[];
+  createdAt: string;
+  rows: InspectionFormRowResponse[];
 }
 
-// Lấy checklist template đang active theo itemType + inspectionType
+// Response của một dòng trong phiếu kiểm tra
+export interface InspectionFormRowResponse {
+  inspectionId: string;
+  label: string;
+  passed?: boolean | null;
+  notes: string;
+  methods: InspectionMethodResponse[];
+  media: FileAssetDTO[];
+}
+
+// Response của phương pháp kiểm tra
+export interface InspectionMethodResponse {
+  id: string;
+  code: string;
+  name: string;
+  sortOrder: number;
+  isActive: boolean;
+}
+
+// Type cho raw API response (có thể là PascalCase hoặc camelCase)
+interface RawInspectionMethodResponse {
+  Id?: string;
+  id?: string;
+  Code?: string;
+  code?: string;
+  Name?: string;
+  name?: string;
+  SortOrder?: number;
+  sortOrder?: number;
+  IsActive?: boolean;
+  isActive?: boolean;
+}
+
+// DTO cho file đính kèm
+export interface FileAssetDTO {
+  id: string;
+  url: string;
+  contentType?: string;
+  sizeBytes?: number;
+  label?: string;
+}
+
+// Response tóm tắt của phiếu kiểm tra
+export interface InspectionFormSummaryResponse {
+  id: string;
+  templateId: string;
+  templateName: string;
+  staffId?: string;
+  staffName?: string;
+  itemType: number | string; // Chấp nhận cả number và string
+  itemId: string;
+  type: number | string; // Chấp nhận cả number và string
+  handoverType?: number | null;
+  inspectionTypeId: string;
+  branchId?: string | null;
+  overallPassed?: boolean | null;
+  createdAt: string;
+}
+
+/**
+ * Lấy checklist template đang active theo loại thiết bị và loại kiểm tra
+ * GET /api/inspection-checklists/active
+ * @param itemType - Loại thiết bị (1 = Camera, 2 = Accessory, 3 = Combo)
+ * @param inspectionType - Loại kiểm tra (1 = Booking, 2 = Verification)
+ * @returns Promise chứa thông tin checklist template
+ */
 export async function getActiveChecklistTemplate(
   itemType: number,
   inspectionType?: number
@@ -94,48 +186,11 @@ export async function getActiveChecklistTemplate(
   return (await response.json()) as ChecklistTemplateDetail;
 }
 
-export async function createInspection(
-  formData: FormData
-): Promise<InspectionDto | string> {
-  // Lấy token xác thực từ localStorage
-  const token = localStorage.getItem("accessToken");
-  if (!token) throw new Error("Vui lòng đăng nhập để thực hiện thao tác này");
-
-  // Gọi API để tạo inspection
-  const response = await fetch(`${API_BASE_URL}/Inspections`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`, // Không set Content-Type, browser sẽ tự set với boundary cho FormData
-    },
-    body: formData,
-  });
-
-  // Xử lý lỗi nếu response không thành công
-  if (!response.ok) {
-    let errorMessage = `Tạo inspection thất bại với mã lỗi ${response.status}`;
-    try {
-      const errorData = await response.json();
-      errorMessage = errorData.message || errorMessage;
-    } catch {
-      // Nếu không parse được JSON, thử lấy text
-      const errorText = await response.text().catch(() => "");
-      if (errorText) errorMessage = errorText;
-    }
-    throw new Error(errorMessage);
-  }
-
-  // Kiểm tra content-type để parse response đúng cách
-  const contentType = response.headers.get("content-type");
-  if (contentType?.includes("application/json")) {
-    return await response.json();
-  }
-  return await response.text();
-}
-
 /**
  * Cập nhật thông tin một inspection hiện có
- * @param inspectionId - ID inspection cần cập nhật
- * @param payload - Dữ liệu cần cập nhật
+ * PUT /api/Inspections/{inspectionId}
+ * @param inspectionId - ID của inspection cần cập nhật
+ * @param payload - Dữ liệu cần cập nhật (FormData)
  */
 export async function updateInspection(
   inspectionId: string,
@@ -164,7 +219,7 @@ export async function updateInspection(
     throw new Error(errorMessage);
   }
 
-  // optional: consume body to avoid unresolved promise for some backends
+  // Tiêu thụ response body để tránh promise không được giải quyết ở một số backend
   const contentType = response.headers.get("content-type");
   if (contentType?.includes("application/json")) {
     await response.json().catch(() => undefined);
@@ -174,8 +229,138 @@ export async function updateInspection(
 }
 
 /**
+ * Cập nhật phiếu kiểm tra (Inspection Form) theo API mới
+ * PUT /api/inspection-forms/{id}
+ * @param formId - ID của phiếu kiểm tra cần cập nhật
+ * @param request - Dữ liệu cập nhật
+ */
+export async function updateInspectionForm(
+  formId: string,
+  request: UpdateInspectionFormRequest
+): Promise<void> {
+  const token = localStorage.getItem("accessToken");
+  if (!token) throw new Error("Vui lòng đăng nhập để thực hiện thao tác này");
+
+  const response = await fetch(`${API_BASE_URL}/inspection-forms/${formId}`, {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    let errorMessage = `Cập nhật phiếu kiểm tra thất bại với mã lỗi ${response.status}`;
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.message || errorMessage;
+    } catch {
+      const errorText = await response.text().catch(() => "");
+      if (errorText) errorMessage = errorText;
+    }
+    throw new Error(errorMessage);
+  }
+
+  // Tiêu thụ response body để tránh promise không được giải quyết ở một số backend
+  const contentType = response.headers.get("content-type");
+  if (contentType?.includes("application/json")) {
+    await response.json().catch(() => undefined);
+  } else {
+    await response.text().catch(() => "");
+  }
+}
+
+/**
+ * Lấy danh sách các phương pháp kiểm tra
+ * GET /api/inspection-methods
+ * @param includeInactive - Có bao gồm các phương pháp không active không
+ * @returns Promise chứa danh sách các phương pháp kiểm tra
+ */
+export async function getInspectionMethods(
+  includeInactive: boolean = false
+): Promise<InspectionMethodResponse[]> {
+  const token = localStorage.getItem("accessToken");
+  if (!token) throw new Error("Vui lòng đăng nhập để thực hiện thao tác này");
+
+  const query = includeInactive ? "?includeInactive=true" : "";
+  const url = `${API_BASE_URL}/inspection-methods${query}`;
+  console.log("📡 getInspectionMethods - Calling API:", url);
+  console.log("📡 getInspectionMethods - includeInactive:", includeInactive);
+
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  console.log("📡 getInspectionMethods - Response status:", response.status);
+
+  if (!response.ok) {
+    let errorMessage = `Lấy danh sách methods thất bại với mã lỗi ${response.status}`;
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.message || errorMessage;
+    } catch {
+      const errorText = await response.text().catch(() => "");
+      if (errorText) errorMessage = errorText;
+    }
+    throw new Error(errorMessage);
+  }
+
+  const data = await response.json();
+  console.log("📡 getInspectionMethods - Raw response data:", data);
+
+  // Backend có thể trả về array trực tiếp hoặc wrapped trong object
+  let methodsArray: RawInspectionMethodResponse[] = [];
+  if (Array.isArray(data)) {
+    methodsArray = data as RawInspectionMethodResponse[];
+    console.log(
+      "📡 getInspectionMethods - Data is array, length:",
+      methodsArray.length
+    );
+  } else if (data && typeof data === "object") {
+    // Thử các key phổ biến
+    methodsArray = (data.data ||
+      data.results ||
+      data.items ||
+      data.methods ||
+      []) as RawInspectionMethodResponse[];
+    console.log(
+      "📡 getInspectionMethods - Data is object, extracted array length:",
+      methodsArray.length
+    );
+  } else {
+    console.warn(
+      "📡 getInspectionMethods - Unexpected data format:",
+      typeof data
+    );
+  }
+
+  // Backend trả về PascalCase, convert sang camelCase
+  const mapped = methodsArray.map((item: RawInspectionMethodResponse) => ({
+    id: item.Id || item.id || "",
+    code: item.Code || item.code || "",
+    name: item.Name || item.name || "",
+    sortOrder: item.SortOrder ?? item.sortOrder ?? 0,
+    isActive: item.IsActive ?? item.isActive ?? true,
+  }));
+
+  // Sắp xếp theo sortOrder
+  mapped.sort((a, b) => a.sortOrder - b.sortOrder);
+
+  console.log("📡 getInspectionMethods - Final mapped methods:", mapped);
+  console.log("📡 getInspectionMethods - Final count:", mapped.length);
+
+  return mapped;
+}
+
+/**
  * Xóa một inspection theo ID
- * @param inspectionId - ID inspection cần xóa
+ * DELETE /api/Inspections/{inspectionId}
+ * @param inspectionId - ID của inspection cần xóa
  */
 export async function deleteInspection(inspectionId: string): Promise<void> {
   const token = localStorage.getItem("accessToken");
@@ -205,7 +390,7 @@ export async function deleteInspection(inspectionId: string): Promise<void> {
  * Duyệt hoặc từ chối một inspection
  * Chỉ dành cho BranchManager
  * PUT /api/Inspections/{id}/approve?pass=true|false
- * @param inspectionId - ID inspection cần duyệt
+ * @param inspectionId - ID của inspection cần duyệt
  * @param pass - true: duyệt, false: từ chối
  * @returns Promise chứa kết quả approve
  */
@@ -257,26 +442,42 @@ export async function approveInspection(
 }
 
 /**
- * Lấy chi tiết một inspection theo ID
- * @param inspectionId - ID inspection cần lấy
- * @returns Promise chứa thông tin inspection
+ * Tạo phiếu kiểm tra (Inspection Form)
+ * POST /api/inspection-forms
+ * @param request - Dữ liệu để tạo phiếu kiểm tra
+ * @returns Promise chứa ID của phiếu kiểm tra vừa tạo
  */
-export async function getInspectionById(
-  inspectionId: string
-): Promise<InspectionDto | string> {
+export async function createInspectionForm(
+  request: CreateInspectionFormRequest
+): Promise<CreateInspectionFormResponse> {
   const token = localStorage.getItem("accessToken");
   if (!token) throw new Error("Vui lòng đăng nhập để thực hiện thao tác này");
 
-  const response = await fetch(`${API_BASE_URL}/Inspections/${inspectionId}`, {
-    method: "GET",
+  const response = await fetch(`${API_BASE_URL}/inspection-forms`, {
+    method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     },
+    body: JSON.stringify({
+      itemType: request.itemType,
+      itemId: request.itemId,
+      type: request.type,
+      inspectionTypeId: request.inspectionTypeId,
+      handoverType: request.handoverType ?? null,
+      branchId: request.branchId ?? null,
+      passed: request.passed ?? null,
+      rows: request.rows.map((row) => ({
+        itemId: row.itemId,
+        methodIds: row.methodIds,
+        passed: row.passed ?? null,
+        notes: row.notes ?? "",
+      })),
+    }),
   });
 
   if (!response.ok) {
-    let errorMessage = `Lấy thông tin inspection thất bại với mã lỗi ${response.status}`;
+    let errorMessage = `Tạo phiếu kiểm tra thất bại với mã lỗi ${response.status}`;
     try {
       const errorData = await response.json();
       errorMessage = errorData.message || errorMessage;
@@ -287,26 +488,60 @@ export async function getInspectionById(
     throw new Error(errorMessage);
   }
 
-  const contentType = response.headers.get("content-type");
-  if (contentType?.includes("application/json")) {
-    return await response.json();
-  }
-  return await response.text();
+  const result = await response.json();
+  // Backend trả về { Id: formId }, convert sang { id: formId }
+  return { id: result.Id || result.id };
 }
 
 /**
- * Lấy danh sách inspections theo booking ID
- * @param bookingId - ID booking cần lấy inspections
- * @returns Promise chứa danh sách inspections
+ * Lấy chi tiết phiếu kiểm tra theo ID
+ * GET /api/inspection-forms/{id}
+ * @param formId - ID của phiếu kiểm tra cần lấy
+ * @returns Promise chứa thông tin chi tiết phiếu kiểm tra
  */
-export async function getInspectionsByBookingId(
+export async function getInspectionFormById(
+  formId: string
+): Promise<InspectionFormResponse> {
+  const token = localStorage.getItem("accessToken");
+  if (!token) throw new Error("Vui lòng đăng nhập để thực hiện thao tác này");
+
+  const response = await fetch(`${API_BASE_URL}/inspection-forms/${formId}`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    let errorMessage = `Lấy chi tiết phiếu kiểm tra thất bại với mã lỗi ${response.status}`;
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.message || errorMessage;
+    } catch {
+      const errorText = await response.text().catch(() => "");
+      if (errorText) errorMessage = errorText;
+    }
+    throw new Error(errorMessage);
+  }
+
+  return (await response.json()) as InspectionFormResponse;
+}
+
+/**
+ * Lấy danh sách phiếu kiểm tra theo booking ID
+ * GET /api/inspection-forms/booking/{bookingId}
+ * @param bookingId - ID của booking cần lấy danh sách phiếu kiểm tra
+ * @returns Promise chứa danh sách phiếu kiểm tra
+ */
+export async function getInspectionFormsByBookingId(
   bookingId: string
-): Promise<InspectionDto[]> {
+): Promise<InspectionFormSummaryResponse[]> {
   const token = localStorage.getItem("accessToken");
   if (!token) throw new Error("Vui lòng đăng nhập để thực hiện thao tác này");
 
   const response = await fetch(
-    `${API_BASE_URL}/Inspections/booking/${bookingId}`,
+    `${API_BASE_URL}/inspection-forms/booking/${bookingId}`,
     {
       method: "GET",
       headers: {
@@ -317,7 +552,7 @@ export async function getInspectionsByBookingId(
   );
 
   if (!response.ok) {
-    let errorMessage = `Lấy danh sách inspections thất bại với mã lỗi ${response.status}`;
+    let errorMessage = `Lấy danh sách phiếu kiểm tra thất bại với mã lỗi ${response.status}`;
     try {
       const errorData = await response.json();
       errorMessage = errorData.message || errorMessage;
@@ -328,49 +563,77 @@ export async function getInspectionsByBookingId(
     throw new Error(errorMessage);
   }
 
-  const contentType = response.headers.get("content-type");
-  if (contentType?.includes("application/json")) {
-    return await response.json();
+  const data = await response.json();
+  console.log("🔍 Raw API response for booking forms:", data);
+
+  // Kiểm tra nếu data không phải là array hoặc có structure của checklist template
+  if (!Array.isArray(data)) {
+    console.error("❌ API returned non-array data:", data);
+    // Nếu data có structure của checklist template (có sections), thì đây là lỗi
+    if (data && typeof data === "object" && "sections" in data) {
+      console.error(
+        "⚠️ API returned checklist template instead of inspection forms!"
+      );
+      throw new Error(
+        "API đang trả về checklist template thay vì danh sách phiếu kiểm tra. Vui lòng kiểm tra lại backend."
+      );
+    }
+    return [];
   }
-  return [];
+
+  // Backend trả về PascalCase, convert sang camelCase
+  const mapped: InspectionFormSummaryResponse[] = [];
+  for (const item of data) {
+    // Kiểm tra nếu item có structure của checklist template
+    if (item && typeof item === "object" && "sections" in item) {
+      console.error("⚠️ Item has checklist template structure:", item);
+      continue;
+    }
+
+    mapped.push({
+      id: item.Id || item.id,
+      templateId: item.TemplateId || item.templateId,
+      templateName: item.TemplateName || item.templateName,
+      staffId: item.StaffId || item.staffId,
+      staffName: item.StaffName || item.staffName,
+      itemType: item.ItemType || item.itemType,
+      itemId: item.ItemId || item.itemId,
+      type: item.Type || item.type,
+      handoverType: item.HandoverType ?? item.handoverType ?? null,
+      inspectionTypeId: item.InspectionTypeId || item.inspectionTypeId,
+      branchId: item.BranchId ?? item.branchId ?? null,
+      overallPassed: item.OverallPassed ?? item.overallPassed ?? null,
+      createdAt: item.CreatedAt || item.createdAt,
+    });
+  }
+  return mapped;
 }
 
 /**
- * Submit checklist result (tạo nhiều inspection rows)
- * POST /api/inspections/checklist
+ * Lấy danh sách phiếu kiểm tra theo verification ID
+ * GET /api/inspection-forms/verification/{verificationId}
+ * @param verificationId - ID của verification request cần lấy danh sách phiếu kiểm tra
+ * @returns Promise chứa danh sách phiếu kiểm tra
  */
-export async function submitChecklist(
-  request: SubmitChecklistResultRequest
-): Promise<SubmitChecklistResultResponse> {
+export async function getInspectionFormsByVerificationId(
+  verificationId: string
+): Promise<InspectionFormSummaryResponse[]> {
   const token = localStorage.getItem("accessToken");
   if (!token) throw new Error("Vui lòng đăng nhập để thực hiện thao tác này");
 
-  const response = await fetch(`${API_BASE_URL}/inspections/checklist`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      itemType: request.itemType,
-      itemId: request.itemId,
-      type: request.type,
-      handoverType: request.handoverType ?? null,
-      inspectionTypeId: request.inspectionTypeId,
-      branchId: request.branchId ?? null,
-      passed: request.passed ?? null,
-      rows: request.rows.map((row) => ({
-        section: row.section,
-        label: row.label,
-        methodIds: row.methodIds,
-        passed: row.passed ?? null,
-        notes: row.notes ?? "",
-      })),
-    }),
-  });
+  const response = await fetch(
+    `${API_BASE_URL}/inspection-forms/verification/${verificationId}`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    }
+  );
 
   if (!response.ok) {
-    let errorMessage = `Submit checklist thất bại với mã lỗi ${response.status}`;
+    let errorMessage = `Lấy danh sách phiếu kiểm tra thất bại với mã lỗi ${response.status}`;
     try {
       const errorData = await response.json();
       errorMessage = errorData.message || errorMessage;
@@ -381,5 +644,48 @@ export async function submitChecklist(
     throw new Error(errorMessage);
   }
 
-  return (await response.json()) as SubmitChecklistResultResponse;
+  const data = await response.json();
+  console.log("🔍 Raw API response for verification forms:", data);
+
+  // Kiểm tra nếu data không phải là array hoặc có structure của checklist template
+  if (!Array.isArray(data)) {
+    console.error("❌ API returned non-array data:", data);
+    // Nếu data có structure của checklist template (có sections), thì đây là lỗi
+    if (data && typeof data === "object" && "sections" in data) {
+      console.error(
+        "⚠️ API returned checklist template instead of inspection forms!"
+      );
+      throw new Error(
+        "API đang trả về checklist template thay vì danh sách phiếu kiểm tra. Vui lòng kiểm tra lại backend."
+      );
+    }
+    return [];
+  }
+
+  // Backend trả về PascalCase, convert sang camelCase
+  const mapped: InspectionFormSummaryResponse[] = [];
+  for (const item of data) {
+    // Kiểm tra nếu item có structure của checklist template
+    if (item && typeof item === "object" && "sections" in item) {
+      console.error("⚠️ Item has checklist template structure:", item);
+      continue;
+    }
+
+    mapped.push({
+      id: item.Id || item.id,
+      templateId: item.TemplateId || item.templateId,
+      templateName: item.TemplateName || item.templateName,
+      staffId: item.StaffId || item.staffId,
+      staffName: item.StaffName || item.staffName,
+      itemType: item.ItemType || item.itemType,
+      itemId: item.ItemId || item.itemId,
+      type: item.Type || item.type,
+      handoverType: item.HandoverType ?? item.handoverType ?? null,
+      inspectionTypeId: item.InspectionTypeId || item.inspectionTypeId,
+      branchId: item.BranchId ?? item.branchId ?? null,
+      overallPassed: item.OverallPassed ?? item.overallPassed ?? null,
+      createdAt: item.CreatedAt || item.createdAt,
+    });
+  }
+  return mapped;
 }

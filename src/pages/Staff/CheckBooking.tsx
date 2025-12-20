@@ -46,7 +46,6 @@ import {
   Visibility,
   PlaylistAddCheck,
   Clear,
-  Edit,
   MoreVert,
   Gavel,
   Update,
@@ -56,7 +55,7 @@ import {
   fetchBookingById,
   updateBookingStatus,
 } from "../../services/booking.service";
-import type { Booking, BookingInspection } from "../../types/booking.types";
+import type { Booking } from "../../types/booking.types";
 import {
   formatCurrency,
   formatDate,
@@ -64,23 +63,26 @@ import {
 } from "../../utils/booking.utils";
 import { getItemName } from "../../helpers/booking.helper";
 import { useNavigate } from "react-router-dom";
-// import CheckBookingDialog from "../../components/Modal/Staff/CheckBookingDialog";
+
 import InspectionFormDialog from "../../components/Modal/Staff/InspectionFormDialog";
 
 import {
-  createInspection,
-  updateInspection,
+  updateInspectionForm,
   deleteInspection,
+  getInspectionFormsByBookingId,
+  getInspectionFormById,
+  type UpdateInspectionFormRequest,
+  type InspectionFormResponse,
+  type InspectionFormSummaryResponse,
 } from "../../services/inspection.service";
 import { toast } from "react-toastify";
 import type {
-  VerificationItem,
+  // VerificationItem,
   VerificationItemType,
 } from "../../types/verification.types";
 
-import InspectionListDialog, {
-  type InspectionListItem,
-} from "../../components/Modal/Staff/InspectionListDialog";
+import type { InspectionListItem } from "../../components/Modal/Staff/InspectionListDialog";
+import InspectionFormListDialog from "../../components/Modal/Staff/InspectionFormListDialog";
 import EditInspectionDialog, {
   type EditInspectionFormState,
 } from "../../components/Modal/Staff/EditInspectionDialog";
@@ -104,8 +106,15 @@ const CheckBookings: React.FC = () => {
   const [inspectionListOpen, setInspectionListOpen] = useState(false);
   const [inspectionListLoading, setInspectionListLoading] = useState(false);
   const [inspectionListSubtitle, setInspectionListSubtitle] = useState("");
-  const [inspectionList, setInspectionList] = useState<InspectionListItem[]>(
-    []
+  // State cho form-based display
+  const [inspectionForms, setInspectionForms] = useState<
+    InspectionFormSummaryResponse[]
+  >([]);
+  const [inspectionFormDetails, setInspectionFormDetails] = useState<
+    Map<string, InspectionFormResponse>
+  >(new Map());
+  const [itemNameMap, setItemNameMap] = useState<Map<string, string>>(
+    new Map()
   );
   const [editingInspection, setEditingInspection] =
     useState<InspectionListItem | null>(null);
@@ -117,9 +126,9 @@ const CheckBookings: React.FC = () => {
   const [activeInspectionBookingId, setActiveInspectionBookingId] = useState<
     string | null
   >(null);
-  const [currentInspectionItems, setCurrentInspectionItems] = useState<
-    VerificationItem[]
-  >([]);
+  // const [currentInspectionItems, setCurrentInspectionItems] = useState<
+  //   VerificationItem[]
+  // >([]);
   const [actionMenuAnchorEl, setActionMenuAnchorEl] =
     useState<null | HTMLElement>(null);
   const [actionMenuBookingId, setActionMenuBookingId] = useState<string | null>(
@@ -214,88 +223,52 @@ const CheckBookings: React.FC = () => {
     setSelectedBookingId(null);
   };
 
-  const getItemTypeNumber = (value?: string | number): number | undefined => {
-    if (value === undefined || value === null) return undefined;
-    if (typeof value === "number" && !Number.isNaN(value)) return value;
-    const normalized = value.toString().toLowerCase();
-    if (normalized === "camera" || normalized === "1") return 1;
-    if (normalized === "accessory" || normalized === "2") return 2;
-    if (normalized === "combo" || normalized === "3") return 3;
-    return undefined;
-  };
+  // const getItemTypeNumber = (value?: string | number): number | undefined => {
+  //   if (value === undefined || value === null) return undefined;
+  //   if (typeof value === "number" && !Number.isNaN(value)) return value;
+  //   const normalized = value.toString().toLowerCase();
+  //   if (normalized === "camera" || normalized === "1") return 1;
+  //   if (normalized === "accessory" || normalized === "2") return 2;
+  //   if (normalized === "combo" || normalized === "3") return 3;
+  //   return undefined;
+  // };
 
-  const convertBookingItemsToVerificationItems = (
-    items: Booking["items"]
-  ): VerificationItem[] => {
-    return items
-      .filter(
-        (item) => item.itemType === "Camera" || item.itemType === "Accessory"
-      )
-      .map((item) => ({
-        itemId:
-          item.itemId ||
-          item.cameraId ||
-          item.accessoryId ||
-          item.productId ||
-          item.comboId ||
-          "",
-        itemName: item.itemName || getItemName(item),
-        itemType: item.itemType === "Camera" ? "1" : "2",
-      }));
-  };
-
-  const resolveInspectionItemMetadata = (inspection: InspectionListItem) => {
-    const normalizedName = inspection.itemName?.toLowerCase();
-    const fallbackItem = currentInspectionItems.find((item) => {
-      if (inspection.itemId && item.itemId === inspection.itemId) return true;
-      const itemNameLower = item.itemName?.toLowerCase() || "";
-      return itemNameLower === (normalizedName || "");
-    });
-    const itemId = inspection.itemId || fallbackItem?.itemId;
-    const itemTypeValue =
-      getItemTypeNumber(inspection.itemTypeValue ?? inspection.itemType) ??
-      (fallbackItem ? getItemTypeNumber(fallbackItem.itemType) : undefined);
-
-    return { itemId, itemTypeValue };
-  };
+  // const convertBookingItemsToVerificationItems = (
+  //   items: Booking["items"]
+  // ): VerificationItem[] => {
+  //   return items
+  //     .filter(
+  //       (item) => item.itemType === "Camera" || item.itemType === "Accessory"
+  //     )
+  //     .map((item) => ({
+  //       itemId:
+  //         item.itemId ||
+  //         item.cameraId ||
+  //         item.accessoryId ||
+  //         item.productId ||
+  //         item.comboId ||
+  //         "",
+  //       itemName: item.itemName || getItemName(item),
+  //       itemType: item.itemType === "Camera" ? "1" : "2",
+  //     }));
+  // };
 
   const handleInspectionSuccess = async (
     data: Record<string, unknown>
   ): Promise<void> => {
     try {
-      // Tạo FormData từ dữ liệu form
-      const formData = new FormData();
-      Object.entries(data).forEach(([key, value]) => {
-        if (key === "images" && Array.isArray(value)) {
-          value.forEach((file) => {
-            if (file instanceof File) {
-              formData.append("files", file);
-            }
-          });
-        } else if (value !== undefined && value !== null) {
-          formData.append(key, String(value));
-        }
-      });
-      // Gọi API tạo inspection
-      const res = await createInspection(formData);
-      if (typeof res === "string")
-        throw new Error(res || "Tạo kiểm tra thất bại");
-
-      toast.success("Tạo kiểm tra thiết bị thành công!", {
-        position: "top-right",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      });
-
-      await loadAssignments();
-      setInspectionModalOpen(false);
+      // InspectionFormDialog đã xử lý việc tạo phiếu kiểm tra
+      // Chỉ cần refresh dữ liệu
+      if (data.success) {
+        await loadAssignments();
+        setInspectionModalOpen(false);
+      }
     } catch (err: unknown) {
-      console.error("Lỗi tạo kiểm tra:", err);
+      console.error("Lỗi refresh dữ liệu:", err);
       const errorMessage =
-        err instanceof Error ? err.message : "Có lỗi xảy ra khi tạo kiểm tra";
+        err instanceof Error
+          ? err.message
+          : "Có lỗi xảy ra khi refresh dữ liệu";
       setError(errorMessage);
       toast.error(errorMessage, {
         position: "top-right",
@@ -308,82 +281,85 @@ const CheckBookings: React.FC = () => {
     }
   };
 
-  const mapBookingInspectionToListItem = (
-    inspection: BookingInspection,
-    booking?: Booking
-  ): InspectionListItem => {
-    const normalizedName = inspection.itemName?.toLowerCase();
-    const matchedItem = booking?.items.find((item) => {
-      if (
-        (inspection as BookingInspection & { itemId?: string }).itemId &&
-        item.itemId ===
-          (inspection as BookingInspection & { itemId?: string }).itemId
-      ) {
-        return true;
-      }
-      const itemNameLower = item.itemName?.toLowerCase() || "";
-      return itemNameLower === (normalizedName || "");
-    });
-
-    const resolvedItemId =
-      (inspection as BookingInspection & { itemId?: string }).itemId ||
-      matchedItem?.itemId ||
-      "";
-
-    const resolvedItemType =
-      getItemTypeNumber(
-        (inspection as BookingInspection & { itemTypeValue?: number | string })
-          .itemTypeValue ?? inspection.itemType
-      ) ?? (matchedItem ? getItemTypeNumber(matchedItem.itemType) : undefined);
-
-    return {
-      id: inspection.id,
-      itemName: inspection.itemName,
-      itemType: inspection.itemType,
-      section: inspection.section,
-      label: inspection.label,
-      value: inspection.value,
-      notes: inspection.notes,
-      passed: inspection.passed ?? null,
-      itemId: resolvedItemId || undefined,
-      itemTypeValue: resolvedItemType,
-      inspectionTypeId:
-        (inspection as BookingInspection & { inspectionTypeId?: string })
-          .inspectionTypeId || booking?.id,
-      type:
-        (inspection as BookingInspection & { type?: string }).type || "Booking",
-      media: inspection.media?.map((media) => ({
-        id: media.id,
-        url: media.url,
-        label: media.label,
-      })),
-    };
-  };
-
   const shortId = (id: string) =>
     id.length > 8 ? `${id.substring(0, 8)}...` : id;
 
   const loadInspectionList = async (bookingId: string) => {
     setInspectionListLoading(true);
     try {
+      // Sử dụng API mới: GET /api/inspection-forms/booking/{bookingId}
+      const forms = await getInspectionFormsByBookingId(bookingId);
+
+      console.log("📋 Inspection forms from API:", forms);
+
+      if (forms.length === 0) {
+        setInspectionForms([]);
+        setInspectionFormDetails(new Map());
+        setItemNameMap(new Map());
+        // setCurrentInspectionItems([]);
+        toast.info("Chưa có phiếu kiểm tra nào cho đơn hàng này.");
+        return;
+      }
+
+      // Lấy items từ booking để có thông tin itemName
       const { booking, error } = await fetchBookingById(bookingId);
       if (error || !booking) {
-        throw new Error(error || "Không tìm thấy phiếu kiểm tra");
+        throw new Error(error || "Không tìm thấy thông tin đơn hàng");
       }
-      const mapped =
-        booking.inspections?.map((inspection) =>
-          mapBookingInspectionToListItem(inspection, booking)
-        ) || [];
-      setInspectionList(mapped);
-      setCurrentInspectionItems(
-        convertBookingItemsToVerificationItems(booking.items)
+
+      // setCurrentInspectionItems(
+      //   convertBookingItemsToVerificationItems(booking.items)
+      // );
+
+      // Tạo itemNameMap
+      const nameMap = new Map<string, string>();
+      booking.items.forEach((item) => {
+        const itemId =
+          item.itemId ||
+          item.cameraId ||
+          item.accessoryId ||
+          item.comboId ||
+          item.productId;
+        if (itemId) {
+          nameMap.set(
+            itemId,
+            item.itemName || getItemName(item) || "Không xác định"
+          );
+        }
+      });
+      setItemNameMap(nameMap);
+
+      // Lưu forms
+      setInspectionForms(forms);
+
+      // Load chi tiết từng form
+      const formDetailsMap = new Map<string, InspectionFormResponse>();
+      console.log(`📝 Processing ${forms.length} forms...`);
+
+      for (const form of forms) {
+        try {
+          const formDetail = await getInspectionFormById(form.id);
+          console.log(
+            `  📋 Form ${form.id} has ${formDetail.rows.length} rows`
+          );
+          formDetailsMap.set(form.id, formDetail);
+        } catch (err) {
+          console.error(`Error loading form ${form.id}:`, err);
+        }
+      }
+
+      setInspectionFormDetails(formDetailsMap);
+      console.log(
+        `✅ Loaded ${formDetailsMap.size} form details (from ${forms.length} forms)`
       );
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Không thể tải phiếu kiểm tra";
       toast.error(message);
-      setInspectionList([]);
-      setCurrentInspectionItems([]);
+      setInspectionForms([]);
+      setInspectionFormDetails(new Map());
+      setItemNameMap(new Map());
+      // setCurrentInspectionItems([]);
     } finally {
       setInspectionListLoading(false);
     }
@@ -398,21 +374,30 @@ const CheckBookings: React.FC = () => {
 
   const handleCloseInspectionList = () => {
     setInspectionListOpen(false);
-    setInspectionList([]);
+    setInspectionForms([]);
+    setInspectionFormDetails(new Map());
+    setItemNameMap(new Map());
     setInspectionListSubtitle("");
     setDeletingInspectionId(null);
-    setCurrentInspectionItems([]);
+    // setCurrentInspectionItems([]);
     setActiveInspectionBookingId(null);
   };
 
-  const handleEditInspection = (inspection: InspectionListItem) => {
+  const [editingFormId, setEditingFormId] = React.useState<string | null>(null);
+
+  const handleEditInspection = (
+    inspection: InspectionListItem,
+    formId: string
+  ) => {
     setEditingInspection(inspection);
+    setEditingFormId(formId);
     setEditDialogOpen(true);
   };
 
   const handleCloseEditInspection = () => {
     setEditDialogOpen(false);
     setEditingInspection(null);
+    setEditingFormId(null);
   };
 
   const handleSubmitEditInspection = async (
@@ -421,44 +406,94 @@ const CheckBookings: React.FC = () => {
     if (!editingInspection) return;
     setSavingInspection(true);
     try {
-      const formData = new FormData();
-      formData.append("Section", formState.section);
-      formData.append("Label", formState.label);
-      formData.append("Value", formState.value ?? "");
-      formData.append("Notes", formState.notes ?? "");
-      if (formState.passed !== null) {
-        formData.append("Passed", formState.passed ? "true" : "false");
+      // Nếu không có editingFormId, thử load từ inspectionFormDetails hoặc tìm trong forms
+      let formId = editingFormId;
+      if (!formId) {
+        // Tìm formId từ inspectionForms dựa trên inspection.id
+        const foundForm = inspectionForms.find((form) => {
+          const detail = inspectionFormDetails.get(form.id);
+          return detail?.rows.some(
+            (r) => r.inspectionId === editingInspection.id
+          );
+        });
+        if (foundForm) {
+          formId = foundForm.id;
+          setEditingFormId(formId);
+        }
       }
 
-      const { itemId, itemTypeValue } =
-        resolveInspectionItemMetadata(editingInspection);
-
-      if (!itemId || itemTypeValue === undefined) {
-        throw new Error(
-          "Không xác định được thông tin thiết bị cho phiếu kiểm tra."
-        );
+      if (!formId) {
+        throw new Error("Không tìm thấy ID phiếu kiểm tra.");
       }
 
-      formData.append("ItemId", itemId);
-      formData.append("ItemType", String(itemTypeValue));
-
-      const inspectionTypeId =
-        editingInspection.inspectionTypeId ||
-        activeInspectionBookingId ||
-        selectedBookingId;
-      if (inspectionTypeId) {
-        formData.append("InspectionTypeId", inspectionTypeId);
+      // Load form detail nếu chưa có trong cache
+      let targetForm = inspectionFormDetails.get(formId);
+      if (!targetForm) {
+        // Thử load lại form detail
+        try {
+          const formDetail = await getInspectionFormById(formId);
+          inspectionFormDetails.set(formId, formDetail);
+          targetForm = formDetail;
+        } catch (loadErr) {
+          console.error("Error loading form detail:", loadErr);
+          throw new Error("Không thể tải thông tin phiếu kiểm tra.");
+        }
       }
 
-      formData.append("Type", editingInspection.type || "Booking");
+      if (!targetForm) {
+        throw new Error("Không tìm thấy phiếu kiểm tra.");
+      }
 
-      formState.files.forEach((file) => formData.append("files", file));
-      formState.removeMediaIds.forEach((mediaId) =>
-        formData.append("RemoveMediaIds", mediaId)
+      // Tìm row cần update
+      const targetRow = targetForm.rows.find(
+        (r) => r.inspectionId === editingInspection.id
       );
+      if (!targetRow) {
+        throw new Error("Không tìm thấy mục kiểm tra trong phiếu.");
+      }
 
-      await updateInspection(editingInspection.id, formData);
+      // Sử dụng methodIds trực tiếp từ formState (theo API backend)
+      // Nếu không có methodIds, fallback về parse từ value (tương thích ngược)
+      const methodIds =
+        formState.methodIds && formState.methodIds.length > 0
+          ? formState.methodIds
+          : (() => {
+              // Fallback: parse từ value nếu methodIds không có
+              const methodNames = formState.value
+                .split(", ")
+                .map((m) => m.trim())
+                .filter((m) => m !== "");
+              return targetRow.methods
+                .filter((m) => methodNames.includes(m.name))
+                .map((m) => m.id);
+            })();
 
+      // Tạo request để update form
+      const updateRequest: UpdateInspectionFormRequest = {
+        passed: formState.passed ?? null,
+        rows: targetForm.rows.map((row) => {
+          if (row.inspectionId === editingInspection.id) {
+            // Update row này
+            return {
+              inspectionId: row.inspectionId,
+              methodIds: methodIds,
+              passed: formState.passed ?? null,
+              notes: formState.notes || "",
+            };
+          }
+          // Giữ nguyên các row khác
+          return {
+            inspectionId: row.inspectionId,
+            methodIds: row.methods.map((m) => m.id),
+            passed: row.passed ?? null,
+            notes: row.notes || "",
+          };
+        }),
+      };
+
+      await updateInspectionForm(formId, updateRequest);
+
+      // Reload forms để cập nhật UI
       if (activeInspectionBookingId) {
         await loadInspectionList(activeInspectionBookingId);
       }
@@ -476,7 +511,7 @@ const CheckBookings: React.FC = () => {
 
   const handleDeleteInspection = async (inspection: InspectionListItem) => {
     const confirmDelete = window.confirm(
-      `Bạn có chắc muốn xóa phiếu kiểm tra "${
+      `Bạn có chắc muốn xóa mục kiểm tra "${
         inspection.label || inspection.section
       }"?`
     );
@@ -484,13 +519,14 @@ const CheckBookings: React.FC = () => {
     setDeletingInspectionId(inspection.id);
     try {
       await deleteInspection(inspection.id);
-      setInspectionList((prev) =>
-        prev.filter((item) => item.id !== inspection.id)
-      );
-      toast.success("Xóa phiếu kiểm tra thành công");
+      toast.success("Xóa mục kiểm tra thành công");
+      // Reload forms để cập nhật UI
+      if (activeInspectionBookingId) {
+        await loadInspectionList(activeInspectionBookingId);
+      }
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : "Xóa phiếu kiểm tra thất bại";
+        err instanceof Error ? err.message : "Xóa mục kiểm tra thất bại";
       toast.error(message);
     } finally {
       setDeletingInspectionId(null);
@@ -1552,9 +1588,9 @@ const CheckBookings: React.FC = () => {
           }}
         >
           <ListItemIcon>
-            <Edit fontSize="small" sx={{ color: "#1D4ED8" }} />
+            <Visibility fontSize="small" sx={{ color: "#1D4ED8" }} />
           </ListItemIcon>
-          <ListItemText primary="Chỉnh sửa phiếu kiểm tra" />
+          <ListItemText primary="Xem phiếu kiểm tra" />
         </MenuItem>
         <MenuItem
           onClick={() => {
@@ -1573,20 +1609,7 @@ const CheckBookings: React.FC = () => {
           </ListItemIcon>
           <ListItemText primary="Tạo phiếu kiểm tra" />
         </MenuItem>
-        <MenuItem
-          onClick={() => {
-            if (actionMenuBookingId) {
-              setCreateDisputeBookingId(actionMenuBookingId);
-              setCreateDisputeDialogOpen(true);
-            }
-            handleCloseActionMenu();
-          }}
-        >
-          <ListItemIcon>
-            <Gavel fontSize="small" sx={{ color: "#DC2626" }} />
-          </ListItemIcon>
-          <ListItemText primary="Tạo Tranh Chấp" />
-        </MenuItem>
+
         <MenuItem
           onClick={() => {
             if (actionMenuBookingId) {
@@ -1661,7 +1684,7 @@ const CheckBookings: React.FC = () => {
               );
             })}
       </Menu>
-      <InspectionListDialog
+      <InspectionFormListDialog
         open={inspectionListOpen}
         onClose={() => {
           handleCloseInspectionList();
@@ -1669,15 +1692,18 @@ const CheckBookings: React.FC = () => {
         }}
         title="Phiếu kiểm tra thiết bị"
         subtitle={inspectionListSubtitle}
-        inspections={inspectionList}
+        forms={inspectionForms}
+        formDetails={inspectionFormDetails}
         loading={inspectionListLoading}
-        onEdit={handleEditInspection}
-        onDelete={handleDeleteInspection}
+        onEditItem={handleEditInspection}
+        onDeleteItem={handleDeleteInspection}
         deletingInspectionId={deletingInspectionId}
+        itemNameMap={itemNameMap}
       />
       <EditInspectionDialog
         open={editDialogOpen}
         inspection={editingInspection}
+        formId={editingFormId || undefined}
         saving={savingInspection}
         onClose={handleCloseEditInspection}
         onSubmit={handleSubmitEditInspection}
@@ -1696,6 +1722,11 @@ const CheckBookings: React.FC = () => {
         open={disputeDialogOpen}
         onClose={() => setDisputeDialogOpen(false)}
         bookingId={disputeBookingId}
+        onCreateDispute={() => {
+          setDisputeDialogOpen(false);
+          setCreateDisputeBookingId(disputeBookingId);
+          setCreateDisputeDialogOpen(true);
+        }}
       />
 
       {/* Update Status Dialog */}

@@ -30,7 +30,8 @@ import type { VerificationItem } from "../../../types/verification.types";
 import { toast } from "react-toastify";
 import {
   getActiveChecklistTemplate,
-  submitChecklist,
+  createInspectionForm,
+  getInspectionFormById,
   updateInspection,
 } from "@/services/inspection.service";
 import type {
@@ -300,30 +301,37 @@ const InspectionFormDialog: React.FC<InspectionFormDialogProps> = ({
       const itemTypeNumber = getItemTypeNumber(selectedItemType);
       const inspectionTypeNumber = inspectionType === "Booking" ? 1 : 2;
 
-      // Submit checklist
-      const submitResult = await submitChecklist({
+      // Tạo phiếu kiểm tra
+      const createResult = await createInspectionForm({
         itemType: itemTypeNumber,
         itemId: selectedItemId,
         type: inspectionTypeNumber,
+        inspectionTypeId: verifyId,
         handoverType:
           inspectionType === "Booking" ? handoverType ?? null : null,
-        inspectionTypeId: verifyId,
         branchId: branchId ?? null,
         passed: null, // Để backend tự tính
         rows: checklist.map((item) => ({
-          section: item.sectionName,
-          label: item.label,
+          itemId: item.id, // Checklist item ID
           methodIds: item.selectedMethodIds,
           passed: item.passed,
           notes: item.notes,
         })),
       });
 
-      // Upload ảnh cho từng inspection row
-      for (let i = 0; i < checklist.length; i++) {
-        const item = checklist[i];
-        const inspectionId = submitResult.inspectionIds[i];
+      // Lấy chi tiết form để có inspection IDs
+      const formDetail = await getInspectionFormById(createResult.id);
+      
+      // Tạo map từ label đến inspection ID để upload ảnh
+      const labelToInspectionId = new Map<string, string>();
+      formDetail.rows.forEach((row) => {
+        labelToInspectionId.set(row.label, row.inspectionId);
+      });
 
+      // Upload ảnh cho từng inspection row
+      for (const item of checklist) {
+        const inspectionId = labelToInspectionId.get(item.label);
+        
         if (item.images.length > 0 && inspectionId) {
           const formData = new FormData();
           item.images.forEach((file) => {
@@ -345,7 +353,11 @@ const InspectionFormDialog: React.FC<InspectionFormDialogProps> = ({
       }
 
       toast.success("Tạo phiếu kiểm tra thành công!");
-      onSubmit({ success: true, inspectionIds: submitResult.inspectionIds });
+      onSubmit({ 
+        success: true, 
+        formId: createResult.id,
+        inspectionIds: formDetail.rows.map(r => r.inspectionId)
+      });
       onClose();
     } catch (err) {
       const message =

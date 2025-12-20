@@ -37,25 +37,23 @@ import {
   CheckCircleOutline,
   PlaylistAddCheck,
   Clear,
-  Edit,
   MoreVert,
 } from "@mui/icons-material";
 import {
-  createInspection,
-  updateInspection,
+  updateInspectionForm,
   deleteInspection,
+  getInspectionFormsByVerificationId,
+  getInspectionFormById,
+  type UpdateInspectionFormRequest,
+  type InspectionFormResponse,
+  type InspectionFormSummaryResponse,
 } from "../../services/inspection.service";
 import InspectionFormDialog from "../../components/Modal/Staff/InspectionFormDialog";
 import { verificationService } from "../../services/verification.service";
-import type {
-  Verification,
-  VerificationInspection,
-  VerificationItem,
-} from "../../types/verification.types";
+import type { Verification } from "../../types/verification.types";
 import { toast } from "react-toastify";
-import InspectionListDialog, {
-  type InspectionListItem,
-} from "../../components/Modal/Staff/InspectionListDialog";
+import type { InspectionListItem } from "../../components/Modal/Staff/InspectionListDialog";
+import InspectionFormListDialog from "../../components/Modal/Staff/InspectionFormListDialog";
 import EditInspectionDialog, {
   type EditInspectionFormState,
 } from "../../components/Modal/Staff/EditInspectionDialog";
@@ -179,8 +177,15 @@ const Inspections: React.FC = () => {
   const [inspectionListOpen, setInspectionListOpen] = useState(false);
   const [inspectionListSubtitle, setInspectionListSubtitle] = useState("");
   const [inspectionListLoading, setInspectionListLoading] = useState(false);
-  const [inspectionList, setInspectionList] = useState<InspectionListItem[]>(
-    []
+  // State cho form-based display
+  const [inspectionForms, setInspectionForms] = useState<
+    InspectionFormSummaryResponse[]
+  >([]);
+  const [inspectionFormDetails, setInspectionFormDetails] = useState<
+    Map<string, InspectionFormResponse>
+  >(new Map());
+  const [itemNameMap, setItemNameMap] = useState<Map<string, string>>(
+    new Map()
   );
   const [editingInspection, setEditingInspection] =
     useState<InspectionListItem | null>(null);
@@ -192,9 +197,6 @@ const Inspections: React.FC = () => {
   const [activeVerificationId, setActiveVerificationId] = useState<
     string | null
   >(null);
-  const [currentVerificationItems, setCurrentVerificationItems] = useState<
-    VerificationItem[]
-  >([]);
   const [actionMenuAnchorEl, setActionMenuAnchorEl] =
     useState<null | HTMLElement>(null);
   const [actionMenuVerificationId, setActionMenuVerificationId] = useState<
@@ -224,114 +226,21 @@ const Inspections: React.FC = () => {
     setActionMenuVerificationId(null);
   };
 
-  const getItemTypeNumber = (value?: string | number): number | undefined => {
-    if (value === undefined || value === null) return undefined;
-    if (typeof value === "number" && !Number.isNaN(value)) return value;
-    const normalized = value.toString().toLowerCase();
-    if (normalized === "camera" || normalized === "1") return 1;
-    if (normalized === "accessory" || normalized === "2") return 2;
-    if (normalized === "combo" || normalized === "3") return 3;
-    return undefined;
-  };
-
-  const resolveInspectionItemMetadata = (inspection: InspectionListItem) => {
-    const normalizedName = inspection.itemName?.toLowerCase();
-    const fallbackItem = currentVerificationItems.find((item) => {
-      if (inspection.itemId && item.itemId === inspection.itemId) return true;
-      const itemNameLower = item.itemName?.toLowerCase() || "";
-      return itemNameLower === (normalizedName || "");
-    });
-
-    const itemId = inspection.itemId || fallbackItem?.itemId;
-    const itemTypeValue =
-      getItemTypeNumber(inspection.itemTypeValue ?? inspection.itemType) ??
-      (fallbackItem ? getItemTypeNumber(fallbackItem.itemType) : undefined);
-
-    return { itemId, itemTypeValue };
-  };
-
   // Xử lý submit tạo inspection
+  // InspectionFormDialog đã xử lý việc tạo phiếu kiểm tra, chỉ cần refresh dữ liệu
   const handleSubmitInspection = async (form: Record<string, unknown>) => {
     try {
-      const formData = new FormData();
-      Object.entries(form).forEach(([key, value]) => {
-        if (key === "images" && Array.isArray(value)) {
-          // Xử lý images array từ InspectionDialog
-          value.forEach((file) => formData.append("files", file));
-        } else if (key === "files" && value instanceof FileList) {
-          Array.from(value).forEach((file) => formData.append("files", file));
-        } else if (value !== undefined && value !== null) {
-          formData.append(key, String(value));
-        }
-      });
-      await createInspection(formData);
-      toast.success("Tạo kiểm tra thành công!");
-      setOpenDialog(false);
-      await load();
+      if (form.success) {
+        setOpenDialog(false);
+        await load();
+      }
     } catch (err) {
       const message =
         err && typeof err === "object" && "message" in err
           ? (err as { message?: unknown }).message
           : err;
-      toast.error("Lỗi tạo kiểm tra: " + (message || "Không xác định"));
+      toast.error("Lỗi refresh dữ liệu: " + (message || "Không xác định"));
     }
-  };
-
-  const mapVerificationInspectionToListItem = (
-    inspection:
-      | VerificationInspection
-      | (VerificationInspection & { notes?: string | undefined }),
-    verification?: Verification
-  ): InspectionListItem => {
-    const normalizedName = inspection.itemName?.toLowerCase();
-    const matchedItem = verification?.items?.find((item) => {
-      if (
-        (inspection as VerificationInspection & { itemId?: string }).itemId &&
-        item.itemId ===
-          (inspection as VerificationInspection & { itemId?: string }).itemId
-      ) {
-        return true;
-      }
-      const itemNameLower = item.itemName?.toLowerCase() || "";
-      return itemNameLower === (normalizedName || "");
-    });
-
-    const resolvedItemId =
-      (inspection as VerificationInspection & { itemId?: string }).itemId ||
-      matchedItem?.itemId;
-
-    const resolvedItemType =
-      getItemTypeNumber(
-        (
-          inspection as VerificationInspection & {
-            itemTypeValue?: number | string;
-          }
-        ).itemTypeValue ?? inspection.itemType
-      ) ?? (matchedItem ? getItemTypeNumber(matchedItem.itemType) : undefined);
-
-    return {
-      id: inspection.id,
-      itemName: inspection.itemName,
-      itemType: inspection.itemType,
-      section: inspection.section,
-      label: inspection.label,
-      value: inspection.value ?? undefined,
-      notes: inspection.notes ?? undefined, // Normalize null/undefined to undefined
-      passed: inspection.passed ?? null,
-      itemId: resolvedItemId || undefined,
-      itemTypeValue: resolvedItemType,
-      inspectionTypeId:
-        (inspection as VerificationInspection & { inspectionTypeId?: string })
-          .inspectionTypeId || verification?.id,
-      type:
-        (inspection as VerificationInspection & { type?: string }).type ||
-        "Verification",
-      media: inspection.media?.map((media) => ({
-        id: media.id,
-        url: media.url,
-        label: media.label,
-      })),
-    };
   };
 
   const shortId = (id: string) =>
@@ -340,28 +249,63 @@ const Inspections: React.FC = () => {
   const loadVerificationInspections = async (verificationId: string) => {
     setInspectionListLoading(true);
     try {
+      // Sử dụng API mới: GET /api/inspection-forms/verification/{verificationId}
+      const forms = await getInspectionFormsByVerificationId(verificationId);
+
+      console.log("📋 Inspection forms from API:", forms);
+
+      if (forms.length === 0) {
+        setInspectionForms([]);
+        setInspectionFormDetails(new Map());
+        setItemNameMap(new Map());
+        toast.info("Chưa có phiếu kiểm tra nào cho yêu cầu này.");
+        return;
+      }
+
+      // Lấy chi tiết verification để có items
       const verificationDetail = await verificationService.getVerificationById(
         verificationId
       );
-      const mapped =
-        verificationDetail.inspections?.map((inspection) => {
-          const normalizedInspection = {
-            ...inspection,
-            notes: inspection.notes ?? null, // Convert undefined to null
-          } as VerificationInspection;
-          return mapVerificationInspectionToListItem(
-            normalizedInspection,
-            verificationDetail
+
+      // Tạo itemNameMap
+      const nameMap = new Map<string, string>();
+      verificationDetail.items?.forEach((item) => {
+        if (item.itemId) {
+          nameMap.set(item.itemId, item.itemName || "Không xác định");
+        }
+      });
+      setItemNameMap(nameMap);
+
+      // Lưu forms
+      setInspectionForms(forms);
+
+      // Load chi tiết từng form
+      const formDetailsMap = new Map<string, InspectionFormResponse>();
+      console.log(`📝 Processing ${forms.length} forms...`);
+
+      for (const form of forms) {
+        try {
+          const formDetail = await getInspectionFormById(form.id);
+          console.log(
+            `  📋 Form ${form.id} has ${formDetail.rows.length} rows`
           );
-        }) || [];
-      setInspectionList(mapped);
-      setCurrentVerificationItems(verificationDetail.items || []);
+          formDetailsMap.set(form.id, formDetail);
+        } catch (err) {
+          console.error(`Error loading form ${form.id}:`, err);
+        }
+      }
+
+      setInspectionFormDetails(formDetailsMap);
+      console.log(
+        `✅ Loaded ${formDetailsMap.size} form details (from ${forms.length} forms)`
+      );
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Không thể tải phiếu kiểm tra";
       toast.error(message);
-      setInspectionList([]);
-      setCurrentVerificationItems([]);
+      setInspectionForms([]);
+      setInspectionFormDetails(new Map());
+      setItemNameMap(new Map());
     } finally {
       setInspectionListLoading(false);
     }
@@ -376,68 +320,89 @@ const Inspections: React.FC = () => {
     await loadVerificationInspections(verificationId);
   };
 
+  const [editingFormId, setEditingFormId] = React.useState<string | null>(null);
+
   const handleCloseInspectionList = () => {
     setInspectionListOpen(false);
-    setInspectionList([]);
+    setInspectionForms([]);
+    setInspectionFormDetails(new Map());
+    setItemNameMap(new Map());
     setInspectionListSubtitle("");
     setDeletingInspectionId(null);
     setActiveVerificationId(null);
-    setCurrentVerificationItems([]);
   };
 
-  const handleEditInspection = (inspection: InspectionListItem) => {
+  const handleEditInspection = (
+    inspection: InspectionListItem,
+    formId: string
+  ) => {
     setEditingInspection(inspection);
+    setEditingFormId(formId);
     setEditDialogOpen(true);
   };
 
   const handleCloseEditInspection = () => {
     setEditDialogOpen(false);
     setEditingInspection(null);
+    setEditingFormId(null);
   };
 
   const handleSubmitEditInspection = async (
     formState: EditInspectionFormState
   ) => {
-    if (!editingInspection) return;
+    if (!editingInspection || !editingFormId) return;
     setSavingInspection(true);
     try {
-      const formData = new FormData();
-      formData.append("Section", formState.section);
-      formData.append("Label", formState.label);
-      formData.append("Value", formState.value ?? "");
-      formData.append("Notes", formState.notes ?? "");
-      if (formState.passed !== null) {
-        formData.append("Passed", formState.passed ? "true" : "false");
+      const targetForm: InspectionFormResponse | undefined =
+        inspectionFormDetails.get(editingFormId);
+
+      if (!targetForm) {
+        throw new Error("Không tìm thấy phiếu kiểm tra chứa mục này.");
       }
 
-      const { itemId, itemTypeValue } =
-        resolveInspectionItemMetadata(editingInspection);
-
-      if (!itemId || itemTypeValue === undefined) {
-        throw new Error(
-          "Không xác định được thông tin thiết bị cho phiếu kiểm tra."
-        );
-      }
-
-      formData.append("ItemId", itemId);
-      formData.append("ItemType", String(itemTypeValue));
-
-      const inspectionTypeId =
-        editingInspection.inspectionTypeId ||
-        activeVerificationId ||
-        dialogRow?.id;
-      if (inspectionTypeId) {
-        formData.append("InspectionTypeId", inspectionTypeId);
-      }
-
-      formData.append("Type", editingInspection.type || "Verification");
-
-      formState.files.forEach((file) => formData.append("files", file));
-      formState.removeMediaIds.forEach((mediaId) =>
-        formData.append("RemoveMediaIds", mediaId)
+      const targetRow = targetForm.rows.find(
+        (r) => r.inspectionId === editingInspection.id
       );
+      if (!targetRow) {
+        throw new Error("Không tìm thấy mục kiểm tra trong phiếu.");
+      }
 
-      await updateInspection(editingInspection.id, formData);
+      // Sử dụng methodIds trực tiếp từ formState (theo API backend)
+      // Nếu không có methodIds, fallback về parse từ value (tương thích ngược)
+      const methodIds = formState.methodIds && formState.methodIds.length > 0
+        ? formState.methodIds
+        : (() => {
+            // Fallback: parse từ value nếu methodIds không có
+            const methodNames = formState.value
+              .split(", ")
+              .map((m) => m.trim())
+              .filter((m) => m !== "");
+            return targetRow.methods
+              .filter((m) => methodNames.includes(m.name))
+              .map((m) => m.id);
+          })();
+
+      const updateRequest: UpdateInspectionFormRequest = {
+        passed: formState.passed ?? null,
+        rows: targetForm.rows.map((row) => {
+          if (row.inspectionId === editingInspection.id) {
+            return {
+              inspectionId: row.inspectionId,
+              methodIds: methodIds,
+              passed: formState.passed ?? null,
+              notes: formState.notes || "",
+            };
+          }
+          return {
+            inspectionId: row.inspectionId,
+            methodIds: row.methods.map((m) => m.id),
+            passed: row.passed ?? null,
+            notes: row.notes || "",
+          };
+        }),
+      };
+
+      await updateInspectionForm(editingFormId, updateRequest);
 
       if (activeVerificationId) {
         await loadVerificationInspections(activeVerificationId);
@@ -464,9 +429,10 @@ const Inspections: React.FC = () => {
     setDeletingInspectionId(inspection.id);
     try {
       await deleteInspection(inspection.id);
-      setInspectionList((prev) =>
-        prev.filter((item) => item.id !== inspection.id)
-      );
+      // Reload forms after deletion
+      if (activeVerificationId) {
+        await loadVerificationInspections(activeVerificationId);
+      }
       toast.success("Xóa phiếu kiểm tra thành công");
     } catch (err) {
       const message =
@@ -1220,7 +1186,7 @@ const Inspections: React.FC = () => {
             : {}
         }
       />
-      <InspectionListDialog
+      <InspectionFormListDialog
         open={inspectionListOpen}
         onClose={() => {
           handleCloseInspectionList();
@@ -1228,15 +1194,18 @@ const Inspections: React.FC = () => {
         }}
         title="Phiếu kiểm tra thiết bị"
         subtitle={inspectionListSubtitle}
-        inspections={inspectionList}
+        forms={inspectionForms}
+        formDetails={inspectionFormDetails}
         loading={inspectionListLoading}
-        onEdit={handleEditInspection}
-        onDelete={handleDeleteInspection}
+        onEditItem={handleEditInspection}
+        onDeleteItem={handleDeleteInspection}
         deletingInspectionId={deletingInspectionId}
+        itemNameMap={itemNameMap}
       />
       <EditInspectionDialog
         open={editDialogOpen}
         inspection={editingInspection}
+        formId={editingFormId || undefined}
         saving={savingInspection}
         onClose={handleCloseEditInspection}
         onSubmit={handleSubmitEditInspection}
@@ -1278,9 +1247,9 @@ const Inspections: React.FC = () => {
           }}
         >
           <ListItemIcon>
-            <Edit fontSize="small" sx={{ color: "#1D4ED8" }} />
+            <Visibility fontSize="small" sx={{ color: "#1D4ED8" }} />
           </ListItemIcon>
-          <ListItemText primary="Chỉnh sửa phiếu kiểm tra" />
+          <ListItemText primary="Xem phiếu kiểm tra" />
         </MenuItem>
         <MenuItem
           onClick={() => {
