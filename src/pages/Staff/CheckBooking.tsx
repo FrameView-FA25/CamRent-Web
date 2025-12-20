@@ -39,7 +39,6 @@ import {
   Search,
   Refresh,
   Assignment,
-  HourglassEmpty,
   LocalShipping,
   CheckCircleOutline,
   TaskAlt,
@@ -1291,19 +1290,24 @@ const CheckBookings: React.FC = () => {
                 ) : (
                   paginatedBookings.map((booking) => {
                     const statusInfo = getStatusInfo(booking.status);
-                    const statusPalette: Record<
-                      string,
-                      { base: string; icon: typeof HourglassEmpty }
-                    > = {
-                      warning: { base: "#F59E0B", icon: HourglassEmpty },
-                      info: { base: "#0284C7", icon: CheckCircleOutline },
-                      primary: { base: "#4F46E5", icon: LocalShipping },
-                      success: { base: "#10B981", icon: TaskAlt },
-                      error: { base: "#F43F5E", icon: Clear },
-                      default: { base: "#6B7280", icon: Assignment },
+                    // Map status directly to ensure consistency with status cards
+                    const getStatusIconAndColor = (status: string) => {
+                      switch (status) {
+                        case "Confirmed":
+                          return { base: "#10B981", icon: CheckCircleOutline };
+                        case "PickedUp":
+                          return { base: "#4F46E5", icon: LocalShipping };
+                        case "Returned":
+                          return { base: "#0284C7", icon: CheckCircleOutline };
+                        case "Completed":
+                          return { base: "#F59E0B", icon: TaskAlt };
+                        case "Cancelled":
+                          return { base: "#EF4444", icon: Clear };
+                        default:
+                          return { base: "#6B7280", icon: Assignment };
+                      }
                     };
-                    const palette =
-                      statusPalette[statusInfo.color] || statusPalette.default;
+                    const palette = getStatusIconAndColor(booking.status);
                     const StatusIcon = palette.icon;
                     return (
                       <TableRow
