@@ -211,7 +211,7 @@ export async function getPaymentDetails(paymentId: string): Promise<unknown> {
     throw new Error("Vui lòng đăng nhập");
   }
 
-  const response = await fetch(`${API_BASE_URL}/api/Payments/${paymentId}`, {
+  const response = await fetch(`${API_BASE_URL}/Payments/${paymentId}`, {
     method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -236,7 +236,7 @@ export async function cancelPayment(paymentId: string): Promise<void> {
   }
 
   const response = await fetch(
-    `${API_BASE_URL}/api/Payments/${paymentId}/cancel`,
+    `${API_BASE_URL}/Payments/${paymentId}/cancel`,
     {
       method: "POST",
       headers: {

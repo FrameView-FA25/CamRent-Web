@@ -170,7 +170,7 @@ export default function VerificationDetailModal({
     try {
       const token = localStorage.getItem("accessToken");
       const response = await fetch(
-        `${API_BASE_URL}/api/Verifications/${verification.id}`,
+        `${API_BASE_URL}/Verifications/${verification.id}`,
         {
           method: "GET",
           headers: {
@@ -271,7 +271,7 @@ export default function VerificationDetailModal({
       setContractLoading(true);
 
       const previewResponse = await fetch(
-        `${API_BASE_URL}/api/Contracts/${contractId}/preview`,
+        `${API_BASE_URL}/Contracts/${contractId}/preview`,
         {
           method: "GET",
           headers: {
