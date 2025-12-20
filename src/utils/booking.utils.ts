@@ -28,12 +28,18 @@ export const getStatusInfo = (
   status: string
 ): {
   label: string;
-  color: "default" | "primary" | "secondary" | "error" | "info" | "success" | "warning";
+  color:
+    | "default"
+    | "primary"
+    | "secondary"
+    | "error"
+    | "info"
+    | "success"
+    | "warning";
   bgColor?: string;
   textColor?: string;
 } => {
   const statusMap: Record<string, any> = {
-    
     PendingApproval: {
       label: "Chờ xác nhận",
       color: "warning" as const,
@@ -47,7 +53,7 @@ export const getStatusInfo = (
       textColor: "#1D4ED8",
     },
     PickedUp: {
-      label: "Đã nhận máy",
+      label: "Đã giao máy",
       color: "info" as const,
       bgColor: "#FFFFFF",
       textColor: "#4F46E5",
