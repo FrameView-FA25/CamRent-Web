@@ -78,6 +78,7 @@ export interface Booking {
   createdAt: string;
   updatedAt: string;
   contracts: Contracts[];
+  payments?: BookingPayment[];
 }
 export interface Contracts {
   id: string;
@@ -252,11 +253,27 @@ export interface BookingDetail extends Booking {
   updatedAt: string;
   payments?: BookingPayment[];
 }
+export interface PaymentLine {
+  id: string;
+  paymentId: string;
+  type: string; // "rental" | "rental_advance" | "device_deposit" | etc.
+  amount: number;
+  capturedAmount: number;
+  refundedAmount: number;
+  currency: string;
+}
+
 export interface BookingPayment {
-  bookingId: string;
-  booking: Booking;
-  lines: string;
-  status: string;
+  id: string;
+  bookingId: string | null;
+  status: string; // "Authorized" | "Captured" | "Refunded"
+  provider: string;
+  purpose: string;
+  providerPaymentId?: string | null;
+  authorizedAmount: number;
+  capturedAmount: number;
+  refundedAmount: number;
+  lines: PaymentLine[];
 }
 export interface RenterInfo {
   renterId: string;
