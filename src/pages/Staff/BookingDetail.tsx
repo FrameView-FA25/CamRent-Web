@@ -58,7 +58,7 @@ import {
   format,
 } from "../../utils/booking.utils";
 import { getItemName } from "../../helpers/booking.helper";
-import { initiatePayment } from "../../services/payment.service";
+// import { initiatePayment } from "../../services/payment.service";
 
 const steps = [
   "Đơn hàng mới",
@@ -120,6 +120,30 @@ const BookingDetail: React.FC = () => {
     loadBookingDetail();
   }, [loadBookingDetail]);
 
+  // Reload booking when returning from PayOS payment
+  useEffect(() => {
+    const checkPaymentReturn = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const paymentStatus = urlParams.get("payment");
+      const bookingIdFromUrl = urlParams.get("bookingId");
+
+      // If returning from payment success and on booking detail page
+      if (
+        (paymentStatus === "success" || paymentStatus === "paid") &&
+        bookingIdFromUrl === id
+      ) {
+        // Reload booking to get updated payment status
+        loadBookingDetail();
+        // Clean up URL
+        window.history.replaceState({}, "", window.location.pathname);
+      }
+    };
+
+    if (id) {
+      checkPaymentReturn();
+    }
+  }, [id, loadBookingDetail]);
+
   const handleConfirmUpdate = () => {
     console.log("Update booking status:", {
       bookingId: id,
@@ -162,8 +186,41 @@ const BookingDetail: React.FC = () => {
 
       if (paymentMethod === "Cash") {
         // Gọi API authorize với phương thức Cash
-        const response = await fetch(
-          `https://camrent-backend.up.railway.app/api/Payments/authorize`,
+        const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+        const response = await fetch(`${API_BASE_URL}/Payments/authorize`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            bookingId: booking.id,
+            mode: "Rental", // Thanh toán phần còn lại
+            method: "Cash",
+          }),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(errorText || "Không thể xác nhận thanh toán");
+        }
+
+        // Reload booking data để cập nhật trạng thái thanh toán trước
+        await loadBookingDetail();
+
+        setSnackbar({
+          open: true,
+          message: "Xác nhận thanh toán tiền mặt thành công!",
+          severity: "success",
+        });
+      } else {
+        // For PayOS payment, we need to customize return URL to include bookingId
+        // So we'll handle the payment flow manually
+        const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+        // Step 1: Authorize payment
+        const authorizeResponse = await fetch(
+          `${API_BASE_URL}/Payments/authorize`,
           {
             method: "POST",
             headers: {
@@ -172,27 +229,47 @@ const BookingDetail: React.FC = () => {
             },
             body: JSON.stringify({
               bookingId: booking.id,
-              mode: "Rental", // Thanh toán phần còn lại
-              method: "Cash",
+              mode: "Rental",
+              method: "PayOs",
             }),
           }
         );
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(errorText || "Không thể xác nhận thanh toán");
+        if (!authorizeResponse.ok) {
+          const errorText = await authorizeResponse.text();
+          throw new Error(errorText || "Không thể khởi tạo thanh toán");
         }
 
-        setSnackbar({
-          open: true,
-          message: "Xác nhận thanh toán tiền mặt thành công!",
-          severity: "success",
-        });
+        const paymentIdRaw = await authorizeResponse.text();
+        const paymentId = paymentIdRaw.trim().replace(/^["']|["']$/g, "");
 
-        // Reload booking data để cập nhật trạng thái
-        await loadBookingDetail();
-      } else {
-        const checkoutUrl = await initiatePayment(booking.id, "Rental");
+        // Step 2: Create PayOS payment link with custom return URL
+        const returnUrl = `${window.location.origin}/staff/booking/${booking.id}?payment=success&bookingId=${booking.id}`;
+        const cancelUrl = `${window.location.origin}/staff/booking/${booking.id}?payment=cancelled`;
+
+        const payosResponse = await fetch(
+          `${API_BASE_URL}/Payments/${paymentId}/payos`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              returnUrl,
+              cancelUrl,
+            }),
+          }
+        );
+
+        if (!payosResponse.ok) {
+          const errorText = await payosResponse.text();
+          throw new Error(errorText || "Không thể tạo link thanh toán");
+        }
+
+        const payosData = await payosResponse.json();
+        const checkoutUrl =
+          payosData.redirectUrl || payosData.checkoutUrl || payosData.url;
 
         if (!checkoutUrl) {
           throw new Error("Không nhận được URL thanh toán từ hệ thống");
@@ -224,6 +301,80 @@ const BookingDetail: React.FC = () => {
 
   const handleCloseSnackbar = () => {
     setSnackbar({ ...snackbar, open: false });
+  };
+
+  // Calculate payment details from actual payments
+  const calculatePaymentDetails = () => {
+    if (!booking) {
+      return {
+        totalAmount: 0,
+        paidAmount: 0,
+        unpaidAmount: 0,
+        rentalAmount: 0,
+        depositAmount: 0,
+        platformFee: 0,
+      };
+    }
+
+    const totalAmount =
+      booking.snapshotRentalTotal + booking.snapshotDepositAmount;
+    const platformFee =
+      booking.snapshotRentalTotal * booking.snapshotPlatformFeePercent;
+
+    // Calculate paid amount from actual payments
+    let paidAmount = 0;
+    if (booking.payments && booking.payments.length > 0) {
+      booking.payments.forEach((payment) => {
+        // Only count Captured payments as paid
+        if (payment.status === "Captured") {
+          // Sum up captured amounts from payment lines
+          if (payment.lines && payment.lines.length > 0) {
+            payment.lines.forEach((line) => {
+              if (
+                line.type === "rental" ||
+                line.type === "rental_advance" ||
+                line.type === "device_deposit"
+              ) {
+                // Use capturedAmount if available, otherwise use amount
+                paidAmount += line.capturedAmount || line.amount || 0;
+              }
+            });
+          } else {
+            // Fallback to payment capturedAmount if no lines
+            paidAmount += payment.capturedAmount || 0;
+          }
+        }
+        // Also count Authorized payments (for PayOS pending capture)
+        else if (payment.status === "Authorized") {
+          if (payment.lines && payment.lines.length > 0) {
+            payment.lines.forEach((line) => {
+              if (
+                line.type === "rental" ||
+                line.type === "rental_advance" ||
+                line.type === "device_deposit"
+              ) {
+                // For authorized payments, use amount (not capturedAmount)
+                paidAmount += line.amount || 0;
+              }
+            });
+          } else {
+            paidAmount += payment.authorizedAmount || 0;
+          }
+        }
+      });
+    }
+    // If no payments at all, paidAmount remains 0 (chưa thanh toán)
+
+    const unpaidAmount = totalAmount - paidAmount;
+
+    return {
+      totalAmount,
+      paidAmount,
+      unpaidAmount: Math.max(0, unpaidAmount), // Ensure non-negative
+      rentalAmount: booking.snapshotRentalTotal,
+      depositAmount: booking.snapshotDepositAmount,
+      platformFee,
+    };
   };
 
   const getStatusNumber = (statusText: string): number => {
@@ -289,6 +440,7 @@ const BookingDetail: React.FC = () => {
   }
 
   const statusNumber = getStatusNumber(booking.statusText);
+  const paymentDetails = calculatePaymentDetails();
 
   return (
     <Box sx={{ bgcolor: "#F5F5F5", minHeight: "100vh", p: 3 }}>
@@ -638,11 +790,7 @@ const BookingDetail: React.FC = () => {
               flexDirection: "column",
               border: "2px solid",
               borderColor:
-                booking.snapshotPlatformFeePercent *
-                  booking.snapshotRentalTotal >
-                0
-                  ? "#10B981"
-                  : "#FEE2E2",
+                paymentDetails.paidAmount > 0 ? "#10B981" : "#FEE2E2",
             }}
           >
             <Box
@@ -672,11 +820,7 @@ const BookingDetail: React.FC = () => {
                 <Payment
                   sx={{
                     color:
-                      booking.snapshotPlatformFeePercent *
-                        booking.snapshotRentalTotal >
-                      0
-                        ? "#059669"
-                        : "#DC2626",
+                      paymentDetails.paidAmount > 0 ? "#059669" : "#DC2626",
                     fontSize: 28,
                   }}
                 />
@@ -694,34 +838,17 @@ const BookingDetail: React.FC = () => {
               </Box>
               <Chip
                 icon={
-                  booking.snapshotPlatformFeePercent *
-                    booking.snapshotRentalTotal >
-                  0 ? (
-                    <CheckCircle />
-                  ) : (
-                    <Cancel />
-                  )
+                  paymentDetails.paidAmount > 0 ? <CheckCircle /> : <Cancel />
                 }
                 label={
-                  booking.snapshotPlatformFeePercent *
-                    booking.snapshotRentalTotal >
-                  0
+                  paymentDetails.paidAmount > 0
                     ? "Đã thanh toán"
                     : "Chưa thanh toán"
                 }
                 sx={{
                   bgcolor:
-                    booking.snapshotPlatformFeePercent *
-                      booking.snapshotRentalTotal >
-                    0
-                      ? "#D1FAE5"
-                      : "#FEE2E2",
-                  color:
-                    booking.snapshotPlatformFeePercent *
-                      booking.snapshotRentalTotal >
-                    0
-                      ? "#059669"
-                      : "#DC2626",
+                    paymentDetails.paidAmount > 0 ? "#D1FAE5" : "#FEE2E2",
+                  color: paymentDetails.paidAmount > 0 ? "#059669" : "#DC2626",
                   fontWeight: 600,
                 }}
               />
@@ -729,29 +856,8 @@ const BookingDetail: React.FC = () => {
 
             <Divider sx={{ mb: 3 }} />
 
-            {booking.snapshotPlatformFeePercent * booking.snapshotRentalTotal >
-            0 ? (
+            {paymentDetails.paidAmount > 0 ? (
               <Stack spacing={2.5}>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                  <Avatar sx={{ bgcolor: "#F9FAFB", color: "#6B7280" }}>
-                    <Payment />
-                  </Avatar>
-                  <Box>
-                    <Typography
-                      variant="caption"
-                      sx={{ color: "#6B7280", display: "block" }}
-                    >
-                      Loại thanh toán
-                    </Typography>
-                    <Typography
-                      variant="body1"
-                      sx={{ fontWeight: 600, color: "#1F2937" }}
-                    >
-                      Đặt cọc (Tiền giữ chỗ)
-                    </Typography>
-                  </Box>
-                </Box>
-
                 <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
                   <Avatar sx={{ bgcolor: "#F9FAFB", color: "#6B7280" }}>
                     <Payment />
@@ -767,16 +873,41 @@ const BookingDetail: React.FC = () => {
                       variant="body1"
                       sx={{ fontWeight: 600, color: "#1F2937" }}
                     >
-                      {formatCurrency(
-                        booking.snapshotPlatformFeePercent *
-                          booking.snapshotRentalTotal
-                      )}
+                      {formatCurrency(paymentDetails.paidAmount)}
                     </Typography>
                   </Box>
                 </Box>
 
+                {paymentDetails.unpaidAmount > 0 && (
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                    <Avatar sx={{ bgcolor: "#F9FAFB", color: "#6B7280" }}>
+                      <Payment />
+                    </Avatar>
+                    <Box>
+                      <Typography
+                        variant="caption"
+                        sx={{ color: "#6B7280", display: "block" }}
+                      >
+                        Số tiền còn lại
+                      </Typography>
+                      <Typography
+                        variant="body1"
+                        sx={{ fontWeight: 600, color: "#DC2626" }}
+                      >
+                        {formatCurrency(paymentDetails.unpaidAmount)}
+                      </Typography>
+                    </Box>
+                  </Box>
+                )}
+
                 <Alert severity="success" sx={{ borderRadius: 2 }}>
-                  Khách hàng đã thanh toán tiền giữ chỗ. Có thể giao hàng.
+                  {paymentDetails.unpaidAmount > 0
+                    ? `Đã thanh toán ${formatCurrency(
+                        paymentDetails.paidAmount
+                      )}. Còn lại ${formatCurrency(
+                        paymentDetails.unpaidAmount
+                      )} cần thanh toán.`
+                    : "Đã thanh toán đầy đủ. Có thể giao hàng."}
                 </Alert>
               </Stack>
             ) : (
@@ -1078,10 +1209,7 @@ const BookingDetail: React.FC = () => {
                     variant="body1"
                     sx={{ fontWeight: 600, color: "#1F2937" }}
                   >
-                    {formatCurrency(
-                      booking.snapshotPlatformFeePercent *
-                        booking.snapshotRentalTotal
-                    )}
+                    {formatCurrency(paymentDetails.paidAmount)}
                   </Typography>
                 </Box>
 
@@ -1123,118 +1251,134 @@ const BookingDetail: React.FC = () => {
               </Box>
 
               {/* Dropdown cho Chưa thanh toán */}
-              <Box>
+              {paymentDetails.unpaidAmount > 0 ? (
+                <Box>
+                  <Box
+                    onClick={() =>
+                      setUnpaidDetailExpanded(!unpaidDetailExpanded)
+                    }
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      cursor: "pointer",
+                      p: 1.5,
+                      borderRadius: 2,
+                      bgcolor: unpaidDetailExpanded ? "#FFF7ED" : "transparent",
+                      transition: "all 0.2s ease",
+                      "&:hover": {
+                        bgcolor: "#FFF7ED",
+                      },
+                    }}
+                  >
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <Typography variant="body2" sx={{ color: "#6B7280" }}>
+                        Chưa thanh toán
+                      </Typography>
+                      {unpaidDetailExpanded ? (
+                        <ExpandLess sx={{ color: "#F97316", fontSize: 20 }} />
+                      ) : (
+                        <ExpandMore sx={{ color: "#F97316", fontSize: 20 }} />
+                      )}
+                    </Box>
+                    <Typography
+                      variant="body1"
+                      sx={{ fontWeight: 600, color: "#DC2626" }}
+                    >
+                      {formatCurrency(paymentDetails.unpaidAmount)}
+                    </Typography>
+                  </Box>
+
+                  <Collapse in={unpaidDetailExpanded}>
+                    <Box
+                      sx={{
+                        mt: 1,
+                        ml: 2,
+                        pl: 2,
+                        borderLeft: "2px solid #F97316",
+                      }}
+                    >
+                      <Stack spacing={1.5}>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                          }}
+                        >
+                          <Typography
+                            variant="caption"
+                            sx={{ color: "#6B7280" }}
+                          >
+                            Tổng thanh toán - Đã thanh toán
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            sx={{ fontWeight: 600, color: "#374151" }}
+                          >
+                            {formatCurrency(paymentDetails.unpaidAmount)}
+                          </Typography>
+                        </Box>
+
+                        {/* Nút Thanh Toán */}
+                        <Button
+                          variant="contained"
+                          startIcon={
+                            paymentLoading ? (
+                              <CircularProgress size={20} color="inherit" />
+                            ) : (
+                              <Payment />
+                            )
+                          }
+                          fullWidth
+                          disabled={paymentLoading}
+                          sx={{
+                            mt: 2,
+                            bgcolor: "#F97316",
+                            color: "white",
+                            textTransform: "none",
+                            fontWeight: 600,
+                            py: 1.2,
+                            borderRadius: 2,
+                            "&:hover": {
+                              bgcolor: "#EA580C",
+                            },
+                            "&:disabled": {
+                              bgcolor: "#FED7AA",
+                              color: "white",
+                            },
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handlePayment();
+                          }}
+                        >
+                          {paymentLoading ? "Đang xử lý..." : "Thanh toán ngay"}
+                        </Button>
+                      </Stack>
+                    </Box>
+                  </Collapse>
+                </Box>
+              ) : (
                 <Box
-                  onClick={() => setUnpaidDetailExpanded(!unpaidDetailExpanded)}
                   sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    cursor: "pointer",
                     p: 1.5,
                     borderRadius: 2,
-                    bgcolor: unpaidDetailExpanded ? "#FFF7ED" : "transparent",
-                    transition: "all 0.2s ease",
-                    "&:hover": {
-                      bgcolor: "#FFF7ED",
-                    },
+                    bgcolor: "#D1FAE5",
+                    border: "1px solid #10B981",
                   }}
                 >
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                    <Typography variant="body2" sx={{ color: "#6B7280" }}>
-                      Chưa thanh toán
+                    <CheckCircle sx={{ color: "#059669", fontSize: 20 }} />
+                    <Typography
+                      variant="body2"
+                      sx={{ fontWeight: 600, color: "#059669" }}
+                    >
+                      Đã thanh toán đủ
                     </Typography>
-                    {unpaidDetailExpanded ? (
-                      <ExpandLess sx={{ color: "#F97316", fontSize: 20 }} />
-                    ) : (
-                      <ExpandMore sx={{ color: "#F97316", fontSize: 20 }} />
-                    )}
                   </Box>
-                  <Typography
-                    variant="body1"
-                    sx={{ fontWeight: 600, color: "#1F2937" }}
-                  >
-                    {formatCurrency(
-                      booking.snapshotRentalTotal +
-                        booking.snapshotDepositAmount -
-                        booking.snapshotPlatformFeePercent *
-                          booking.snapshotRentalTotal
-                    )}
-                  </Typography>
                 </Box>
-
-                <Collapse in={unpaidDetailExpanded}>
-                  <Box
-                    sx={{
-                      mt: 1,
-                      ml: 2,
-                      pl: 2,
-                      borderLeft: "2px solid #F97316",
-                    }}
-                  >
-                    <Stack spacing={1.5}>
-                      <Box
-                        sx={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                        }}
-                      >
-                        <Typography variant="caption" sx={{ color: "#6B7280" }}>
-                          Tổng thanh toán - Đã thanh toán
-                        </Typography>
-                        <Typography
-                          variant="body2"
-                          sx={{ fontWeight: 600, color: "#374151" }}
-                        >
-                          {formatCurrency(
-                            booking.snapshotRentalTotal +
-                              booking.snapshotDepositAmount -
-                              booking.snapshotPlatformFeePercent *
-                                booking.snapshotRentalTotal
-                          )}
-                        </Typography>
-                      </Box>
-
-                      {/* Nút Thanh Toán */}
-                      <Button
-                        variant="contained"
-                        startIcon={
-                          paymentLoading ? (
-                            <CircularProgress size={20} color="inherit" />
-                          ) : (
-                            <Payment />
-                          )
-                        }
-                        fullWidth
-                        disabled={paymentLoading}
-                        sx={{
-                          mt: 2,
-                          bgcolor: "#F97316",
-                          color: "white",
-                          textTransform: "none",
-                          fontWeight: 600,
-                          py: 1.2,
-                          borderRadius: 2,
-                          "&:hover": {
-                            bgcolor: "#EA580C",
-                          },
-                          "&:disabled": {
-                            bgcolor: "#FED7AA",
-                            color: "white",
-                          },
-                        }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handlePayment();
-                        }}
-                      >
-                        {paymentLoading ? "Đang xử lý..." : "Thanh toán ngay"}
-                      </Button>
-                    </Stack>
-                  </Box>
-                </Collapse>
-              </Box>
+              )}
             </Stack>
           </Paper>
         </Box>
@@ -1442,12 +1586,7 @@ const BookingDetail: React.FC = () => {
                   variant="h6"
                   sx={{ color: "#F97316", fontWeight: 700 }}
                 >
-                  {formatCurrency(
-                    booking.snapshotRentalTotal +
-                      booking.snapshotDepositAmount -
-                      booking.snapshotPlatformFeePercent *
-                        booking.snapshotRentalTotal
-                  )}
+                  {formatCurrency(paymentDetails.unpaidAmount)}
                 </Typography>
               </Alert>
             )}

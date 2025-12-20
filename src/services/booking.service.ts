@@ -547,6 +547,30 @@ export const fetchBookingById = async (
         updatedAt: item.updatedAt,
       })),
       inspections: data.inspections || [],
+      payments: data.payments
+        ? data.payments.map((payment: any) => ({
+            id: payment.id,
+            bookingId: payment.bookingId,
+            status: payment.status,
+            provider: payment.provider,
+            purpose: payment.purpose,
+            providerPaymentId: payment.providerPaymentId,
+            authorizedAmount: payment.authorizedAmount,
+            capturedAmount: payment.capturedAmount,
+            refundedAmount: payment.refundedAmount,
+            lines: payment.lines
+              ? payment.lines.map((line: any) => ({
+                  id: line.id,
+                  paymentId: line.paymentId,
+                  type: line.type,
+                  amount: line.amount,
+                  capturedAmount: line.capturedAmount,
+                  refundedAmount: line.refundedAmount,
+                  currency: line.currency || "VND",
+                }))
+              : [],
+          }))
+        : undefined,
     };
 
     return { booking, error: null };
