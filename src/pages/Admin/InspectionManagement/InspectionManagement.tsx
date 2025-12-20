@@ -85,7 +85,6 @@ const buildEmptyTemplate = (): UpsertChecklistTemplateRequest => ({
   isActive: true,
   sections: [
     {
-      name: "Phần 1",
       sortOrder: 1,
       items: [
         {
@@ -246,7 +245,7 @@ const InspectionManagement: React.FC = () => {
       const message =
         error instanceof Error
           ? error.message
-          : "Không thể tải danh sách checklist.";
+          : "Không thể tải danh sách phiếu kiểm tra.";
       setTemplateError(message);
     } finally {
       setLoadingTemplates(false);
@@ -261,7 +260,7 @@ const InspectionManagement: React.FC = () => {
       const message =
         error instanceof Error
           ? error.message
-          : "Không thể tải chi tiết checklist.";
+          : "Không thể tải chi tiết phiếu kiểm tra.";
       showToast(message, "error");
     }
   };
@@ -373,7 +372,6 @@ const InspectionManagement: React.FC = () => {
         inspectionType: convertInspectionType(detail.inspectionType),
         isActive: detail.isActive,
         sections: detail.sections.map((section) => ({
-          name: section.name,
           sortOrder: section.sortOrder,
           items: section.items.map((item) => ({
             label: item.label,
@@ -388,7 +386,7 @@ const InspectionManagement: React.FC = () => {
       const message =
         error instanceof Error
           ? error.message
-          : "Không thể tải thông tin checklist để chỉnh sửa.";
+          : "Không thể tải thông tin phiếu kiểm tra để chỉnh sửa.";
       showToast(message, "error");
     }
   };
@@ -478,34 +476,38 @@ const InspectionManagement: React.FC = () => {
           editingTemplateId,
           templateForm
         );
-        showToast("Cập nhật checklist thành công", "success");
+        showToast("Cập nhật phiếu kiểm tra thành công", "success");
       } else {
         await inspectionAdminService.createTemplate(templateForm);
-        showToast("Tạo checklist thành công", "success");
+        showToast("Tạo phiếu kiểm tra thành công", "success");
       }
       setTemplateDialogOpen(false);
       resetTemplateForm();
       fetchTemplates();
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Không thể lưu checklist.";
+        error instanceof Error
+          ? error.message
+          : "Không thể lưu phiếu kiểm tra.";
       showToast(message, "error");
     }
   };
 
   const handleDeleteTemplate = async (id: string) => {
-    const confirm = window.confirm("Bạn có chắc muốn xóa checklist này?");
+    const confirm = window.confirm("Bạn có chắc muốn xóa phiếu kiểm tra này?");
     if (!confirm) return;
     try {
       await inspectionAdminService.deleteTemplate(id);
-      showToast("Đã xóa checklist", "success");
+      showToast("Đã xóa phiếu kiểm tra", "success");
       if (selectedTemplate?.id === id) {
         setSelectedTemplate(null);
       }
       fetchTemplates();
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Không thể xóa checklist.";
+        error instanceof Error
+          ? error.message
+          : "Không thể xóa phiếu kiểm tra.";
       showToast(message, "error");
     }
   };
@@ -527,7 +529,7 @@ const InspectionManagement: React.FC = () => {
       const message =
         error instanceof Error
           ? error.message
-          : "Không thể thay đổi trạng thái checklist.";
+          : "Không thể thay đổi trạng thái phiếu kiểm tra.";
       showToast(message, "error");
     }
   };
@@ -701,7 +703,8 @@ const InspectionManagement: React.FC = () => {
             Phương pháp kiểm tra
           </Typography>
           <Typography variant="body2" color="#6B7280">
-            Quản lý danh sách phương pháp để gán vào từng hạng mục checklist.
+            Quản lý danh sách phương pháp để gán vào từng hạng mục phiếu kiểm
+            tra.
           </Typography>
         </Box>
         <Stack direction="row" spacing={1.5}>
@@ -843,7 +846,7 @@ const InspectionManagement: React.FC = () => {
     >
       <TextField
         size="small"
-        placeholder="Tìm theo tên checklist..."
+        placeholder="Tìm theo tên phiếu kiểm tra..."
         value={templateSearch}
         onChange={(e) => setTemplateSearch(e.target.value)}
         InputProps={{
@@ -913,10 +916,11 @@ const InspectionManagement: React.FC = () => {
           sx={{
             textTransform: "none",
             bgcolor: "#F97316",
+            color: "#fff",
             "&:hover": { bgcolor: "#EA580C" },
           }}
         >
-          Tạo checklist
+          Tạo phiếu kiểm tra
         </Button>
       </Stack>
     </Stack>
@@ -936,7 +940,7 @@ const InspectionManagement: React.FC = () => {
         >
           <Box>
             <Typography variant="h5" fontWeight={700} color="#111827" mb={0.5}>
-              Danh sách checklist
+              Danh sách phiếu kiểm tra
             </Typography>
             <Typography variant="body2" color="#6B7280">
               Cấu hình cấu trúc phiếu kiểm tra cho từng loại thiết bị.
@@ -961,7 +965,9 @@ const InspectionManagement: React.FC = () => {
             <Table>
               <TableHead sx={{ bgcolor: "#F9FAFB" }}>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 700 }}>Tên checklist</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>
+                    Tên phiếu kiểm tra
+                  </TableCell>
                   <TableCell sx={{ fontWeight: 700 }}>Thiết bị</TableCell>
                   <TableCell sx={{ fontWeight: 700 }}>Loại kiểm tra</TableCell>
                   <TableCell sx={{ fontWeight: 700 }}>Trạng thái</TableCell>
@@ -975,7 +981,7 @@ const InspectionManagement: React.FC = () => {
                 {filteredTemplates.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
-                      Chưa có checklist nào.
+                      Chưa có phiếu kiểm tra nào.
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -1059,7 +1065,7 @@ const InspectionManagement: React.FC = () => {
         </Stack>
         {!selectedTemplate ? (
           <Typography variant="body2" color="#6B7280">
-            Chọn một checklist để xem cấu trúc chi tiết.
+            Chọn một phiếu kiểm tra để xem cấu trúc chi tiết.
           </Typography>
         ) : (
           <Box>
@@ -1093,7 +1099,6 @@ const InspectionManagement: React.FC = () => {
                     bgcolor: "#F9FAFB",
                   }}
                 >
-                  <Typography fontWeight={700}>{section.name}</Typography>
                   <Stack spacing={1} sx={{ mt: 1 }}>
                     {section.items.map((item) => (
                       <Box key={item.id} sx={{ pl: 1 }}>
@@ -1141,7 +1146,7 @@ const InspectionManagement: React.FC = () => {
         }}
       >
         <Tab value="methods" label="Phương pháp kiểm tra" />
-        <Tab value="templates" label="Danh sách checklist" />
+        <Tab value="templates" label="Danh sách phiếu kiểm tra" />
       </Tabs>
 
       {activeTab === "methods" && renderMethodTab()}
@@ -1232,263 +1237,563 @@ const InspectionManagement: React.FC = () => {
         maxWidth="md"
         fullWidth
         scroll="paper"
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            boxShadow: "0 20px 60px rgba(0,0,0,0.15)",
+          },
+        }}
       >
-        <DialogTitle sx={{ fontWeight: 700 }}>
-          {editingTemplateId ? "Cập nhật checklist" : "Tạo checklist mới"}
+        <DialogTitle
+          sx={{
+            fontWeight: 700,
+            fontSize: "1.5rem",
+            pb: 2,
+            borderBottom: "2px solid #F3F4F6",
+            display: "flex",
+            alignItems: "center",
+            gap: 1.5,
+          }}
+        >
+          <Box
+            sx={{
+              width: 40,
+              height: 40,
+              borderRadius: 2,
+              bgcolor: "#FFF7ED",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <ChecklistIcon sx={{ color: "#F97316", fontSize: 24 }} />
+          </Box>
+          {editingTemplateId
+            ? "Cập nhật phiếu kiểm tra"
+            : "Tạo phiếu kiểm tra mới"}
         </DialogTitle>
-        <DialogContent dividers>
-          <Stack spacing={2}>
-            <TextField
-              label="Tên checklist"
-              fullWidth
-              value={templateForm.name}
-              onChange={(e) =>
-                setTemplateForm((prev) => ({ ...prev, name: e.target.value }))
-              }
-            />
-            <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-              <FormControl fullWidth>
-                <InputLabel>Loại thiết bị</InputLabel>
-                <Select
-                  label="Loại thiết bị"
-                  value={templateForm.itemType}
+        <DialogContent dividers sx={{ pt: 3, pb: 3 }}>
+          <Stack spacing={3}>
+            {/* Basic Info Section */}
+            <Box>
+              <Typography
+                variant="subtitle2"
+                fontWeight={600}
+                color="#374151"
+                sx={{ mb: 2 }}
+              >
+                Thông tin cơ bản
+              </Typography>
+              <Stack spacing={2.5}>
+                <TextField
+                  label="Tên phiếu kiểm tra"
+                  fullWidth
+                  value={templateForm.name}
                   onChange={(e) =>
                     setTemplateForm((prev) => ({
                       ...prev,
-                      itemType: Number(e.target.value) as ItemType,
+                      name: e.target.value,
                     }))
                   }
-                >
-                  {ITEM_TYPE_OPTIONS.map((opt) => (
-                    <MenuItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              <FormControl fullWidth>
-                <InputLabel>Loại kiểm tra</InputLabel>
-                <Select
-                  label="Loại kiểm tra"
-                  value={templateForm.inspectionType ?? ""}
-                  onChange={(e) => {
-                    const value = String(e.target.value);
-                    setTemplateForm((prev) => ({
-                      ...prev,
-                      inspectionType:
-                        value === "" ||
-                        value === "null" ||
-                        value === "undefined"
-                          ? null
-                          : (Number(value) as InspectionType),
-                    }));
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: 2,
+                      "&:hover fieldset": {
+                        borderColor: "#F97316",
+                      },
+                      "&.Mui-focused fieldset": {
+                        borderColor: "#F97316",
+                        borderWidth: 2,
+                      },
+                    },
+                  }}
+                />
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                  <FormControl fullWidth>
+                    <InputLabel>Loại thiết bị</InputLabel>
+                    <Select
+                      label="Loại thiết bị"
+                      value={templateForm.itemType}
+                      onChange={(e) =>
+                        setTemplateForm((prev) => ({
+                          ...prev,
+                          itemType: Number(e.target.value) as ItemType,
+                        }))
+                      }
+                      sx={{
+                        borderRadius: 2,
+                        "&:hover .MuiOutlinedInput-notchedOutline": {
+                          borderColor: "#F97316",
+                        },
+                        "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                          borderColor: "#F97316",
+                          borderWidth: 2,
+                        },
+                      }}
+                    >
+                      {ITEM_TYPE_OPTIONS.map((opt) => (
+                        <MenuItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                  <FormControl fullWidth>
+                    <InputLabel>Loại kiểm tra</InputLabel>
+                    <Select
+                      label="Loại kiểm tra"
+                      value={templateForm.inspectionType ?? ""}
+                      onChange={(e) => {
+                        const value = String(e.target.value);
+                        setTemplateForm((prev) => ({
+                          ...prev,
+                          inspectionType:
+                            value === "" ||
+                            value === "null" ||
+                            value === "undefined"
+                              ? null
+                              : (Number(value) as InspectionType),
+                        }));
+                      }}
+                      sx={{
+                        borderRadius: 2,
+                        "&:hover .MuiOutlinedInput-notchedOutline": {
+                          borderColor: "#F97316",
+                        },
+                        "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                          borderColor: "#F97316",
+                          borderWidth: 2,
+                        },
+                      }}
+                    >
+                      {INSPECTION_TYPE_OPTIONS.map((opt) => (
+                        <MenuItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Stack>
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 2,
+                    borderRadius: 2,
+                    bgcolor: "#FFF7ED",
+                    border: "1px solid #FFEDD5",
                   }}
                 >
-                  {INSPECTION_TYPE_OPTIONS.map((opt) => (
-                    <MenuItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Stack>
-            <Stack direction="row" spacing={1} alignItems="center">
-              <Switch
-                checked={templateForm.isActive}
-                onChange={(e) =>
-                  setTemplateForm((prev) => ({
-                    ...prev,
-                    isActive: e.target.checked,
-                  }))
-                }
-              />
-              <Typography>Kích hoạt sau khi lưu</Typography>
-            </Stack>
-            <Divider />
-            <Stack direction="row" spacing={1} alignItems="center">
-              <Typography variant="subtitle1" fontWeight={700}>
-                Các phần trong checklist
-              </Typography>
-              <Button
-                startIcon={<AddIcon />}
-                size="small"
-                onClick={addSection}
-                sx={{ textTransform: "none" }}
-              >
-                Thêm phần
-              </Button>
-            </Stack>
-
-            {templateForm.sections.map((section, sectionIdx) => (
-              <Accordion
-                key={`section-${sectionIdx}`}
-                defaultExpanded
-                disableGutters
-              >
-                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                  <Stack
-                    direction="row"
-                    spacing={1}
-                    alignItems="center"
-                    sx={{ width: "100%", pr: 2 }}
-                  >
-                    <TextField
-                      label="Tên phần"
-                      fullWidth
-                      value={section.name}
-                      onClick={(e) => e.stopPropagation()}
+                  <Stack direction="row" spacing={1.5} alignItems="center">
+                    <Switch
+                      checked={templateForm.isActive}
                       onChange={(e) =>
-                        updateSection(sectionIdx, "name", e.target.value)
+                        setTemplateForm((prev) => ({
+                          ...prev,
+                          isActive: e.target.checked,
+                        }))
                       }
+                      sx={{
+                        "& .MuiSwitch-switchBase.Mui-checked": {
+                          color: "#F97316",
+                        },
+                        "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track":
+                          {
+                            backgroundColor: "#F97316",
+                          },
+                      }}
                     />
-                    <TextField
-                      label="Thứ tự"
-                      type="number"
-                      sx={{ maxWidth: 120 }}
-                      value={section.sortOrder}
-                      onClick={(e) => e.stopPropagation()}
-                      onChange={(e) =>
-                        updateSection(
-                          sectionIdx,
-                          "sortOrder",
-                          Number(e.target.value)
-                        )
-                      }
-                    />
-                    <Tooltip title="Xóa phần">
-                      <span>
-                        <IconButton
-                          color="error"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            removeSection(sectionIdx);
-                          }}
-                          disabled={templateForm.sections.length === 1}
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      </span>
-                    </Tooltip>
+                    <Box>
+                      <Typography fontWeight={600} color="#111827">
+                        Kích hoạt phiếu kiểm tra
+                      </Typography>
+                      <Typography variant="caption" color="#6B7280">
+                        Phiếu kiểm tra sẽ được áp dụng sau khi lưu
+                      </Typography>
+                    </Box>
                   </Stack>
-                </AccordionSummary>
-                <AccordionDetails>
-                  <Stack spacing={2}>
-                    {section.items.map((item, itemIdx) => (
-                      <Paper
-                        key={`item-${sectionIdx}-${itemIdx}`}
-                        variant="outlined"
-                        sx={{ p: 2, borderRadius: 1.5, borderColor: "#E5E7EB" }}
+                </Paper>
+              </Stack>
+            </Box>
+
+            <Divider sx={{ my: 1 }} />
+
+            {/* Sections Section */}
+            <Box>
+              <Stack
+                direction="row"
+                spacing={2}
+                alignItems="center"
+                justifyContent="space-between"
+                sx={{ mb: 2 }}
+              >
+                <Box>
+                  <Typography
+                    variant="subtitle2"
+                    fontWeight={600}
+                    color="#374151"
+                  >
+                    Các phần trong phiếu kiểm tra
+                  </Typography>
+                  <Typography variant="caption" color="#6B7280">
+                    Thêm và quản lý các phần kiểm tra
+                  </Typography>
+                </Box>
+                <Button
+                  startIcon={<AddIcon />}
+                  size="small"
+                  variant="contained"
+                  onClick={addSection}
+                  sx={{
+                    textTransform: "none",
+                    bgcolor: "#F97316",
+                    "&:hover": { bgcolor: "#EA580C" },
+                    borderRadius: 2,
+                    color: "#fff",
+                    px: 2,
+                    fontWeight: 600,
+                  }}
+                >
+                  Thêm phần
+                </Button>
+              </Stack>
+
+              <Stack spacing={2}>
+                {templateForm.sections.map((section, sectionIdx) => (
+                  <Accordion
+                    key={`section-${sectionIdx}`}
+                    defaultExpanded
+                    disableGutters
+                    sx={{
+                      borderRadius: 2,
+                      border: "1px solid #E5E7EB",
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                      "&:before": { display: "none" },
+                      "&.Mui-expanded": {
+                        margin: 0,
+                      },
+                    }}
+                  >
+                    <AccordionSummary
+                      expandIcon={<ExpandMoreIcon sx={{ color: "#F97316" }} />}
+                      sx={{
+                        bgcolor: "#F9FAFB",
+                        borderRadius: "8px 8px 0 0",
+                        px: 2,
+                        py: 1.5,
+                        "&:hover": {
+                          bgcolor: "#F3F4F6",
+                        },
+                        "&.Mui-expanded": {
+                          borderRadius: "8px 8px 0 0",
+                        },
+                      }}
+                    >
+                      <Stack
+                        direction="row"
+                        spacing={2}
+                        alignItems="center"
+                        sx={{ width: "100%", pr: 2 }}
                       >
-                        <Stack
-                          direction={{ xs: "column", sm: "row" }}
-                          spacing={2}
+                        <Box
+                          sx={{
+                            minWidth: 40,
+                            height: 40,
+                            borderRadius: 2,
+                            bgcolor: "#FFF7ED",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontWeight: 700,
+                            color: "#F97316",
+                            fontSize: "0.875rem",
+                          }}
                         >
-                          <TextField
-                            label="Tiêu đề hạng mục"
-                            fullWidth
-                            value={item.label}
-                            onChange={(e) =>
-                              updateItem(
-                                sectionIdx,
-                                itemIdx,
-                                "label",
-                                e.target.value
-                              )
-                            }
-                            error={
-                              !!itemErrors[
-                                `section-${sectionIdx}-item-${itemIdx}-label`
-                              ]
-                            }
-                            helperText={
-                              itemErrors[
-                                `section-${sectionIdx}-item-${itemIdx}-label`
-                              ]
-                            }
-                          />
-                          <TextField
-                            label="Thứ tự"
-                            type="number"
-                            sx={{ maxWidth: 160 }}
-                            value={item.sortOrder}
-                            onChange={(e) =>
-                              updateItem(
-                                sectionIdx,
-                                itemIdx,
-                                "sortOrder",
-                                Number(e.target.value)
-                              )
-                            }
-                            error={
-                              !!itemErrors[
-                                `section-${sectionIdx}-item-${itemIdx}-sortOrder`
-                              ]
-                            }
-                            helperText={
-                              itemErrors[
-                                `section-${sectionIdx}-item-${itemIdx}-sortOrder`
-                              ]
-                            }
-                          />
-                          <Tooltip title="Xóa hạng mục">
+                          {sectionIdx + 1}
+                        </Box>
+                        <Box sx={{ flex: 1 }}>
+                          <Typography fontWeight={600} color="#111827">
+                            Phần {sectionIdx + 1}
+                          </Typography>
+                          <Typography variant="caption" color="#6B7280">
+                            {section.items.length} hạng mục
+                          </Typography>
+                        </Box>
+                        <TextField
+                          label="Thứ tự"
+                          type="number"
+                          size="small"
+                          sx={{
+                            maxWidth: 100,
+                            "& .MuiOutlinedInput-root": {
+                              borderRadius: 1.5,
+                              "&:hover fieldset": {
+                                borderColor: "#F97316",
+                              },
+                              "&.Mui-focused fieldset": {
+                                borderColor: "#F97316",
+                              },
+                            },
+                          }}
+                          value={section.sortOrder}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={(e) =>
+                            updateSection(
+                              sectionIdx,
+                              "sortOrder",
+                              Number(e.target.value)
+                            )
+                          }
+                        />
+                        <Tooltip title="Xóa phần">
+                          <span>
                             <IconButton
                               color="error"
-                              onClick={() => removeItem(sectionIdx, itemIdx)}
+                              size="small"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                removeSection(sectionIdx);
+                              }}
+                              disabled={templateForm.sections.length === 1}
+                              sx={{
+                                "&:hover": {
+                                  bgcolor: "#FEE2E2",
+                                },
+                              }}
                             >
-                              <DeleteIcon />
+                              <DeleteIcon fontSize="small" />
                             </IconButton>
-                          </Tooltip>
-                        </Stack>
-                        <FormControl fullWidth sx={{ mt: 1 }}>
-                          <InputLabel>Phương pháp được chọn</InputLabel>
-                          <Select
-                            label="Phương pháp được chọn"
-                            multiple
-                            value={item.allowedMethodIds ?? []}
-                            onChange={(e) =>
-                              updateItem(
-                                sectionIdx,
-                                itemIdx,
-                                "allowedMethodIds",
-                                e.target.value as string[]
-                              )
-                            }
-                            renderValue={(selected) =>
-                              methods
-                                .filter((m) => selected.includes(m.id))
-                                .map((m) => m.name)
-                                .join(", ")
-                            }
+                          </span>
+                        </Tooltip>
+                      </Stack>
+                    </AccordionSummary>
+                    <AccordionDetails sx={{ p: 2.5, bgcolor: "white" }}>
+                      <Stack spacing={2}>
+                        {section.items.map((item, itemIdx) => (
+                          <Paper
+                            key={`item-${sectionIdx}-${itemIdx}`}
+                            elevation={0}
+                            sx={{
+                              p: 2.5,
+                              borderRadius: 2,
+                              border: "1px solid #E5E7EB",
+                              bgcolor: "#FAFAFA",
+                              transition: "all 0.2s ease",
+                              "&:hover": {
+                                borderColor: "#F97316",
+                                boxShadow: "0 2px 8px rgba(249, 115, 22, 0.1)",
+                              },
+                            }}
                           >
-                            {methods.map((method) => (
-                              <MenuItem key={method.id} value={method.id}>
-                                {method.name}
-                              </MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
-                      </Paper>
-                    ))}
-                    <Button
-                      startIcon={<AddIcon />}
-                      onClick={() => addItem(sectionIdx)}
-                      sx={{ textTransform: "none", alignSelf: "flex-start" }}
-                    >
-                      Thêm hạng mục
-                    </Button>
-                  </Stack>
-                </AccordionDetails>
-              </Accordion>
-            ))}
+                            <Stack spacing={2}>
+                              <Stack
+                                direction={{ xs: "column", sm: "row" }}
+                                spacing={2}
+                              >
+                                <TextField
+                                  label="Tiêu đề hạng mục"
+                                  fullWidth
+                                  value={item.label}
+                                  onChange={(e) =>
+                                    updateItem(
+                                      sectionIdx,
+                                      itemIdx,
+                                      "label",
+                                      e.target.value
+                                    )
+                                  }
+                                  error={
+                                    !!itemErrors[
+                                      `section-${sectionIdx}-item-${itemIdx}-label`
+                                    ]
+                                  }
+                                  helperText={
+                                    itemErrors[
+                                      `section-${sectionIdx}-item-${itemIdx}-label`
+                                    ]
+                                  }
+                                  sx={{
+                                    "& .MuiOutlinedInput-root": {
+                                      borderRadius: 1.5,
+                                      bgcolor: "white",
+                                      "&:hover fieldset": {
+                                        borderColor: "#F97316",
+                                      },
+                                      "&.Mui-focused fieldset": {
+                                        borderColor: "#F97316",
+                                        borderWidth: 2,
+                                      },
+                                    },
+                                  }}
+                                />
+                                <TextField
+                                  label="Thứ tự"
+                                  type="number"
+                                  sx={{
+                                    maxWidth: 140,
+                                    "& .MuiOutlinedInput-root": {
+                                      borderRadius: 1.5,
+                                      bgcolor: "white",
+                                      "&:hover fieldset": {
+                                        borderColor: "#F97316",
+                                      },
+                                      "&.Mui-focused fieldset": {
+                                        borderColor: "#F97316",
+                                        borderWidth: 2,
+                                      },
+                                    },
+                                  }}
+                                  value={item.sortOrder}
+                                  onChange={(e) =>
+                                    updateItem(
+                                      sectionIdx,
+                                      itemIdx,
+                                      "sortOrder",
+                                      Number(e.target.value)
+                                    )
+                                  }
+                                  error={
+                                    !!itemErrors[
+                                      `section-${sectionIdx}-item-${itemIdx}-sortOrder`
+                                    ]
+                                  }
+                                  helperText={
+                                    itemErrors[
+                                      `section-${sectionIdx}-item-${itemIdx}-sortOrder`
+                                    ]
+                                  }
+                                />
+                                <Tooltip title="Xóa hạng mục">
+                                  <IconButton
+                                    color="error"
+                                    onClick={() =>
+                                      removeItem(sectionIdx, itemIdx)
+                                    }
+                                    sx={{
+                                      alignSelf: {
+                                        xs: "flex-start",
+                                        sm: "center",
+                                      },
+                                      "&:hover": {
+                                        bgcolor: "#FEE2E2",
+                                      },
+                                    }}
+                                  >
+                                    <DeleteIcon />
+                                  </IconButton>
+                                </Tooltip>
+                              </Stack>
+                              <FormControl fullWidth>
+                                <InputLabel>Phương pháp được chọn</InputLabel>
+                                <Select
+                                  label="Phương pháp được chọn"
+                                  multiple
+                                  value={item.allowedMethodIds ?? []}
+                                  onChange={(e) =>
+                                    updateItem(
+                                      sectionIdx,
+                                      itemIdx,
+                                      "allowedMethodIds",
+                                      e.target.value as string[]
+                                    )
+                                  }
+                                  renderValue={(selected) => (
+                                    <Box
+                                      sx={{
+                                        display: "flex",
+                                        flexWrap: "wrap",
+                                        gap: 0.5,
+                                      }}
+                                    >
+                                      {methods
+                                        .filter((m) => selected.includes(m.id))
+                                        .map((m) => (
+                                          <Chip
+                                            key={m.id}
+                                            size="small"
+                                            label={m.name}
+                                            sx={{
+                                              bgcolor: "#FFF7ED",
+                                              color: "#F97316",
+                                              fontWeight: 500,
+                                              fontSize: "0.75rem",
+                                            }}
+                                          />
+                                        ))}
+                                    </Box>
+                                  )}
+                                  sx={{
+                                    borderRadius: 1.5,
+                                    bgcolor: "white",
+                                    "&:hover .MuiOutlinedInput-notchedOutline":
+                                      {
+                                        borderColor: "#F97316",
+                                      },
+                                    "&.Mui-focused .MuiOutlinedInput-notchedOutline":
+                                      {
+                                        borderColor: "#F97316",
+                                        borderWidth: 2,
+                                      },
+                                  }}
+                                >
+                                  {methods.map((method) => (
+                                    <MenuItem key={method.id} value={method.id}>
+                                      {method.name}
+                                    </MenuItem>
+                                  ))}
+                                </Select>
+                              </FormControl>
+                            </Stack>
+                          </Paper>
+                        ))}
+                        <Button
+                          startIcon={<AddIcon />}
+                          onClick={() => addItem(sectionIdx)}
+                          variant="outlined"
+                          sx={{
+                            textTransform: "none",
+                            alignSelf: "flex-start",
+                            borderColor: "#F97316",
+                            color: "#F97316",
+                            borderRadius: 2,
+                            px: 2,
+                            fontWeight: 600,
+                            "&:hover": {
+                              borderColor: "#EA580C",
+                              bgcolor: "#FFF7ED",
+                            },
+                          }}
+                        >
+                          Thêm hạng mục
+                        </Button>
+                      </Stack>
+                    </AccordionDetails>
+                  </Accordion>
+                ))}
+              </Stack>
+            </Box>
           </Stack>
         </DialogContent>
-        <DialogActions sx={{ p: 2.5 }}>
+        <DialogActions
+          sx={{
+            p: 3,
+            borderTop: "1px solid #E5E7EB",
+            bgcolor: "#F9FAFB",
+          }}
+        >
           <Button
             onClick={() => {
               setTemplateDialogOpen(false);
               setItemErrors({}); // Clear errors khi đóng dialog
             }}
-            sx={{ textTransform: "none" }}
+            sx={{
+              textTransform: "none",
+              color: "#6B7280",
+              fontWeight: 600,
+              px: 3,
+              "&:hover": {
+                bgcolor: "#F3F4F6",
+              },
+            }}
           >
             Hủy
           </Button>
@@ -1499,9 +1804,14 @@ const InspectionManagement: React.FC = () => {
               textTransform: "none",
               bgcolor: "#F97316",
               "&:hover": { bgcolor: "#EA580C" },
+              borderRadius: 2,
+              px: 4,
+              fontWeight: 600,
+              boxShadow: "0 4px 12px rgba(249, 115, 22, 0.3)",
+              color: "#fff",
             }}
           >
-            Lưu checklist
+            {editingTemplateId ? "Cập nhật" : "Tạo mới"}
           </Button>
         </DialogActions>
       </Dialog>

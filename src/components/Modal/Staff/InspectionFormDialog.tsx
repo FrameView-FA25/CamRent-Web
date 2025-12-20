@@ -321,7 +321,7 @@ const InspectionFormDialog: React.FC<InspectionFormDialogProps> = ({
 
       // Lấy chi tiết form để có inspection IDs
       const formDetail = await getInspectionFormById(createResult.id);
-      
+
       // Tạo map từ label đến inspection ID để upload ảnh
       const labelToInspectionId = new Map<string, string>();
       formDetail.rows.forEach((row) => {
@@ -331,7 +331,7 @@ const InspectionFormDialog: React.FC<InspectionFormDialogProps> = ({
       // Upload ảnh cho từng inspection row
       for (const item of checklist) {
         const inspectionId = labelToInspectionId.get(item.label);
-        
+
         if (item.images.length > 0 && inspectionId) {
           const formData = new FormData();
           item.images.forEach((file) => {
@@ -353,10 +353,10 @@ const InspectionFormDialog: React.FC<InspectionFormDialogProps> = ({
       }
 
       toast.success("Tạo phiếu kiểm tra thành công!");
-      onSubmit({ 
-        success: true, 
+      onSubmit({
+        success: true,
         formId: createResult.id,
-        inspectionIds: formDetail.rows.map(r => r.inspectionId)
+        inspectionIds: formDetail.rows.map((r) => r.inspectionId),
       });
       onClose();
     } catch (err) {

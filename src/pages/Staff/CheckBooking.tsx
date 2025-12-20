@@ -1290,7 +1290,7 @@ const CheckBookings: React.FC = () => {
                   </TableRow>
                 ) : (
                   paginatedBookings.map((booking) => {
-                    const statusInfo = getStatusInfo(booking.statusText);
+                    const statusInfo = getStatusInfo(booking.status);
                     const statusPalette: Record<
                       string,
                       { base: string; icon: typeof HourglassEmpty }

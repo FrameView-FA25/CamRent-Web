@@ -66,7 +66,6 @@ export interface UpsertChecklistItemRequest {
 }
 
 export interface UpsertChecklistSectionRequest {
-  name: string;
   sortOrder?: number;
   items: UpsertChecklistItemRequest[];
 }
