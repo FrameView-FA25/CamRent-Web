@@ -191,12 +191,13 @@ const MainLayout: React.FC = () => {
     setResetOpen(false);
     navigate("/", { replace: true });
   };
+
   return (
     <div className="app-shell">
       <header className="app-header flex items-center justify-between px-6 py-3 shadow-sm bg-white">
         {/* Logo */}
         <Link to="/" className="brand flex items-center gap-2">
-          <img src="/logo.png" alt="CamRent Logo" width="65" height="65" />
+          <img src="/CamRent.png" alt="CamRent Logo" width="65" height="65" />
           <Typography
             variant="h6"
             sx={{
