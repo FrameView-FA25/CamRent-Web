@@ -197,7 +197,7 @@ const MainLayout: React.FC = () => {
       <header className="app-header flex items-center justify-between px-6 py-3 shadow-sm bg-white">
         {/* Logo */}
         <Link to="/" className="brand flex items-center gap-2">
-          <img src="/CamRent.png" alt="CamRent Logo" width="65" height="65" />
+          <img src="/CamRent.png" alt="CamRent Logo" width="48" height="48" />
           <Typography
             variant="h6"
             sx={{
