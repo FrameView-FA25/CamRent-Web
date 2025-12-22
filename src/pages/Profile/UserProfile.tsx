@@ -157,14 +157,15 @@ const UserProfile: React.FC = () => {
         if (!data.roles || data.roles.length === 0) return "";
 
         // Chuẩn hóa roles về string[]
-
-        const normalizedRoles: string[] = data.roles.map((r: string | { role: string }) => {
-          if (typeof r === "string") return r;
-          if (r && typeof r === "object" && "role" in r) {
-            return (r as { role: string }).role;
-        }
-        return "";
-        }).filter(Boolean);
+        const normalizedRoles: string[] = data.roles
+          .map((r: string | { role: string }) => {
+            if (typeof r === "string") return r;
+            if (r && typeof r === "object" && "role" in r) {
+              return (r as { role: string }).role;
+            }
+            return "";
+          })
+          .filter(Boolean);
 
         if (normalizedRoles.length === 0) return "";
 
@@ -261,26 +262,27 @@ const UserProfile: React.FC = () => {
       setIsLoading(true);
 
       // 1) Cập nhật thông tin tài khoản (tên, phone, địa chỉ) cho chính user hiện tại
+      // NOTE: Backend expects a single Address string field.
       await userService.updateMyAccount({
         email: null, // Không cho phép đổi email ở đây
         fullName: profileData.fullName || null,
         phone: profileData.phone || null,
+        address: profileData.address || null, // <-- send Address string to backend
         country: null,
         province: null,
-        // Map full address string vào District để backend lưu trong Address
-        district: profileData.address || null,
+        district: null,
       });
 
       // 2) Nếu role cần thông tin ngân hàng thì cập nhật thêm bank info
       if (needsBankInfo()) {
-      await userService.updateUserProfile(profileData.id, {
-        fullName: profileData.fullName,
-        phone: profileData.phone,
-        address: profileData.address,
-        bankNo: bankData.accountNumber || null,
-        bankName: bankData.bankName || null,
-        bankAccName: bankData.accountName || null,
-      });
+        await userService.updateUserProfile(profileData.id, {
+          fullName: profileData.fullName,
+          phone: profileData.phone,
+          address: profileData.address,
+          bankNo: bankData.accountNumber || null,
+          bankName: bankData.bankName || null,
+          bankAccName: bankData.accountName || null,
+        });
       }
       setIsEditing(false);
       showNotificationMessage("Cập nhật thông tin thành công!");
@@ -619,23 +621,37 @@ const UserProfile: React.FC = () => {
                           {profileData.branch.name}
                         </Typography>
 
-                        {profileData.branch.address?.district && profileData.branch.address?.province && (
-                          <Typography variant="caption" color="text.secondary" display="block">
-                            {[profileData.branch.address?.district, profileData.branch.address?.province]
+                        {(profileData.branch.address?.district ||
+                          profileData.branch.address?.province ||
+                          profileData.branch.address?.country) && (
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            display="block"
+                          >
+                            {[
+                              profileData.branch.address?.district,
+                              profileData.branch.address?.province,
+                              profileData.branch.address?.country,
+                            ]
                               .filter(Boolean)
                               .join(", ")}
                           </Typography>
                         )}
                         {profileData.branch.isManager && (
-                            <Chip
-                              label="Quản lý"
-                              size="small"
-                              color="primary"
-                            sx={{ mt: 0.5, fontSize: "0.65rem", height: "18px" }}
-                            />
-                          )}
-                        </Box>
-                          </Box>
+                          <Chip
+                            label="Quản lý"
+                            size="small"
+                            color="primary"
+                            sx={{
+                              mt: 0.5,
+                              fontSize: "0.65rem",
+                              height: "18px",
+                            }}
+                          />
+                        )}
+                      </Box>
+                    </Box>
                   )}
                 </Stack>
               </Box>
@@ -772,9 +788,8 @@ const UserProfile: React.FC = () => {
                             {profileData.branch.name}
                           </Typography>
                         </Box>
-                        {(profileData.branch.address.district ||
-                          profileData.branch.address.province) && (
-                        {(profileData.branch.address?.district || profileData.branch.address?.province || profileData.branch.address?.country) && (
+                        {(profileData.branch.address?.district ||
+                          profileData.branch.address?.province) && (
                           <Box>
                             <Typography
                               variant="body2"

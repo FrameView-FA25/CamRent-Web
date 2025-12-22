@@ -84,15 +84,24 @@ export interface UserProfileResponse {
   normalizedEmail: string;
   phone: string;
   fullName: string;
-  address: string | { country: string | null; province: string | null; district: string | null } | null; // Backend có thể trả về string hoặc Address object
+  address:
+    | string
+    | {
+        country: string | null;
+        province: string | null;
+        district: string | null;
+      }
+    | null; // Backend có thể trả về string hoặc Address object
   status: string;
   bankAccountNumber: string | null;
   bankName: string | null;
   bankAccountName: string | null;
   avatar: FileAssetResponse | null;
-  roles: string[] | Array<{
-    role: string;
-  }>; // Backend có thể trả về array of strings hoặc array of objects
+  roles:
+    | string[]
+    | Array<{
+        role: string;
+      }>; // Backend có thể trả về array of strings hoặc array of objects
   createdAt: string;
   updatedAt: string;
   createdByUserId: string | null;
@@ -115,11 +124,12 @@ export interface UpdateMyAccountRequest {
   email: string | null;
   fullName: string | null;
   phone: string | null;
-  // Địa chỉ được map vào Address (Country/Province/District). 
+  // Địa chỉ được map vào Address (Country/Province/District).
   // FE đang lưu address dạng full string, nên tạm thời chỉ map vào District cho đơn giản.
   country: string | null;
   province: string | null;
   district: string | null;
+  address: string | null;
 }
 
 export const userService = {
