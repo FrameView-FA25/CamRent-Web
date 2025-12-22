@@ -247,14 +247,29 @@ const UserProfile: React.FC = () => {
   const handleSave = async () => {
     try {
       setIsLoading(true);
-      await userService.updateUserProfile(profileData.id, {
-        fullName: profileData.fullName,
-        phone: profileData.phone,
-        address: profileData.address,
-        bankNo: bankData.accountNumber || null,
-        bankName: bankData.bankName || null,
-        bankAccName: bankData.accountName || null,
+
+      // 1) Cập nhật thông tin tài khoản (tên, phone, địa chỉ) cho chính user hiện tại
+      await userService.updateMyAccount({
+        email: null, // Không cho phép đổi email ở đây
+        fullName: profileData.fullName || null,
+        phone: profileData.phone || null,
+        country: null,
+        province: null,
+        // Map full address string vào District để backend lưu trong Address
+        district: profileData.address || null,
       });
+
+      // 2) Nếu role cần thông tin ngân hàng thì cập nhật thêm bank info
+      if (needsBankInfo()) {
+        await userService.updateUserProfile(profileData.id, {
+          fullName: profileData.fullName,
+          phone: profileData.phone,
+          address: profileData.address,
+          bankNo: bankData.accountNumber || null,
+          bankName: bankData.bankName || null,
+          bankAccName: bankData.accountName || null,
+        });
+      }
       setIsEditing(false);
       showNotificationMessage("Cập nhật thông tin thành công!");
       fetchProfile();

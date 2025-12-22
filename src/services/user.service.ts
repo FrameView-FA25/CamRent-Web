@@ -111,6 +111,17 @@ export interface UpdateUserProfileRequest {
   bankAccName: string | null;
 }
 
+export interface UpdateMyAccountRequest {
+  email: string | null;
+  fullName: string | null;
+  phone: string | null;
+  // Địa chỉ được map vào Address (Country/Province/District). 
+  // FE đang lưu address dạng full string, nên tạm thời chỉ map vào District cho đơn giản.
+  country: string | null;
+  province: string | null;
+  district: string | null;
+}
+
 export const userService = {
   // Lấy danh sách users
   async getUsers(
@@ -162,6 +173,33 @@ export const userService = {
     };
 
     return data;
+  },
+
+  // Cập nhật thông tin account (email, tên, phone, địa chỉ) cho chính user hiện tại
+  async updateMyAccount(payload: UpdateMyAccountRequest): Promise<void> {
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      throw new Error("Không tìm thấy token xác thực. Vui lòng đăng nhập lại.");
+    }
+
+    const response = await fetch(`${API_BASE_URL}/UserProfiles/me`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (response.status === 401) {
+      localStorage.removeItem("accessToken");
+      throw new Error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+    }
+
+    if (!response.ok) {
+      const errText = await response.text().catch(() => "");
+      throw new Error(errText || "Cập nhật thông tin tài khoản thất bại");
+    }
   },
 
   // Tạo user mới
