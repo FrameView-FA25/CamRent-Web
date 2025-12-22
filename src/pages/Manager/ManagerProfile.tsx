@@ -66,9 +66,9 @@ interface UserProfileData {
   } | null;
   avatarId: string | null;
   id: string;
-  roles: Array<{
+  roles: string[] | Array<{
     role: string;
-  }>;
+  }>; // Backend trả về List<string> từ Role.ToString()
 }
 
 const TabPanel: React.FC<TabPanelProps> = ({ children, value, index }) => (
@@ -138,11 +138,25 @@ const ManagerProfile: React.FC = () => {
         avatarId: data.avatarId || null,
       });
 
+      // Helper để lấy role string từ roles array
+      const getRoleString = (): string => {
+        if (!data.roles || data.roles.length === 0) return "";
+        // Backend có thể trả về array of strings hoặc array of objects
+        const firstRole = data.roles[0];
+        if (typeof firstRole === "string") {
+          return firstRole;
+        }
+        if (typeof firstRole === "object" && firstRole !== null && "role" in firstRole) {
+          return (firstRole as { role: string }).role || "";
+        }
+        return "";
+      };
+
       setUserData({
         fullName: data.fullName || "",
         email: data.email || "",
         phone: data.phone || "",
-        role: (data.roles || []).map((r) => r.role).join(", ") || "",
+        role: getRoleString(),
         address: formatAddress() || "",
         bankAccountNumber: data.bankAccountNumber || "",
         bankName: data.bankName || "",

@@ -108,7 +108,20 @@ const UserProfile: React.FC = () => {
   // Kiểm tra role có thông tin chi nhánh không
   const hasBranchInfo = () => {
     const rolesWithBranch = ["Staff", "BranchManager"];
-    return rolesWithBranch.includes(profileData.role) && profileData.branch !== null;
+    const userRole = profileData.role;
+    const hasRole = rolesWithBranch.includes(userRole);
+    const hasBranch = profileData.branch !== null && profileData.branch !== undefined;
+    
+    // Debug log để kiểm tra
+    console.log("hasBranchInfo check:", {
+      userRole,
+      hasRole,
+      hasBranch,
+      branch: profileData.branch,
+      branchName: profileData.branch?.name
+    });
+    
+    return hasRole && hasBranch;
   };
 
   const showNotificationMessage = (
@@ -131,10 +144,17 @@ const UserProfile: React.FC = () => {
       // Helper function để lấy role string
       const getUserRole = (): string => {
         if (data.roles && data.roles.length > 0) {
-          const roleValue = data.roles[0].role;
-          return Array.isArray(roleValue)
-            ? roleValue[0] || ""
-            : roleValue || "";
+          // Backend có thể trả về roles là array of strings hoặc array of objects
+          const firstRole = data.roles[0];
+          if (typeof firstRole === "string") {
+            return firstRole;
+          }
+          if (typeof firstRole === "object" && firstRole !== null && "role" in firstRole) {
+            const roleValue = (firstRole as { role: string }).role;
+            return Array.isArray(roleValue)
+              ? roleValue[0] || ""
+              : roleValue || "";
+          }
         }
         return "";
       };
@@ -167,19 +187,37 @@ const UserProfile: React.FC = () => {
         return "";
       };
 
+      const userRole = getUserRole();
+      
+      // Debug: Log branch info để kiểm tra
+      console.log("User Profile Data from API:", {
+        role: userRole,
+        roles: data.roles,
+        branch: data.branch,
+        hasBranch: !!data.branch,
+        branchName: data.branch?.name,
+        branchId: data.branch?.id
+      });
+
       setProfileData({
         id: data.id || "",
         fullName: data.fullName || "",
         email: data.email || "",
         phone: data.phone || "",
         address: formatAddress(),
-        role: getUserRole(),
+        role: userRole,
         joinDate: data.createdAt
           ? new Date(data.createdAt).toLocaleDateString("vi-VN")
           : "",
         status: data.status || "",
         avatar: getAvatarUrl(),
         branch: data.branch || null, // Thông tin chi nhánh từ backend
+      });
+      
+      // Debug sau khi set state
+      console.log("ProfileData after setState:", {
+        role: userRole,
+        branch: data.branch || null
       });
 
       setBankData({

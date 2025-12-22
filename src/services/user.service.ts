@@ -90,9 +90,9 @@ export interface UserProfileResponse {
   bankName: string | null;
   bankAccountName: string | null;
   avatar: FileAssetResponse | null;
-  roles: Array<{
+  roles: string[] | Array<{
     role: string;
-  }>;
+  }>; // Backend có thể trả về array of strings hoặc array of objects
   createdAt: string;
   updatedAt: string;
   createdByUserId: string | null;
