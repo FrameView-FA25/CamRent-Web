@@ -91,6 +91,7 @@ const BookingDetail: React.FC = () => {
     message: "",
     severity: "success" as "success" | "error" | "info",
   });
+  const [refundProcessing, setRefundProcessing] = useState(false);
 
   const loadBookingDetail = useCallback(async () => {
     if (!id) return;
@@ -118,17 +119,26 @@ const BookingDetail: React.FC = () => {
     }
     setLoading(false);
 
-    // Load disputes
-    if (id) {
+    // Load disputes only when booking has been returned (Delivered) or completed
+    if (
+      id &&
+      fetchedBooking &&
+      (fetchedBooking.statusText === "Delivered" ||
+        fetchedBooking.statusText === "Completed")
+    ) {
       setDisputesLoading(true);
       try {
         const disputesData = await getDisputesByBookingId(id);
         setDisputes(disputesData);
       } catch (err) {
         console.error("Error loading disputes:", err);
+        setDisputes([]);
       } finally {
         setDisputesLoading(false);
       }
+    } else {
+      // Clear disputes for other statuses so UI won't show dispute sections
+      setDisputes([]);
     }
   }, [id]);
 
@@ -315,6 +325,83 @@ const BookingDetail: React.FC = () => {
     }
   };
 
+  // Process refund or create compensatory payment via backend
+  const handleProcessRefund = async () => {
+    if (!booking?.id) {
+      setSnackbar({
+        open: true,
+        message: "Không tìm thấy thông tin đơn hàng. Vui lòng thử lại.",
+        severity: "error",
+      });
+      return;
+    }
+
+    if (
+      !window.confirm(
+        "Bạn có chắc chắn muốn xử lý hoàn trả/tiền bù cho đơn này không?"
+      )
+    ) {
+      return;
+    }
+
+    setRefundProcessing(true);
+
+    try {
+      const depositAmount = booking.snapshotDepositAmount || 0;
+      const disputesTotal = disputes
+        .filter((d) => d.status === "resolved")
+        .reduce((sum, d) => sum + (d.totalAmount || 0), 0);
+
+      // If deposit - disputes > 0 => backend should refund deposit and add refund line
+      // If deposit - disputes < 0 => backend should create compensatory payment (PayOS/Wallet)
+      const diff = depositAmount - disputesTotal;
+      // Use valid PaymentMethod enum names expected by backend:
+      // - For net > 0 (refund due to renter) use 'Cash' (or 'Wallet'/'Transfer' if desired)
+      // - For net <= 0 (customer owes extra) use 'PayOs' to create authorization
+      const methodForBackend = diff > 0 ? "Cash" : "PayOs";
+
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+      const token = localStorage.getItem("accessToken");
+
+      const response = await fetch(`${API_BASE_URL}/Payments/refund`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        // Use PascalCase keys to match backend DTO property names
+        body: JSON.stringify({
+          BookingId: booking.id,
+          Method: methodForBackend,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Không thể xử lý hoàn trả");
+      }
+
+      setSnackbar({
+        open: true,
+        message: "Xử lý hoàn trả/tiền bù thành công.",
+        severity: "success",
+      });
+
+      // Reload booking to reflect payment/refund changes
+      await loadBookingDetail();
+    } catch (err) {
+      console.error("Refund processing error:", err);
+      setSnackbar({
+        open: true,
+        message:
+          (err as Error).message || "Lỗi khi xử lý hoàn trả. Vui lòng thử lại.",
+        severity: "error",
+      });
+    } finally {
+      setRefundProcessing(false);
+    }
+  };
+
   const handleCloseSnackbar = () => {
     setSnackbar({ ...snackbar, open: false });
   };
@@ -409,7 +496,12 @@ const BookingDetail: React.FC = () => {
     // Tìm các payment có type "dispute" hoặc "refund" hoặc "device_deposit_refund"
     if (booking.payments && booking.payments.length > 0) {
       booking.payments.forEach((payment) => {
-        if (payment.status === "Captured" || payment.status === "Authorized") {
+        // Include Refunded payments as already-paid refunds, treat Refunded similar to Captured
+        if (
+          payment.status === "Captured" ||
+          payment.status === "Authorized" ||
+          payment.status === "Refunded"
+        ) {
           if (payment.lines && payment.lines.length > 0) {
             payment.lines.forEach((line) => {
               if (
@@ -417,10 +509,16 @@ const BookingDetail: React.FC = () => {
                 line.type === "refund" ||
                 line.type === "device_deposit_refund"
               ) {
-                refundPaidAmount +=
-                  payment.status === "Captured"
-                    ? line.capturedAmount || line.amount || 0
-                    : line.amount || 0;
+                // For Captured/Refunded use capturedAmount if available, otherwise amount.
+                // For Authorized use amount.
+                if (
+                  payment.status === "Captured" ||
+                  payment.status === "Refunded"
+                ) {
+                  refundPaidAmount += line.capturedAmount || line.amount || 0;
+                } else {
+                  refundPaidAmount += line.amount || 0;
+                }
               }
             });
           }
@@ -1617,8 +1715,8 @@ const BookingDetail: React.FC = () => {
                 </Box>
               )}
 
-              {/* Dropdown cho Tiền hoàn trả */}
-              {refundAmount > 0 && (
+              {/* Dropdown cho Tiền hoàn trả (chỉ khi đã trả máy / statusNumber >= 3) */}
+              {statusNumber >= 3 && refundAmount > 0 && (
                 <Box>
                   <Box
                     onClick={() =>
@@ -1673,6 +1771,33 @@ const BookingDetail: React.FC = () => {
                           Đã hoàn trả: {formatCurrency(refundPaidAmount)}
                         </Typography>
                       )}
+
+                      {/* Button to trigger backend refund/payment handling (only when booking returned) */}
+                      {statusNumber >= 3 && refundUnpaidAmount > 0 && (
+                        <Box sx={{ mt: 2 }}>
+                          <Button
+                            variant="contained"
+                            onClick={handleProcessRefund}
+                            disabled={refundProcessing}
+                            startIcon={
+                              refundProcessing ? (
+                                <CircularProgress size={18} color="inherit" />
+                              ) : undefined
+                            }
+                            sx={{
+                              bgcolor: "#F97316",
+                              color: "white",
+                              textTransform: "none",
+                              fontWeight: 600,
+                              "&:hover": { bgcolor: "#EA580C" },
+                            }}
+                          >
+                            {refundProcessing
+                              ? "Đang xử lý..."
+                              : "Xử lý hoàn trả"}
+                          </Button>
+                        </Box>
+                      )}
                     </Box>
                   </Box>
 
@@ -1712,7 +1837,8 @@ const BookingDetail: React.FC = () => {
                                       (line.type === "dispute" ||
                                         line.type === "refund") &&
                                       (payment.status === "Captured" ||
-                                        payment.status === "Authorized")
+                                        payment.status === "Authorized" ||
+                                        payment.status === "Refunded")
                                   )
                                 ) || false;
 

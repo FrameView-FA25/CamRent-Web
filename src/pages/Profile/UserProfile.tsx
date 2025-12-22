@@ -84,7 +84,16 @@ const UserProfile: React.FC = () => {
     joinDate: "",
     status: "",
     avatar: "",
-    branch: null as { id: string; name: string; address: { country: string | null; province: string | null; district: string | null }; isManager: boolean } | null,
+    branch: null as {
+      id: string;
+      name: string;
+      address: {
+        country: string | null;
+        province: string | null;
+        district: string | null;
+      };
+      isManager: boolean;
+    } | null,
   });
 
   const [bankData, setBankData] = useState({
@@ -110,17 +119,18 @@ const UserProfile: React.FC = () => {
     const rolesWithBranch = ["Staff", "BranchManager"];
     const userRole = profileData.role;
     const hasRole = rolesWithBranch.includes(userRole);
-    const hasBranch = profileData.branch !== null && profileData.branch !== undefined;
-    
+    const hasBranch =
+      profileData.branch !== null && profileData.branch !== undefined;
+
     // Debug log để kiểm tra
     console.log("hasBranchInfo check:", {
       userRole,
       hasRole,
       hasBranch,
       branch: profileData.branch,
-      branchName: profileData.branch?.name
+      branchName: profileData.branch?.name,
     });
-    
+
     return hasRole && hasBranch;
   };
 
@@ -147,6 +157,7 @@ const UserProfile: React.FC = () => {
         if (!data.roles || data.roles.length === 0) return "";
 
         // Chuẩn hóa roles về string[]
+
         const normalizedRoles: string[] = data.roles.map((r: string | { role: string }) => {
           if (typeof r === "string") return r;
           if (r && typeof r === "object" && "role" in r) {
@@ -178,32 +189,33 @@ const UserProfile: React.FC = () => {
 
       // Helper function để format address từ backend
       const formatAddress = (): string => {
-        if (!data.address) return "";
-        // Nếu là string thì trả về luôn
-        if (typeof data.address === "string") return data.address;
-        // Nếu là object thì format lại
-        if (typeof data.address === "object") {
-          const parts = [
-            data.address.district,
-            data.address.province,
-            data.address.country,
-          ].filter(Boolean);
+        if (data.address) {
+          if (typeof data.address === "string") return data.address;
+          if (typeof data.address === "object") {
+            const parts = [
+              data.address.district,
+              data.address.province,
+              data.address.country,
+            ].filter(Boolean);
+            return parts.join(", ");
+          }
+        }
+
+        // Fallback: nếu user không có address nhưng có chi nhánh với address
+        if (data.branch && data.branch.address) {
+          const b = data.branch.address as {
+            district?: string | null;
+            province?: string | null;
+            country?: string | null;
+          };
+          const parts = [b.district, b.province, b.country].filter(Boolean);
           return parts.join(", ");
         }
+
         return "";
       };
 
       const userRole = getUserRole();
-      
-      // Debug: Log branch info để kiểm tra
-      console.log("User Profile Data from API:", {
-        role: userRole,
-        roles: data.roles,
-        branch: data.branch,
-        hasBranch: !!data.branch,
-        branchName: data.branch?.name,
-        branchId: data.branch?.id
-      });
 
       setProfileData({
         id: data.id || "",
@@ -219,11 +231,11 @@ const UserProfile: React.FC = () => {
         avatar: getAvatarUrl(),
         branch: data.branch || null, // Thông tin chi nhánh từ backend
       });
-      
+
       // Debug sau khi set state
       console.log("ProfileData after setState:", {
         role: userRole,
-        branch: data.branch || null
+        branch: data.branch || null,
       });
 
       setBankData({
@@ -416,7 +428,7 @@ const UserProfile: React.FC = () => {
           value={
             field.field === "role"
               ? getRoleLabel(data[field.field] || "")
-              : (data[field.field] || "")
+              : data[field.field] || ""
           }
           onChange={(e) =>
             handleFieldChange(setter, data, field.field, e.target.value)
@@ -571,13 +583,13 @@ const UserProfile: React.FC = () => {
                     sx={{ mb: 1 }}
                   />
                 )}
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
                   display="block"
-                    >
+                >
                   Tham gia từ: {profileData.joinDate}
-                    </Typography>
+                </Typography>
               </Box>
 
               <Box>
@@ -606,6 +618,7 @@ const UserProfile: React.FC = () => {
                         <Typography variant="body2" color="text.secondary">
                           {profileData.branch.name}
                         </Typography>
+
                         {profileData.branch.address?.district && profileData.branch.address?.province && (
                           <Typography variant="caption" color="text.secondary" display="block">
                             {[profileData.branch.address?.district, profileData.branch.address?.province]
@@ -685,7 +698,11 @@ const UserProfile: React.FC = () => {
                       { label: "Email", field: "email", disabled: true },
                     ],
                     profileData as Record<string, string | null | undefined>,
-                    setProfileData as React.Dispatch<React.SetStateAction<Record<string, string | null | undefined>>>
+                    setProfileData as React.Dispatch<
+                      React.SetStateAction<
+                        Record<string, string | null | undefined>
+                      >
+                    >
                   )}
                   {renderFieldRow(
                     [
@@ -693,7 +710,11 @@ const UserProfile: React.FC = () => {
                       { label: "Chức Vụ", field: "role", disabled: true },
                     ],
                     profileData as Record<string, string | null | undefined>,
-                    setProfileData as React.Dispatch<React.SetStateAction<Record<string, string | null | undefined>>>
+                    setProfileData as React.Dispatch<
+                      React.SetStateAction<
+                        Record<string, string | null | undefined>
+                      >
+                    >
                   )}
                   {renderFieldRow(
                     [
@@ -705,7 +726,11 @@ const UserProfile: React.FC = () => {
                       },
                     ],
                     profileData as Record<string, string | null | undefined>,
-                    setProfileData as React.Dispatch<React.SetStateAction<Record<string, string | null | undefined>>>
+                    setProfileData as React.Dispatch<
+                      React.SetStateAction<
+                        Record<string, string | null | undefined>
+                      >
+                    >
                   )}
                   {/* Hiển thị thông tin chi nhánh cho Staff và BranchManager */}
                   {hasBranchInfo() && profileData.branch && (
@@ -718,24 +743,44 @@ const UserProfile: React.FC = () => {
                         border: "1px solid #E5E7EB",
                       }}
                     >
-                      <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 1,
+                          mb: 1.5,
+                        }}
+                      >
                         <BusinessIcon color="primary" />
-                        <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "1rem" }}>
+                        <Typography
+                          variant="h6"
+                          sx={{ fontWeight: 600, fontSize: "1rem" }}
+                        >
                           Chi Nhánh Làm Việc
                         </Typography>
                       </Box>
                       <Stack spacing={1.5}>
                         <Box>
-                          <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                          <Typography
+                            variant="body2"
+                            color="text.secondary"
+                            sx={{ mb: 0.5 }}
+                          >
                             Tên chi nhánh
                           </Typography>
                           <Typography variant="body1" sx={{ fontWeight: 500 }}>
                             {profileData.branch.name}
                           </Typography>
                         </Box>
+                        {(profileData.branch.address.district ||
+                          profileData.branch.address.province) && (
                         {(profileData.branch.address?.district || profileData.branch.address?.province || profileData.branch.address?.country) && (
                           <Box>
-                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                            <Typography
+                              variant="body2"
+                              color="text.secondary"
+                              sx={{ mb: 0.5 }}
+                            >
                               Địa chỉ
                             </Typography>
                             <Typography variant="body1">
@@ -750,12 +795,24 @@ const UserProfile: React.FC = () => {
                           </Box>
                         )}
                         <Box>
-                          <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                          <Typography
+                            variant="body2"
+                            color="text.secondary"
+                            sx={{ mb: 0.5 }}
+                          >
                             Vai trò
                           </Typography>
                           <Chip
-                            label={profileData.branch.isManager ? "Quản lý chi nhánh" : "Nhân viên"}
-                            color={profileData.branch.isManager ? "primary" : "default"}
+                            label={
+                              profileData.branch.isManager
+                                ? "Quản lý chi nhánh"
+                                : "Nhân viên"
+                            }
+                            color={
+                              profileData.branch.isManager
+                                ? "primary"
+                                : "default"
+                            }
                             size="small"
                           />
                         </Box>
