@@ -157,15 +157,14 @@ const UserProfile: React.FC = () => {
         if (!data.roles || data.roles.length === 0) return "";
 
         // Chuẩn hóa roles về string[]
-        const normalizedRoles: string[] = data.roles
-          .map((r: string | { role: string }) => {
-            if (typeof r === "string") return r;
-            if (r && typeof r === "object" && "role" in r) {
-              return (r as { role: string }).role;
-            }
-            return "";
-          })
-          .filter(Boolean);
+
+        const normalizedRoles: string[] = data.roles.map((r: string | { role: string }) => {
+          if (typeof r === "string") return r;
+          if (r && typeof r === "object" && "role" in r) {
+            return (r as { role: string }).role;
+        }
+        return "";
+        }).filter(Boolean);
 
         if (normalizedRoles.length === 0) return "";
 
@@ -274,14 +273,14 @@ const UserProfile: React.FC = () => {
 
       // 2) Nếu role cần thông tin ngân hàng thì cập nhật thêm bank info
       if (needsBankInfo()) {
-        await userService.updateUserProfile(profileData.id, {
-          fullName: profileData.fullName,
-          phone: profileData.phone,
-          address: profileData.address,
-          bankNo: bankData.accountNumber || null,
-          bankName: bankData.bankName || null,
-          bankAccName: bankData.accountName || null,
-        });
+      await userService.updateUserProfile(profileData.id, {
+        fullName: profileData.fullName,
+        phone: profileData.phone,
+        address: profileData.address,
+        bankNo: bankData.accountNumber || null,
+        bankName: bankData.bankName || null,
+        bankAccName: bankData.accountName || null,
+      });
       }
       setIsEditing(false);
       showNotificationMessage("Cập nhật thông tin thành công!");
@@ -619,35 +618,24 @@ const UserProfile: React.FC = () => {
                         <Typography variant="body2" color="text.secondary">
                           {profileData.branch.name}
                         </Typography>
-                        {profileData.branch.address.district &&
-                          profileData.branch.address.province && (
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                              display="block"
-                            >
-                              {[
-                                profileData.branch.address.district,
-                                profileData.branch.address.province,
-                              ]
-                                .filter(Boolean)
-                                .join(", ")}
-                            </Typography>
-                          )}
-                        {profileData.branch.isManager && (
-                          <Chip
-                            label="Quản lý"
-                            size="small"
-                            color="primary"
-                            sx={{
-                              mt: 0.5,
-                              fontSize: "0.65rem",
-                              height: "18px",
-                            }}
-                          />
+
+                        {profileData.branch.address?.district && profileData.branch.address?.province && (
+                          <Typography variant="caption" color="text.secondary" display="block">
+                            {[profileData.branch.address?.district, profileData.branch.address?.province]
+                              .filter(Boolean)
+                              .join(", ")}
+                          </Typography>
                         )}
-                      </Box>
-                    </Box>
+                        {profileData.branch.isManager && (
+                            <Chip
+                              label="Quản lý"
+                              size="small"
+                              color="primary"
+                            sx={{ mt: 0.5, fontSize: "0.65rem", height: "18px" }}
+                            />
+                          )}
+                        </Box>
+                          </Box>
                   )}
                 </Stack>
               </Box>
@@ -786,6 +774,7 @@ const UserProfile: React.FC = () => {
                         </Box>
                         {(profileData.branch.address.district ||
                           profileData.branch.address.province) && (
+                        {(profileData.branch.address?.district || profileData.branch.address?.province || profileData.branch.address?.country) && (
                           <Box>
                             <Typography
                               variant="body2"
@@ -796,9 +785,9 @@ const UserProfile: React.FC = () => {
                             </Typography>
                             <Typography variant="body1">
                               {[
-                                profileData.branch.address.district,
-                                profileData.branch.address.province,
-                                profileData.branch.address.country,
+                                profileData.branch.address?.district,
+                                profileData.branch.address?.province,
+                                profileData.branch.address?.country,
                               ]
                                 .filter(Boolean)
                                 .join(", ")}
