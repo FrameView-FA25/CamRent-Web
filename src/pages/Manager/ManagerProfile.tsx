@@ -26,9 +26,6 @@ import {
   Person as PersonIcon,
   Security as SecurityIcon,
   Draw as DrawIcon,
-  Business as BusinessIcon,
-  LocationOn as LocationOnIcon,
-  CalendarToday as CalendarTodayIcon,
 } from "@mui/icons-material";
 import { SignatureDialog } from "./Verification/components/dialogs/SignatureDialog";
 import SignatureCanvas from "react-signature-canvas";
@@ -105,13 +102,6 @@ const ManagerProfile: React.FC = () => {
   });
 
   const [profileData, setProfileData] = useState<UserProfileData | null>(null);
-  const [branchInfo, setBranchInfo] = useState<{
-    id: string;
-    name: string;
-    address: string;
-    isManager: boolean;
-  } | null>(null);
-  const [joinDate, setJoinDate] = useState<string>("");
 
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
@@ -139,37 +129,6 @@ const ManagerProfile: React.FC = () => {
         bankName: data.bankName || "",
         bankAccountName: data.bankAccountName || "",
       });
-
-      // Format createdAt
-      if (data.createdAt) {
-        const formattedDate = new Date(data.createdAt).toLocaleDateString("vi-VN", {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-        });
-        setJoinDate(formattedDate);
-      } else {
-        setJoinDate("");
-      }
-
-      // Lưu thông tin chi nhánh nếu có
-      if (data.branch) {
-        const branchAddress = [
-          data.branch.address.district,
-          data.branch.address.province,
-          data.branch.address.country,
-        ]
-          .filter(Boolean)
-          .join(", ");
-        setBranchInfo({
-          id: data.branch.id,
-          name: data.branch.name,
-          address: branchAddress,
-          isManager: data.branch.isManager,
-        });
-      } else {
-        setBranchInfo(null);
-      }
     } catch (error) {
       console.error("Error fetching user profile:", error);
       toast.error(
@@ -537,17 +496,6 @@ const ManagerProfile: React.FC = () => {
                 >
                   {userData.role}
                 </Typography>
-                {joinDate && (
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mt: 1 }}>
-                    <CalendarTodayIcon fontSize="small" sx={{ color: "#9CA3AF", fontSize: "0.875rem" }} />
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                    >
-                      Tham gia từ {joinDate}
-                    </Typography>
-                  </Box>
-                )}
               </Box>
 
               <Box>
@@ -566,49 +514,6 @@ const ManagerProfile: React.FC = () => {
                       {userData.phone || "Chưa cập nhật"}
                     </Typography>
                   </Box>
-                  {/* Hiển thị thông tin chi nhánh nếu user là Staff hoặc BranchManager */}
-                  {branchInfo && (
-                    <>
-                      <Divider />
-                      <Box>
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            fontWeight: 600,
-                            color: "#6B7280",
-                            textTransform: "uppercase",
-                            letterSpacing: 0.5,
-                            mb: 1,
-                            display: "block",
-                          }}
-                        >
-                          Chi Nhánh Làm Việc
-                        </Typography>
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
-                          <BusinessIcon fontSize="small" color="primary" />
-                          <Typography variant="body2" sx={{ fontWeight: 600, color: "#1F2937" }}>
-                            {branchInfo.name}
-                          </Typography>
-                          {branchInfo.isManager && (
-                            <Chip
-                              label="Quản lý"
-                              size="small"
-                              color="primary"
-                              sx={{ height: 20, fontSize: "0.65rem" }}
-                            />
-                          )}
-                        </Box>
-                        {branchInfo.address && (
-                          <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1, ml: 4 }}>
-                            <LocationOnIcon fontSize="small" color="action" sx={{ mt: 0.25 }} />
-                            <Typography variant="caption" color="text.secondary">
-                              {branchInfo.address}
-                            </Typography>
-                          </Box>
-                        )}
-                      </Box>
-                    </>
-                  )}
                 </Stack>
 
                 {/* Signature Section */}

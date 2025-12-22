@@ -66,13 +66,14 @@ export interface FileAssetResponse {
   label: string | null;
 }
 
+// Interface cho thông tin chi nhánh
 export interface BranchInfo {
   id: string;
   name: string;
   address: {
-    country: string;
-    province: string;
-    district: string;
+    country: string | null;
+    province: string | null;
+    district: string | null;
   };
   isManager: boolean; // true nếu là BranchManager, false nếu là Staff
 }
@@ -83,7 +84,7 @@ export interface UserProfileResponse {
   normalizedEmail: string;
   phone: string;
   fullName: string;
-  address: string | null;
+  address: string | { country: string | null; province: string | null; district: string | null } | null; // Backend có thể trả về string hoặc Address object
   status: string;
   bankAccountNumber: string | null;
   bankName: string | null;
@@ -98,9 +99,7 @@ export interface UserProfileResponse {
   updatedByUserId: string | null;
   signatureAssetId: string | null;
   avatarId: string | null;
-  avatarUrl?: string | null; // URL avatar trực tiếp
-  signatureUrl?: string | null; // URL signature trực tiếp
-  branch?: BranchInfo | null; // Thông tin chi nhánh (nếu user là Staff hoặc BranchManager)
+  branch: BranchInfo | null; // Thông tin chi nhánh (chỉ có cho Staff và BranchManager)
 }
 
 export interface UpdateUserProfileRequest {
