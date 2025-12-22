@@ -142,21 +142,27 @@ const UserProfile: React.FC = () => {
         await userService.getCurrentUserProfile();
 
       // Helper function để lấy role string
+      // Ưu tiên: BranchManager > Staff > role đầu tiên
       const getUserRole = (): string => {
-        if (data.roles && data.roles.length > 0) {
-          // Backend có thể trả về roles là array of strings hoặc array of objects
-          const firstRole = data.roles[0];
-          if (typeof firstRole === "string") {
-            return firstRole;
+        if (!data.roles || data.roles.length === 0) return "";
+
+        // Chuẩn hóa roles về string[]
+        const normalizedRoles: string[] = data.roles.map((r: string | { role: string }) => {
+          if (typeof r === "string") return r;
+          if (r && typeof r === "object" && "role" in r) {
+            return (r as { role: string }).role;
           }
-          if (typeof firstRole === "object" && firstRole !== null && "role" in firstRole) {
-            const roleValue = (firstRole as { role: string }).role;
-            return Array.isArray(roleValue)
-              ? roleValue[0] || ""
-              : roleValue || "";
-          }
-        }
-        return "";
+          return "";
+        }).filter(Boolean);
+
+        if (normalizedRoles.length === 0) return "";
+
+        // Ưu tiên các role liên quan tới chi nhánh
+        if (normalizedRoles.includes("BranchManager")) return "BranchManager";
+        if (normalizedRoles.includes("Staff")) return "Staff";
+
+        // Không thì lấy role đầu tiên
+        return normalizedRoles[0];
       };
 
       // 🔹 Helper function để lấy URL avatar từ object avatar backend
