@@ -66,6 +66,17 @@ export interface FileAssetResponse {
   label: string | null;
 }
 
+export interface BranchInfo {
+  id: string;
+  name: string;
+  address: {
+    country: string;
+    province: string;
+    district: string;
+  };
+  isManager: boolean; // true nếu là BranchManager, false nếu là Staff
+}
+
 export interface UserProfileResponse {
   id: string;
   email: string;
@@ -87,6 +98,9 @@ export interface UserProfileResponse {
   updatedByUserId: string | null;
   signatureAssetId: string | null;
   avatarId: string | null;
+  avatarUrl?: string | null; // URL avatar trực tiếp
+  signatureUrl?: string | null; // URL signature trực tiếp
+  branch?: BranchInfo | null; // Thông tin chi nhánh (nếu user là Staff hoặc BranchManager)
 }
 
 export interface UpdateUserProfileRequest {

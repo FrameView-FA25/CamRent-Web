@@ -26,6 +26,9 @@ import {
   Lock as LockIcon,
   Person as PersonIcon,
   AccountBalance as AccountBalanceIcon,
+  Business as BusinessIcon,
+  LocationOn as LocationOnIcon,
+  CalendarToday as CalendarTodayIcon,
 } from "@mui/icons-material";
 import { getRoleLabel } from "../../utils/roleUtils";
 import { authService } from "../../services/auth.service";
@@ -84,6 +87,13 @@ const UserProfile: React.FC = () => {
     status: "",
     avatar: "",
   });
+
+  const [branchInfo, setBranchInfo] = useState<{
+    id: string;
+    name: string;
+    address: string;
+    isManager: boolean;
+  } | null>(null);
 
   const [bankData, setBankData] = useState({
     bankName: "",
@@ -150,7 +160,11 @@ const UserProfile: React.FC = () => {
         address: data.address || "",
         role: getUserRole(),
         joinDate: data.createdAt
-          ? new Date(data.createdAt).toLocaleDateString("vi-VN")
+          ? new Date(data.createdAt).toLocaleDateString("vi-VN", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })
           : "",
         status: data.status || "",
         avatar: getAvatarUrl(),
@@ -161,6 +175,25 @@ const UserProfile: React.FC = () => {
         accountNumber: data.bankAccountNumber || "",
         accountName: data.bankAccountName || "",
       });
+
+      // Lưu thông tin chi nhánh nếu có
+      if (data.branch) {
+        const branchAddress = [
+          data.branch.address.district,
+          data.branch.address.province,
+          data.branch.address.country,
+        ]
+          .filter(Boolean)
+          .join(", ");
+        setBranchInfo({
+          id: data.branch.id,
+          name: data.branch.name,
+          address: branchAddress,
+          isManager: data.branch.isManager,
+        });
+      } else {
+        setBranchInfo(null);
+      }
     } catch (err) {
       console.error("Fetch user profile failed", err);
       const message = err instanceof Error ? err.message : "Tải hồ sơ thất bại";
@@ -486,13 +519,17 @@ const UserProfile: React.FC = () => {
                     sx={{ mb: 1 }}
                   />
                 )}
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                  display="block"
-                >
-                  Tham gia từ: {profileData.joinDate}
-                </Typography>
+                {profileData.joinDate && (
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mt: 1 }}>
+                    <CalendarTodayIcon fontSize="small" sx={{ color: "#9CA3AF", fontSize: "0.875rem" }} />
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                    >
+                      Tham gia từ {profileData.joinDate}
+                    </Typography>
+                  </Box>
+                )}
               </Box>
 
               <Box>
@@ -512,6 +549,49 @@ const UserProfile: React.FC = () => {
                         {profileData.phone}
                       </Typography>
                     </Box>
+                  )}
+                  {/* Hiển thị thông tin chi nhánh nếu user là Staff hoặc BranchManager */}
+                  {branchInfo && (
+                    <>
+                      <Divider />
+                      <Box>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            fontWeight: 600,
+                            color: "#6B7280",
+                            textTransform: "uppercase",
+                            letterSpacing: 0.5,
+                            mb: 1,
+                            display: "block",
+                          }}
+                        >
+                          Chi Nhánh Làm Việc
+                        </Typography>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
+                          <BusinessIcon fontSize="small" color="primary" />
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: "#1F2937" }}>
+                            {branchInfo.name}
+                          </Typography>
+                          {branchInfo.isManager && (
+                            <Chip
+                              label="Quản lý"
+                              size="small"
+                              color="primary"
+                              sx={{ height: 20, fontSize: "0.65rem" }}
+                            />
+                          )}
+                        </Box>
+                        {branchInfo.address && (
+                          <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1, ml: 4 }}>
+                            <LocationOnIcon fontSize="small" color="action" sx={{ mt: 0.25 }} />
+                            <Typography variant="caption" color="text.secondary">
+                              {branchInfo.address}
+                            </Typography>
+                          </Box>
+                        )}
+                      </Box>
+                    </>
                   )}
                 </Stack>
               </Box>
