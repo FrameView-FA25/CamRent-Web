@@ -113,8 +113,27 @@ const ManagerProfile: React.FC = () => {
     try {
       setLoading(true);
       const data = await userService.getCurrentUserProfile();
+      
+      // Helper function để format address từ backend
+      const formatAddress = (): string | null => {
+        if (!data.address) return null;
+        // Nếu là string thì trả về luôn
+        if (typeof data.address === "string") return data.address;
+        // Nếu là object thì format lại
+        if (typeof data.address === "object") {
+          const parts = [
+            data.address.district,
+            data.address.province,
+            data.address.country,
+          ].filter(Boolean);
+          return parts.length > 0 ? parts.join(", ") : null;
+        }
+        return null;
+      };
+
       setProfileData({
         ...data,
+        address: formatAddress(),
         signatureAssetId: data.signatureAssetId || null,
         avatarId: data.avatarId || null,
       });
@@ -124,7 +143,7 @@ const ManagerProfile: React.FC = () => {
         email: data.email || "",
         phone: data.phone || "",
         role: (data.roles || []).map((r) => r.role).join(", ") || "",
-        address: data.address || "",
+        address: formatAddress() || "",
         bankAccountNumber: data.bankAccountNumber || "",
         bankName: data.bankName || "",
         bankAccountName: data.bankAccountName || "",

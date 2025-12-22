@@ -335,7 +335,7 @@ const UserProfile: React.FC = () => {
       </Stack>
     );
 
-  const renderFieldRow = <T extends Record<string, string>>(
+  const renderFieldRow = <T extends Record<string, string | null | undefined>>(
     fields: FormField[],
     data: T,
     setter: React.Dispatch<React.SetStateAction<T>>,
@@ -356,8 +356,8 @@ const UserProfile: React.FC = () => {
           type={field.type || "text"}
           value={
             field.field === "role"
-              ? getRoleLabel(data[field.field])
-              : data[field.field]
+              ? getRoleLabel(data[field.field] || "")
+              : (data[field.field] || "")
           }
           onChange={(e) =>
             handleFieldChange(setter, data, field.field, e.target.value)
@@ -512,13 +512,13 @@ const UserProfile: React.FC = () => {
                     sx={{ mb: 1 }}
                   />
                 )}
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
                   display="block"
-                >
+                    >
                   Tham gia từ: {profileData.joinDate}
-                </Typography>
+                    </Typography>
               </Box>
 
               <Box>
@@ -555,10 +555,10 @@ const UserProfile: React.FC = () => {
                           </Typography>
                         )}
                         {profileData.branch.isManager && (
-                          <Chip
-                            label="Quản lý"
-                            size="small"
-                            color="primary"
+                            <Chip
+                              label="Quản lý"
+                              size="small"
+                              color="primary"
                             sx={{ mt: 0.5, fontSize: "0.65rem", height: "18px" }}
                           />
                         )}
@@ -625,16 +625,16 @@ const UserProfile: React.FC = () => {
                       { label: "Họ và Tên", field: "fullName" },
                       { label: "Email", field: "email", disabled: true },
                     ],
-                    profileData,
-                    setProfileData
+                    profileData as Record<string, string | null | undefined>,
+                    setProfileData as React.Dispatch<React.SetStateAction<Record<string, string | null | undefined>>>
                   )}
                   {renderFieldRow(
                     [
                       { label: "Số Điện Thoại", field: "phone" },
                       { label: "Chức Vụ", field: "role", disabled: true },
                     ],
-                    profileData,
-                    setProfileData
+                    profileData as Record<string, string | null | undefined>,
+                    setProfileData as React.Dispatch<React.SetStateAction<Record<string, string | null | undefined>>>
                   )}
                   {renderFieldRow(
                     [
@@ -645,8 +645,8 @@ const UserProfile: React.FC = () => {
                         rows: 2,
                       },
                     ],
-                    profileData,
-                    setProfileData
+                    profileData as Record<string, string | null | undefined>,
+                    setProfileData as React.Dispatch<React.SetStateAction<Record<string, string | null | undefined>>>
                   )}
                   {/* Hiển thị thông tin chi nhánh cho Staff và BranchManager */}
                   {hasBranchInfo() && profileData.branch && (
