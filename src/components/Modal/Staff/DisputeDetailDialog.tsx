@@ -66,18 +66,51 @@ const DisputeDetailDialog: React.FC<DisputeDetailDialogProps> = ({
 
   const getStatusColor = (
     status: string
-  ): "warning" | "info" | "success" | "default" => {
+  ): "warning" | "info" | "success" | "error" | "default" => {
     switch (status.toLowerCase()) {
       case "open":
         return "warning";
-      case "inprogress":
+      case "under_review":
         return "info";
       case "resolved":
         return "success";
-      case "closed":
-        return "default";
+      case "rejected":
+        return "error";
       default:
         return "default";
+    }
+  };
+
+  const getStatusLabel = (status: string): string => {
+    switch (status.toLowerCase()) {
+      case "open":
+        return "Mới được tạo";
+      case "under_review":
+        return "Đang xử lý";
+      case "resolved":
+        return "Đã giải quyết";
+      case "rejected":
+        return "Đã từ chối";
+      default:
+        return status;
+    }
+  };
+
+  const getItemTypeLabel = (type: string): string => {
+    switch (type.toLowerCase()) {
+      case "damage":
+        return "Thiệt hại";
+      case "missing":
+        return "Mất thiết bị";
+      case "late":
+        return "Trễ hẹn";
+      case "money":
+        return "Tiền";
+      case "other":
+        return "Khác";
+      default:
+        // Nếu là loại tùy chỉnh khác, giữ nguyên
+        return type;
     }
   };
 
@@ -117,8 +150,36 @@ const DisputeDetailDialog: React.FC<DisputeDetailDialogProps> = ({
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString("vi-VN");
+  const formatDate = (dateString: string | null | undefined): string => {
+    if (!dateString) {
+      return "N/A";
+    }
+
+    try {
+      // Xử lý format từ backend: 2025-12-20 03:41:24.903677+00
+      // Thay thế khoảng trắng bằng 'T' để tạo ISO format
+      const isoString = dateString.replace(" ", "T");
+      const date = new Date(isoString);
+
+      // Kiểm tra nếu date không hợp lệ
+      if (isNaN(date.getTime())) {
+        console.warn("Invalid date string:", dateString);
+        return "N/A";
+      }
+
+      return date.toLocaleString("vi-VN", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false,
+      });
+    } catch (error) {
+      console.error("Error formatting date:", error, dateString);
+      return "N/A";
+    }
   };
 
   const formatCurrency = (amount: number) => {
@@ -193,7 +254,7 @@ const DisputeDetailDialog: React.FC<DisputeDetailDialogProps> = ({
                 Trạng thái
               </Typography>
               <Chip
-                label={dispute.status}
+                label={getStatusLabel(dispute.status)}
                 color={getStatusColor(dispute.status)}
                 size="small"
               />
@@ -387,7 +448,7 @@ const DisputeDetailDialog: React.FC<DisputeDetailDialogProps> = ({
                           }}
                         >
                           <Typography variant="body1" fontWeight="medium">
-                            {item.type}
+                            {getItemTypeLabel(item.type)}
                           </Typography>
                           <Typography variant="h6" color="primary">
                             {formatCurrency(item.amount)}
