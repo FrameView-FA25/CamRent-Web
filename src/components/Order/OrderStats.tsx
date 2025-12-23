@@ -6,11 +6,12 @@ import { colors } from "../../theme/colors";
 interface OrderStatsProps {
   stats: {
     total: number;
-    pendingApproval: number;
+    pending: number;
     confirmed: number;
     pickedUp: number;
     completed: number;
     cancelled: number;
+    returned: number;
   };
 }
 
@@ -25,7 +26,7 @@ const OrderStats: React.FC<OrderStatsProps> = ({ stats }) => {
     },
     {
       label: "Chờ duyệt",
-      value: stats.pendingApproval,
+      value: stats.pending,
       icon: <Clock size={32} />,
       color: "#FFC107",
       bgColor: "#FFFDE7",
@@ -40,6 +41,13 @@ const OrderStats: React.FC<OrderStatsProps> = ({ stats }) => {
     {
       label: "Đã nhận máy",
       value: stats.pickedUp,
+      icon: <CheckCircle size={32} />,
+      color: "#FF9800",
+      bgColor: "#FFF3E0",
+    },
+    {
+      label: "Đã trả máy",
+      value: stats.returned,
       icon: <CheckCircle size={32} />,
       color: "#FF9800",
       bgColor: "#FFF3E0",

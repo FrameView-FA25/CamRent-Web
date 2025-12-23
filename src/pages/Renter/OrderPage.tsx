@@ -19,14 +19,13 @@ import { toast } from "react-toastify";
 // import OrderStats from "../../components/Order/OrderStats";
 import OrderFilters from "../../components/Order/OrderFilters";
 import OrderCard from "../../components/Order/OrderCard";
-import { ORDER_TABS } from "../../utils/order.utils";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 const OrderPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState(0);
+  const [activeTab, setActiveTab] = useState<string>("all");
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -86,18 +85,19 @@ const OrderPage: React.FC = () => {
   };
 
   const filteredBookings = bookings.filter((booking) => {
-    const matchesSearch =
-      booking.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      booking.items.some(
-        (item) =>
-          item.itemName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          item.itemId.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+    // Filter by tab
+    if (activeTab !== "all" && booking.status !== activeTab) {
+      return false;
+    }
 
-    const matchesTab =
-      activeTab === 0 || booking.status === ORDER_TABS[activeTab].value;
+    // Filter by search query
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      return booking.id.toLowerCase().includes(query);
+      // booking.product.productName.toLowerCase().includes(query)
+    }
 
-    return matchesSearch && matchesTab;
+    return true;
   });
 
   // const stats = {
