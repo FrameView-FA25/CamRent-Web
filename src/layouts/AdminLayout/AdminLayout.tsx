@@ -25,7 +25,8 @@ import {
   AssignmentTurnedIn as ChecklistIcon,
 } from "@mui/icons-material";
 import { useAuth } from "../../hooks/useAuth";
-import { Home } from "lucide-react";
+import { Home, Settings } from "lucide-react";
+import { colors } from "@/theme/colors";
 
 const DRAWER_WIDTH = 280;
 
@@ -56,6 +57,11 @@ const menuItems = [
     text: "Quản lý website",
     icon: <Home />,
     path: "/admin/website-management",
+  },
+  {
+    text: "Thiết lập hệ thống",
+    icon: <Settings />,
+    path: "/admin/system-settings",
   },
   { text: "Hồ sơ", icon: <PersonIcon />, path: "/admin/profile" },
 ];
@@ -155,10 +161,10 @@ const AdminLayout: React.FC = () => {
                     borderRadius: 1.5,
                     py: 1.5,
                     px: 2,
-                    color: isActive ? "#DC2626" : "#6B7280",
-                    bgcolor: isActive ? "#FEF2F2" : "transparent",
+                    color: isActive ? "white" : "#6B7280",
+                    bgcolor: isActive ? colors.primary.main : "transparent",
                     "&:hover": {
-                      bgcolor: isActive ? "#FEE2E2" : "#F3F4F6",
+                      bgcolor: isActive ? colors.primary.main : "#F3F4F6",
                     },
                     transition: "all 0.2s ease",
                   }}

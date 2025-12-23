@@ -13,8 +13,8 @@ import { colors } from "../../theme/colors";
 interface OrderFiltersProps {
   searchQuery: string;
   onSearchChange: (value: string) => void;
-  activeTab: number;
-  onTabChange: (value: number) => void;
+  activeTab: string;
+  onTabChange: (value: string) => void;
 }
 
 const OrderFilters: React.FC<OrderFiltersProps> = ({
@@ -25,9 +25,10 @@ const OrderFilters: React.FC<OrderFiltersProps> = ({
 }) => {
   const tabs = [
     { label: "Tất cả", value: "all" },
-    { label: "Chờ duyệt", value: "PendingApproval" },
+    { label: "Chờ duyệt", value: "Pending" },
     { label: "Đã xác nhận", value: "Confirmed" },
     { label: "Đã nhận máy", value: "PickedUp" },
+    { label: "Đã trả", value: "Returned" },
     { label: "Hoàn thành", value: "Completed" },
     { label: "Đã hủy", value: "Cancelled" },
   ];
@@ -96,8 +97,8 @@ const OrderFilters: React.FC<OrderFiltersProps> = ({
             },
           }}
         >
-          {tabs.map((tab, index) => (
-            <Tab key={index} label={tab.label} />
+          {tabs.map((tab) => (
+            <Tab key={tab.value} label={tab.label} value={tab.value} />
           ))}
         </Tabs>
       </Paper>

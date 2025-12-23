@@ -60,7 +60,7 @@ import WorkSlotManagement from "@/pages/Admin/WorkSlotManagement/WorkSlotManagem
 import InspectionManagement from "@/pages/Admin/InspectionManagement/InspectionManagement";
 import WebsiteManagement from "../pages/Admin/WebsiteManagement";
 import ManagerProfile from "@/pages/Manager/ManagerProfile";
-
+import SystemManagement from "@/pages/Admin/SystemManagement/SystemManagement";
 const routes: RouteObject[] = [
   {
     path: "/",
@@ -214,6 +214,10 @@ const routes: RouteObject[] = [
         path: "website-management",
         element: <WebsiteManagement />,
       },
+      {
+        path: "system-settings",
+        element: <SystemManagement />,
+      },
     ],
   },
   {
@@ -255,6 +259,10 @@ const routes: RouteObject[] = [
       {
         path: "profile",
         element: <ManagerProfile />,
+      },
+      {
+        path: "wallets",
+        element: <Wallet />,
       },
     ],
   },

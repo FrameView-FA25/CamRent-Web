@@ -3,8 +3,9 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  Truck,
   AlertCircle,
+  Package,
+  Truck,
 } from "lucide-react";
 import { colors } from "../theme/colors";
 
@@ -20,28 +21,28 @@ export const getOrderStatusInfo = (
   statusText: string
 ): StatusInfo => {
   const statusMap: Record<string, StatusInfo> = {
-    PendingApproval: {
-      label: statusText || "Chờ duyệt",
+    Pending: {
+      label: statusText || "Chờ xác nhận",
       color: colors.status.warning,
       bgColor: colors.status.warningLight,
       icon: React.createElement(Clock, { size: 16 }),
     },
     Confirmed: {
       label: statusText || "Đã xác nhận",
-      color: colors.status.info,
-      bgColor: colors.status.infoLight,
+      color: colors.accent.blue,
+      bgColor: '#E3F2FD',
       icon: React.createElement(CheckCircle, { size: 16 }),
     },
-    InProgress: {
+    PickedUp: {
       label: statusText || "Đang thuê",
-      color: colors.accent.blue,
-      bgColor: colors.accent.blueLight,
-      icon: React.createElement(Truck, { size: 16 }),
+      color: colors.status.success,
+      bgColor: '#E8F5E9',
+      icon: React.createElement(Package, { size: 16 }),
     },
     Completed: {
       label: statusText || "Hoàn thành",
-      color: colors.status.success,
-      bgColor: colors.status.successLight,
+    color: '#2E7D32',
+    bgColor: '#C8E6C9',
       icon: React.createElement(CheckCircle, { size: 16 }),
     },
     Cancelled: {
@@ -50,7 +51,14 @@ export const getOrderStatusInfo = (
       bgColor: colors.status.errorLight,
       icon: React.createElement(XCircle, { size: 16 }),
     },
+     Returned: {
+      label: statusText || "Đã trả",
+      color: colors.primary.main,
+      bgColor: colors.primary.lighter,
+      icon: React.createElement(Truck, { size: 16 }),
+    },
   };
+  
 
   return (
     statusMap[status] || {
