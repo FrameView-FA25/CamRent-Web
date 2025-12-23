@@ -25,6 +25,7 @@ import {
 } from "@mui/icons-material";
 import { useAuth } from "../../hooks/useAuth";
 import { colors } from "../../theme/colors";
+import { Wallet } from "lucide-react";
 const DRAWER_WIDTH = 280;
 
 const menuItems = [
@@ -44,6 +45,11 @@ const menuItems = [
     text: "Quản lý sản phẩm",
     icon: <ProductsIcon />,
     path: "/manager/products",
+  },
+  {
+    text: "Ví",
+    icon: <Wallet />,
+    path: "/manager/wallets",
   },
   // {
   //   text: "Quản lý hợp đồng",
