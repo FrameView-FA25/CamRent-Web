@@ -497,7 +497,8 @@ export const fetchBookingById = async (
       branchId: data.branchId,
       branch: data.branch,
       status: data.status,
-      statusText: data.status, // API trả về status là string
+      // Prefer a human-readable statusText from the API if present, otherwise fall back to the status code
+      statusText: data.statusText || data.status,
       snapshotBaseDailyRate: data.snapshotBaseDailyRate,
       snapshotDepositPercent: data.snapshotDepositPercent,
       snapshotPlatformFeePercent: data.snapshotPlatformFeePercent,

@@ -10,10 +10,6 @@ import {
   Divider,
   Alert,
   CircularProgress,
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  DialogActions,
   Stepper,
   Step,
   StepLabel,
@@ -22,10 +18,6 @@ import {
   Stack,
   Collapse,
   Snackbar,
-  FormControl,
-  RadioGroup,
-  FormControlLabel,
-  Radio,
 } from "@mui/material";
 import {
   ArrowBack,
@@ -36,21 +28,23 @@ import {
   CalendarToday,
   LocalShipping,
   PhotoCamera,
-  TaskAlt,
   AccessTime,
   Payment,
   ExpandMore,
   ExpandLess,
   CheckCircle,
   Cancel,
-  CreditCard,
-  Money,
 } from "@mui/icons-material";
 import {
   fetchBookingById,
   fetchStaffBookings,
 } from "../../services/booking.service";
-import { getDisputesByBookingId } from "../../services/dispute.service";
+import {
+  getDisputesByBookingId,
+  resolveDispute,
+} from "../../services/dispute.service";
+import ConfirmDialog from "../../components/Staff/ConfirmDialog";
+import PaymentMethodDialog from "../../components/Staff/PaymentMethodDialog";
 import type { Booking, Dispute } from "../../types/booking.types";
 import {
   formatCurrency,
@@ -119,26 +113,17 @@ const BookingDetail: React.FC = () => {
     }
     setLoading(false);
 
-    // Load disputes only when booking has been returned (Delivered) or completed
-    if (
-      id &&
-      fetchedBooking &&
-      (fetchedBooking.statusText === "Delivered" ||
-        fetchedBooking.statusText === "Completed")
-    ) {
-      setDisputesLoading(true);
-      try {
-        const disputesData = await getDisputesByBookingId(id);
-        setDisputes(disputesData);
-      } catch (err) {
-        console.error("Error loading disputes:", err);
-        setDisputes([]);
-      } finally {
-        setDisputesLoading(false);
-      }
-    } else {
-      // Clear disputes for other statuses so UI won't show dispute sections
+    // Always load disputes for the booking so they are visible in the booking detail
+    // even if they haven't been resolved yet.
+    setDisputesLoading(true);
+    try {
+      const disputesData = await getDisputesByBookingId(id);
+      setDisputes(disputesData);
+    } catch (err) {
+      console.error("Error loading disputes:", err);
       setDisputes([]);
+    } finally {
+      setDisputesLoading(false);
     }
   }, [id]);
 
@@ -347,48 +332,147 @@ const BookingDetail: React.FC = () => {
     setRefundProcessing(true);
 
     try {
+      // Compute local diff to decide preferred backend method (used only to tell backend whether we prefer Cash or PayOs)
       const depositAmount = booking.snapshotDepositAmount || 0;
-      const disputesTotal = disputes
-        .filter((d) => d.status === "resolved")
-        .reduce((sum, d) => sum + (d.totalAmount || 0), 0);
-
-      // If deposit - disputes > 0 => backend should refund deposit and add refund line
-      // If deposit - disputes < 0 => backend should create compensatory payment (PayOS/Wallet)
-      const diff = depositAmount - disputesTotal;
-      // Use valid PaymentMethod enum names expected by backend:
-      // - For net > 0 (refund due to renter) use 'Cash' (or 'Wallet'/'Transfer' if desired)
-      // - For net <= 0 (customer owes extra) use 'PayOs' to create authorization
+      const disputesTotalAll = disputes.reduce(
+        (sum, d) => sum + (d.totalAmount || 0),
+        0
+      );
+      const diff = depositAmount - disputesTotalAll;
       const methodForBackend = diff > 0 ? "Cash" : "PayOs";
 
       const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
       const token = localStorage.getItem("accessToken");
 
+      // Backend will compute net and perform either refund (net > 0) or create offset payment (net < 0).
       const response = await fetch(`${API_BASE_URL}/Payments/refund`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        // Use PascalCase keys to match backend DTO property names
         body: JSON.stringify({
           BookingId: booking.id,
           Method: methodForBackend,
         }),
       });
 
+      const text = await response.text();
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || "Không thể xử lý hoàn trả");
+        throw new Error(text || "Không thể xử lý hoàn trả");
       }
 
-      setSnackbar({
-        open: true,
-        message: "Xử lý hoàn trả/tiền bù thành công.",
-        severity: "success",
-      });
+      // Parse JSON response (backend returns { type: "refund" | "offset" | "none", amount, paymentId })
+      let result: { type?: string; amount?: number; paymentId?: string } = {};
+      try {
+        result = JSON.parse(text) as {
+          type?: string;
+          amount?: number;
+          paymentId?: string;
+        };
+      } catch (parseErr) {
+        console.warn("Failed to parse refund response:", parseErr);
+        // If backend returned plain string, show success and reload
+        setSnackbar({
+          open: true,
+          message: "Xử lý hoàn trả/tiền bù thành công.",
+          severity: "success",
+        });
+        await loadBookingDetail();
+        setRefundProcessing(false);
+        return;
+      }
 
-      // Reload booking to reflect payment/refund changes
-      await loadBookingDetail();
+      if (result.type === "refund") {
+        setSnackbar({
+          open: true,
+          message: `Hoàn cọc thành công: ${formatCurrency(
+            result.amount || diff
+          )}`,
+          severity: "success",
+        });
+
+        // Mark disputes resolved on backend for items > 0 (best-effort)
+        try {
+          const unresolvedDisputes = disputes.filter((d) => {
+            const st = (d.status || "").toString().toLowerCase();
+            return st !== "resolved" && (d.totalAmount || 0) > 0;
+          });
+          await Promise.all(
+            unresolvedDisputes.map(async (d) => {
+              try {
+                await resolveDispute(d.id);
+              } catch (err) {
+                console.warn("Failed to resolve dispute", d.id, err);
+              }
+            })
+          );
+        } catch (err) {
+          console.warn("Error resolving disputes after refund:", err);
+        }
+
+        await loadBookingDetail();
+      } else if (result.type === "offset") {
+        const extra = result.amount || Math.abs(diff);
+        // If backend created an authorization payment for PayOs, open PayOS checkout
+        if (methodForBackend === "PayOs" && result.paymentId) {
+          setSnackbar({
+            open: true,
+            message: "Chuyển hướng sang trang thanh toán bù tranh chấp...",
+            severity: "info",
+          });
+
+          // Initialize PayOS link
+          const payosResp = await fetch(
+            `${API_BASE_URL}/Payments/${result.paymentId}/payos`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                returnUrl: `${window.location.origin}/staff/booking/${booking.id}?payment=success&bookingId=${booking.id}`,
+                cancelUrl: `${window.location.origin}/staff/booking/${booking.id}?payment=cancelled`,
+              }),
+            }
+          );
+
+          if (!payosResp.ok) {
+            const errText = await payosResp.text();
+            throw new Error(
+              errText || "Không thể tạo link PayOS cho payment bù"
+            );
+          }
+
+          const payosData = await payosResp.json();
+          const checkoutUrl =
+            payosData.redirectUrl || payosData.checkoutUrl || payosData.url;
+          if (!checkoutUrl)
+            throw new Error("Không nhận được URL thanh toán từ hệ thống");
+
+          // Redirect to PayOS checkout
+          setTimeout(() => {
+            window.location.href = checkoutUrl;
+          }, 800);
+        } else {
+          // Cash offset created & captured by backend
+          setSnackbar({
+            open: true,
+            message: `Tạo payment bù tranh chấp thành công: ${formatCurrency(
+              extra
+            )}`,
+            severity: "success",
+          });
+          await loadBookingDetail();
+        }
+      } else {
+        setSnackbar({
+          open: true,
+          message: "Không có hành động nào cần thực hiện.",
+          severity: "info",
+        });
+      }
     } catch (err) {
       console.error("Refund processing error:", err);
       setSnackbar({
@@ -477,19 +561,25 @@ const BookingDetail: React.FC = () => {
     // Tiền hoàn trả = tổng dispute items + tiền cọc thiết bị (nếu có dispute resolved)
     let refundAmount = 0; // Tổng tiền cần hoàn trả
     let refundPaidAmount = 0; // Tiền đã hoàn trả
-    let hasResolvedDispute = false;
 
-    // Check if there are resolved disputes
-    disputes.forEach((dispute) => {
-      if (dispute.status === "resolved" && dispute.totalAmount > 0) {
-        hasResolvedDispute = true;
-        refundAmount += dispute.totalAmount;
-      }
-    });
+    // Sum of all dispute amounts (resolved or not) for preview/display purposes
+    const disputesTotalAll = disputes.reduce(
+      (sum, d) => sum + (d.totalAmount || 0),
+      0
+    );
 
-    // Nếu có dispute resolved, thêm tiền cọc thiết bị vào tiền hoàn trả
-    if (hasResolvedDispute) {
-      refundAmount += booking.snapshotDepositAmount;
+    const depositAmount = booking.snapshotDepositAmount || 0;
+
+    // Business rules:
+    // - For display, show refundPreview = max(0, deposit - sum(all disputes))
+    // - For actual refund processing we will use disputesTotalAll so staff can process even if disputes aren't yet marked resolved.
+    // - If there are no disputes, refund = deposit.
+    if (disputesTotalAll > 0) {
+      refundAmount = Math.max(0, depositAmount - disputesTotalAll);
+    } else if (disputes.length === 0) {
+      refundAmount = depositAmount;
+    } else {
+      refundAmount = 0;
     }
 
     // Calculate paid refund amount from payments
@@ -542,20 +632,80 @@ const BookingDetail: React.FC = () => {
   };
 
   const getStatusNumber = (statusText: string): number => {
+    // Normalize incoming statusText (may be English code or localized string)
+    const key = (statusText || "").toString().trim();
+    const normalized = key.toLowerCase();
+
     const statusMap: Record<string, number> = {
-      Pending: 0,
-      Confirmed: 1,
-      Delivering: 2,
-      Delivered: 3,
-      Completed: 4,
-      Cancelled: -1,
+      // Pending variants
+      pending: 0,
+      pendingapproval: 0,
+      "chờ duyệt": 0,
+      // Confirmed variants
+      confirmed: 1,
+      "đã xác nhận": 1,
+      // Delivering / PickedUp / InProgress variants
+      delivering: 2,
+      pickedup: 2,
+      inprogress: 2,
+      "đang thuê": 2,
+      "đang giao hàng": 2,
+      // Delivered / Returned variants (returned often means renter returned items -> step 3)
+      delivered: 3,
+      returned: 3,
+      "đã trả": 3,
+      // Completed
+      completed: 4,
+      "hoàn thành": 4,
+      // Cancelled / Rejected
+      cancelled: -1,
+      rejected: -1,
+      "đã hủy": -1,
     };
-    return statusMap[statusText] ?? 0;
+
+    return statusMap[normalized] ?? 0;
   };
 
   const getActiveStep = (statusNumber: number) => {
     if (statusNumber === -1) return -1;
     return statusNumber;
+  };
+
+  // Helper to present human friendly dispute status labels
+  const getDisputeStatusLabel = (status?: string) => {
+    const s = (status || "").toString().toLowerCase();
+    switch (s) {
+      case "resolved":
+      case "đã giải quyết":
+        return "Đã giải quyết";
+      case "under_review":
+      case "processing":
+      case "đang xử lý":
+        return "Đang xử lý";
+      case "pending":
+      case "chờ xử lý":
+        return "Chờ xử lý";
+      default:
+        return status || "Không rõ";
+    }
+  };
+
+  const getDisputeStatusColor = (status?: string) => {
+    const s = (status || "").toString().toLowerCase();
+    switch (s) {
+      case "resolved":
+      case "đã giải quyết":
+        return "#059669";
+      case "under_review":
+      case "processing":
+      case "đang xử lý":
+        return "#0284C7";
+      case "pending":
+      case "chờ xử lý":
+        return "#F59E0B";
+      default:
+        return "#6B7280";
+    }
   };
 
   if (loading) {
@@ -605,6 +755,12 @@ const BookingDetail: React.FC = () => {
 
   const statusNumber = getStatusNumber(booking.statusText);
   const paymentDetails = calculatePaymentDetails();
+
+  // Tổng tất cả các khoản bồi thường (theo backend)
+  const disputesTotalAll = disputes.reduce(
+    (sum, d) => sum + (d.totalAmount || 0),
+    0
+  );
 
   // Ensure refund amounts are always defined
   const refundAmount = paymentDetails.refundAmount || 0;
@@ -1247,7 +1403,7 @@ const BookingDetail: React.FC = () => {
                   variant="h6"
                   sx={{ fontWeight: 700, color: "#1F2937" }}
                 >
-                  Tổng quan thanh toán
+                  Tổng quát thanh toán
                 </Typography>
                 <Typography variant="body2" sx={{ color: "#6B7280" }}>
                   Chi tiết chi phí
@@ -1823,23 +1979,36 @@ const BookingDetail: React.FC = () => {
                           </Box>
                         ) : disputes.length > 0 ? (
                           disputes
-                            .filter(
-                              (dispute) =>
-                                dispute.status === "resolved" &&
-                                dispute.totalAmount > 0
-                            )
+                            .filter((dispute) => (dispute.totalAmount || 0) > 0)
                             .map((dispute, disputeIndex) => {
                               // Check if dispute has been refunded
+                              // Only treat as refunded if there is a payment line of type 'refund'/'dispute'
+                              // that is actually refunded (payment.status === 'Refunded') or a captured refund line.
                               const disputeRefunded =
                                 booking.payments?.some((payment) =>
-                                  payment.lines?.some(
-                                    (line) =>
-                                      (line.type === "dispute" ||
-                                        line.type === "refund") &&
+                                  payment.lines?.some((line) => {
+                                    const lineType = (line.type || "")
+                                      .toString()
+                                      .toLowerCase();
+                                    const isDisputeLine =
+                                      lineType === "dispute" ||
+                                      lineType === "refund";
+                                    if (!isDisputeLine) return false;
+                                    // If payment was explicitly refunded on backend
+                                    if (payment.status === "Refunded")
+                                      return true;
+                                    // If payment is captured/authorized but the line itself represents a refund with amount > 0
+                                    const lineAmount =
+                                      line.capturedAmount || line.amount || 0;
+                                    if (
                                       (payment.status === "Captured" ||
-                                        payment.status === "Authorized" ||
-                                        payment.status === "Refunded")
-                                  )
+                                        payment.status === "Authorized") &&
+                                      lineType === "refund" &&
+                                      lineAmount > 0
+                                    )
+                                      return true;
+                                    return false;
+                                  })
                                 ) || false;
 
                               // Check if this is the last dispute (to show deposit refund)
@@ -1870,15 +2039,37 @@ const BookingDetail: React.FC = () => {
                                     }}
                                   >
                                     <Box>
-                                      <Typography
-                                        variant="body2"
+                                      <Box
                                         sx={{
-                                          fontWeight: 600,
-                                          color: "#1F2937",
+                                          display: "flex",
+                                          alignItems: "center",
+                                          gap: 1,
                                         }}
                                       >
-                                        {dispute.title}
-                                      </Typography>
+                                        <Typography
+                                          variant="body2"
+                                          sx={{
+                                            fontWeight: 600,
+                                            color: "#1F2937",
+                                          }}
+                                        >
+                                          {dispute.title}
+                                        </Typography>
+                                        <Chip
+                                          label={getDisputeStatusLabel(
+                                            dispute.status
+                                          )}
+                                          size="small"
+                                          sx={{
+                                            bgcolor: getDisputeStatusColor(
+                                              dispute.status
+                                            ),
+                                            color: "white",
+                                            fontSize: "0.7rem",
+                                            height: 20,
+                                          }}
+                                        />
+                                      </Box>
                                       <Typography
                                         variant="caption"
                                         sx={{ color: "#6B7280" }}
@@ -2117,9 +2308,7 @@ const BookingDetail: React.FC = () => {
                                 sx={{ color: "#6B7280" }}
                               >
                                 • Tiền bồi thường:{" "}
-                                {formatCurrency(
-                                  refundAmount - booking.snapshotDepositAmount
-                                )}
+                                {formatCurrency(disputesTotalAll)}
                               </Typography>
                               <Typography
                                 variant="caption"
@@ -2140,252 +2329,24 @@ const BookingDetail: React.FC = () => {
           </Paper>
         </Box>
 
-        {/* Confirm Dialog */}
-        <Dialog
+        {/* Confirm Dialog (extracted) */}
+        <ConfirmDialog
           open={confirmDialogOpen}
           onClose={() => setConfirmDialogOpen(false)}
-          maxWidth="xs"
-          fullWidth
-        >
-          <DialogContent sx={{ textAlign: "center", py: 4 }}>
-            <Box
-              sx={{
-                width: 80,
-                height: 80,
-                borderRadius: "50%",
-                bgcolor: "#FFF7ED",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                margin: "0 auto",
-                mb: 3,
-              }}
-            >
-              <TaskAlt sx={{ color: "#F97316", fontSize: 50 }} />
-            </Box>
+          onConfirm={handleConfirmUpdate}
+        />
 
-            <Typography
-              variant="h6"
-              sx={{ fontWeight: 700, color: "#1F2937", mb: 2 }}
-            >
-              Xác nhận hoàn tất?
-            </Typography>
-            <Typography variant="body2" sx={{ color: "#6B7280", mb: 4 }}>
-              Bạn có chắc chắn muốn cập nhật trạng thái đơn hàng này không?
-            </Typography>
-
-            <Box sx={{ display: "flex", gap: 2, justifyContent: "center" }}>
-              <Button
-                onClick={() => setConfirmDialogOpen(false)}
-                variant="outlined"
-                sx={{
-                  borderColor: "#E5E7EB",
-                  color: "#6B7280",
-                  textTransform: "none",
-                  fontWeight: 600,
-                  minWidth: 120,
-                  "&:hover": {
-                    borderColor: "#9CA3AF",
-                    bgcolor: "#F9FAFB",
-                  },
-                }}
-              >
-                Hủy
-              </Button>
-              <Button
-                onClick={handleConfirmUpdate}
-                variant="contained"
-                sx={{
-                  bgcolor: "#F97316",
-                  textTransform: "none",
-                  fontWeight: 600,
-                  minWidth: 120,
-                  "&:hover": {
-                    bgcolor: "#EA580C",
-                  },
-                }}
-              >
-                Xác nhận
-              </Button>
-            </Box>
-          </DialogContent>
-        </Dialog>
-
-        {/* Payment Method Dialog */}
-        <Dialog
+        {/* Payment Method Dialog (extracted) */}
+        <PaymentMethodDialog
           open={paymentDialogOpen}
           onClose={() => setPaymentDialogOpen(false)}
-          maxWidth="sm"
-          fullWidth
-        >
-          <DialogTitle>
-            <Typography variant="h6" sx={{ fontWeight: 700, color: "#1F2937" }}>
-              Chọn phương thức thanh toán
-            </Typography>
-          </DialogTitle>
-          <DialogContent>
-            <FormControl component="fieldset" fullWidth sx={{ mt: 2 }}>
-              <RadioGroup
-                value={paymentMethod}
-                onChange={(e) =>
-                  setPaymentMethod(e.target.value as "PayOs" | "Cash")
-                }
-              >
-                {/* PayOS Payment */}
-                <Paper
-                  elevation={0}
-                  sx={{
-                    p: 3,
-                    mb: 2,
-                    border: `2px solid ${
-                      paymentMethod === "PayOs" ? "#F97316" : "#E5E7EB"
-                    }`,
-                    borderRadius: 2,
-                    cursor: "pointer",
-                    transition: "all 0.2s",
-                    "&:hover": {
-                      borderColor: "#F97316",
-                      bgcolor: "#FFF7ED",
-                    },
-                  }}
-                  onClick={() => setPaymentMethod("PayOs")}
-                >
-                  <FormControlLabel
-                    value="PayOs"
-                    control={<Radio />}
-                    label={
-                      <Box
-                        sx={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 2,
-                        }}
-                      >
-                        <CreditCard sx={{ color: "#F97316", fontSize: 28 }} />
-                        <Box>
-                          <Typography
-                            variant="body1"
-                            sx={{ fontWeight: 700, color: "#1F2937" }}
-                          >
-                            Chuyển khoản ngân hàng
-                          </Typography>
-                          <Typography
-                            variant="caption"
-                            sx={{ color: "#6B7280" }}
-                          >
-                            Thanh toán qua cổng PayOS
-                          </Typography>
-                        </Box>
-                      </Box>
-                    }
-                    sx={{ m: 0, width: "100%" }}
-                  />
-                </Paper>
-
-                {/* Cash Payment */}
-                <Paper
-                  elevation={0}
-                  sx={{
-                    p: 3,
-                    border: `2px solid ${
-                      paymentMethod === "Cash" ? "#F97316" : "#E5E7EB"
-                    }`,
-                    borderRadius: 2,
-                    cursor: "pointer",
-                    transition: "all 0.2s",
-                    "&:hover": {
-                      borderColor: "#F97316",
-                      bgcolor: "#FFF7ED",
-                    },
-                  }}
-                  onClick={() => setPaymentMethod("Cash")}
-                >
-                  <FormControlLabel
-                    value="Cash"
-                    control={<Radio />}
-                    label={
-                      <Box
-                        sx={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 2,
-                        }}
-                      >
-                        <Money sx={{ color: "#059669", fontSize: 28 }} />
-                        <Box>
-                          <Typography
-                            variant="body1"
-                            sx={{ fontWeight: 700, color: "#1F2937" }}
-                          >
-                            Tiền mặt
-                          </Typography>
-                          <Typography
-                            variant="caption"
-                            sx={{ color: "#6B7280" }}
-                          >
-                            Thanh toán trực tiếp bằng tiền mặt
-                          </Typography>
-                        </Box>
-                      </Box>
-                    }
-                    sx={{ m: 0, width: "100%" }}
-                  />
-                </Paper>
-              </RadioGroup>
-            </FormControl>
-
-            {booking && (
-              <Alert severity="info" sx={{ mt: 3, borderRadius: 2 }}>
-                <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
-                  Số tiền cần thanh toán:
-                </Typography>
-                <Typography
-                  variant="h6"
-                  sx={{ color: "#F97316", fontWeight: 700 }}
-                >
-                  {formatCurrency(paymentDetails.unpaidAmount)}
-                </Typography>
-              </Alert>
-            )}
-          </DialogContent>
-          <DialogActions sx={{ p: 3, pt: 0 }}>
-            <Button
-              onClick={() => setPaymentDialogOpen(false)}
-              variant="outlined"
-              sx={{
-                borderColor: "#E5E7EB",
-                color: "#6B7280",
-                textTransform: "none",
-                fontWeight: 600,
-                "&:hover": {
-                  borderColor: "#9CA3AF",
-                  bgcolor: "#F9FAFB",
-                },
-              }}
-            >
-              Hủy
-            </Button>
-            <Button
-              onClick={handleConfirmPayment}
-              variant="contained"
-              disabled={paymentLoading}
-              sx={{
-                bgcolor: "#F97316",
-                textTransform: "none",
-                fontWeight: 600,
-                "&:hover": {
-                  bgcolor: "#EA580C",
-                },
-              }}
-            >
-              {paymentLoading ? (
-                <CircularProgress size={24} sx={{ color: "white" }} />
-              ) : (
-                "Xác nhận thanh toán"
-              )}
-            </Button>
-          </DialogActions>
-        </Dialog>
+          paymentMethod={paymentMethod}
+          setPaymentMethod={setPaymentMethod}
+          onConfirmPayment={handleConfirmPayment}
+          paymentLoading={paymentLoading}
+          booking={booking}
+          paymentDetails={paymentDetails}
+        />
 
         {/* Snackbar for notifications */}
         <Snackbar
