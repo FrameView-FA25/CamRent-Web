@@ -332,71 +332,147 @@ const BookingDetail: React.FC = () => {
     setRefundProcessing(true);
 
     try {
+      // Compute local diff to decide preferred backend method (used only to tell backend whether we prefer Cash or PayOs)
       const depositAmount = booking.snapshotDepositAmount || 0;
-      // Sum disputes regardless of status so staff can process refund even if disputes are not yet marked resolved.
       const disputesTotalAll = disputes.reduce(
         (sum, d) => sum + (d.totalAmount || 0),
         0
       );
-
-      // Compute diff: positive => refund deposit to renter; negative => renter owes money -> create compensatory payment (PayOS/Wallet)
       const diff = depositAmount - disputesTotalAll;
       const methodForBackend = diff > 0 ? "Cash" : "PayOs";
 
       const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
       const token = localStorage.getItem("accessToken");
 
-      const requestBody: Record<string, unknown> = {
-        BookingId: booking.id,
-        Method: methodForBackend,
-        // Amount (absolute): how much refund or compensatory payment is needed
-        Amount: Math.abs(Math.round((diff || 0) * 100) / 100),
-        // Indicate whether this is a deposit refund vs compensatory payment
-        IsDepositRefund: diff > 0,
-      };
-
+      // Backend will compute net and perform either refund (net > 0) or create offset payment (net < 0).
       const response = await fetch(`${API_BASE_URL}/Payments/refund`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify({
+          BookingId: booking.id,
+          Method: methodForBackend,
+        }),
       });
 
+      const text = await response.text();
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || "Không thể xử lý hoàn trả");
+        throw new Error(text || "Không thể xử lý hoàn trả");
       }
 
-      setSnackbar({
-        open: true,
-        message: "Xử lý hoàn trả/tiền bù thành công.",
-        severity: "success",
-      });
-
-      // After successful refund/compensatory payment, mark disputes as resolved (for those with amount > 0)
+      // Parse JSON response (backend returns { type: "refund" | "offset" | "none", amount, paymentId })
+      let result: { type?: string; amount?: number; paymentId?: string } = {};
       try {
-        const unresolvedDisputes = disputes.filter((d) => {
-          const st = (d.status || "").toString().toLowerCase();
-          return st !== "resolved" && (d.totalAmount || 0) > 0;
+        result = JSON.parse(text) as {
+          type?: string;
+          amount?: number;
+          paymentId?: string;
+        };
+      } catch (parseErr) {
+        console.warn("Failed to parse refund response:", parseErr);
+        // If backend returned plain string, show success and reload
+        setSnackbar({
+          open: true,
+          message: "Xử lý hoàn trả/tiền bù thành công.",
+          severity: "success",
+        });
+        await loadBookingDetail();
+        setRefundProcessing(false);
+        return;
+      }
+
+      if (result.type === "refund") {
+        setSnackbar({
+          open: true,
+          message: `Hoàn cọc thành công: ${formatCurrency(
+            result.amount || diff
+          )}`,
+          severity: "success",
         });
 
-        await Promise.all(
-          unresolvedDisputes.map(async (d) => {
-            try {
-              await resolveDispute(d.id);
-            } catch (err) {
-              console.warn("Failed to resolve dispute", d.id, err);
-            }
-          })
-        );
-      } catch (err) {
-        console.warn("Error resolving disputes after refund:", err);
-      }
+        // Mark disputes resolved on backend for items > 0 (best-effort)
+        try {
+          const unresolvedDisputes = disputes.filter((d) => {
+            const st = (d.status || "").toString().toLowerCase();
+            return st !== "resolved" && (d.totalAmount || 0) > 0;
+          });
+          await Promise.all(
+            unresolvedDisputes.map(async (d) => {
+              try {
+                await resolveDispute(d.id);
+              } catch (err) {
+                console.warn("Failed to resolve dispute", d.id, err);
+              }
+            })
+          );
+        } catch (err) {
+          console.warn("Error resolving disputes after refund:", err);
+        }
 
-      // Reload booking to reflect payment/refund and dispute status changes
-      await loadBookingDetail();
+        await loadBookingDetail();
+      } else if (result.type === "offset") {
+        const extra = result.amount || Math.abs(diff);
+        // If backend created an authorization payment for PayOs, open PayOS checkout
+        if (methodForBackend === "PayOs" && result.paymentId) {
+          setSnackbar({
+            open: true,
+            message: "Chuyển hướng sang trang thanh toán bù tranh chấp...",
+            severity: "info",
+          });
+
+          // Initialize PayOS link
+          const payosResp = await fetch(
+            `${API_BASE_URL}/Payments/${result.paymentId}/payos`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                returnUrl: `${window.location.origin}/staff/booking/${booking.id}?payment=success&bookingId=${booking.id}`,
+                cancelUrl: `${window.location.origin}/staff/booking/${booking.id}?payment=cancelled`,
+              }),
+            }
+          );
+
+          if (!payosResp.ok) {
+            const errText = await payosResp.text();
+            throw new Error(
+              errText || "Không thể tạo link PayOS cho payment bù"
+            );
+          }
+
+          const payosData = await payosResp.json();
+          const checkoutUrl =
+            payosData.redirectUrl || payosData.checkoutUrl || payosData.url;
+          if (!checkoutUrl)
+            throw new Error("Không nhận được URL thanh toán từ hệ thống");
+
+          // Redirect to PayOS checkout
+          setTimeout(() => {
+            window.location.href = checkoutUrl;
+          }, 800);
+        } else {
+          // Cash offset created & captured by backend
+          setSnackbar({
+            open: true,
+            message: `Tạo payment bù tranh chấp thành công: ${formatCurrency(
+              extra
+            )}`,
+            severity: "success",
+          });
+          await loadBookingDetail();
+        }
+      } else {
+        setSnackbar({
+          open: true,
+          message: "Không có hành động nào cần thực hiện.",
+          severity: "info",
+        });
+      }
     } catch (err) {
       console.error("Refund processing error:", err);
       setSnackbar({
@@ -595,6 +671,43 @@ const BookingDetail: React.FC = () => {
     return statusNumber;
   };
 
+  // Helper to present human friendly dispute status labels
+  const getDisputeStatusLabel = (status?: string) => {
+    const s = (status || "").toString().toLowerCase();
+    switch (s) {
+      case "resolved":
+      case "đã giải quyết":
+        return "Đã giải quyết";
+      case "under_review":
+      case "processing":
+      case "đang xử lý":
+        return "Đang xử lý";
+      case "pending":
+      case "chờ xử lý":
+        return "Chờ xử lý";
+      default:
+        return status || "Không rõ";
+    }
+  };
+
+  const getDisputeStatusColor = (status?: string) => {
+    const s = (status || "").toString().toLowerCase();
+    switch (s) {
+      case "resolved":
+      case "đã giải quyết":
+        return "#059669";
+      case "under_review":
+      case "processing":
+      case "đang xử lý":
+        return "#0284C7";
+      case "pending":
+      case "chờ xử lý":
+        return "#F59E0B";
+      default:
+        return "#6B7280";
+    }
+  };
+
   if (loading) {
     return (
       <Box
@@ -642,6 +755,12 @@ const BookingDetail: React.FC = () => {
 
   const statusNumber = getStatusNumber(booking.statusText);
   const paymentDetails = calculatePaymentDetails();
+
+  // Tổng tất cả các khoản bồi thường (theo backend)
+  const disputesTotalAll = disputes.reduce(
+    (sum, d) => sum + (d.totalAmount || 0),
+    0
+  );
 
   // Ensure refund amounts are always defined
   const refundAmount = paymentDetails.refundAmount || 0;
@@ -1284,7 +1403,7 @@ const BookingDetail: React.FC = () => {
                   variant="h6"
                   sx={{ fontWeight: 700, color: "#1F2937" }}
                 >
-                  Tổng quan thanh toán
+                  Tổng quát thanh toán
                 </Typography>
                 <Typography variant="body2" sx={{ color: "#6B7280" }}>
                   Chi tiết chi phí
@@ -1295,68 +1414,6 @@ const BookingDetail: React.FC = () => {
             <Divider sx={{ mb: 3 }} />
 
             <Stack spacing={2}>
-              {/* Refund summary (disputes -> refund) */}
-              {refundAmount > 0 && (
-                <Box
-                  sx={{
-                    p: 2,
-                    bgcolor: "#F0FDF4",
-                    borderRadius: 2,
-                    border: "1px solid #059669",
-                  }}
-                >
-                  <Box
-                    sx={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      mb: 1,
-                    }}
-                  >
-                    <Typography
-                      variant="body2"
-                      sx={{ fontWeight: 700, color: "#1F2937" }}
-                    >
-                      Tiền hoàn trả (tranh chấp)
-                    </Typography>
-                    <Typography
-                      variant="body1"
-                      sx={{ fontWeight: 700, color: "#059669" }}
-                    >
-                      {formatCurrency(refundAmount)}
-                    </Typography>
-                  </Box>
-                  <Box
-                    sx={{ display: "flex", justifyContent: "space-between" }}
-                  >
-                    <Typography variant="caption" sx={{ color: "#6B7280" }}>
-                      Đã hoàn trả
-                    </Typography>
-                    <Typography variant="caption" sx={{ color: "#6B7280" }}>
-                      {refundPaidAmount > 0
-                        ? formatCurrency(refundPaidAmount)
-                        : "0 ₫"}
-                    </Typography>
-                  </Box>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      mt: 0.5,
-                    }}
-                  >
-                    <Typography variant="caption" sx={{ color: "#6B7280" }}>
-                      Chưa hoàn trả
-                    </Typography>
-                    <Typography variant="caption" sx={{ color: "#DC2626" }}>
-                      {refundUnpaidAmount > 0
-                        ? formatCurrency(refundUnpaidAmount)
-                        : "0 ₫"}
-                    </Typography>
-                  </Box>
-                </Box>
-              )}
-
               {/* Dropdown cho Tổng tiền thuê */}
               <Box>
                 <Box
@@ -1922,23 +1979,36 @@ const BookingDetail: React.FC = () => {
                           </Box>
                         ) : disputes.length > 0 ? (
                           disputes
-                            .filter(
-                              (dispute) =>
-                                dispute.status === "resolved" &&
-                                dispute.totalAmount > 0
-                            )
+                            .filter((dispute) => (dispute.totalAmount || 0) > 0)
                             .map((dispute, disputeIndex) => {
                               // Check if dispute has been refunded
+                              // Only treat as refunded if there is a payment line of type 'refund'/'dispute'
+                              // that is actually refunded (payment.status === 'Refunded') or a captured refund line.
                               const disputeRefunded =
                                 booking.payments?.some((payment) =>
-                                  payment.lines?.some(
-                                    (line) =>
-                                      (line.type === "dispute" ||
-                                        line.type === "refund") &&
+                                  payment.lines?.some((line) => {
+                                    const lineType = (line.type || "")
+                                      .toString()
+                                      .toLowerCase();
+                                    const isDisputeLine =
+                                      lineType === "dispute" ||
+                                      lineType === "refund";
+                                    if (!isDisputeLine) return false;
+                                    // If payment was explicitly refunded on backend
+                                    if (payment.status === "Refunded")
+                                      return true;
+                                    // If payment is captured/authorized but the line itself represents a refund with amount > 0
+                                    const lineAmount =
+                                      line.capturedAmount || line.amount || 0;
+                                    if (
                                       (payment.status === "Captured" ||
-                                        payment.status === "Authorized" ||
-                                        payment.status === "Refunded")
-                                  )
+                                        payment.status === "Authorized") &&
+                                      lineType === "refund" &&
+                                      lineAmount > 0
+                                    )
+                                      return true;
+                                    return false;
+                                  })
                                 ) || false;
 
                               // Check if this is the last dispute (to show deposit refund)
@@ -1969,15 +2039,37 @@ const BookingDetail: React.FC = () => {
                                     }}
                                   >
                                     <Box>
-                                      <Typography
-                                        variant="body2"
+                                      <Box
                                         sx={{
-                                          fontWeight: 600,
-                                          color: "#1F2937",
+                                          display: "flex",
+                                          alignItems: "center",
+                                          gap: 1,
                                         }}
                                       >
-                                        {dispute.title}
-                                      </Typography>
+                                        <Typography
+                                          variant="body2"
+                                          sx={{
+                                            fontWeight: 600,
+                                            color: "#1F2937",
+                                          }}
+                                        >
+                                          {dispute.title}
+                                        </Typography>
+                                        <Chip
+                                          label={getDisputeStatusLabel(
+                                            dispute.status
+                                          )}
+                                          size="small"
+                                          sx={{
+                                            bgcolor: getDisputeStatusColor(
+                                              dispute.status
+                                            ),
+                                            color: "white",
+                                            fontSize: "0.7rem",
+                                            height: 20,
+                                          }}
+                                        />
+                                      </Box>
                                       <Typography
                                         variant="caption"
                                         sx={{ color: "#6B7280" }}
@@ -2216,9 +2308,7 @@ const BookingDetail: React.FC = () => {
                                 sx={{ color: "#6B7280" }}
                               >
                                 • Tiền bồi thường:{" "}
-                                {formatCurrency(
-                                  refundAmount - booking.snapshotDepositAmount
-                                )}
+                                {formatCurrency(disputesTotalAll)}
                               </Typography>
                               <Typography
                                 variant="caption"
