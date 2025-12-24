@@ -13,6 +13,7 @@ import ContactPage from "@/pages/Home/ContactPage";
 import ProductPage from "../pages/Home/ProductPage";
 import ProductDetailPage from "../pages/Home/ProductDetailPage";
 import NewsPage from "../pages/Home/NewsPage";
+import PrivacyPage from "../pages/Home/PrivacyPage";
 import NotFoundPage from "../pages/Home/NotFoundPage";
 import DashboardOwner from "../pages/Owner/Dashboard/Dashboard";
 import CameraManagement from "../pages/Owner/CameraManagement/CameraManagement";
@@ -89,6 +90,10 @@ const routes: RouteObject[] = [
       {
         path: "contact",
         element: <ContactPage />,
+      },
+      {
+        path: "privacy",
+        element: <PrivacyPage />,
       },
       {
         path: "products",

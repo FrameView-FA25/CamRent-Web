@@ -15,6 +15,7 @@ interface PdfPreviewDialogProps {
   pdfUrl: string | null;
   onSign: () => void;
   onDownload: () => void;
+  canSign?: boolean;
 }
 
 export const PdfPreviewDialog: React.FC<PdfPreviewDialogProps> = ({
@@ -23,6 +24,7 @@ export const PdfPreviewDialog: React.FC<PdfPreviewDialogProps> = ({
   pdfUrl,
   onSign,
   onDownload,
+  canSign = true,
 }) => {
   return (
     <Dialog
@@ -87,21 +89,23 @@ export const PdfPreviewDialog: React.FC<PdfPreviewDialogProps> = ({
         >
           Đóng
         </Button>
-        <Button
-          onClick={onSign}
-          variant="outlined"
-          startIcon={<Draw />}
-          sx={{
-            borderColor: "#F97316",
-            color: "#F97316",
-            "&:hover": {
-              borderColor: "#EA580C",
-              bgcolor: "#FFF7ED",
-            },
-          }}
-        >
-          Ký hợp đồng
-        </Button>
+        {canSign && (
+          <Button
+            onClick={onSign}
+            variant="outlined"
+            startIcon={<Draw />}
+            sx={{
+              borderColor: "#F97316",
+              color: "#F97316",
+              "&:hover": {
+                borderColor: "#EA580C",
+                bgcolor: "#FFF7ED",
+              },
+            }}
+          >
+            Ký hợp đồng
+          </Button>
+        )}
         <Button
           onClick={onDownload}
           variant="contained"

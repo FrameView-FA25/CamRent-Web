@@ -3,6 +3,16 @@ const API_BASE_URL = "https://camrent-backend.up.railway.app/api";
 export interface CreateContractFromVerificationResult {
   contractId: string;
 }
+export interface ContractSignatureDto {
+  userId?: string | null;
+  isSigned: boolean;
+}
+
+export interface ContractDetail {
+  id: string;
+  signatures?: ContractSignatureDto[] | null;
+  status?: string | null;
+}
 
 export const contractService = {
   /**
@@ -102,5 +112,29 @@ export const contractService = {
     if (!response.ok) {
       throw new Error("Ký hợp đồng thất bại");
     }
+  },
+
+  async getContract(
+    contractId: string,
+    token?: string | null
+  ): Promise<ContractDetail> {
+    const accessToken = token ?? localStorage.getItem("accessToken");
+    if (!accessToken) {
+      throw new Error("Vui lòng đăng nhập để lấy thông tin hợp đồng.");
+    }
+
+    const response = await fetch(`${API_BASE_URL}/Contracts/${contractId}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      const txt = await response.text();
+      throw new Error(txt || "Không thể lấy thông tin hợp đồng");
+    }
+
+    return await response.json();
   },
 };
