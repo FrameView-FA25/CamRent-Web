@@ -1731,6 +1731,10 @@ const CheckBookings: React.FC = () => {
           setCreateDisputeBookingId(disputeBookingId);
           setCreateDisputeDialogOpen(true);
         }}
+        allowCreateDispute={
+          bookings.find((b) => b.id === disputeBookingId)?.status !==
+          "Completed"
+        }
       />
 
       {/* Update Status Dialog */}

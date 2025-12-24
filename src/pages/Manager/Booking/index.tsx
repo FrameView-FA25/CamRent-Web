@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Box,
   Container,
@@ -38,6 +38,10 @@ import { DEFAULT_ROWS_PER_PAGE } from "./constants";
 import { BookingDetailDialog } from "./components/dialogs/BookingDetailDialog";
 import { issueReportService } from "@/services/issueReport.service";
 import type { IssueReport } from "@/types/issueReport.types";
+import type {
+  ContractDetail,
+  ContractSignatureDto,
+} from "@/services/contract.service";
 import { IssueReportCard } from "./components/IssueReportCard";
 import { IssueReportDetailDialog } from "./components/dialogs/IssueReportDetailDialog";
 
@@ -59,6 +63,8 @@ const BookingManagement: React.FC = () => {
 
   // Dialog hooks
   const dialogState = useBookingDialogs();
+  const [currentContractDetail, setCurrentContractDetail] =
+    useState<ContractDetail | null>(null);
 
   // Pagination state
   const [page, setPage] = useState(0);
@@ -81,14 +87,7 @@ const BookingManagement: React.FC = () => {
     null
   );
 
-  // Load issue reports when tab is 7 (issues tab)
-  useEffect(() => {
-    if (selectedTab === 6) {
-      loadIssueReports();
-    }
-  }, [selectedTab]);
-
-  const loadIssueReports = async () => {
+  const loadIssueReports = useCallback(async () => {
     try {
       setLoadingIssues(true);
       const data = await issueReportService.getIssueReports("open", 50);
@@ -103,7 +102,61 @@ const BookingManagement: React.FC = () => {
     } finally {
       setLoadingIssues(false);
     }
-  };
+  }, [setError]);
+
+  // Load issue reports when tab is 7 (issues tab)
+  useEffect(() => {
+    if (selectedTab === 6) {
+      loadIssueReports();
+    }
+  }, [selectedTab, loadIssueReports]);
+
+  // Load latest contract detail when PDF preview opens so canSign uses fresh data
+  useEffect(() => {
+    if (!dialogState.pdfDialogOpen || !dialogState.currentContractId) {
+      setCurrentContractDetail(null);
+      return;
+    }
+    let mounted = true;
+    (async () => {
+      try {
+        const token = localStorage.getItem("accessToken");
+        // dynamic import to avoid circular deps in some setups; services path uses @ alias
+        const { contractService } = await import("@/services/contract.service");
+        const c = await contractService.getContract(
+          dialogState.currentContractId,
+          token
+        );
+        if (mounted) setCurrentContractDetail(c);
+      } catch (err) {
+        console.error("Load contract detail failed:", err);
+        if (mounted) setCurrentContractDetail(null);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [dialogState.pdfDialogOpen, dialogState.currentContractId]);
+
+  // Determine whether we should show the "Ký hợp đồng" button based on latest contract detail
+  const canSign = (() => {
+    const c =
+      currentContractDetail ?? dialogState.selectedBooking?.contracts?.[0];
+    if (!c) return false;
+    const status = ((c as { status?: string }).status || "").toString();
+    if (["Signed", "Completed"].includes(status)) return false;
+
+    const sigs = c.signatures ?? [];
+    if (!Array.isArray(sigs)) return true;
+
+    if (sigs.length === 0) return true;
+    if (typeof sigs[0] === "string") {
+      // signatures as array of strings (ids) — assume two required
+      return sigs.length < 2;
+    }
+    // signatures as objects with isSigned property
+    return (sigs as ContractSignatureDto[]).some((s) => !s?.isSigned);
+  })();
 
   // Handlers for confirm/cancel booking
   const handleConfirmBookingClick = () => {
@@ -159,6 +212,22 @@ const BookingManagement: React.FC = () => {
 
     try {
       dialogState.setContractLoading(true);
+
+      // Load contract detail first so canSign is accurate immediately
+      try {
+        const { contractService } = await import("@/services/contract.service");
+        const contractDetail = await contractService.getContract(
+          contractId,
+          token
+        );
+        setCurrentContractDetail(contractDetail);
+      } catch (err) {
+        console.warn(
+          "Không tải được chi tiết hợp đồng trước khi mở preview:",
+          err
+        );
+        setCurrentContractDetail(null);
+      }
 
       const previewResponse = await fetch(
         `https://camrent-backend.up.railway.app/api/Contracts/${contractId}/preview`,
@@ -457,6 +526,7 @@ const BookingManagement: React.FC = () => {
               dialogState.setPdfUrl
             )
           }
+          canSign={canSign}
         />
 
         {/* Signature Dialog */}

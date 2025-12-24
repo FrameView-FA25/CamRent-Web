@@ -22,7 +22,7 @@ import {
 import {
   Visibility,
   Close,
-  CheckCircle,
+  // CheckCircle,
   Cancel,
   MoreVert,
   Add,
@@ -46,6 +46,7 @@ export interface BookingDisputeListDialogProps {
   onClose: () => void;
   bookingId: string;
   onCreateDispute?: () => void; // Callback để mở dialog tạo tranh chấp
+  allowCreateDispute?: boolean;
 }
 
 const BookingDisputeListDialog: React.FC<BookingDisputeListDialogProps> = ({
@@ -53,6 +54,7 @@ const BookingDisputeListDialog: React.FC<BookingDisputeListDialogProps> = ({
   onClose,
   bookingId,
   onCreateDispute,
+  allowCreateDispute = true,
 }) => {
   const [disputes, setDisputes] = useState<Dispute[]>([]);
   const [loading, setLoading] = useState(false);
@@ -352,7 +354,7 @@ const BookingDisputeListDialog: React.FC<BookingDisputeListDialogProps> = ({
           )}
         </DialogContent>
         <DialogActions>
-          {onCreateDispute && (
+          {onCreateDispute && allowCreateDispute && (
             <Button
               variant="contained"
               startIcon={<Add />}
@@ -387,12 +389,12 @@ const BookingDisputeListDialog: React.FC<BookingDisputeListDialogProps> = ({
             disputes.find((d) => d.id === menuDisputeId)!.status
           ) && (
             <>
-              <MenuItem onClick={() => handleMenuAction("resolve")}>
+              {/* <MenuItem onClick={() => handleMenuAction("resolve")}>
                 <ListItemIcon>
                   <CheckCircle fontSize="small" color="success" />
                 </ListItemIcon>
                 <ListItemText>Giải quyết</ListItemText>
-              </MenuItem>
+              </MenuItem> */}
               <MenuItem onClick={() => handleMenuAction("reject")}>
                 <ListItemIcon>
                   <Cancel fontSize="small" color="error" />

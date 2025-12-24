@@ -372,7 +372,26 @@ const BookingDetail: React.FC = () => {
         };
       } catch (parseErr) {
         console.warn("Failed to parse refund response:", parseErr);
-        // If backend returned plain string, show success and reload
+        // If backend returned plain string, attempt to auto-resolve disputes (best-effort),
+        // then show success and reload.
+        try {
+          const unresolvedDisputes = disputes.filter((d) => {
+            const st = (d.status || "").toString().toLowerCase();
+            return st !== "resolved" && (d.totalAmount || 0) > 0;
+          });
+          await Promise.all(
+            unresolvedDisputes.map(async (d) => {
+              try {
+                await resolveDispute(d.id);
+              } catch (err) {
+                console.warn("Failed to resolve dispute", d.id, err);
+              }
+            })
+          );
+        } catch (err) {
+          console.warn("Error resolving disputes after refund:", err);
+        }
+
         setSnackbar({
           open: true,
           message: "Xử lý hoàn trả/tiền bù thành công.",
