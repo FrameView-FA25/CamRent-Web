@@ -173,15 +173,15 @@ const BookingDisputeListDialog: React.FC<BookingDisputeListDialogProps> = ({
     try {
       if (resolutionType === "resolve") {
         await resolveDispute(processingDisputeId);
-        toast.success("Đã giải quyết tranh chấp thành công");
+        toast.success("Đã giải quyết bồi thường thành công");
       } else {
         await rejectDispute(processingDisputeId);
-        toast.success("Đã từ chối tranh chấp thành công");
+        toast.success("Đã từ chối bồi thường thành công");
       }
       handleCloseResolutionDialog();
       await loadDisputes();
     } catch (error) {
-      toast.error("Không thể cập nhật trạng thái tranh chấp");
+      toast.error("Không thể cập nhật trạng thái bồi thường");
       console.error(error);
     }
   };
@@ -260,7 +260,7 @@ const BookingDisputeListDialog: React.FC<BookingDisputeListDialogProps> = ({
               alignItems: "center",
             }}
           >
-            <Typography variant="h6">Tranh chấp đơn hàng</Typography>
+            <Typography variant="h6">Mục bồi thường trong đơn hàng</Typography>
             <IconButton onClick={onClose} size="small">
               <Close />
             </IconButton>
@@ -363,9 +363,10 @@ const BookingDisputeListDialog: React.FC<BookingDisputeListDialogProps> = ({
                 bgcolor: "#F97316",
                 "&:hover": { bgcolor: "#EA580C" },
                 textTransform: "none",
+                color: "white",
               }}
             >
-              Tạo tranh chấp
+              Tạo mục bồi thường
             </Button>
           )}
           <Button onClick={onClose}>Đóng</Button>
@@ -419,8 +420,8 @@ const BookingDisputeListDialog: React.FC<BookingDisputeListDialogProps> = ({
         <DialogContent>
           <Typography variant="body1" sx={{ mt: 2 }}>
             {resolutionType === "resolve"
-              ? "Bạn có chắc chắn muốn giải quyết tranh chấp này?"
-              : "Bạn có chắc chắn muốn từ chối tranh chấp này?"}
+              ? "Bạn có chắc chắn muốn giải quyết bồi thường này?"
+              : "Bạn có chắc chắn muốn từ chối bồi thường này?"}
           </Typography>
         </DialogContent>
         <DialogActions>

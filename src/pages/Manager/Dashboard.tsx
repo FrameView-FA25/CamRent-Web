@@ -1003,7 +1003,7 @@ const DashboardManager: React.FC = () => {
               variant="h6"
               sx={{ fontWeight: 700, color: "#1F2937", mb: 3 }}
             >
-              Tranh chấp đang mở
+              Bồi thường đang mở
             </Typography>
 
             <Box
@@ -1046,8 +1046,8 @@ const DashboardManager: React.FC = () => {
               </Typography>
               <Typography variant="body2" sx={{ color: "#6B7280", mb: 2 }}>
                 {dashboardData.openDisputes > 0
-                  ? "tranh chấp cần xử lý"
-                  : "Không có tranh chấp"}
+                  ? "bồi thường cần xử lý"
+                  : "Không có bồi thường"}
               </Typography>
               {dashboardData.openDisputes > 0 && (
                 <Alert
