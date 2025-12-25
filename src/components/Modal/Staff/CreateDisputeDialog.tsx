@@ -108,7 +108,7 @@ const CreateDisputeDialog: React.FC<CreateDisputeDialogProps> = ({
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Tạo Tranh Chấp Mới</DialogTitle>
+      <DialogTitle>Tạo Bồi Thường Mới</DialogTitle>
       <DialogContent>
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 2 }}>
           {error && <Alert severity="error">{error}</Alert>}
@@ -176,7 +176,7 @@ const CreateDisputeDialog: React.FC<CreateDisputeDialogProps> = ({
           disabled={isSubmitting}
           sx={{ color: "white" }}
         >
-          {isSubmitting ? "Đang tạo..." : "Tạo Tranh Chấp"}
+          {isSubmitting ? "Đang tạo..." : "Tạo mục bồi thường"}
         </Button>
       </DialogActions>
     </Dialog>

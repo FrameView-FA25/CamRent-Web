@@ -2265,7 +2265,7 @@ const BookingDetail: React.FC = () => {
                                           }}
                                         >
                                           Tiền cọc sẽ được hoàn trả khi giải
-                                          quyết tranh chấp
+                                          quyết bồi thường
                                         </Typography>
                                       </Box>
                                     )}
@@ -2277,7 +2277,7 @@ const BookingDetail: React.FC = () => {
                             variant="caption"
                             sx={{ color: "#6B7280" }}
                           >
-                            Không có tranh chấp đã giải quyết nào
+                            Không có bồi thường đã giải quyết nào
                           </Typography>
                         )}
 

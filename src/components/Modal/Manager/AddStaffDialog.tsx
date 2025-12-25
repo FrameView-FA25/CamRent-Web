@@ -262,6 +262,7 @@ const AddStaffDialog: React.FC<AddStaffDialogProps> = ({
             bgcolor: colors.primary.main,
             "&:hover": { bgcolor: colors.primary.dark },
             minWidth: 120,
+            color: "white",
           }}
         >
           {loading ? (

@@ -1626,7 +1626,7 @@ const CheckBookings: React.FC = () => {
           <ListItemIcon>
             <Gavel fontSize="small" sx={{ color: "#9333EA" }} />
           </ListItemIcon>
-          <ListItemText primary="Xem Tranh Chấp" />
+          <ListItemText primary="Xem Bồi Thường" />
         </MenuItem>
         <MenuItem
           onClick={() => {

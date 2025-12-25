@@ -702,9 +702,7 @@ export const AssignStaffDialog: React.FC<AssignStaffDialogProps> = ({
           sx={{
             fontWeight: 500,
             px: 3,
-            "&:hover": {
-              bgcolor: "#1F2937",
-            },
+            color: "white",
             "&:disabled": {
               bgcolor: "#E5E7EB",
             },
