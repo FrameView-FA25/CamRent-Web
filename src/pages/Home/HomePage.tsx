@@ -1,5 +1,4 @@
-﻿// filepath: d:\Capstone\CamRent-Web\src\pages\Home\HomePage.tsx
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
@@ -20,21 +19,6 @@ import {
   type Feedback,
 } from "../../services/homepage.service";
 import { toast } from "react-toastify";
-
-const categories = [
-  {
-    title: "Máy bay camera",
-    img: "https://images.unsplash.com/photo-1473968512647-3e447244af8f?w=800",
-  },
-  {
-    title: "Ánh sáng",
-    img: "https://images.unsplash.com/photo-1535016120720-40c646be5580?w=800",
-  },
-  {
-    title: "Máy ảnh",
-    img: "https://thuvienmuasam.com/uploads/default/original/2X/8/82b7fef36a4202ca4dc7d22ead2892e5a924038c.jpeg",
-  },
-];
 
 const partners = [
   {
@@ -64,15 +48,14 @@ const HomePage: React.FC = () => {
   useEffect(() => {
     fetchHomeData();
   }, []);
+
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const paymentStatus = urlParams.get("payment");
 
     if (paymentStatus === "success") {
       toast.success("Thanh toán thành công!");
-      // Xóa query parameter khỏi URL
       window.history.replaceState({}, "", window.location.pathname);
-      // Redirect về trang đơn hàng sau 2 giây
       setTimeout(() => {
         navigate("/renter/my-orders");
       }, 2000);
@@ -81,6 +64,7 @@ const HomePage: React.FC = () => {
       window.history.replaceState({}, "", window.location.pathname);
     }
   }, [navigate]);
+
   const fetchHomeData = async () => {
     try {
       setLoading(true);
@@ -107,6 +91,33 @@ const HomePage: React.FC = () => {
   const heroBlock = getBlockByKey("hero");
   const block1 = getBlockByKey("block1");
   const block2 = getBlockByKey("block2");
+
+  // Get carousel blocks for categories
+  const carouselBlock = getBlockByKey("carousel");
+  const carouselBlock1 = getBlockByKey("carousel1");
+  const carouselBlock2 = getBlockByKey("carousel2");
+
+  // Build categories array from carousel blocks
+  const categories = [
+    carouselBlock && {
+      title: carouselBlock.title || "Máy bay camera",
+      img:
+        carouselBlock.imageUrl ||
+        "https://images.unsplash.com/photo-1473968512647-3e447244af8f?w=800",
+    },
+    carouselBlock1 && {
+      title: carouselBlock1.title || "Ánh sáng",
+      img:
+        carouselBlock1.imageUrl ||
+        "https://images.unsplash.com/photo-1535016120720-40c646be5580?w=800",
+    },
+    carouselBlock2 && {
+      title: carouselBlock2.title || "Máy ảnh",
+      img:
+        carouselBlock2.imageUrl ||
+        "https://thuvienmuasam.com/uploads/default/original/2X/8/82b7fef36a4202ca4dc7d22ead2892e5a924038c.jpeg",
+    },
+  ].filter(Boolean) as Array<{ title: string; img: string }>;
 
   if (loading) {
     return (
@@ -154,52 +165,54 @@ const HomePage: React.FC = () => {
       </div>
 
       {/* Categories Section with 3D Carousel */}
-      <Box
-        component="section"
-        sx={{ pt: 0, pb: { xs: 8, md: "70px" }, backgroundColor: "#F9FAFB" }}
-      >
-        <Container maxWidth="lg">
-          <Box sx={{ textAlign: "center", mb: 6 }}>
-            <Typography
-              variant="overline"
-              sx={{
-                color: "#6B7280",
-                fontWeight: 600,
-                letterSpacing: 1.5,
-                mb: 2,
-                display: "block",
-              }}
-            >
-              KHÁM PHÁ BỘ SƯU TẬP
-            </Typography>
-            <Typography
-              variant="h3"
-              sx={{
-                color: "#111827",
-                fontWeight: 700,
-                fontSize: { xs: "2rem", md: "2.5rem" },
-                mb: 2,
-              }}
-            >
-              Danh Mục Sản Phẩm
-            </Typography>
-            <Typography
-              variant="body1"
-              sx={{
-                color: "#6B7280",
-                fontSize: { xs: "1rem", md: "1.125rem" },
-                maxWidth: 600,
-                mx: "auto",
-              }}
-            >
-              Khám phá dòng thiết bị máy ảnh chuyên nghiệp và phụ kiện đa dạng
-              của chúng tôi
-            </Typography>
-          </Box>
+      {categories.length > 0 && (
+        <Box
+          component="section"
+          sx={{ pt: 0, pb: { xs: 8, md: "70px" }, backgroundColor: "#F9FAFB" }}
+        >
+          <Container maxWidth="lg">
+            <Box sx={{ textAlign: "center", mb: 6 }}>
+              <Typography
+                variant="overline"
+                sx={{
+                  color: "#6B7280",
+                  fontWeight: 600,
+                  letterSpacing: 1.5,
+                  mb: 2,
+                  display: "block",
+                }}
+              >
+                KHÁM PHÁ BỘ SƯU TẬP
+              </Typography>
+              <Typography
+                variant="h3"
+                sx={{
+                  color: "#111827",
+                  fontWeight: 700,
+                  fontSize: { xs: "2rem", md: "2.5rem" },
+                  mb: 2,
+                }}
+              >
+                Danh Mục Sản Phẩm
+              </Typography>
+              <Typography
+                variant="body1"
+                sx={{
+                  color: "#6B7280",
+                  fontSize: { xs: "1rem", md: "1.125rem" },
+                  maxWidth: 600,
+                  mx: "auto",
+                }}
+              >
+                Khám phá dòng thiết bị máy ảnh chuyên nghiệp và phụ kiện đa dạng
+                của chúng tôi
+              </Typography>
+            </Box>
 
-          <ThreeDCarousel items={categories} />
-        </Container>
-      </Box>
+            <ThreeDCarousel items={categories} />
+          </Container>
+        </Box>
+      )}
 
       {/* Block 1 - Experience Matters Section */}
       {block1 && (

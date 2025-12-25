@@ -109,6 +109,7 @@ export interface UserProfileResponse {
   signatureAssetId: string | null;
   avatarId: string | null;
   branch: BranchInfo | null; // Thông tin chi nhánh (chỉ có cho Staff và BranchManager)
+  signatureUrl: string | null;
 }
 
 export interface UpdateUserProfileRequest {

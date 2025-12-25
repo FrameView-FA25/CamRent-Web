@@ -58,17 +58,14 @@ interface UserProfileData {
   bankName: string | null;
   bankAccountName: string | null;
   signatureAssetId: string | null;
-  signatureAsset?: {
-    url: string;
-    contentType: string;
-    sizeBytes: number;
-    label: string;
-  } | null;
+  signatureUrl: string | null;
   avatarId: string | null;
   id: string;
-  roles: string[] | Array<{
-    role: string;
-  }>; // Backend trả về List<string> từ Role.ToString()
+  roles:
+    | string[]
+    | Array<{
+        role: string;
+      }>; // Backend trả về List<string> từ Role.ToString()
 }
 
 const TabPanel: React.FC<TabPanelProps> = ({ children, value, index }) => (
@@ -113,7 +110,7 @@ const ManagerProfile: React.FC = () => {
     try {
       setLoading(true);
       const data = await userService.getCurrentUserProfile();
-      
+
       // Helper function để format address từ backend
       const formatAddress = (): string | null => {
         if (!data.address) return null;
@@ -136,6 +133,7 @@ const ManagerProfile: React.FC = () => {
         address: formatAddress(),
         signatureAssetId: data.signatureAssetId || null,
         avatarId: data.avatarId || null,
+        signatureUrl: data.signatureUrl || null,
       });
 
       // Helper để lấy role string từ roles array
@@ -146,7 +144,11 @@ const ManagerProfile: React.FC = () => {
         if (typeof firstRole === "string") {
           return firstRole;
         }
-        if (typeof firstRole === "object" && firstRole !== null && "role" in firstRole) {
+        if (
+          typeof firstRole === "object" &&
+          firstRole !== null &&
+          "role" in firstRole
+        ) {
           return (firstRole as { role: string }).role || "";
         }
         return "";
@@ -565,7 +567,7 @@ const ManagerProfile: React.FC = () => {
                       </Alert>
 
                       {/* Display signature image */}
-                      {profileData?.signatureAsset?.url && (
+                      {profileData?.signatureUrl && (
                         <Box
                           sx={{
                             mb: 2,
@@ -579,7 +581,7 @@ const ManagerProfile: React.FC = () => {
                           }}
                         >
                           <img
-                            src={profileData.signatureAsset.url}
+                            src={profileData.signatureUrl}
                             alt="Chữ ký"
                             style={{
                               maxWidth: "100%",

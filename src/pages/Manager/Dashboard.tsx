@@ -41,6 +41,14 @@ interface TimeSeriesStat {
   capturedRevenue: number;
 }
 
+interface TopRentedAsset {
+  itemId: string;
+  itemType: string;
+  name: string;
+  rentalCount: number;
+  grossRevenue: number;
+}
+
 interface DashboardData {
   branchId: string;
   branchName: string;
@@ -49,7 +57,9 @@ interface DashboardData {
   totalBookings: number;
   bookingsByStatus: BookingStatus[];
   totalCapturedRevenue: number;
+  totalGrossRevenue: number;
   openDisputes: number;
+  topRentedAssets?: TopRentedAsset[];
   dailyStats?: TimeSeriesStat[];
   monthlyStats?: TimeSeriesStat[];
 }
@@ -254,6 +264,9 @@ const DashboardManager: React.FC = () => {
               bgcolor: "white",
               border: "1px solid #E5E7EB",
               borderTop: "4px solid #10B981",
+              minHeight: 180,
+              display: "flex",
+              flexDirection: "column",
             }}
           >
             <Box
@@ -291,7 +304,7 @@ const DashboardManager: React.FC = () => {
                   {dashboardData.camerasInBranch}
                 </Typography>
                 <Typography variant="caption" sx={{ color: "#6B7280" }}>
-                  Số lượng camera bạn đang cho thuê.
+                  Số lượng camera đang cho thuê.
                 </Typography>
               </Box>
             </Box>
@@ -308,6 +321,9 @@ const DashboardManager: React.FC = () => {
               bgcolor: "white",
               border: "1px solid #E5E7EB",
               borderTop: "4px solid #6366F1",
+              minHeight: 180,
+              display: "flex",
+              flexDirection: "column",
             }}
           >
             <Box
@@ -345,7 +361,7 @@ const DashboardManager: React.FC = () => {
                   {dashboardData.accessoriesInBranch}
                 </Typography>
                 <Typography variant="caption" sx={{ color: "#6B7280" }}>
-                  Số lượng phụ kiện bạn đang cho thuê.
+                  Số lượng phụ kiện đang cho thuê.
                 </Typography>
               </Box>
             </Box>
@@ -362,6 +378,9 @@ const DashboardManager: React.FC = () => {
               bgcolor: "white",
               border: "1px solid #E5E7EB",
               borderTop: "4px solid #F59E0B",
+              minHeight: 180,
+              display: "flex",
+              flexDirection: "column",
             }}
           >
             <Box
@@ -399,14 +418,71 @@ const DashboardManager: React.FC = () => {
                   {dashboardData.totalBookings}
                 </Typography>
                 <Typography variant="caption" sx={{ color: "#6B7280" }}>
-                  Tổng số đơn thuê liên quan tới thiết bị của bạn.
+                  Tổng số đơn thuê thiết bị.
                 </Typography>
               </Box>
             </Box>
           </Paper>
         </Grid>
 
-        {/* Total Revenue */}
+        {/* Total Captured Revenue */}
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+          <Paper
+            elevation={0}
+            sx={{
+              p: 3,
+              borderRadius: 3,
+              bgcolor: "white",
+              border: "1px solid #E5E7EB",
+              borderTop: "4px solid #10B981",
+              minHeight: 180,
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+              }}
+            >
+              <Box sx={{ width: "100%" }}>
+                <Box
+                  sx={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 2,
+                    bgcolor: "#ECFDF5",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    mb: 2,
+                  }}
+                >
+                  <AttachMoneyIcon sx={{ fontSize: 24, color: "#10B981" }} />
+                </Box>
+                <Typography
+                  variant="body2"
+                  sx={{ color: "#6B7280", mb: 0.5, fontWeight: 500 }}
+                >
+                  Doanh thu đã thu
+                </Typography>
+                <Typography
+                  variant="h4"
+                  sx={{ fontWeight: 700, color: "#1F2937" }}
+                >
+                  {formatCurrency(dashboardData.totalCapturedRevenue)}
+                </Typography>
+                <Typography variant="caption" sx={{ color: "#6B7280" }}>
+                  Doanh thu đã thu từ booking.
+                </Typography>
+              </Box>
+            </Box>
+          </Paper>
+        </Grid>
+
+        {/* Total Gross Revenue */}
         <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <Paper
             elevation={0}
@@ -416,6 +492,9 @@ const DashboardManager: React.FC = () => {
               bgcolor: "white",
               border: "1px solid #E5E7EB",
               borderTop: "4px solid #F59E0B",
+              minHeight: 180,
+              display: "flex",
+              flexDirection: "column",
             }}
           >
             <Box
@@ -444,16 +523,16 @@ const DashboardManager: React.FC = () => {
                   variant="body2"
                   sx={{ color: "#6B7280", mb: 0.5, fontWeight: 500 }}
                 >
-                  Tổng doanh thu ước tính
+                  Tổng doanh thu gộp
                 </Typography>
                 <Typography
                   variant="h4"
                   sx={{ fontWeight: 700, color: "#1F2937" }}
                 >
-                  {formatCurrency(dashboardData.totalCapturedRevenue)}
+                  {formatCurrency(dashboardData.totalGrossRevenue)}
                 </Typography>
                 <Typography variant="caption" sx={{ color: "#6B7280" }}>
-                  Tổng doanh thu ước tính từ các booking.
+                  Doanh thu gộp từ các booking.
                 </Typography>
               </Box>
             </Box>
@@ -663,6 +742,155 @@ const DashboardManager: React.FC = () => {
           </Box>
         </Card>
       </Box>
+
+      {/* Top Rented Assets */}
+      {dashboardData.topRentedAssets &&
+        dashboardData.topRentedAssets.length > 0 && (
+          <Box sx={{ mb: 4 }}>
+            <Paper
+              elevation={0}
+              sx={{
+                p: 3,
+                borderRadius: 3,
+                bgcolor: "white",
+                border: "1px solid #E5E7EB",
+              }}
+            >
+              <Typography
+                variant="h6"
+                sx={{ fontWeight: 700, color: "#1F2937", mb: 3 }}
+              >
+                Top thiết bị được thuê nhiều nhất
+              </Typography>
+
+              <Grid container spacing={2}>
+                {dashboardData.topRentedAssets
+                  .slice(0, 6)
+                  .map((asset, index) => (
+                    <Grid key={asset.itemId} size={{ xs: 12, sm: 6, md: 4 }}>
+                      <Card
+                        elevation={0}
+                        sx={{
+                          p: 2.5,
+                          borderRadius: 2,
+                          bgcolor: "#F9FAFB",
+                          border: "1px solid #E5E7EB",
+                          position: "relative",
+                          overflow: "hidden",
+                          transition: "all 0.2s ease",
+                          "&:hover": {
+                            borderColor: "#F97316",
+                            boxShadow: "0 4px 12px rgba(249, 115, 22, 0.15)",
+                          },
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 2,
+                            mb: 2,
+                          }}
+                        >
+                          <Box
+                            sx={{
+                              width: 40,
+                              height: 40,
+                              borderRadius: 2,
+                              bgcolor: "#FFF7ED",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontWeight: 700,
+                              fontSize: "1.25rem",
+                              color: "#F97316",
+                            }}
+                          >
+                            #{index + 1}
+                          </Box>
+                          <Box sx={{ flex: 1 }}>
+                            <Typography
+                              variant="body1"
+                              sx={{
+                                fontWeight: 600,
+                                color: "#1F2937",
+                                mb: 0.5,
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              {asset.name}
+                            </Typography>
+                            <Chip
+                              label={
+                                asset.itemType === "camera"
+                                  ? "Camera"
+                                  : "Phụ kiện"
+                              }
+                              size="small"
+                              sx={{
+                                bgcolor:
+                                  asset.itemType === "camera"
+                                    ? "#ECFDF5"
+                                    : "#EEF2FF",
+                                color:
+                                  asset.itemType === "camera"
+                                    ? "#10B981"
+                                    : "#6366F1",
+                                fontWeight: 600,
+                                fontSize: "0.7rem",
+                                height: 20,
+                              }}
+                            />
+                          </Box>
+                        </Box>
+
+                        <Box sx={{ display: "flex", gap: 2 }}>
+                          <Box sx={{ flex: 1 }}>
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                color: "#6B7280",
+                                display: "block",
+                                mb: 0.5,
+                              }}
+                            >
+                              Lượt thuê
+                            </Typography>
+                            <Typography
+                              variant="h6"
+                              sx={{ fontWeight: 700, color: "#1F2937" }}
+                            >
+                              {asset.rentalCount}
+                            </Typography>
+                          </Box>
+                          <Box sx={{ flex: 1 }}>
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                color: "#6B7280",
+                                display: "block",
+                                mb: 0.5,
+                              }}
+                            >
+                              Doanh thu
+                            </Typography>
+                            <Typography
+                              variant="body2"
+                              sx={{ fontWeight: 700, color: "#F59E0B" }}
+                            >
+                              {formatCurrency(asset.grossRevenue)}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      </Card>
+                    </Grid>
+                  ))}
+              </Grid>
+            </Paper>
+          </Box>
+        )}
 
       {/* Bookings by Status & Disputes */}
       <Grid container spacing={3}>
