@@ -57,7 +57,7 @@ interface DashboardData {
   totalBookings: number;
   bookingsByStatus: BookingStatus[];
   totalCapturedRevenue: number;
-  totalGrossRevenue: number;
+  totalGrossRevenue?: number;
   openDisputes: number;
   topRentedAssets?: TopRentedAsset[];
   dailyStats?: TimeSeriesStat[];
@@ -529,7 +529,7 @@ const DashboardManager: React.FC = () => {
                   variant="h4"
                   sx={{ fontWeight: 700, color: "#1F2937" }}
                 >
-                  {formatCurrency(dashboardData.totalGrossRevenue)}
+                  {formatCurrency(dashboardData.totalGrossRevenue ?? 0)}
                 </Typography>
                 <Typography variant="caption" sx={{ color: "#6B7280" }}>
                   Doanh thu gộp từ các booking.

@@ -34,7 +34,6 @@ import {
   MessageSquare,
   XCircle,
   AlertCircle,
-  Shield,
   CheckCircle,
   ChevronDown,
   ChevronUp,
@@ -53,7 +52,6 @@ const OrderDetailPage: React.FC = () => {
   const [order, setOrder] = useState<BookingDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [openContractDialog, setOpenContractDialog] = useState(false);
   const [openCancelDialog, setOpenCancelDialog] = useState(false);
   const [selectedInspectionImage, setSelectedInspectionImage] = useState<
     string | null
@@ -61,7 +59,7 @@ const OrderDetailPage: React.FC = () => {
   const [paidDetailExpanded, setPaidDetailExpanded] = useState(false);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
-  const [currentContractId, setCurrentContractId] = useState<string | null>(
+  const [, setCurrentContractId] = useState<string | null>(
     null
   );
   const [currentFilename, setCurrentFilename] = useState<string>("");
@@ -166,7 +164,7 @@ const OrderDetailPage: React.FC = () => {
   };
 
   const handleViewContract = async () => {
-    if (!order.contracts || order.contracts.length === 0) {
+    if (!order || !order.contracts || order.contracts.length === 0) {
       toast.error("Không tìm thấy hợp đồng");
       return;
     }
@@ -252,74 +250,7 @@ const OrderDetailPage: React.FC = () => {
     return media[0]?.url || null;
   };
 
-  // Calculate payment details from payment lines
-  const calculatePaymentDetails = () => {
-    if (!order || !order.payments || order.payments.length === 0) {
-      return {
-        rentalAmount: order?.snapshotRentalTotal || 0,
-        depositAmount: order?.snapshotDepositAmount || 0,
-        platformFee:
-          (order?.snapshotRentalTotal || 0) *
-          (order?.snapshotPlatformFeePercent || 0),
-        totalAmount: 0,
-        paidAmount: 0,
-        paymentStatus: "Chưa thanh toán",
-      };
-    }
-
-    let totalRental = 0;
-    let totalDeposit = 0;
-    let totalPaid = 0;
-
-    // Sum up all payment lines
-    order.payments.forEach((payment) => {
-      if (payment && payment.lines && Array.isArray(payment.lines)) {
-        payment.lines.forEach((line) => {
-          if (line.type === "rental" || line.type === "rental_advance") {
-            totalRental += line.amount;
-            if (
-              payment.status === "Captured" ||
-              payment.status === "Authorized"
-            ) {
-              totalPaid += line.capturedAmount || line.amount;
-            }
-          } else if (line.type === "device_deposit") {
-            totalDeposit += line.amount;
-          }
-        });
-      }
-    });
-
-    // Use snapshot values if no payment lines
-    const rentalAmount = totalRental || order.snapshotRentalTotal;
-    const depositAmount = totalDeposit || order.snapshotDepositAmount;
-    const platformFee = rentalAmount * order.snapshotPlatformFeePercent;
-    const totalAmount = rentalAmount + depositAmount + platformFee;
-
-    // Determine payment status
-    let paymentStatus = "Chưa thanh toán";
-    const hasAuthorized = order.payments.some(
-      (p) => p && p.status === "Authorized"
-    );
-    const hasCaptured = order.payments.some(
-      (p) => p && p.status === "Captured"
-    );
-
-    if (hasCaptured) {
-      paymentStatus = "Đã thanh toán";
-    } else if (hasAuthorized) {
-      paymentStatus = "Đã ủy quyền";
-    }
-
-    return {
-      rentalAmount,
-      depositAmount,
-      platformFee,
-      totalAmount,
-      paidAmount: totalPaid,
-      paymentStatus,
-    };
-  };
+ 
 
   if (loading) {
     return (
@@ -396,7 +327,6 @@ const OrderDetailPage: React.FC = () => {
 
   const statusInfo = getOrderStatusInfo(order.status, order.statusText);
   const rentalDays = calculateRentalDays(order.pickupAt, order.returnAt);
-  const paymentDetails = calculatePaymentDetails();
 
   return (
     <Box sx={{ bgcolor: colors.background.default, minHeight: "100vh", py: 4 }}>
