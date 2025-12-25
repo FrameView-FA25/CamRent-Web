@@ -1194,7 +1194,7 @@ export default function VerificationDetailModal({
               <WarningIcon sx={{ color: "#F97316", fontSize: 28 }} />
             </Box>
             <Typography variant="h6" sx={{ fontWeight: 700, color: "#1E293B" }}>
-              Xác nhận cập nhật trạng thái
+              Xác nhận tạo hợp đồng và ký
             </Typography>
           </Box>
         </DialogTitle>
