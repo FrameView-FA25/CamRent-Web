@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { toast } from "react-toastify";
 import {
   Dialog,
   DialogTitle,
@@ -126,13 +127,27 @@ export default function VerificationDetailModal({
       const signatureData = signatureRef.current.toDataURL();
       const base64Signature = signatureData.split(",")[1];
       await contractService.sign(signingContractId, base64Signature);
-      alert("Ký hợp đồng thành công!");
       handleCloseSignature();
       // Đợi refresh hoàn tất để đảm bảo dữ liệu được cập nhật
       await onRefresh?.();
+      // Hiển thị toast thông báo thành công
+      toast.success("Ký hợp đồng thành công!", {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
     } catch (error) {
       console.error("Signature error:", error);
-      alert(error instanceof Error ? error.message : "Lỗi khi ký hợp đồng.");
+      toast.error(
+        error instanceof Error ? error.message : "Lỗi khi ký hợp đồng.",
+        {
+          position: "top-right",
+          autoClose: 5000,
+        }
+      );
     } finally {
       setSigning(false);
     }
