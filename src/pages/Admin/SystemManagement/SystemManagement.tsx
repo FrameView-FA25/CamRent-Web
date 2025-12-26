@@ -39,7 +39,7 @@ const SystemManagement: React.FC = () => {
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
-    severity: "success" as "success" | "error",
+    severity: "success" as "success" | "error" | "warning",
   });
 
   const [formData, setFormData] = useState<MoneyPlatformSettingsRequest>({
@@ -61,6 +61,7 @@ const SystemManagement: React.FC = () => {
       const data = await moneyPlatformSettingsService.getAll();
       setSettings(data);
     } catch (error) {
+      console.error("fetchSettings error:", error);
       setSnackbar({
         open: true,
         message: "Không thể tải cấu hình hệ thống",
@@ -153,6 +154,7 @@ const SystemManagement: React.FC = () => {
       setModalVisible(false);
       fetchSettings();
     } catch (error) {
+      console.error("handleSubmit error:", error);
       setSnackbar({
         open: true,
         message: editingId ? "Cập nhật thất bại" : "Tạo mới thất bại",
@@ -173,7 +175,7 @@ const SystemManagement: React.FC = () => {
         <CardHeader
           title="Quản lý cấu hình hệ thống"
           action={
-            settings.length === 0 && (
+            settings.length === 0 ? (
               <Button
                 variant="contained"
                 color="primary"
