@@ -4,6 +4,7 @@ import type {
   Verification,
   UnverifiedDevice,
 } from "../types/verification.types";
+import { toast } from "react-toastify";
 
 // URL cơ sở của API backend
 const API_BASE_URL = "https://camrent-backend.up.railway.app/api";
@@ -238,6 +239,7 @@ export const verificationService = {
       }
       throw new Error(errorMessage);
     }
+     toast.success("Phân công nhân viên thành công!");
   },
   /**
    * Cập nhật trạng thái của một yêu cầu xác minh
@@ -273,10 +275,11 @@ export const verificationService = {
     });
 
     if (!response.ok) {
-      let errorMessage = `Cập nhật trạng thái thất bại với mã lỗi ${response.status}`;
+      let errorMessage =  "Bạn cần thêm chữ ký trước khi duyệt. Chuyển đến trang hồ sơ.";
       try {
         const errorData = await response.json();
         errorMessage = errorData.message || errorMessage;
+        window.location.href = "/manager/profile";
       } catch {
         const errorText = await response.text().catch(() => "");
         if (errorText) errorMessage = errorText;

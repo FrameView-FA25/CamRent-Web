@@ -37,6 +37,7 @@ import { toast } from "react-toastify";
 import dayjs, { Dayjs } from "dayjs";
 import isoWeek from "dayjs/plugin/isoWeek";
 import "dayjs/locale/vi";
+import { dashboardService } from "../../services/dashboard.service";
 
 dayjs.extend(isoWeek);
 dayjs.locale("vi");
@@ -89,50 +90,8 @@ const IndividualStaffSchedule: React.FC = () => {
   const [scheduleEvents, setScheduleEvents] = useState<StaffScheduleEvent[]>(
     []
   );
-  const [workSlots] = useState<WorkSlot[]>([
-    {
-      id: "1",
-      slotIndex: 1,
-      startTime: "08:00",
-      endTime: "09:00",
-      isActive: true,
-    },
-    {
-      id: "2",
-      slotIndex: 2,
-      startTime: "09:00",
-      endTime: "10:00",
-      isActive: true,
-    },
-    {
-      id: "3",
-      slotIndex: 3,
-      startTime: "10:00",
-      endTime: "11:00",
-      isActive: true,
-    },
-    {
-      id: "4",
-      slotIndex: 4,
-      startTime: "11:00",
-      endTime: "12:00",
-      isActive: true,
-    },
-    {
-      id: "5",
-      slotIndex: 5,
-      startTime: "13:00",
-      endTime: "14:00",
-      isActive: true,
-    },
-    {
-      id: "6",
-      slotIndex: 6,
-      startTime: "14:00",
-      endTime: "15:00",
-      isActive: true,
-    },
-  ]);
+  const [workSlots, setWorkSlots] = useState<WorkSlot[]>([]);
+
   const [loading, setLoading] = useState(false);
   const [loadingStaff, setLoadingStaff] = useState(false);
   const [yearMenuAnchor, setYearMenuAnchor] = useState<null | HTMLElement>(
@@ -184,6 +143,7 @@ const IndividualStaffSchedule: React.FC = () => {
 
   useEffect(() => {
     loadStaffList();
+    loadWorkSlots();
   }, []);
 
   useEffect(() => {
@@ -211,7 +171,17 @@ const IndividualStaffSchedule: React.FC = () => {
       setLoadingStaff(false);
     }
   };
-
+  const loadWorkSlots = async () => {
+    setLoading(true);
+    try {
+      const slots = await dashboardService.getWorkSlots();
+      setWorkSlots(slots.filter((slot) => slot.isActive));
+    } catch (err: any) {
+      console.error("Failed to load work slots:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
   const loadStaffSchedule = async () => {
     if (!selectedStaffId) return;
 

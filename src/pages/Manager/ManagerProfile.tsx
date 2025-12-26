@@ -31,7 +31,7 @@ import { SignatureDialog } from "./Verification/components/dialogs/SignatureDial
 import SignatureCanvas from "react-signature-canvas";
 import { toast } from "react-toastify";
 import { userService } from "../../services/user.service";
-
+import { colors } from "@/theme/colors";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 // Utility functions for text processing
@@ -764,8 +764,8 @@ const ManagerProfile: React.FC = () => {
                         onClick={handleOpenSignature}
                         fullWidth
                         sx={{
-                          bgcolor: "#DC2626",
-                          "&:hover": { bgcolor: "#B91C1C" },
+                          bgcolor: colors.primary.main,
+                          color: " white",
                         }}
                       >
                         Thêm chữ ký
@@ -796,11 +796,11 @@ const ManagerProfile: React.FC = () => {
                     "& .MuiTab-root": {
                       color: "#6B7280",
                       "&.Mui-selected": {
-                        color: "#DC2626",
+                        color: colors.primary.main,
                       },
                     },
                     "& .MuiTabs-indicator": {
-                      backgroundColor: "#DC2626",
+                      backgroundColor: colors.primary.main,
                     },
                   }}
                 >
@@ -928,8 +928,9 @@ const ManagerProfile: React.FC = () => {
                     variant="contained"
                     onClick={handlePasswordUpdate}
                     sx={{
-                      bgcolor: "#DC2626",
-                      "&:hover": { bgcolor: "#B91C1C" },
+                      bgcolor: colors.primary.main,
+                      color: " white",
+                      "&:hover": { bgcolor: colors.primary.dark },
                     }}
                   >
                     Cập Nhật Mật Khẩu
