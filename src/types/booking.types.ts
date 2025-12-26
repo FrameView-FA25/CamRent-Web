@@ -106,7 +106,7 @@ export interface Staff {
   userId: string;
   email: string;
   fullName: string;
-  phoneNumber?: string;
+  phone?: string;
   avatar?: string;
   role: string;
   conflictingBookings?: number;
