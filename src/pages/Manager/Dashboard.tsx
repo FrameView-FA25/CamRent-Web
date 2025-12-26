@@ -13,6 +13,9 @@ import {
   ToggleButton,
   ToggleButtonGroup,
   CircularProgress,
+  MenuItem,
+  Select,
+  FormControl,
 } from "@mui/material";
 import {
   PhotoCamera as CameraIcon,
@@ -50,7 +53,7 @@ interface StatItem {
   accent: StatAccent;
 }
 
-type ChartPeriod = "daily" | "monthly";
+type ChartPeriod = "daily" | "monthly" | "yearly";
 
 const CURRENCY_FORMATTER = new Intl.NumberFormat("vi-VN", {
   style: "currency",
@@ -66,22 +69,21 @@ const COMPACT_CURRENCY_FORMATTER = new Intl.NumberFormat("vi-VN", {
 });
 
 const formatCurrency = (value: number) => CURRENCY_FORMATTER.format(value);
-// const formatCurrencyCompact = (value: number) =>
-//   COMPACT_CURRENCY_FORMATTER.format(value);
 
 const formatChartLabel = (dateString: string, period: ChartPeriod) => {
   const date = new Date(dateString);
-  return period === "daily"
-    ? date.toLocaleDateString("vi-VN", {
-        day: "2-digit",
-        month: "2-digit",
-      })
-    : date.toLocaleDateString("vi-VN", {
-        month: "short",
-        year: "numeric",
-      });
+  if (period === "daily") {
+    return date.toLocaleDateString("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+    });
+  }
+  if (period === "monthly") {
+    return `Tháng ${date.getMonth() + 1}`;
+  }
+  // yearly
+  return date.getFullYear().toString();
 };
-
 // Bảng cấu hình style cho từng tone màu của thẻ thống kê (theo phong cách phẳng, giống shadcn)
 const STAT_ACCENT_STYLES: Record<
   StatAccent,
@@ -246,7 +248,7 @@ const TopRentedAssetsTable = ({ assets }: { assets: TopRentedAsset[] }) => {
             <TableBody>
               {assets.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} sx={{ border: "none", py: 4 }}>
+                  <TableCell colSpan={5} sx={{ border: "none", py: 4 }}>
                     <Typography
                       variant="body2"
                       sx={{ color: "#999", textAlign: "center" }}
@@ -294,11 +296,7 @@ const TopRentedAssetsTable = ({ assets }: { assets: TopRentedAsset[] }) => {
                         variant="body2"
                         sx={{ color: "#121212", fontWeight: 600 }}
                       >
-                        {new Intl.NumberFormat("vi-VN", {
-                          style: "currency",
-                          currency: "VND",
-                          maximumFractionDigits: 0,
-                        }).format(asset.grossRevenue)}
+                        {formatCurrency(asset.grossRevenue)}
                       </Typography>
                     </TableCell>
                     <TableCell sx={{ border: "none", textAlign: "center" }}>
@@ -306,11 +304,7 @@ const TopRentedAssetsTable = ({ assets }: { assets: TopRentedAsset[] }) => {
                         variant="body2"
                         sx={{ color: "#121212", fontWeight: 600 }}
                       >
-                        {new Intl.NumberFormat("vi-VN", {
-                          style: "currency",
-                          currency: "VND",
-                          maximumFractionDigits: 0,
-                        }).format(asset.netRevenue)}
+                        {formatCurrency(asset.netRevenue)}
                       </Typography>
                     </TableCell>
                   </TableRow>
@@ -324,12 +318,15 @@ const TopRentedAssetsTable = ({ assets }: { assets: TopRentedAsset[] }) => {
   );
 };
 
-// Biểu đồ cột cho phép chuyển đổi giữa thống kê theo ngày / theo tháng
+// Biểu đồ cột cho phép chuyển đổi giữa thống kê theo ngày / theo tháng / theo năm
 const ColumnChartCard = ({
   stats,
   period,
   onPeriodChange,
   isLoading,
+  selectedYear,
+  availableYears,
+  onYearChange,
 }: {
   stats: TimeSeriesStat[];
   period: ChartPeriod;
@@ -338,6 +335,9 @@ const ColumnChartCard = ({
     value: ChartPeriod | null
   ) => void;
   isLoading: boolean;
+  selectedYear: number;
+  availableYears: number[];
+  onYearChange: (event: any) => void;
 }) => {
   const hasData = stats.length > 0;
   const showLoadingState = isLoading && !hasData;
@@ -388,16 +388,49 @@ const ColumnChartCard = ({
               Theo dõi lượt thuê và doanh thu thu được của bạn.
             </Typography>
           </Box>
-          <ToggleButtonGroup
-            size="small"
-            color="primary"
-            exclusive
-            value={period}
-            onChange={onPeriodChange}
+
+          <Box
+            sx={{
+              display: "flex",
+              gap: 2,
+              alignItems: "center",
+              flexWrap: "wrap",
+            }}
           >
-            <ToggleButton value="daily">Ngày</ToggleButton>
-            <ToggleButton value="monthly">Tháng</ToggleButton>
-          </ToggleButtonGroup>
+            {/* Dropdown chọn năm - chỉ hiển thị khi period là monthly */}
+            {period === "monthly" && (
+              <FormControl size="small" sx={{ minWidth: 120 }}>
+                <Select
+                  value={selectedYear}
+                  onChange={onYearChange}
+                  sx={{
+                    borderRadius: 1,
+                    "& .MuiOutlinedInput-notchedOutline": {
+                      borderColor: "#E5E7EB",
+                    },
+                  }}
+                >
+                  {availableYears.map((year) => (
+                    <MenuItem key={year} value={year}>
+                      Năm {year}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
+
+            <ToggleButtonGroup
+              size="small"
+              color="primary"
+              exclusive
+              value={period}
+              onChange={onPeriodChange}
+            >
+              <ToggleButton value="daily">Ngày</ToggleButton>
+              <ToggleButton value="monthly">Tháng</ToggleButton>
+              <ToggleButton value="yearly">Năm</ToggleButton>
+            </ToggleButtonGroup>
+          </Box>
         </Box>
 
         {showLoadingState && (
@@ -459,10 +492,10 @@ const ColumnChartCard = ({
                     }
                   />
                   <RechartsTooltip
-                    formatter={(value: number) =>
-                      // Return [formattedValue, label] so the tooltip shows a Vietnamese label
-                      [formatCurrency(value), "Doanh thu thực tế"]
-                    }
+                    formatter={(value: number) => [
+                      formatCurrency(value),
+                      "Doanh thu thực tế",
+                    ]}
                     labelFormatter={(label: string) => `Thời gian: ${label}`}
                     contentStyle={{
                       borderRadius: 8,
@@ -539,11 +572,12 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [isLoadingWallet, setIsLoadingWallet] = useState<boolean>(true);
-  // Mặc định hiển thị thống kê theo tháng ngay khi vào dashboard
   const [chartPeriod, setChartPeriod] = useState<ChartPeriod>("monthly");
+  const [selectedYear, setSelectedYear] = useState<number>(
+    new Date().getFullYear()
+  );
 
   useEffect(() => {
-    // Lấy dữ liệu thống kê cho Owner khi component mount
     const fetchDashboard = async () => {
       try {
         const dashboard = await dashboardServiceManager.getManagerDashboard();
@@ -561,7 +595,6 @@ export default function Dashboard() {
       }
     };
 
-    // Lấy thông tin ví
     const fetchWallet = async () => {
       setIsLoadingWallet(true);
       try {
@@ -569,7 +602,6 @@ export default function Dashboard() {
         setWallet(walletData as WalletBalanceResponse);
       } catch (err) {
         console.error("Lỗi khi tải thông tin ví:", err);
-        // Không hiển thị lỗi nếu không load được ví, chỉ log
       } finally {
         setIsLoadingWallet(false);
       }
@@ -579,15 +611,27 @@ export default function Dashboard() {
     fetchWallet();
   }, []);
 
+  // Tạo danh sách các năm có dữ liệu
+  const availableYears = useMemo(() => {
+    const stats = data?.monthlyStats ?? [];
+    if (stats.length === 0) return [new Date().getFullYear()];
+
+    const years = new Set<number>();
+    stats.forEach((stat) => {
+      years.add(new Date(stat.date).getFullYear());
+    });
+
+    return Array.from(years).sort((a, b) => b - a);
+  }, [data?.monthlyStats]);
+
   const stats: StatItem[] = useMemo(
-    // Chuẩn hóa dữ liệu để truyền vào danh sách thẻ thống kê nhỏ
     () => [
       {
         title: "Số dư ví",
         value: isLoadingWallet ? (
           <CircularProgress size={24} />
         ) : (
-          formatCurrency(wallet?.balance ?? 1)
+          formatCurrency(wallet?.balance ?? 0)
         ),
         description: "Số dư khả dụng trong ví của bạn.",
         icon: <WalletIcon />,
@@ -654,14 +698,16 @@ export default function Dashboard() {
   );
 
   const dailyStats = useMemo(() => data?.dailyStats ?? [], [data?.dailyStats]);
+
   const monthlyStats = useMemo(() => {
-    // Đảm bảo mỗi tháng trong năm đều có entry để biểu đồ không bị thiếu cột
     const stats = data?.monthlyStats ?? [];
-    const targetYear = stats[0]
-      ? new Date(stats[0].date).getFullYear()
-      : new Date().getFullYear();
+
+    const yearStats = stats.filter(
+      (stat) => new Date(stat.date).getFullYear() === selectedYear
+    );
+
     const monthMap = new Map<number, TimeSeriesStat>(
-      stats.map((stat) => [new Date(stat.date).getMonth(), stat])
+      yearStats.map((stat) => [new Date(stat.date).getMonth(), stat])
     );
 
     return Array.from({ length: 12 }, (_, monthIndex) => {
@@ -671,18 +717,46 @@ export default function Dashboard() {
       }
 
       return {
-        date: new Date(Date.UTC(targetYear, monthIndex, 1)).toISOString(),
+        date: new Date(Date.UTC(selectedYear, monthIndex, 1)).toISOString(),
         bookingCount: 0,
         capturedRevenue: 0,
       };
     });
+  }, [data?.monthlyStats, selectedYear]);
+
+  const yearlyStats = useMemo(() => {
+    const stats = data?.monthlyStats ?? [];
+
+    if (stats.length === 0) return [];
+
+    const yearMap = new Map<number, TimeSeriesStat>();
+
+    stats.forEach((stat) => {
+      const year = new Date(stat.date).getFullYear();
+      const existing = yearMap.get(year);
+
+      if (existing) {
+        existing.bookingCount += stat.bookingCount;
+        existing.capturedRevenue += stat.capturedRevenue;
+      } else {
+        yearMap.set(year, {
+          date: new Date(Date.UTC(year, 0, 1)).toISOString(),
+          bookingCount: stat.bookingCount,
+          capturedRevenue: stat.capturedRevenue,
+        });
+      }
+    });
+
+    return Array.from(yearMap.values()).sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
   }, [data?.monthlyStats]);
 
-  const chartStats = useMemo(
-    // Khi đổi toggle ngày/tháng, lấy đúng bộ dữ liệu cho biểu đồ
-    () => (chartPeriod === "daily" ? dailyStats : monthlyStats),
-    [chartPeriod, dailyStats, monthlyStats]
-  );
+  const chartStats = useMemo(() => {
+    if (chartPeriod === "daily") return dailyStats;
+    if (chartPeriod === "monthly") return monthlyStats;
+    return yearlyStats;
+  }, [chartPeriod, dailyStats, monthlyStats, yearlyStats]);
 
   const handleChartPeriodChange = (
     _: MouseEvent<HTMLElement>,
@@ -693,7 +767,10 @@ export default function Dashboard() {
     }
   };
 
-  // Bố cục tổng thể của trang dashboard owner
+  const handleYearChange = (event: any) => {
+    setSelectedYear(event.target.value as number);
+  };
+
   return (
     <Box
       sx={{
@@ -704,7 +781,6 @@ export default function Dashboard() {
       }}
     >
       <Box sx={{ maxWidth: 1400, mx: "auto" }}>
-        {/* Header giới thiệu trang (tương tự style Documents trong shadcn dashboard) */}
         <Box
           sx={{
             mb: 3,
@@ -748,20 +824,21 @@ export default function Dashboard() {
           )}
         </Box>
 
-        {/* Nhóm thẻ thống kê nhanh */}
         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 3, mb: 4 }}>
           {stats.map((stat, index) => (
             <StatCard key={index} stat={stat} />
           ))}
         </Box>
 
-        {/* Khu vực nội dung chính: biểu đồ + bảng + doanh thu */}
         <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
           <ColumnChartCard
             stats={chartStats}
             period={chartPeriod}
             onPeriodChange={handleChartPeriodChange}
             isLoading={isLoading}
+            selectedYear={selectedYear}
+            availableYears={availableYears}
+            onYearChange={handleYearChange}
           />
           <Box>
             <TopRentedAssetsTable assets={data?.topRentedAssets ?? []} />
