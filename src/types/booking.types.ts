@@ -1,3 +1,5 @@
+import type { Contract } from "./contract.types";
+
 export interface Camera {
   id: string;
   brand: string;
@@ -77,7 +79,7 @@ export interface Booking {
   inspections?: BookingInspection[];
   createdAt: string;
   updatedAt: string;
-  contracts: Contracts[];
+  contracts: Contract[];
   payments?: BookingPayment[];
 }
 export interface Contracts {

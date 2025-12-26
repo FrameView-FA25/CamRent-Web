@@ -18,8 +18,6 @@ import {
   ImageListItem,
   Card,
   CardContent,
-  Collapse,
-  Stack,
 } from "@mui/material";
 import {
   ArrowLeft,
@@ -34,9 +32,8 @@ import {
   MessageSquare,
   XCircle,
   AlertCircle,
+  Shield,
   CheckCircle,
-  ChevronDown,
-  ChevronUp,
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { colors } from "../../theme/colors";
@@ -52,18 +49,11 @@ const OrderDetailPage: React.FC = () => {
   const [order, setOrder] = useState<BookingDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [openContractDialog, setOpenContractDialog] = useState(false);
   const [openCancelDialog, setOpenCancelDialog] = useState(false);
   const [selectedInspectionImage, setSelectedInspectionImage] = useState<
     string | null
   >(null);
-  const [paidDetailExpanded, setPaidDetailExpanded] = useState(false);
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-  const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
-  const [, setCurrentContractId] = useState<string | null>(
-    null
-  );
-  const [currentFilename, setCurrentFilename] = useState<string>("");
-  const [contractLoading, setContractLoading] = useState(false);
 
   useEffect(() => {
     if (orderId) {
@@ -163,85 +153,12 @@ const OrderDetailPage: React.FC = () => {
     }
   };
 
-  const handleViewContract = async () => {
-    if (!order || !order.contracts || order.contracts.length === 0) {
-      toast.error("Không tìm thấy hợp đồng");
-      return;
-    }
-
-    const contractId = order.contracts[0].id;
-    const token = localStorage.getItem("accessToken");
-
-    try {
-      setContractLoading(true);
-
-      const previewResponse = await fetch(
-        `${API_BASE_URL}/Contracts/${contractId}/preview`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (!previewResponse.ok) {
-        throw new Error("Không thể lấy preview hợp đồng");
-      }
-
-      const contentDisposition = previewResponse.headers.get(
-        "content-disposition"
-      );
-      let filename = `contract_${contractId}.pdf`;
-
-      if (contentDisposition) {
-        const filenameMatch = contentDisposition.match(
-          /filename[^;=\n]*=(?:(["'])([^"'\n]*)\1|([^;\n]*));?/
-        );
-        if (filenameMatch && filenameMatch[2]) {
-          filename = filenameMatch[2];
-        }
-      }
-
-      const blob = await previewResponse.blob();
-      const pdfBlob = new Blob([blob], { type: "application/pdf" });
-      const url = window.URL.createObjectURL(pdfBlob);
-
-      setPdfUrl(url);
-      setCurrentContractId(contractId);
-      setCurrentFilename(filename);
-      setPdfDialogOpen(true);
-    } catch (error) {
-      console.error("Contract error:", error);
-      toast.error(
-        error instanceof Error ? error.message : "Lỗi khi xem hợp đồng"
-      );
-    } finally {
-      setContractLoading(false);
-    }
-  };
-
-  const handleClosePdfDialog = () => {
-    setPdfDialogOpen(false);
-    if (pdfUrl) {
-      window.URL.revokeObjectURL(pdfUrl);
-      setPdfUrl(null);
-    }
+  const handleViewContract = () => {
+    setOpenContractDialog(true);
   };
 
   const handleDownloadContract = () => {
-    if (!pdfUrl || !currentFilename) {
-      toast.error("Không thể tải hợp đồng");
-      return;
-    }
-
-    const link = document.createElement("a");
-    link.href = pdfUrl;
-    link.download = currentFilename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast.success("Đang tải hợp đồng...");
+    toast.info("Tính năng tải hợp đồng sẽ sớm có");
   };
 
   // Get image URL from media array
@@ -250,7 +167,74 @@ const OrderDetailPage: React.FC = () => {
     return media[0]?.url || null;
   };
 
- 
+  // Calculate payment details from payment lines
+  const calculatePaymentDetails = () => {
+    if (!order || !order.payments || order.payments.length === 0) {
+      return {
+        rentalAmount: order?.snapshotRentalTotal || 0,
+        depositAmount: order?.snapshotDepositAmount || 0,
+        platformFee:
+          (order?.snapshotRentalTotal || 0) *
+          (order?.snapshotPlatformFeePercent || 0),
+        totalAmount: 0,
+        paidAmount: 0,
+        paymentStatus: "Chưa thanh toán",
+      };
+    }
+
+    let totalRental = 0;
+    let totalDeposit = 0;
+    let totalPaid = 0;
+
+    // Sum up all payment lines
+    order.payments.forEach((payment) => {
+      if (payment && payment.lines && Array.isArray(payment.lines)) {
+        payment.lines.forEach((line) => {
+          if (line.type === "rental" || line.type === "rental_advance") {
+            totalRental += line.amount;
+            if (
+              payment.status === "Captured" ||
+              payment.status === "Authorized"
+            ) {
+              totalPaid += line.capturedAmount || line.amount;
+            }
+          } else if (line.type === "device_deposit") {
+            totalDeposit += line.amount;
+          }
+        });
+      }
+    });
+
+    // Use snapshot values if no payment lines
+    const rentalAmount = totalRental || order.snapshotRentalTotal;
+    const depositAmount = totalDeposit || order.snapshotDepositAmount;
+    const platformFee = rentalAmount * order.snapshotPlatformFeePercent;
+    const totalAmount = rentalAmount + depositAmount + platformFee;
+
+    // Determine payment status
+    let paymentStatus = "Chưa thanh toán";
+    const hasAuthorized = order.payments.some(
+      (p) => p && p.status === "Authorized"
+    );
+    const hasCaptured = order.payments.some(
+      (p) => p && p.status === "Captured"
+    );
+
+    if (hasCaptured) {
+      paymentStatus = "Đã thanh toán";
+    } else if (hasAuthorized) {
+      paymentStatus = "Đã ủy quyền";
+    }
+
+    return {
+      rentalAmount,
+      depositAmount,
+      platformFee,
+      totalAmount,
+      paidAmount: totalPaid,
+      paymentStatus,
+    };
+  };
 
   if (loading) {
     return (
@@ -327,6 +311,7 @@ const OrderDetailPage: React.FC = () => {
 
   const statusInfo = getOrderStatusInfo(order.status, order.statusText);
   const rentalDays = calculateRentalDays(order.pickupAt, order.returnAt);
+  const paymentDetails = calculatePaymentDetails();
 
   return (
     <Box sx={{ bgcolor: colors.background.default, minHeight: "100vh", py: 4 }}>
@@ -410,7 +395,6 @@ const OrderDetailPage: React.FC = () => {
                 <Button
                   variant="outlined"
                   startIcon={<FileText size={18} />}
-                  disabled={contractLoading}
                   sx={{
                     borderColor: colors.primary.main,
                     color: colors.primary.main,
@@ -423,7 +407,7 @@ const OrderDetailPage: React.FC = () => {
                   }}
                   onClick={handleViewContract}
                 >
-                  {contractLoading ? "Đang tải..." : "Xem hợp đồng"}
+                  Xem hợp đồng
                 </Button>
               )}
 
@@ -739,356 +723,150 @@ const OrderDetailPage: React.FC = () => {
             </Paper>
 
             {/* Payment Information */}
-            {order.payments && order.payments.length > 0 && (
-              <Paper
-                elevation={0}
-                sx={{
-                  p: 3,
-                  borderRadius: 3,
-                  border: `1px solid ${colors.border.light}`,
-                  mb: 3,
-                }}
-              >
-                <Typography
-                  variant="h6"
-                  sx={{ fontWeight: 700, color: colors.text.primary, mb: 1 }}
-                >
-                  Tổng quát thanh toán
-                </Typography>
-                <Typography
-                  variant="body2"
-                  sx={{ color: colors.text.secondary, mb: 3 }}
-                >
-                  Chi tiết chi phí
-                </Typography>
+            {order.payments &&
+              order.payments.length > 0 &&
+              (() => {
+                // Tổng hợp thông tin thanh toán
+                const paymentSummary: { [key: string]: number } = {};
+                let totalPaid = 0;
+                let totalRefunded = 0;
 
-                <Divider sx={{ mb: 3 }} />
+                order.payments.forEach((payment) => {
+                  if (payment.lines && Array.isArray(payment.lines)) {
+                    payment.lines.forEach((line) => {
+                      const lineType =
+                        line.type === "rental"
+                          ? "Tiền thuê (Đã trừ tiền cọc dư)"
+                          : line.type === "rental_advance"
+                          ? "Tiền cọc dữ chỗ"
+                          : line.type === "device_deposit"
+                          ? "Tiền cọc thiết bị"
+                          : line.type === "refund"
+                          ? "Hoàn tiền"
+                          : line.type;
 
-                <Stack spacing={2}>
-                  {/* Dropdown cho Đã thanh toán */}
-                  <Box>
-                    <Box
-                      onClick={() => setPaidDetailExpanded(!paidDetailExpanded)}
+                      if (!paymentSummary[lineType]) {
+                        paymentSummary[lineType] = 0;
+                      }
+                      paymentSummary[lineType] += line.amount;
+                    });
+                  }
+
+                  if (payment.status === "Captured") {
+                    totalPaid += payment.capturedAmount || 0;
+                  }
+                  totalRefunded += payment.refundedAmount || 0;
+                });
+
+                return (
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 3,
+                      borderRadius: 3,
+                      border: `1px solid ${colors.border.light}`,
+                      mb: 3,
+                    }}
+                  >
+                    <Typography
+                      variant="h6"
                       sx={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        cursor: "pointer",
-                        p: 1.5,
-                        borderRadius: 2,
-                        bgcolor: paidDetailExpanded
-                          ? colors.primary.lighter
-                          : "transparent",
-                        transition: "all 0.2s ease",
-                        "&:hover": {
-                          bgcolor: colors.primary.lighter,
-                        },
+                        fontWeight: 700,
+                        color: colors.text.primary,
+                        mb: 3,
                       }}
                     >
-                      <Box
-                        sx={{ display: "flex", alignItems: "center", gap: 1 }}
-                      >
-                        <Typography
-                          variant="body2"
-                          sx={{ color: colors.text.secondary }}
+                      Thông tin thanh toán
+                    </Typography>
+
+                    <Box
+                      sx={{ display: "flex", flexDirection: "column", gap: 2 }}
+                    >
+                      {/* Các khoản thanh toán */}
+                      {Object.entries(paymentSummary).map(([type, amount]) => (
+                        <Box
+                          key={type}
+                          sx={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            bgcolor: colors.background.default,
+                            p: 2,
+                            borderRadius: 2,
+                          }}
                         >
-                          Đã thanh toán
-                        </Typography>
-                        {paidDetailExpanded ? (
-                          <ChevronUp size={20} color={colors.primary.main} />
-                        ) : (
-                          <ChevronDown size={20} color={colors.primary.main} />
-                        )}
-                      </Box>
-                      <Typography
-                        variant="body1"
-                        sx={{ fontWeight: 600, color: colors.text.primary }}
-                      >
-                        {formatCurrency(
-                          order.payments
-                            .filter(
-                              (p) =>
-                                p.status === "Captured" ||
-                                p.status === "Authorized"
-                            )
-                            .reduce(
-                              (sum, p) =>
-                                sum +
-                                (p.capturedAmount || p.authorizedAmount || 0),
-                              0
-                            )
-                        )}
-                      </Typography>
-                    </Box>
+                          <Typography
+                            variant="body1"
+                            sx={{
+                              color: colors.text.secondary,
+                              fontWeight: 500,
+                            }}
+                          >
+                            {type}
+                          </Typography>
+                          <Typography
+                            variant="body1"
+                            sx={{ fontWeight: 600, color: colors.text.primary }}
+                          >
+                            {formatCurrency(amount)}
+                          </Typography>
+                        </Box>
+                      ))}
 
-                    <Collapse in={paidDetailExpanded}>
-                      <Box
-                        sx={{
-                          mt: 1,
-                          ml: 2,
-                          pl: 2,
-                          borderLeft: `2px solid ${colors.primary.main}`,
-                        }}
-                      >
-                        <Stack spacing={2}>
-                          {order.payments
-                            .filter(
-                              (p) =>
-                                p.status === "Captured" ||
-                                p.status === "Authorized"
-                            )
-                            .map((payment, index) => {
-                              const paymentAmount =
-                                payment.status === "Captured"
-                                  ? payment.capturedAmount
-                                  : payment.authorizedAmount;
+                      <Divider sx={{ my: 1 }} />
 
-                              const getPaymentMethodLabel = (
-                                provider: string
-                              ) => {
-                                switch (provider?.toLowerCase()) {
-                                  case "payos":
-                                    return "Chuyển khoản ngân hàng (PayOS)";
-                                  case "cash":
-                                    return "Tiền mặt";
-                                  case "wallet":
-                                    return "Ví điện tử";
-                                  default:
-                                    return provider || "Không xác định";
-                                }
-                              };
-
-                              const getStatusLabel = (status: string) => {
-                                switch (status) {
-                                  case "Captured":
-                                    return "Đã thanh toán";
-                                  case "Authorized":
-                                    return "Đã ủy quyền";
-                                  default:
-                                    return status;
-                                }
-                              };
-
-                              const getStatusColor = (status: string) => {
-                                switch (status) {
-                                  case "Captured":
-                                    return colors.status.success;
-                                  case "Authorized":
-                                    return colors.accent.blue;
-                                  default:
-                                    return colors.text.secondary;
-                                }
-                              };
-
-                              return (
-                                <Box
-                                  key={payment.id}
-                                  sx={{
-                                    p: 2,
-                                    bgcolor: colors.background.default,
-                                    borderRadius: 2,
-                                    border: `1px solid ${colors.border.light}`,
-                                  }}
-                                >
-                                  <Box
-                                    sx={{
-                                      display: "flex",
-                                      justifyContent: "space-between",
-                                      alignItems: "start",
-                                      mb: 1.5,
-                                    }}
-                                  >
-                                    <Box>
-                                      <Typography
-                                        variant="body2"
-                                        sx={{
-                                          fontWeight: 600,
-                                          color: colors.text.primary,
-                                        }}
-                                      >
-                                        Thanh toán #{index + 1}
-                                      </Typography>
-                                      <Typography
-                                        variant="caption"
-                                        sx={{ color: colors.text.secondary }}
-                                      >
-                                        {getPaymentMethodLabel(
-                                          payment.provider
-                                        )}
-                                      </Typography>
-                                    </Box>
-                                    <Box sx={{ textAlign: "right" }}>
-                                      <Typography
-                                        variant="body1"
-                                        sx={{
-                                          fontWeight: 700,
-                                          color: colors.status.success,
-                                        }}
-                                      >
-                                        {formatCurrency(paymentAmount)}
-                                      </Typography>
-                                      <Chip
-                                        label={getStatusLabel(payment.status)}
-                                        size="small"
-                                        sx={{
-                                          mt: 0.5,
-                                          bgcolor: getStatusColor(
-                                            payment.status
-                                          ),
-                                          color: "white",
-                                          fontSize: "0.7rem",
-                                          height: 20,
-                                        }}
-                                      />
-                                    </Box>
-                                  </Box>
-
-                                  {/* Chi tiết các payment lines */}
-                                  {payment.lines &&
-                                    payment.lines.length > 0 && (
-                                      <Box
-                                        sx={{
-                                          mt: 1.5,
-                                          pt: 1.5,
-                                          borderTop: `1px solid ${colors.border.light}`,
-                                        }}
-                                      >
-                                        <Stack spacing={1}>
-                                          {payment.lines.map(
-                                            (line, lineIndex) => {
-                                              const getLineTypeLabel = (
-                                                type: string
-                                              ) => {
-                                                switch (type) {
-                                                  case "rental":
-                                                    return "Tiền thuê thiết bị";
-                                                  case "rental_advance":
-                                                    return "Tiền giữ chỗ (10%)";
-                                                  case "device_deposit":
-                                                    return "Tiền cọc thiết bị";
-                                                  case "delivery_fee":
-                                                    return "Phí giao hàng";
-                                                  case "refund":
-                                                    return "Hoàn tiền";
-                                                  default:
-                                                    return type;
-                                                }
-                                              };
-
-                                              const lineAmount =
-                                                payment.status === "Captured"
-                                                  ? line.capturedAmount ||
-                                                    line.amount
-                                                  : line.amount;
-
-                                              return (
-                                                <Box
-                                                  key={lineIndex}
-                                                  sx={{
-                                                    display: "flex",
-                                                    justifyContent:
-                                                      "space-between",
-                                                    alignItems: "center",
-                                                  }}
-                                                >
-                                                  <Typography
-                                                    variant="caption"
-                                                    sx={{
-                                                      color:
-                                                        colors.text.secondary,
-                                                    }}
-                                                  >
-                                                    {getLineTypeLabel(
-                                                      line.type
-                                                    )}
-                                                  </Typography>
-                                                  <Typography
-                                                    variant="caption"
-                                                    sx={{
-                                                      fontWeight: 600,
-                                                      color:
-                                                        colors.text.primary,
-                                                    }}
-                                                  >
-                                                    {formatCurrency(lineAmount)}
-                                                  </Typography>
-                                                </Box>
-                                              );
-                                            }
-                                          )}
-                                        </Stack>
-                                      </Box>
-                                    )}
-                                </Box>
-                              );
-                            })}
-
-                          {order.payments.filter(
-                            (p) =>
-                              p.status === "Captured" ||
-                              p.status === "Authorized"
-                          ).length === 0 && (
-                            <Typography
-                              variant="caption"
-                              sx={{ color: colors.text.secondary }}
-                            >
-                              Chưa có khoản thanh toán nào
-                            </Typography>
-                          )}
-                        </Stack>
-                      </Box>
-                    </Collapse>
-                  </Box>
-
-                  {/* Đã hoàn tiền (nếu có) */}
-                  {order.payments.some(
-                    (p) => p.status === "Refunded" && p.refundedAmount > 0
-                  ) && (
-                    <Box
-                      sx={{
-                        p: 2,
-                        bgcolor: colors.accent.blue + "20",
-                        borderRadius: 2,
-                        border: `1px solid ${colors.accent.blue}`,
-                      }}
-                    >
+                      {/* Tổng đã thanh toán */}
                       <Box
                         sx={{
                           display: "flex",
                           justifyContent: "space-between",
-                          alignItems: "center",
+                          p: 2,
+                          bgcolor: colors.status.successLight,
+                          borderRadius: 2,
                         }}
                       >
-                        <Box
-                          sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                        <Typography
+                          variant="body1"
+                          sx={{ color: colors.status.success, fontWeight: 600 }}
                         >
-                          <CheckCircle size={20} color={colors.accent.blue} />
-                          <Typography
-                            variant="body2"
-                            sx={{ fontWeight: 600, color: colors.accent.blue }}
-                          >
-                            Đã hoàn tiền
-                          </Typography>
-                        </Box>
+                          Tổng đã thanh toán
+                        </Typography>
                         <Typography
                           variant="h6"
-                          sx={{ fontWeight: 700, color: colors.accent.blue }}
+                          sx={{ fontWeight: 700, color: colors.status.success }}
                         >
-                          {formatCurrency(
-                            order.payments
-                              .filter((p) => p.status === "Refunded")
-                              .reduce(
-                                (sum, p) => sum + (p.refundedAmount || 0),
-                                0
-                              )
-                          )}
+                          {formatCurrency(totalPaid)}
                         </Typography>
                       </Box>
+
+                      {/* Tổng đã hoàn tiền */}
+                      {totalRefunded > 0 && (
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            p: 2,
+                            bgcolor: colors.accent.blue + "20",
+                            borderRadius: 2,
+                          }}
+                        >
+                          <Typography
+                            variant="body1"
+                            sx={{ color: colors.accent.blue, fontWeight: 600 }}
+                          >
+                            Tổng đã hoàn tiền
+                          </Typography>
+                          <Typography
+                            variant="h6"
+                            sx={{ fontWeight: 700, color: colors.accent.blue }}
+                          >
+                            {formatCurrency(totalRefunded)}
+                          </Typography>
+                        </Box>
+                      )}
                     </Box>
-                  )}
-                </Stack>
-              </Paper>
-            )}
+                  </Paper>
+                );
+              })()}
 
             {/* Inspections */}
             {order.inspections && order.inspections.length > 0 && (
@@ -1379,6 +1157,198 @@ const OrderDetailPage: React.FC = () => {
               </Paper>
             )}
 
+            {/* Payment Summary */}
+            <Paper
+              elevation={0}
+              sx={{
+                p: 3,
+                borderRadius: 3,
+                border: `1px solid ${colors.border.light}`,
+                mb: 3,
+              }}
+            >
+              <Typography
+                variant="h6"
+                sx={{ fontWeight: 700, color: colors.text.primary, mb: 3 }}
+              >
+                Chi tiết thanh toán
+              </Typography>
+
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <Typography
+                    variant="body2"
+                    sx={{ color: colors.text.secondary }}
+                  >
+                    Phí thuê ({rentalDays} ngày)
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{ fontWeight: 600, color: colors.text.primary }}
+                  >
+                    {formatCurrency(paymentDetails.rentalAmount)}
+                  </Typography>
+                </Box>
+
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <Typography
+                    variant="body2"
+                    sx={{ color: colors.text.secondary }}
+                  >
+                    Tiền cọc
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{ fontWeight: 600, color: colors.text.primary }}
+                  >
+                    {formatCurrency(paymentDetails.depositAmount)}
+                  </Typography>
+                </Box>
+
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <Typography
+                    variant="body2"
+                    sx={{ color: colors.text.secondary }}
+                  >
+                    Phí nền tảng (
+                    {(order.snapshotPlatformFeePercent * 100).toFixed(0)}%)
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{ fontWeight: 600, color: colors.text.primary }}
+                  >
+                    {formatCurrency(paymentDetails.platformFee)}
+                  </Typography>
+                </Box>
+
+                <Divider sx={{ my: 1 }} />
+
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    p: 2,
+                    bgcolor: colors.primary.lighter,
+                    borderRadius: 2,
+                  }}
+                >
+                  <Typography
+                    variant="body1"
+                    sx={{ fontWeight: 700, color: colors.text.primary }}
+                  >
+                    Tổng cộng
+                  </Typography>
+                  <Typography
+                    variant="h6"
+                    sx={{ fontWeight: 700, color: colors.primary.main }}
+                  >
+                    {formatCurrency(paymentDetails.totalAmount)}
+                  </Typography>
+                </Box>
+
+                {paymentDetails.paidAmount > 0 && (
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
+                    <Typography
+                      variant="body2"
+                      sx={{ color: colors.text.secondary }}
+                    >
+                      Đã thanh toán
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      sx={{ fontWeight: 600, color: colors.status.success }}
+                    >
+                      {formatCurrency(paymentDetails.paidAmount)}
+                    </Typography>
+                  </Box>
+                )}
+
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: colors.text.secondary,
+                    textAlign: "center",
+                    mt: 1,
+                  }}
+                >
+                  Giá thuê cơ bản: {formatCurrency(order.snapshotBaseDailyRate)}
+                  /ngày
+                </Typography>
+
+                {/* Payment Status */}
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 2,
+                    p: 2,
+                    bgcolor:
+                      paymentDetails.paymentStatus === "Đã thanh toán"
+                        ? colors.status.successLight
+                        : colors.status.warningLight,
+                    borderRadius: 2,
+                    mt: 1,
+                  }}
+                >
+                  <Shield
+                    size={20}
+                    color={
+                      paymentDetails.paymentStatus === "Đã thanh toán"
+                        ? colors.status.success
+                        : colors.status.warning
+                    }
+                  />
+                  <Box>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color:
+                          paymentDetails.paymentStatus === "Đã thanh toán"
+                            ? colors.status.success
+                            : colors.status.warning,
+                        fontWeight: 700,
+                      }}
+                    >
+                      {paymentDetails.paymentStatus}
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      sx={{ color: colors.text.secondary }}
+                    >
+                      {paymentDetails.paymentStatus === "Đã thanh toán"
+                        ? "Đơn hàng đã được xử lý"
+                        : "Đang chờ thanh toán"}
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
+            </Paper>
+
             {/* Important Note */}
             <Paper
               elevation={0}
@@ -1455,87 +1425,81 @@ const OrderDetailPage: React.FC = () => {
           </DialogContent>
         </Dialog>
 
-        {/* PDF Contract Dialog */}
+        {/* Contract Dialog */}
         <Dialog
-          open={pdfDialogOpen}
-          onClose={handleClosePdfDialog}
-          maxWidth="lg"
+          open={openContractDialog}
+          onClose={() => setOpenContractDialog(false)}
+          maxWidth="md"
           fullWidth
-          PaperProps={{
-            sx: {
-              borderRadius: 3,
-              maxHeight: "90vh",
-            },
-          }}
         >
-          <DialogTitle
-            sx={{
-              bgcolor: colors.background.default,
-              borderBottom: `2px solid ${colors.border.light}`,
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              py: 2.5,
-              px: 3,
-            }}
-          >
-            <Box>
-              <Typography
-                variant="h6"
-                fontWeight={700}
-                sx={{ color: colors.text.primary }}
-              >
-                Hợp đồng thuê thiết bị
-              </Typography>
-              <Typography variant="body2" sx={{ color: colors.text.secondary }}>
-                {currentFilename}
-              </Typography>
-            </Box>
-            <IconButton
-              onClick={handleClosePdfDialog}
+          <DialogTitle>
+            <Box
               sx={{
-                color: colors.text.secondary,
-                "&:hover": {
-                  bgcolor: colors.neutral[100],
-                  color: colors.text.primary,
-                },
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
               }}
             >
-              <XCircle size={20} />
-            </IconButton>
+              <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                Hợp đồng thuê
+              </Typography>
+              <IconButton onClick={() => setOpenContractDialog(false)}>
+                <XCircle size={20} />
+              </IconButton>
+            </Box>
           </DialogTitle>
-          <DialogContent sx={{ p: 0, bgcolor: colors.background.default }}>
-            {pdfUrl && (
-              <Box
-                sx={{
-                  width: "100%",
-                  height: "70vh",
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                }}
+          <DialogContent>
+            <Box
+              sx={{
+                p: 3,
+                bgcolor: colors.neutral[50],
+                borderRadius: 2,
+                minHeight: 400,
+              }}
+            >
+              <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
+                Hợp đồng thuê thiết bị Camera
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 2 }}>
+                Mã hợp đồng: {order.id}
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 2 }}>
+                Hợp đồng này được ký kết giữa CamRent và{" "}
+                {order.renter?.fullName || "Khách hàng"}.
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 1 }}>
+                <strong>Điều khoản và điều kiện:</strong>
+              </Typography>
+              <Typography variant="body2" component="div" sx={{ mb: 2 }}>
+                <ol>
+                  <li>
+                    Thời gian thuê: {formatDate(order.pickupAt)} đến{" "}
+                    {formatDate(order.returnAt)} ({rentalDays} ngày)
+                  </li>
+                  <li>
+                    Tổng phí thuê: {formatCurrency(paymentDetails.rentalAmount)}
+                  </li>
+                  <li>
+                    Tiền cọc: {formatCurrency(paymentDetails.depositAmount)}
+                  </li>
+                  <li>
+                    Phí nền tảng: {formatCurrency(paymentDetails.platformFee)}
+                  </li>
+                  <li>Thiết bị phải được trả lại trong tình trạng ban đầu</li>
+                  <li>Bất kỳ hư hỏng nào sẽ được trừ vào tiền cọc</li>
+                  <li>Trả muộn sẽ phát sinh phí bổ sung</li>
+                </ol>
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{ fontStyle: "italic", color: colors.text.secondary }}
               >
-                <iframe
-                  src={pdfUrl}
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    border: "none",
-                  }}
-                  title="Contract Preview"
-                />
-              </Box>
-            )}
+                Vui lòng đọc kỹ trước khi ký. Đây là tài liệu có tính pháp lý
+                ràng buộc.
+              </Typography>
+            </Box>
           </DialogContent>
-          <DialogActions
-            sx={{
-              bgcolor: colors.background.default,
-              borderTop: `2px solid ${colors.border.light}`,
-              px: 3,
-              py: 2,
-              gap: 1,
-            }}
-          >
+          <DialogActions sx={{ p: 3, gap: 1 }}>
             <Button
               variant="outlined"
               startIcon={<Download size={18} />}
@@ -1544,10 +1508,6 @@ const OrderDetailPage: React.FC = () => {
                 color: colors.text.primary,
                 textTransform: "none",
                 fontWeight: 600,
-                "&:hover": {
-                  borderColor: colors.primary.main,
-                  bgcolor: colors.primary.lighter,
-                },
               }}
               onClick={handleDownloadContract}
             >
@@ -1564,7 +1524,7 @@ const OrderDetailPage: React.FC = () => {
                   bgcolor: colors.primary.dark,
                 },
               }}
-              onClick={handleClosePdfDialog}
+              onClick={() => setOpenContractDialog(false)}
             >
               Đóng
             </Button>

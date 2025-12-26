@@ -1,22 +1,24 @@
-import React, { useState, useEffect, useMemo } from "react";
 import {
   Box,
-  Grid,
-  Paper,
-  Typography,
   Card,
-  CircularProgress,
-  Alert,
+  CardContent,
+  Typography,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
   Chip,
   ToggleButton,
   ToggleButtonGroup,
+  CircularProgress,
 } from "@mui/material";
 import {
-  PhotoCamera as PhotoCameraIcon,
-  Extension as ExtensionIcon,
-  Event as EventIcon,
-  AttachMoney as AttachMoneyIcon,
-  Warning as WarningIcon,
+  PhotoCamera as CameraIcon,
+  AttachMoney as MoneyIcon,
+  People as PeopleIcon,
+  AccountBalanceWallet as WalletIcon,
 } from "@mui/icons-material";
 import {
   Area,
@@ -27,41 +29,25 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { dashboardServiceManager } from "../../services/dashboard.service";
+import type { MouseEvent, ReactElement } from "react";
+import { useEffect, useMemo, useState } from "react";
+import type {
+  ManagerDashboardResponse,
+  TimeSeriesStat,
+  TopRentedAsset,
+} from "@/services/dashboard.service";
+import { dashboardServiceManager } from "@/services/dashboard.service";
+import { getBalance } from "@/services/wallet.service";
+import type { Wallet as WalletBalanceResponse } from "@/types/wallet.types";
 
-interface BookingStatus {
-  status: string;
-  statusText: string;
-  count: number;
-}
+type StatAccent = "teal" | "indigo" | "amber" | "purple";
 
-interface TimeSeriesStat {
-  date: string;
-  bookingCount: number;
-  capturedRevenue: number;
-}
-
-interface TopRentedAsset {
-  itemId: string;
-  itemType: string;
-  name: string;
-  rentalCount: number;
-  grossRevenue: number;
-}
-
-interface DashboardData {
-  branchId: string;
-  branchName: string;
-  camerasInBranch: number;
-  accessoriesInBranch: number;
-  totalBookings: number;
-  bookingsByStatus: BookingStatus[];
-  totalCapturedRevenue: number;
-  totalGrossRevenue?: number;
-  openDisputes: number;
-  topRentedAssets?: TopRentedAsset[];
-  dailyStats?: TimeSeriesStat[];
-  monthlyStats?: TimeSeriesStat[];
+interface StatItem {
+  title: string;
+  value: string | ReactElement;
+  description?: string;
+  icon: ReactElement;
+  accent: StatAccent;
 }
 
 type ChartPeriod = "daily" | "monthly";
@@ -79,7 +65,9 @@ const COMPACT_CURRENCY_FORMATTER = new Intl.NumberFormat("vi-VN", {
   maximumFractionDigits: 1,
 });
 
-const formatCurrency = (amount: number) => CURRENCY_FORMATTER.format(amount);
+const formatCurrency = (value: number) => CURRENCY_FORMATTER.format(value);
+// const formatCurrencyCompact = (value: number) =>
+//   COMPACT_CURRENCY_FORMATTER.format(value);
 
 const formatChartLabel = (dateString: string, period: ChartPeriod) => {
   const date = new Date(dateString);
@@ -94,57 +82,584 @@ const formatChartLabel = (dateString: string, period: ChartPeriod) => {
       });
 };
 
-const DashboardManager: React.FC = () => {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [dashboardData, setDashboardData] = useState<DashboardData | null>(
-    null
+// Bảng cấu hình style cho từng tone màu của thẻ thống kê (theo phong cách phẳng, giống shadcn)
+const STAT_ACCENT_STYLES: Record<
+  StatAccent,
+  {
+    borderTop: string;
+    iconBg: string;
+    iconColor: string;
+  }
+> = {
+  teal: {
+    borderTop: "4px solid #0D9488",
+    iconBg: "rgba(13,148,136,0.08)",
+    iconColor: "#0D9488",
+  },
+  indigo: {
+    borderTop: "4px solid #4F46E5",
+    iconBg: "rgba(79,70,229,0.08)",
+    iconColor: "#4F46E5",
+  },
+  amber: {
+    borderTop: "4px solid #F59E0B",
+    iconBg: "rgba(245,158,11,0.08)",
+    iconColor: "#F59E0B",
+  },
+  purple: {
+    borderTop: "4px solid #2563EB",
+    iconBg: "rgba(37,99,235,0.08)",
+    iconColor: "#2563EB",
+  },
+};
+
+// ===== COMPONENTS =====
+
+// Thẻ thống kê nhỏ hiển thị các con số nhanh (camera, phụ kiện, booking, doanh thu)
+const StatCard = ({ stat }: { stat: StatItem }) => {
+  const palette = STAT_ACCENT_STYLES[stat.accent];
+
+  return (
+    <Card
+      elevation={0}
+      sx={{
+        backgroundColor: "white",
+        border: "1px solid #E5E7EB",
+        borderRadius: 2,
+        borderTop: palette.borderTop,
+        flex: 1,
+        minWidth: {
+          xs: "100%",
+          sm: "calc(50% - 12px)",
+          lg: "calc(25% - 18px)",
+        },
+        boxShadow: "0 1px 2px rgba(15,23,42,0.08)",
+      }}
+    >
+      <CardContent sx={{ p: 3 }}>
+        <Box sx={{ display: "flex", alignItems: "center", mb: 2, gap: 1.5 }}>
+          <Box
+            sx={{
+              width: 44,
+              height: 44,
+              borderRadius: "50%",
+              bgcolor: palette.iconBg,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: palette.iconColor,
+            }}
+          >
+            {stat.icon}
+          </Box>
+          <Typography
+            variant="subtitle2"
+            sx={{ color: "#475467", fontSize: "0.85rem", fontWeight: 600 }}
+          >
+            {stat.title}
+          </Typography>
+        </Box>
+
+        <Typography
+          variant="h4"
+          sx={{ color: "#0F172A", fontWeight: 700, fontSize: "2rem", mb: 1 }}
+        >
+          {stat.value}
+        </Typography>
+
+        {stat.description && (
+          <Typography
+            variant="body2"
+            sx={{ color: "#4B5563", fontSize: "0.85rem" }}
+          >
+            {stat.description}
+          </Typography>
+        )}
+      </CardContent>
+    </Card>
   );
+};
+
+// Bảng liệt kê các thiết bị được thuê nhiều nhất
+const TopRentedAssetsTable = ({ assets }: { assets: TopRentedAsset[] }) => {
+  const headerCellStyle = {
+    border: "none",
+    color: "#6B7280",
+    fontWeight: 600,
+    fontSize: "0.72rem",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    paddingY: 1.5,
+  };
+
+  return (
+    <Card
+      elevation={0}
+      sx={{
+        border: "1px solid #E5E7EB",
+        borderRadius: 2,
+        height: "100%",
+        boxShadow: "0 1px 2px rgba(15,23,42,0.08)",
+        backgroundColor: "white",
+      }}
+    >
+      <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+        <Box sx={{ mb: 2, display: "flex", flexDirection: "column", gap: 0.5 }}>
+          <Typography
+            variant="h6"
+            sx={{ color: "#0F172A", fontWeight: 700, fontSize: "1.1rem" }}
+          >
+            Thiết bị được thuê nhiều nhất
+          </Typography>
+          <Typography variant="body2" sx={{ color: "#6B7280" }}>
+            Danh sách các thiết bị mang lại nhiều lượt thuê và doanh thu cao.
+          </Typography>
+        </Box>
+
+        <TableContainer
+          sx={{
+            overflowX: "auto",
+            borderRadius: 2,
+            border: "1px solid #E5E7EB",
+          }}
+        >
+          <Table>
+            <TableHead>
+              <TableRow sx={{ backgroundColor: "#F9FAFB" }}>
+                <TableCell sx={{ ...headerCellStyle, width: "40%" }}>
+                  Thiết bị
+                </TableCell>
+                <TableCell sx={{ ...headerCellStyle, textAlign: "center" }}>
+                  Loại
+                </TableCell>
+                <TableCell sx={{ ...headerCellStyle, textAlign: "center" }}>
+                  Số lượt thuê
+                </TableCell>
+                <TableCell sx={{ ...headerCellStyle, textAlign: "center" }}>
+                  Doanh thu từ đơn hàng
+                </TableCell>
+                <TableCell sx={{ ...headerCellStyle, textAlign: "center" }}>
+                  Doanh thu thực tế
+                </TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {assets.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={4} sx={{ border: "none", py: 4 }}>
+                    <Typography
+                      variant="body2"
+                      sx={{ color: "#999", textAlign: "center" }}
+                    >
+                      Chưa có dữ liệu thiết bị được thuê nhiều.
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                assets.map((asset) => (
+                  <TableRow
+                    key={asset.itemId}
+                    sx={{
+                      "&:hover": { bgcolor: "#F9FAFB" },
+                      borderBottom: "1px solid #F3F4F6",
+                    }}
+                  >
+                    <TableCell sx={{ border: "none", py: 1.75 }}>
+                      <Typography
+                        variant="body2"
+                        sx={{ color: "#0F172A", fontWeight: 600 }}
+                      >
+                        {asset.name}
+                      </Typography>
+                    </TableCell>
+                    <TableCell sx={{ border: "none", textAlign: "center" }}>
+                      <Chip
+                        size="small"
+                        label={
+                          asset.itemType === "camera" ? "Camera" : "Phụ kiện"
+                        }
+                        color={
+                          asset.itemType === "camera" ? "primary" : "default"
+                        }
+                        sx={{ borderRadius: 1, fontWeight: 500 }}
+                      />
+                    </TableCell>
+                    <TableCell sx={{ border: "none", textAlign: "center" }}>
+                      <Typography variant="body2" sx={{ color: "#121212" }}>
+                        {asset.rentalCount}
+                      </Typography>
+                    </TableCell>
+                    <TableCell sx={{ border: "none", textAlign: "center" }}>
+                      <Typography
+                        variant="body2"
+                        sx={{ color: "#121212", fontWeight: 600 }}
+                      >
+                        {new Intl.NumberFormat("vi-VN", {
+                          style: "currency",
+                          currency: "VND",
+                          maximumFractionDigits: 0,
+                        }).format(asset.grossRevenue)}
+                      </Typography>
+                    </TableCell>
+                    <TableCell sx={{ border: "none", textAlign: "center" }}>
+                      <Typography
+                        variant="body2"
+                        sx={{ color: "#121212", fontWeight: 600 }}
+                      >
+                        {new Intl.NumberFormat("vi-VN", {
+                          style: "currency",
+                          currency: "VND",
+                          maximumFractionDigits: 0,
+                        }).format(asset.netRevenue)}
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </CardContent>
+    </Card>
+  );
+};
+
+// Biểu đồ cột cho phép chuyển đổi giữa thống kê theo ngày / theo tháng
+const ColumnChartCard = ({
+  stats,
+  period,
+  onPeriodChange,
+  isLoading,
+}: {
+  stats: TimeSeriesStat[];
+  period: ChartPeriod;
+  onPeriodChange: (
+    event: MouseEvent<HTMLElement>,
+    value: ChartPeriod | null
+  ) => void;
+  isLoading: boolean;
+}) => {
+  const hasData = stats.length > 0;
+  const showLoadingState = isLoading && !hasData;
+  const currentStat = stats[stats.length - 1];
+  const previousStat = stats[stats.length - 2];
+
+  // Chuẩn hóa dữ liệu cho biểu đồ area
+  const chartData = stats.map((stat) => ({
+    ...stat,
+    label: formatChartLabel(stat.date, period),
+  }));
+
+  return (
+    <Card
+      elevation={0}
+      sx={{
+        border: "1px solid #E5E7EB",
+        borderRadius: 2,
+        height: "100%",
+        backgroundColor: "white",
+        boxShadow: "0 1px 2px rgba(15,23,42,0.08)",
+      }}
+    >
+      <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: { xs: "column", sm: "row" },
+            justifyContent: "space-between",
+            alignItems: { xs: "flex-start", sm: "center" },
+            gap: 2,
+            mb: 3,
+          }}
+        >
+          <Box>
+            <Typography
+              variant="h6"
+              sx={{
+                color: "#121212",
+                fontWeight: 700,
+                fontSize: "1.125rem",
+                mb: 0.5,
+              }}
+            >
+              Hiệu suất thiết bị
+            </Typography>
+            <Typography variant="body2" sx={{ color: "#666" }}>
+              Theo dõi lượt thuê và doanh thu thu được của bạn.
+            </Typography>
+          </Box>
+          <ToggleButtonGroup
+            size="small"
+            color="primary"
+            exclusive
+            value={period}
+            onChange={onPeriodChange}
+          >
+            <ToggleButton value="daily">Ngày</ToggleButton>
+            <ToggleButton value="monthly">Tháng</ToggleButton>
+          </ToggleButtonGroup>
+        </Box>
+
+        {showLoadingState && (
+          <Typography variant="body2" sx={{ color: "#999" }}>
+            Đang tải dữ liệu biểu đồ...
+          </Typography>
+        )}
+
+        {!isLoading && !hasData && (
+          <Typography variant="body2" sx={{ color: "#999" }}>
+            Chưa có dữ liệu để hiển thị.
+          </Typography>
+        )}
+
+        {hasData && (
+          <>
+            <Box sx={{ width: "100%", height: 260 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart
+                  data={chartData}
+                  margin={{ top: 10, right: 16, left: 24, bottom: 0 }}
+                >
+                  <defs>
+                    <linearGradient
+                      id="colorRevenue"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop offset="5%" stopColor="#F97316" stopOpacity={0.8} />
+                      <stop
+                        offset="95%"
+                        stopColor="#F97316"
+                        stopOpacity={0.05}
+                      />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="#E5E7EB"
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fontSize: 11, fill: "#6B7280" }}
+                    tickLine={false}
+                    axisLine={{ stroke: "#E5E7EB" }}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 11, fill: "#6B7280" }}
+                    tickLine={false}
+                    axisLine={{ stroke: "#E5E7EB" }}
+                    width={72}
+                    tickFormatter={(value: number) =>
+                      value === 0
+                        ? "0"
+                        : COMPACT_CURRENCY_FORMATTER.format(value)
+                    }
+                  />
+                  <RechartsTooltip
+                    formatter={(value: number) =>
+                      // Return [formattedValue, label] so the tooltip shows a Vietnamese label
+                      [formatCurrency(value), "Doanh thu thực tế"]
+                    }
+                    labelFormatter={(label: string) => `Thời gian: ${label}`}
+                    contentStyle={{
+                      borderRadius: 8,
+                      border: "1px solid #E5E7EB",
+                      boxShadow: "0 8px 24px rgba(15,23,42,0.12)",
+                    }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="capturedRevenue"
+                    stroke="#F97316"
+                    strokeWidth={2}
+                    fillOpacity={1}
+                    fill="url(#colorRevenue)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </Box>
+
+            <Box
+              sx={{
+                mt: 3,
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 4,
+              }}
+            >
+              <Box>
+                <Typography
+                  variant="caption"
+                  sx={{ color: "#666", textTransform: "uppercase" }}
+                >
+                  Thời điểm hiện tại
+                </Typography>
+                <Typography
+                  variant="h5"
+                  sx={{ color: "#0F172A", fontWeight: 700 }}
+                >
+                  {currentStat
+                    ? formatCurrency(currentStat.capturedRevenue)
+                    : "-"}
+                </Typography>
+              </Box>
+              <Box>
+                <Typography
+                  variant="caption"
+                  sx={{ color: "#666", textTransform: "uppercase" }}
+                >
+                  Kỳ trước
+                </Typography>
+                <Typography
+                  variant="h5"
+                  sx={{ color: "#0F172A", fontWeight: 700 }}
+                >
+                  {previousStat
+                    ? formatCurrency(previousStat.capturedRevenue)
+                    : "-"}
+                </Typography>
+              </Box>
+            </Box>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+/**
+ * Component Dashboard - Trang tổng quan quản lý cho Owner
+ */
+export default function Dashboard() {
+  const [data, setData] = useState<ManagerDashboardResponse | null>(null);
+  const [wallet, setWallet] = useState<WalletBalanceResponse | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoadingWallet, setIsLoadingWallet] = useState<boolean>(true);
+  // Mặc định hiển thị thống kê theo tháng ngay khi vào dashboard
   const [chartPeriod, setChartPeriod] = useState<ChartPeriod>("monthly");
 
   useEffect(() => {
-    loadDashboardData();
+    // Lấy dữ liệu thống kê cho Owner khi component mount
+    const fetchDashboard = async () => {
+      try {
+        const dashboard = await dashboardServiceManager.getManagerDashboard();
+        setData(dashboard);
+        setError(null);
+      } catch (err) {
+        console.error("Lỗi khi tải dashboard manager:", err);
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Đã xảy ra lỗi khi tải dữ liệu thống kê."
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    // Lấy thông tin ví
+    const fetchWallet = async () => {
+      setIsLoadingWallet(true);
+      try {
+        const walletData = await getBalance();
+        setWallet(walletData as WalletBalanceResponse);
+      } catch (err) {
+        console.error("Lỗi khi tải thông tin ví:", err);
+        // Không hiển thị lỗi nếu không load được ví, chỉ log
+      } finally {
+        setIsLoadingWallet(false);
+      }
+    };
+
+    fetchDashboard();
+    fetchWallet();
   }, []);
 
-  const loadDashboardData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await dashboardServiceManager.getManagerDashboard();
-      setDashboardData(data);
-    } catch (err: any) {
-      console.error("Error loading dashboard:", err);
-      setError(err?.message || "Không thể tải dữ liệu dashboard");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "confirmed":
-        return "#10B981";
-      case "pending":
-        return "#F59E0B";
-      case "completed":
-        return "#3B82F6";
-      case "cancelled":
-        return "#EF4444";
-      default:
-        return "#6B7280";
-    }
-  };
-
-  const dailyStats = useMemo(
-    () => dashboardData?.dailyStats ?? [],
-    [dashboardData?.dailyStats]
+  const stats: StatItem[] = useMemo(
+    // Chuẩn hóa dữ liệu để truyền vào danh sách thẻ thống kê nhỏ
+    () => [
+      {
+        title: "Số dư ví",
+        value: isLoadingWallet ? (
+          <CircularProgress size={24} />
+        ) : (
+          formatCurrency(wallet?.balance ?? 1)
+        ),
+        description: "Số dư khả dụng trong ví của bạn.",
+        icon: <WalletIcon />,
+        accent: "teal",
+      },
+      {
+        title: "Tổng camera",
+        value: isLoading ? (
+          <CircularProgress size={24} />
+        ) : (
+          (data?.totalCameras ?? 0).toString()
+        ),
+        description: "Số lượng camera bạn đang cho thuê.",
+        icon: <CameraIcon />,
+        accent: "indigo",
+      },
+      {
+        title: "Tổng phụ kiện",
+        value: isLoading ? (
+          <CircularProgress size={24} />
+        ) : (
+          (data?.totalAccessories ?? 0).toString()
+        ),
+        description: "Số lượng phụ kiện bạn đang cho thuê.",
+        icon: <PeopleIcon />,
+        accent: "purple",
+      },
+      {
+        title: "Tổng lượt booking",
+        value: isLoading ? (
+          <CircularProgress size={24} />
+        ) : (
+          (data?.totalBookingsForOwnerItems ?? 0).toString()
+        ),
+        description: "Tổng số đơn thuê liên quan tới thiết bị của bạn.",
+        icon: <PeopleIcon />,
+        accent: "amber",
+      },
+      {
+        title: "Tổng doanh thu đơn hàng",
+        value: formatCurrency(data?.totalGrossRevenue ?? 0),
+        description: "Tổng doanh thu từ tất cả đơn hàng.",
+        icon: <MoneyIcon />,
+        accent: "amber",
+      },
+      {
+        title: "Tổng doanh thu thực tế",
+        value: formatCurrency(data?.totalNetRevenue ?? 0),
+        description: "Tổng doanh thu thực tế sau khi trừ phí nền tảng.",
+        icon: <MoneyIcon />,
+        accent: "amber",
+      },
+    ],
+    [
+      wallet?.balance,
+      isLoadingWallet,
+      isLoading,
+      data?.totalAccessories,
+      data?.totalBookingsForOwnerItems,
+      data?.totalCameras,
+      data?.totalGrossRevenue,
+      data?.totalNetRevenue,
+    ]
   );
 
+  const dailyStats = useMemo(() => data?.dailyStats ?? [], [data?.dailyStats]);
   const monthlyStats = useMemo(() => {
-    const stats = dashboardData?.monthlyStats ?? [];
-    if (stats.length === 0) return [];
-
-    const targetYear = new Date(stats[0].date).getFullYear();
+    // Đảm bảo mỗi tháng trong năm đều có entry để biểu đồ không bị thiếu cột
+    const stats = data?.monthlyStats ?? [];
+    const targetYear = stats[0]
+      ? new Date(stats[0].date).getFullYear()
+      : new Date().getFullYear();
     const monthMap = new Map<number, TimeSeriesStat>(
       stats.map((stat) => [new Date(stat.date).getMonth(), stat])
     );
@@ -161,27 +676,16 @@ const DashboardManager: React.FC = () => {
         capturedRevenue: 0,
       };
     });
-  }, [dashboardData?.monthlyStats]);
+  }, [data?.monthlyStats]);
 
   const chartStats = useMemo(
+    // Khi đổi toggle ngày/tháng, lấy đúng bộ dữ liệu cho biểu đồ
     () => (chartPeriod === "daily" ? dailyStats : monthlyStats),
     [chartPeriod, dailyStats, monthlyStats]
   );
 
-  const chartData = useMemo(
-    () =>
-      chartStats.map((stat) => ({
-        ...stat,
-        label: formatChartLabel(stat.date, chartPeriod),
-      })),
-    [chartStats, chartPeriod]
-  );
-
-  const currentStat = chartStats[chartStats.length - 1];
-  const previousStat = chartStats[chartStats.length - 2];
-
   const handleChartPeriodChange = (
-    _: React.MouseEvent<HTMLElement>,
+    _: MouseEvent<HTMLElement>,
     value: ChartPeriod | null
   ) => {
     if (value) {
@@ -189,888 +693,81 @@ const DashboardManager: React.FC = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          minHeight: "100vh",
-          bgcolor: "#F5F5F5",
-        }}
-      >
-        <CircularProgress size={48} sx={{ color: "#FF6B35" }} />
-      </Box>
-    );
-  }
-
-  if (error) {
-    return (
-      <Box sx={{ bgcolor: "#F5F5F5", minHeight: "100vh", p: 3 }}>
-        <Alert severity="error" sx={{ borderRadius: 2 }}>
-          {error}
-        </Alert>
-      </Box>
-    );
-  }
-
-  if (!dashboardData) {
-    return (
-      <Box sx={{ bgcolor: "#F5F5F5", minHeight: "100vh", p: 3 }}>
-        <Alert severity="info" sx={{ borderRadius: 2 }}>
-          Không có dữ liệu
-        </Alert>
-      </Box>
-    );
-  }
-
+  // Bố cục tổng thể của trang dashboard owner
   return (
-    <Box sx={{ bgcolor: "#F5F5F5", minHeight: "100vh", p: 3 }}>
-      {/* Header */}
-      <Box sx={{ mb: 4 }}>
-        <Typography
-          variant="caption"
+    <Box
+      sx={{
+        backgroundColor: "#F3F4F6",
+        minHeight: "100vh",
+        p: { xs: 2, sm: 4 },
+        width: "100%",
+      }}
+    >
+      <Box sx={{ maxWidth: 1400, mx: "auto" }}>
+        {/* Header giới thiệu trang (tương tự style Documents trong shadcn dashboard) */}
+        <Box
           sx={{
-            color: "#6B7280",
-            textTransform: "uppercase",
-            letterSpacing: 1,
-            fontWeight: 600,
+            mb: 3,
+            display: "flex",
+            flexDirection: "column",
+            gap: 0.5,
           }}
         >
-          TRUNG TÂM QUẢN LY {dashboardData.branchName.toUpperCase()}
-        </Typography>
-        <Typography
-          variant="h4"
-          sx={{ fontWeight: 700, color: "#1F2937", mt: 1 }}
-        >
-          Tổng quan hoạt động kinh doanh
-        </Typography>
-        <Typography variant="body2" sx={{ color: "#6B7280", mt: 0.5 }}>
-          Theo dõi doanh thu, số lượng booking và hiệu suất thiết bị trong một
-          bảng điều khiển trực quan.
-        </Typography>
-      </Box>
-
-      {/* Stats Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        {/* Cameras */}
-        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-          <Paper
-            elevation={0}
+          <Typography
+            variant="overline"
+            sx={{ color: "#6B7280", fontWeight: 600, letterSpacing: 1.5 }}
+          >
+            Trung tâm quản lý Owner
+          </Typography>
+          <Typography
+            variant="h4"
             sx={{
-              p: 3,
-              borderRadius: 3,
-              bgcolor: "white",
-              border: "1px solid #E5E7EB",
-              borderTop: "4px solid #10B981",
-              minHeight: 180,
-              display: "flex",
-              flexDirection: "column",
+              color: "#0F172A",
+              fontWeight: 700,
+              fontSize: { xs: "1.75rem", sm: "2.3rem" },
             }}
           >
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "flex-start",
-              }}
-            >
-              <Box>
-                <Box
-                  sx={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 2,
-                    bgcolor: "#ECFDF5",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    mb: 2,
-                  }}
-                >
-                  <PhotoCameraIcon sx={{ fontSize: 24, color: "#10B981" }} />
-                </Box>
-                <Typography
-                  variant="body2"
-                  sx={{ color: "#6B7280", mb: 0.5, fontWeight: 500 }}
-                >
-                  Tổng camera
-                </Typography>
-                <Typography
-                  variant="h4"
-                  sx={{ fontWeight: 700, color: "#1F2937" }}
-                >
-                  {dashboardData.camerasInBranch}
-                </Typography>
-                <Typography variant="caption" sx={{ color: "#6B7280" }}>
-                  Số lượng camera đang cho thuê.
-                </Typography>
-              </Box>
-            </Box>
-          </Paper>
-        </Grid>
-
-        {/* Accessories */}
-        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-          <Paper
-            elevation={0}
-            sx={{
-              p: 3,
-              borderRadius: 3,
-              bgcolor: "white",
-              border: "1px solid #E5E7EB",
-              borderTop: "4px solid #6366F1",
-              minHeight: 180,
-              display: "flex",
-              flexDirection: "column",
-            }}
-          >
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "flex-start",
-              }}
-            >
-              <Box>
-                <Box
-                  sx={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 2,
-                    bgcolor: "#EEF2FF",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    mb: 2,
-                  }}
-                >
-                  <ExtensionIcon sx={{ fontSize: 24, color: "#6366F1" }} />
-                </Box>
-                <Typography
-                  variant="body2"
-                  sx={{ color: "#6B7280", mb: 0.5, fontWeight: 500 }}
-                >
-                  Tổng phụ kiện
-                </Typography>
-                <Typography
-                  variant="h4"
-                  sx={{ fontWeight: 700, color: "#1F2937" }}
-                >
-                  {dashboardData.accessoriesInBranch}
-                </Typography>
-                <Typography variant="caption" sx={{ color: "#6B7280" }}>
-                  Số lượng phụ kiện đang cho thuê.
-                </Typography>
-              </Box>
-            </Box>
-          </Paper>
-        </Grid>
-
-        {/* Total Bookings */}
-        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-          <Paper
-            elevation={0}
-            sx={{
-              p: 3,
-              borderRadius: 3,
-              bgcolor: "white",
-              border: "1px solid #E5E7EB",
-              borderTop: "4px solid #F59E0B",
-              minHeight: 180,
-              display: "flex",
-              flexDirection: "column",
-            }}
-          >
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "flex-start",
-              }}
-            >
-              <Box>
-                <Box
-                  sx={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 2,
-                    bgcolor: "#FFFBEB",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    mb: 2,
-                  }}
-                >
-                  <EventIcon sx={{ fontSize: 24, color: "#F59E0B" }} />
-                </Box>
-                <Typography
-                  variant="body2"
-                  sx={{ color: "#6B7280", mb: 0.5, fontWeight: 500 }}
-                >
-                  Tổng lượt booking
-                </Typography>
-                <Typography
-                  variant="h4"
-                  sx={{ fontWeight: 700, color: "#1F2937" }}
-                >
-                  {dashboardData.totalBookings}
-                </Typography>
-                <Typography variant="caption" sx={{ color: "#6B7280" }}>
-                  Tổng số đơn thuê thiết bị.
-                </Typography>
-              </Box>
-            </Box>
-          </Paper>
-        </Grid>
-
-        {/* Total Captured Revenue */}
-        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-          <Paper
-            elevation={0}
-            sx={{
-              p: 3,
-              borderRadius: 3,
-              bgcolor: "white",
-              border: "1px solid #E5E7EB",
-              borderTop: "4px solid #10B981",
-              minHeight: 180,
-              display: "flex",
-              flexDirection: "column",
-            }}
-          >
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "flex-start",
-              }}
-            >
-              <Box sx={{ width: "100%" }}>
-                <Box
-                  sx={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 2,
-                    bgcolor: "#ECFDF5",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    mb: 2,
-                  }}
-                >
-                  <AttachMoneyIcon sx={{ fontSize: 24, color: "#10B981" }} />
-                </Box>
-                <Typography
-                  variant="body2"
-                  sx={{ color: "#6B7280", mb: 0.5, fontWeight: 500 }}
-                >
-                  Doanh thu đã thu
-                </Typography>
-                <Typography
-                  variant="h4"
-                  sx={{ fontWeight: 700, color: "#1F2937" }}
-                >
-                  {formatCurrency(dashboardData.totalCapturedRevenue)}
-                </Typography>
-                <Typography variant="caption" sx={{ color: "#6B7280" }}>
-                  Doanh thu đã thu từ booking.
-                </Typography>
-              </Box>
-            </Box>
-          </Paper>
-        </Grid>
-
-        {/* Total Gross Revenue */}
-        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-          <Paper
-            elevation={0}
-            sx={{
-              p: 3,
-              borderRadius: 3,
-              bgcolor: "white",
-              border: "1px solid #E5E7EB",
-              borderTop: "4px solid #F59E0B",
-              minHeight: 180,
-              display: "flex",
-              flexDirection: "column",
-            }}
-          >
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "flex-start",
-              }}
-            >
-              <Box sx={{ width: "100%" }}>
-                <Box
-                  sx={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 2,
-                    bgcolor: "#FFFBEB",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    mb: 2,
-                  }}
-                >
-                  <AttachMoneyIcon sx={{ fontSize: 24, color: "#F59E0B" }} />
-                </Box>
-                <Typography
-                  variant="body2"
-                  sx={{ color: "#6B7280", mb: 0.5, fontWeight: 500 }}
-                >
-                  Tổng doanh thu gộp
-                </Typography>
-                <Typography
-                  variant="h4"
-                  sx={{ fontWeight: 700, color: "#1F2937" }}
-                >
-                  {formatCurrency(dashboardData.totalGrossRevenue ?? 0)}
-                </Typography>
-                <Typography variant="caption" sx={{ color: "#6B7280" }}>
-                  Doanh thu gộp từ các booking.
-                </Typography>
-              </Box>
-            </Box>
-          </Paper>
-        </Grid>
-      </Grid>
-
-      {/* Revenue Chart */}
-      <Box sx={{ mb: 4 }}>
-        <Card
-          elevation={0}
-          sx={{
-            border: "1px solid #E5E7EB",
-            borderRadius: 3,
-            bgcolor: "white",
-            boxShadow: "0 1px 2px rgba(15,23,42,0.08)",
-          }}
-        >
-          <Box sx={{ p: 3 }}>
-            <Box
-              sx={{
-                display: "flex",
-                flexDirection: { xs: "column", sm: "row" },
-                justifyContent: "space-between",
-                alignItems: { xs: "flex-start", sm: "center" },
-                gap: 2,
-                mb: 3,
-              }}
-            >
-              <Box>
-                <Typography
-                  variant="h6"
-                  sx={{
-                    color: "#1F2937",
-                    fontWeight: 700,
-                    fontSize: "1.125rem",
-                    mb: 0.5,
-                  }}
-                >
-                  Hiệu suất thiết bị
-                </Typography>
-                <Typography variant="body2" sx={{ color: "#6B7280" }}>
-                  Theo dõi lượt thuê và doanh thu thu được của bạn.
-                </Typography>
-              </Box>
-              <ToggleButtonGroup
-                size="small"
-                color="primary"
-                exclusive
-                value={chartPeriod}
-                onChange={handleChartPeriodChange}
-                sx={{
-                  "& .MuiToggleButton-root": {
-                    textTransform: "none",
-                    fontWeight: 500,
-                    px: 3,
-                    "&.Mui-selected": {
-                      bgcolor: "#F97316",
-                      color: "white",
-                      "&:hover": {
-                        bgcolor: "#EA580C",
-                      },
-                    },
-                  },
-                }}
-              >
-                <ToggleButton value="daily">Ngày</ToggleButton>
-                <ToggleButton value="monthly">Tháng</ToggleButton>
-              </ToggleButtonGroup>
-            </Box>
-
-            {chartStats.length === 0 ? (
-              <Box
-                sx={{
-                  textAlign: "center",
-                  py: 6,
-                }}
-              >
-                <Typography variant="body2" sx={{ color: "#9CA3AF" }}>
-                  Chưa có dữ liệu để hiển thị
-                </Typography>
-              </Box>
-            ) : (
-              <>
-                <Box sx={{ width: "100%", height: 300 }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart
-                      data={chartData}
-                      margin={{ top: 10, right: 16, left: 24, bottom: 0 }}
-                    >
-                      <defs>
-                        <linearGradient
-                          id="colorRevenue"
-                          x1="0"
-                          y1="0"
-                          x2="0"
-                          y2="1"
-                        >
-                          <stop
-                            offset="5%"
-                            stopColor="#F97316"
-                            stopOpacity={0.8}
-                          />
-                          <stop
-                            offset="95%"
-                            stopColor="#F97316"
-                            stopOpacity={0.05}
-                          />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        stroke="#E5E7EB"
-                        vertical={false}
-                      />
-                      <XAxis
-                        dataKey="label"
-                        tick={{ fontSize: 11, fill: "#6B7280" }}
-                        tickLine={false}
-                        axisLine={{ stroke: "#E5E7EB" }}
-                      />
-                      <YAxis
-                        tick={{ fontSize: 11, fill: "#6B7280" }}
-                        tickLine={false}
-                        axisLine={{ stroke: "#E5E7EB" }}
-                        width={72}
-                        tickFormatter={(value: number) =>
-                          value === 0
-                            ? "0"
-                            : COMPACT_CURRENCY_FORMATTER.format(value)
-                        }
-                      />
-                      <RechartsTooltip
-                        formatter={(value: number) => formatCurrency(value)}
-                        labelFormatter={(label: string) =>
-                          `Thời gian: ${label}`
-                        }
-                        contentStyle={{
-                          borderRadius: 8,
-                          border: "1px solid #E5E7EB",
-                          boxShadow: "0 8px 24px rgba(15,23,42,0.12)",
-                        }}
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="capturedRevenue"
-                        stroke="#F97316"
-                        strokeWidth={2}
-                        fillOpacity={1}
-                        fill="url(#colorRevenue)"
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </Box>
-
-                <Box
-                  sx={{
-                    mt: 3,
-                    display: "flex",
-                    flexWrap: "wrap",
-                    gap: 4,
-                  }}
-                >
-                  <Box>
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        color: "#6B7280",
-                        textTransform: "uppercase",
-                        fontWeight: 600,
-                      }}
-                    >
-                      Thời điểm hiện tại
-                    </Typography>
-                    <Typography
-                      variant="h5"
-                      sx={{ color: "#0F172A", fontWeight: 700 }}
-                    >
-                      {currentStat
-                        ? formatCurrency(currentStat.capturedRevenue)
-                        : "0 ₫"}
-                    </Typography>
-                  </Box>
-                  <Box>
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        color: "#6B7280",
-                        textTransform: "uppercase",
-                        fontWeight: 600,
-                      }}
-                    >
-                      Kỳ trước
-                    </Typography>
-                    <Typography
-                      variant="h5"
-                      sx={{ color: "#0F172A", fontWeight: 700 }}
-                    >
-                      {previousStat
-                        ? formatCurrency(previousStat.capturedRevenue)
-                        : "0 ₫"}
-                    </Typography>
-                  </Box>
-                </Box>
-              </>
-            )}
-          </Box>
-        </Card>
-      </Box>
-
-      {/* Top Rented Assets */}
-      {dashboardData.topRentedAssets &&
-        dashboardData.topRentedAssets.length > 0 && (
-          <Box sx={{ mb: 4 }}>
-            <Paper
-              elevation={0}
-              sx={{
-                p: 3,
-                borderRadius: 3,
-                bgcolor: "white",
-                border: "1px solid #E5E7EB",
-              }}
-            >
-              <Typography
-                variant="h6"
-                sx={{ fontWeight: 700, color: "#1F2937", mb: 3 }}
-              >
-                Top thiết bị được thuê nhiều nhất
-              </Typography>
-
-              <Grid container spacing={2}>
-                {dashboardData.topRentedAssets
-                  .slice(0, 6)
-                  .map((asset, index) => (
-                    <Grid key={asset.itemId} size={{ xs: 12, sm: 6, md: 4 }}>
-                      <Card
-                        elevation={0}
-                        sx={{
-                          p: 2.5,
-                          borderRadius: 2,
-                          bgcolor: "#F9FAFB",
-                          border: "1px solid #E5E7EB",
-                          position: "relative",
-                          overflow: "hidden",
-                          transition: "all 0.2s ease",
-                          "&:hover": {
-                            borderColor: "#F97316",
-                            boxShadow: "0 4px 12px rgba(249, 115, 22, 0.15)",
-                          },
-                        }}
-                      >
-                        <Box
-                          sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 2,
-                            mb: 2,
-                          }}
-                        >
-                          <Box
-                            sx={{
-                              width: 40,
-                              height: 40,
-                              borderRadius: 2,
-                              bgcolor: "#FFF7ED",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              fontWeight: 700,
-                              fontSize: "1.25rem",
-                              color: "#F97316",
-                            }}
-                          >
-                            #{index + 1}
-                          </Box>
-                          <Box sx={{ flex: 1 }}>
-                            <Typography
-                              variant="body1"
-                              sx={{
-                                fontWeight: 600,
-                                color: "#1F2937",
-                                mb: 0.5,
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                                whiteSpace: "nowrap",
-                              }}
-                            >
-                              {asset.name}
-                            </Typography>
-                            <Chip
-                              label={
-                                asset.itemType === "camera"
-                                  ? "Camera"
-                                  : "Phụ kiện"
-                              }
-                              size="small"
-                              sx={{
-                                bgcolor:
-                                  asset.itemType === "camera"
-                                    ? "#ECFDF5"
-                                    : "#EEF2FF",
-                                color:
-                                  asset.itemType === "camera"
-                                    ? "#10B981"
-                                    : "#6366F1",
-                                fontWeight: 600,
-                                fontSize: "0.7rem",
-                                height: 20,
-                              }}
-                            />
-                          </Box>
-                        </Box>
-
-                        <Box sx={{ display: "flex", gap: 2 }}>
-                          <Box sx={{ flex: 1 }}>
-                            <Typography
-                              variant="caption"
-                              sx={{
-                                color: "#6B7280",
-                                display: "block",
-                                mb: 0.5,
-                              }}
-                            >
-                              Lượt thuê
-                            </Typography>
-                            <Typography
-                              variant="h6"
-                              sx={{ fontWeight: 700, color: "#1F2937" }}
-                            >
-                              {asset.rentalCount}
-                            </Typography>
-                          </Box>
-                          <Box sx={{ flex: 1 }}>
-                            <Typography
-                              variant="caption"
-                              sx={{
-                                color: "#6B7280",
-                                display: "block",
-                                mb: 0.5,
-                              }}
-                            >
-                              Doanh thu
-                            </Typography>
-                            <Typography
-                              variant="body2"
-                              sx={{ fontWeight: 700, color: "#F59E0B" }}
-                            >
-                              {formatCurrency(asset.grossRevenue)}
-                            </Typography>
-                          </Box>
-                        </Box>
-                      </Card>
-                    </Grid>
-                  ))}
-              </Grid>
-            </Paper>
-          </Box>
-        )}
-
-      {/* Bookings by Status & Disputes */}
-      <Grid container spacing={3}>
-        {/* Bookings by Status */}
-        <Grid size={{ xs: 12, lg: 8 }}>
-          <Paper
-            elevation={0}
-            sx={{
-              p: 3,
-              borderRadius: 3,
-              bgcolor: "white",
-              border: "1px solid #E5E7EB",
-            }}
-          >
-            <Typography
-              variant="h6"
-              sx={{ fontWeight: 700, color: "#1F2937", mb: 3 }}
-            >
-              Phân bố trạng thái booking
+            Tổng quan hoạt động kinh doanh
+          </Typography>
+          <Typography variant="body1" sx={{ color: "#475467" }}>
+            Theo dõi doanh thu, số lượt booking và hiệu suất thiết bị trong một
+            bảng điều khiển trực quan.
+          </Typography>
+          {isLoading && (
+            <Typography variant="body2" sx={{ color: "#999", mt: 1 }}>
+              Đang tải dữ liệu thống kê...
             </Typography>
-
-            {dashboardData.bookingsByStatus.length === 0 ? (
-              <Box
-                sx={{
-                  textAlign: "center",
-                  py: 6,
-                }}
-              >
-                <Typography variant="body2" sx={{ color: "#9CA3AF" }}>
-                  Chưa có booking nào
-                </Typography>
-              </Box>
-            ) : (
-              <Grid container spacing={2}>
-                {dashboardData.bookingsByStatus.map((status, index) => (
-                  <Grid key={index} size={{ xs: 12, sm: 6, md: 4 }}>
-                    <Card
-                      elevation={0}
-                      sx={{
-                        p: 3,
-                        borderRadius: 2,
-                        bgcolor: "#F9FAFB",
-                        border: "1px solid #E5E7EB",
-                        position: "relative",
-                        overflow: "hidden",
-                        "&::before": {
-                          content: '""',
-                          position: "absolute",
-                          top: 0,
-                          left: 0,
-                          width: "4px",
-                          height: "100%",
-                          bgcolor: getStatusColor(status.status),
-                        },
-                      }}
-                    >
-                      <Box
-                        sx={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          mb: 2,
-                        }}
-                      >
-                        <Chip
-                          label={status.statusText}
-                          size="small"
-                          sx={{
-                            bgcolor: getStatusColor(status.status),
-                            color: "white",
-                            fontWeight: 600,
-                            fontSize: "0.75rem",
-                          }}
-                        />
-                      </Box>
-                      <Typography
-                        variant="h3"
-                        sx={{
-                          fontWeight: 700,
-                          color: "#1F2937",
-                          mb: 0.5,
-                        }}
-                      >
-                        {status.count}
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: "#6B7280" }}>
-                        đơn booking
-                      </Typography>
-                    </Card>
-                  </Grid>
-                ))}
-              </Grid>
-            )}
-          </Paper>
-        </Grid>
-
-        {/* Open Disputes */}
-        <Grid size={{ xs: 12, lg: 4 }}>
-          <Paper
-            elevation={0}
-            sx={{
-              p: 3,
-              borderRadius: 3,
-              bgcolor: "white",
-              border: "1px solid #E5E7EB",
-              height: "100%",
-            }}
-          >
+          )}
+          {error && !isLoading && (
             <Typography
-              variant="h6"
-              sx={{ fontWeight: 700, color: "#1F2937", mb: 3 }}
+              variant="body2"
+              sx={{ color: "error.main", mt: 1, maxWidth: 600 }}
             >
-              Bồi thường đang mở
+              {error}
             </Typography>
+          )}
+        </Box>
 
-            <Box
-              sx={{
-                textAlign: "center",
-                py: 4,
-              }}
-            >
-              <Box
-                sx={{
-                  width: 80,
-                  height: 80,
-                  borderRadius: "50%",
-                  bgcolor:
-                    dashboardData.openDisputes > 0 ? "#FEF2F2" : "#ECFDF5",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  margin: "0 auto",
-                  mb: 2,
-                }}
-              >
-                <WarningIcon
-                  sx={{
-                    fontSize: 40,
-                    color:
-                      dashboardData.openDisputes > 0 ? "#EF4444" : "#10B981",
-                  }}
-                />
-              </Box>
-              <Typography
-                variant="h2"
-                sx={{
-                  fontWeight: 700,
-                  color: "#1F2937",
-                  mb: 1,
-                }}
-              >
-                {dashboardData.openDisputes}
-              </Typography>
-              <Typography variant="body2" sx={{ color: "#6B7280", mb: 2 }}>
-                {dashboardData.openDisputes > 0
-                  ? "bồi thường cần xử lý"
-                  : "Không có bồi thường"}
-              </Typography>
-              {dashboardData.openDisputes > 0 && (
-                <Alert
-                  severity="warning"
-                  icon={<WarningIcon fontSize="small" />}
-                  sx={{
-                    mt: 2,
-                    borderRadius: 2,
-                    textAlign: "left",
-                  }}
-                >
-                  <Typography variant="caption">
-                    Vui lòng xử lý các tranh chấp đang mở để đảm bảo chất lượng
-                    dịch vụ
-                  </Typography>
-                </Alert>
-              )}
-            </Box>
-          </Paper>
-        </Grid>
-      </Grid>
+        {/* Nhóm thẻ thống kê nhanh */}
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 3, mb: 4 }}>
+          {stats.map((stat, index) => (
+            <StatCard key={index} stat={stat} />
+          ))}
+        </Box>
+
+        {/* Khu vực nội dung chính: biểu đồ + bảng + doanh thu */}
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+          <ColumnChartCard
+            stats={chartStats}
+            period={chartPeriod}
+            onPeriodChange={handleChartPeriodChange}
+            isLoading={isLoading}
+          />
+          <Box>
+            <TopRentedAssetsTable assets={data?.topRentedAssets ?? []} />
+          </Box>
+        </Box>
+      </Box>
     </Box>
   );
-};
-
-export default DashboardManager;
+}
