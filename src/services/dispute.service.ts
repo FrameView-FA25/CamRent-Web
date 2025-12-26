@@ -34,10 +34,18 @@ export const createDispute = async (
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(
-        errorData.message || `Failed to create dispute: ${response.statusText}`
-      );
+      // Try to parse ProblemDetails / error body from backend and surface its 'detail' or 'title'
+      const errorBody = await response.text().catch(() => "");
+      let parsed: any = {};
+      try {
+        parsed = JSON.parse(errorBody);
+      } catch {
+        parsed = { message: errorBody || response.statusText };
+      }
+
+      const message =
+        parsed.detail || parsed.title || parsed.message || response.statusText;
+      throw new Error(message);
     }
 
     const disputeId = await response.text();

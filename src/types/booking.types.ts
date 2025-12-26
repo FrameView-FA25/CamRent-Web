@@ -237,6 +237,7 @@ export interface CreateDisputeRequest {
   title: string;
   description: string;
   severity: string;
+  downtimeDays?: number;
 }
 
 export interface AddDisputeItemRequest {

@@ -610,7 +610,7 @@ const CheckBookings: React.FC = () => {
   };
 
   const filteredBookings = useMemo(() => {
-    return bookings.filter((booking) => {
+    const result = bookings.filter((booking) => {
       const matchesSearch =
         booking.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
         booking.renterId.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -635,6 +635,15 @@ const CheckBookings: React.FC = () => {
 
       return matchesSearch && matchesTab;
     });
+
+    // Ensure newest bookings first by createdAt (descending)
+    result.sort((a, b) => {
+      const ta = new Date(a.createdAt || 0).getTime();
+      const tb = new Date(b.createdAt || 0).getTime();
+      return tb - ta;
+    });
+
+    return result;
   }, [bookings, searchQuery, selectedTab]);
 
   const paginatedBookings = useMemo(() => {

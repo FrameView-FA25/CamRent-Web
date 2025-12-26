@@ -49,6 +49,7 @@ import type { Booking, Dispute } from "../../types/booking.types";
 import {
   formatCurrency,
   formatDate,
+  formatDateTime,
   getBookingType,
   normalizeStatusText,
   getStatusNumber,
@@ -1085,7 +1086,7 @@ const BookingDetail: React.FC = () => {
                     variant="body1"
                     sx={{ fontWeight: 600, color: "#1F2937" }}
                   >
-                    {formatDate(booking.pickupAt)}
+                    {formatDateTime(booking.pickupAt)}
                   </Typography>
                 </Box>
               </Box>
@@ -1105,7 +1106,7 @@ const BookingDetail: React.FC = () => {
                     variant="body1"
                     sx={{ fontWeight: 600, color: "#1F2937" }}
                   >
-                    {formatDate(booking.returnAt)}
+                    {formatDateTime(booking.returnAt)}
                   </Typography>
                 </Box>
               </Box>
@@ -2064,7 +2065,12 @@ const BookingDetail: React.FC = () => {
                                             color: "#1F2937",
                                           }}
                                         >
-                                          {dispute.title}
+                                          {(() => {
+                                            const t = (dispute.title || "").toString().toLowerCase();
+                                            if (t === "downtime") return "Thời gian giãn đoạn";
+                                            if (t === "late") return "Trả muộn";
+                                            return dispute.title;
+                                          })()}
                                         </Typography>
                                         <Chip
                                           label={getDisputeStatusLabel(
@@ -2154,6 +2160,8 @@ const BookingDetail: React.FC = () => {
                                                     return "Mất thiết bị";
                                                   case "late":
                                                     return "Trễ hẹn";
+                                                  case "downtime_fee":
+                                                    return "Phí giãn đoạn";
                                                   case "money":
                                                     return "Tiền";
                                                   default:
