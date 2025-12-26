@@ -7,7 +7,6 @@ import type {
   RenterInfo,
   RenterBookingHistory,
 } from "../types/booking.types";
-import { toast } from "react-toastify";
 export type { RenterInfo, RenterBookingHistory };
 
 type ApiBookingItem = BookingItem & {

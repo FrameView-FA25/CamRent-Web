@@ -48,7 +48,6 @@ import PaymentMethodDialog from "../../components/Staff/PaymentMethodDialog";
 import type { Booking, Dispute } from "../../types/booking.types";
 import {
   formatCurrency,
-  formatDate,
   formatDateTime,
   getBookingType,
   normalizeStatusText,
