@@ -34,6 +34,20 @@ import { userService } from "../../services/user.service";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
+// Utility functions for text processing
+const removeVietnameseAccents = (str: string): string => {
+  return str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D");
+};
+
+const toUpperCaseNoAccent = (str: string): string => {
+  return removeVietnameseAccents(str).toUpperCase();
+};
+
+// Vietnamese banks list
 interface TabPanelProps {
   children?: React.ReactNode;
   index: number;
@@ -185,6 +199,65 @@ const ManagerProfile: React.FC = () => {
   //   setShowNotification(true);
   // };
 
+  const validateForm = () => {
+    // Validate full name
+    if (!userData.fullName.trim()) {
+      toast.error("Họ và tên không được để trống!");
+      return false;
+    }
+
+    // Validate phone number (Vietnamese format)
+    if (userData.phone) {
+      const phoneRegex = /^0[3-9]\d{8}$/;
+      if (!phoneRegex.test(userData.phone.replace(/\s+/g, ""))) {
+        toast.error(
+          "Số điện thoại không hợp lệ! Phải là số Việt Nam (10 số, bắt đầu bằng 0)"
+        );
+        return false;
+      }
+    }
+
+    // Validate bank information consistency
+    const hasBankAccountNumber = userData.bankAccountNumber.trim();
+    const hasBankName = userData.bankName.trim();
+    const hasBankAccountName = userData.bankAccountName.trim();
+
+    if (hasBankAccountNumber || hasBankName || hasBankAccountName) {
+      // If any bank field is filled, all must be filled
+      if (!hasBankAccountNumber) {
+        toast.error("Vui lòng nhập số tài khoản ngân hàng!");
+        return false;
+      }
+      if (!hasBankName) {
+        toast.error("Vui lòng chọn ngân hàng!");
+        return false;
+      }
+      if (!hasBankAccountName) {
+        toast.error("Vui lòng nhập tên chủ tài khoản!");
+        return false;
+      }
+
+      // Validate bank account number (allow numbers, spaces, hyphens)
+      const accountNumberRegex = /^[\d\s-]+$/;
+      const cleanAccountNumber = userData.bankAccountNumber.replace(
+        /[\s-]/g,
+        ""
+      );
+      if (!accountNumberRegex.test(userData.bankAccountNumber)) {
+        toast.error(
+          "Số tài khoản chỉ được chứa số, dấu cách và dấu gạch ngang!"
+        );
+        return false;
+      }
+      if (cleanAccountNumber.length < 6 || cleanAccountNumber.length > 20) {
+        toast.error("Số tài khoản phải có từ 6 đến 20 chữ số!");
+        return false;
+      }
+    }
+
+    return true;
+  };
+
   const handleSave = async () => {
     try {
       if (!profileData?.id) {
@@ -192,13 +265,36 @@ const ManagerProfile: React.FC = () => {
         return;
       }
 
+      // Validate form before saving
+      if (!validateForm()) {
+        return;
+      }
+
+      // Clean bank account number before sending to server
+      const cleanBankAccountNumber = userData.bankAccountNumber.replace(
+        /[\s-]/g,
+        ""
+      );
+
+      // 1) Cập nhật thông tin tài khoản cơ bản (tên, phone, địa chỉ)
+      await userService.updateMyAccount({
+        email: null, // Không cho phép đổi email
+        fullName: userData.fullName || null,
+        phone: userData.phone || null,
+        address: userData.address || null,
+        country: null,
+        province: null,
+        district: null,
+      });
+
+      // 2) Cập nhật thông tin ngân hàng
       await userService.updateUserProfile(profileData.id, {
         fullName: userData.fullName,
         phone: userData.phone,
         address: userData.address,
-        bankNo: userData.bankAccountNumber,
-        bankName: userData.bankName,
-        bankAccName: userData.bankAccountName,
+        bankNo: cleanBankAccountNumber || null,
+        bankName: userData.bankName || null,
+        bankAccName: userData.bankAccountName || null,
       });
 
       setIsEditing(false);
@@ -264,7 +360,13 @@ const ManagerProfile: React.FC = () => {
     data: T,
     field: string,
     value: string
-  ) => setter({ ...data, [field]: value });
+  ) => {
+    // Apply uppercase no accent only for bank account name field (not for bank account number)
+    const processedValue =
+      field === "bankAccountName" ? toUpperCaseNoAccent(value) : value;
+
+    setter({ ...data, [field]: processedValue });
+  };
 
   const handleOpenSignature = () => {
     setSignatureDialogOpen(true);
@@ -396,35 +498,77 @@ const ManagerProfile: React.FC = () => {
         flexDirection: { xs: "column", sm: "row" },
       }}
     >
-      {fields.map((field) => (
-        <TextField
-          key={field.field}
-          fullWidth
-          label={field.label}
-          type={field.type || "text"}
-          value={data[field.field] || ""}
-          onChange={(e) =>
-            handleFieldChange(setter, data, field.field, e.target.value)
-          }
-          disabled={field.disabled || (!isEditing && tabValue === 0)}
-          variant="outlined"
-          multiline={field.multiline}
-          rows={field.rows}
-          sx={{
-            "& .MuiOutlinedInput-root": {
-              "&:hover fieldset": {
-                borderColor: isEditing ? "#DC2626" : undefined,
+      {fields.map((field) => {
+        // Special handling for bank account number field
+        if (field.field === "bankAccountNumber") {
+          return (
+            <TextField
+              key={field.field}
+              fullWidth
+              label={field.label}
+              type="text"
+              inputProps={{
+                inputMode: "numeric",
+                pattern: "[0-9\\s\\-]*",
+                maxLength: 25,
+              }}
+              placeholder="Ví dụ: 123456789012 hoặc 1234 5678 9012"
+              value={data[field.field] || ""}
+              onChange={(e) => {
+                // Only allow numbers, spaces, and hyphens
+                const value = e.target.value.replace(/[^0-9\s\-]/g, "");
+                handleFieldChange(setter, data, field.field, value);
+              }}
+              disabled={field.disabled || (!isEditing && tabValue === 0)}
+              variant="outlined"
+              helperText="Chỉ nhập số, dấu cách và dấu gạch ngang"
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  "&:hover fieldset": {
+                    borderColor: isEditing ? "#DC2626" : undefined,
+                  },
+                  "&.Mui-focused fieldset": {
+                    borderColor: "#DC2626",
+                  },
+                },
+                "& .MuiInputLabel-root.Mui-focused": {
+                  color: "#DC2626",
+                },
+              }}
+            />
+          );
+        }
+
+        return (
+          <TextField
+            key={field.field}
+            fullWidth
+            label={field.label}
+            type={field.type || "text"}
+            value={data[field.field] || ""}
+            onChange={(e) =>
+              handleFieldChange(setter, data, field.field, e.target.value)
+            }
+            disabled={field.disabled || (!isEditing && tabValue === 0)}
+            variant="outlined"
+            multiline={field.multiline}
+            rows={field.rows}
+            sx={{
+              "& .MuiOutlinedInput-root": {
+                "&:hover fieldset": {
+                  borderColor: isEditing ? "#DC2626" : undefined,
+                },
+                "&.Mui-focused fieldset": {
+                  borderColor: "#DC2626",
+                },
               },
-              "&.Mui-focused fieldset": {
-                borderColor: "#DC2626",
+              "& .MuiInputLabel-root.Mui-focused": {
+                color: "#DC2626",
               },
-            },
-            "& .MuiInputLabel-root.Mui-focused": {
-              color: "#DC2626",
-            },
-          }}
-        />
-      ))}
+            }}
+          />
+        );
+      })}
     </Box>
   );
 
