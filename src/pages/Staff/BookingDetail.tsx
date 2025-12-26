@@ -59,13 +59,7 @@ import { getItemName } from "../../helpers/booking.helper";
 // Ghi chú: tham chiếu nhanh để tránh lỗi linter báo unused import trong một số môi trường
 void normalizeStatusText;
 
-const steps = [
-  "Đơn hàng mới",
-  "Đã xác nhận",
-  "Đã giao hàng",
-  "Đã trả hàng",
-  "Hoàn thành",
-];
+const steps = ["Đã xác nhận", "Đã giao máy", "Đã trả máy", "Hoàn thành"];
 
 const BookingDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -681,7 +675,9 @@ const BookingDetail: React.FC = () => {
 
   const getActiveStep = (statusNumber: number) => {
     if (statusNumber === -1) return -1;
-    return statusNumber;
+    // Stepper now starts from 'Đã xác nhận' which corresponds to statusNumber = 1
+    // Map statusNumber -> step index by subtracting 1
+    return statusNumber - 1;
   };
 
   // Helper to present human friendly dispute status labels
@@ -771,6 +767,7 @@ const BookingDetail: React.FC = () => {
 
   // Lấy chỉ số bước (0..4 / -1) để hiển thị stepper
   const statusNumber = getStatusNumber(normalizedStatusText);
+  const activeStep = getActiveStep(statusNumber);
   const paymentDetails = calculatePaymentDetails();
 
   // Tổng tất cả các khoản bồi thường (theo backend)
@@ -783,6 +780,9 @@ const BookingDetail: React.FC = () => {
   const refundAmount = paymentDetails.refundAmount || 0;
   const refundPaidAmount = paymentDetails.refundPaidAmount || 0;
   const refundUnpaidAmount = paymentDetails.refundUnpaidAmount || 0;
+  const depositAmount = booking.snapshotDepositAmount || 0;
+  const isCompensation = disputesTotalAll > depositAmount;
+  const compensationAmount = Math.max(0, disputesTotalAll - depositAmount);
 
   return (
     <Box sx={{ bgcolor: "#F5F5F5", minHeight: "100vh", p: 3 }}>
@@ -833,11 +833,11 @@ const BookingDetail: React.FC = () => {
         </Box>
 
         {/* Stepper */}
-        {statusNumber !== -1 && (
+        {statusNumber > 0 && statusNumber !== -1 && (
           <Paper elevation={0} sx={{ p: 4, mb: 3, borderRadius: 3 }}>
-            <Stepper activeStep={getActiveStep(statusNumber)} alternativeLabel>
+            <Stepper activeStep={activeStep} alternativeLabel>
               {steps.map((label, index) => (
-                <Step key={label} completed={index <= statusNumber}>
+                <Step key={label} completed={index < activeStep}>
                   <StepLabel
                     StepIconProps={{
                       sx: {
@@ -852,9 +852,9 @@ const BookingDetail: React.FC = () => {
                   >
                     <Typography
                       sx={{
-                        fontWeight: index <= statusNumber ? 600 : 400,
+                        fontWeight: index <= activeStep ? 600 : 400,
                         fontSize: "0.875rem",
-                        color: index <= statusNumber ? "#1F2937" : "#9CA3AF",
+                        color: index <= activeStep ? "#1F2937" : "#9CA3AF",
                       }}
                     >
                       {label}
@@ -1915,7 +1915,7 @@ const BookingDetail: React.FC = () => {
                   >
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                       <Typography variant="body2" sx={{ color: "#6B7280" }}>
-                        Tiền hoàn trả
+                        {isCompensation ? "Tiền đền bù" : "Tiền hoàn trả"}
                       </Typography>
                       {disputeDetailExpanded ? (
                         <ExpandLess sx={{ color: "#F97316", fontSize: 20 }} />
@@ -1928,7 +1928,9 @@ const BookingDetail: React.FC = () => {
                         variant="body1"
                         sx={{ fontWeight: 600, color: "#059669" }}
                       >
-                        {formatCurrency(refundAmount)}
+                        {isCompensation
+                          ? formatCurrency(compensationAmount)
+                          : formatCurrency(refundAmount)}
                       </Typography>
                       {refundUnpaidAmount > 0 && (
                         <Typography
@@ -1947,32 +1949,7 @@ const BookingDetail: React.FC = () => {
                         </Typography>
                       )}
 
-                      {/* Button to trigger backend refund/payment handling (only when booking returned) */}
-                      {statusNumber >= 3 && refundUnpaidAmount > 0 && (
-                        <Box sx={{ mt: 2 }}>
-                          <Button
-                            variant="contained"
-                            onClick={handleProcessRefund}
-                            disabled={refundProcessing}
-                            startIcon={
-                              refundProcessing ? (
-                                <CircularProgress size={18} color="inherit" />
-                              ) : undefined
-                            }
-                            sx={{
-                              bgcolor: "#F97316",
-                              color: "white",
-                              textTransform: "none",
-                              fontWeight: 600,
-                              "&:hover": { bgcolor: "#EA580C" },
-                            }}
-                          >
-                            {refundProcessing
-                              ? "Đang xử lý..."
-                              : "Xử lý hoàn trả"}
-                          </Button>
-                        </Box>
-                      )}
+                      {/* Button moved to bottom of dispute details */}
                     </Box>
                   </Box>
 
@@ -2281,64 +2258,126 @@ const BookingDetail: React.FC = () => {
                           </Typography>
                         )}
 
-                        {/* Hiển thị tổng tiền hoàn trả nếu có */}
-                        {refundAmount > 0 && (
+                        {/* Hiển thị tổng tiền hoàn trả / tiền đền bù và chi tiết tiền cọc */}
+                        <Box
+                          sx={{
+                            mt: 2,
+                            pt: 2,
+                            borderTop: "2px solid #059669",
+                            bgcolor: "#F0FDF4",
+                            p: 2,
+                            borderRadius: 2,
+                          }}
+                        >
                           <Box
                             sx={{
-                              mt: 2,
-                              pt: 2,
-                              borderTop: "2px solid #059669",
-                              bgcolor: "#F0FDF4",
-                              p: 2,
-                              borderRadius: 2,
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              mb: 1,
                             }}
                           >
-                            <Box
-                              sx={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                alignItems: "center",
-                                mb: 1,
-                              }}
+                            <Typography
+                              variant="body2"
+                              sx={{ fontWeight: 700, color: "#1F2937" }}
                             >
-                              <Typography
-                                variant="body2"
-                                sx={{ fontWeight: 700, color: "#1F2937" }}
-                              >
-                                Tổng tiền hoàn trả:
-                              </Typography>
-                              <Typography
-                                variant="h6"
-                                sx={{ fontWeight: 700, color: "#059669" }}
-                              >
-                                {formatCurrency(refundAmount)}
-                              </Typography>
-                            </Box>
-                            <Box
-                              sx={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                alignItems: "center",
-                                fontSize: "0.75rem",
-                              }}
+                              {isCompensation
+                                ? "Tổng tiền đền bù:"
+                                : "Tổng tiền hoàn trả:"}
+                            </Typography>
+                            <Typography
+                              variant="h6"
+                              sx={{ fontWeight: 700, color: "#059669" }}
                             >
-                              <Typography
-                                variant="caption"
-                                sx={{ color: "#6B7280" }}
-                              >
-                                • Tiền bồi thường:{" "}
-                                {formatCurrency(disputesTotalAll)}
-                              </Typography>
-                              <Typography
-                                variant="caption"
-                                sx={{ color: "#6B7280" }}
-                              >
-                                • Tiền cọc thiết bị:{" "}
-                                {formatCurrency(booking.snapshotDepositAmount)}
-                              </Typography>
-                            </Box>
+                              {isCompensation
+                                ? formatCurrency(compensationAmount)
+                                : formatCurrency(refundAmount)}
+                            </Typography>
                           </Box>
-                        )}
+                          <Box
+                            sx={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              fontSize: "0.75rem",
+                            }}
+                          >
+                            <Typography
+                              variant="caption"
+                              sx={{ color: "#6B7280" }}
+                            >
+                              • Tiền cọc thiết bị:{" "}
+                              {formatCurrency(depositAmount)}
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              sx={{ color: "#6B7280" }}
+                            >
+                              • Tiền đền bù:{" "}
+                              {formatCurrency(compensationAmount)}
+                            </Typography>
+                          </Box>
+                          <Typography
+                            variant="caption"
+                            sx={{ color: "#6B7280", display: "block", mt: 1 }}
+                          >
+                            {isCompensation ? (
+                              <>
+                                Cách tính: Tiền đền bù = Tổng tranh chấp (
+                                {formatCurrency(disputesTotalAll)}) - Tiền cọc (
+                                {formatCurrency(depositAmount)}) ={" "}
+                                {formatCurrency(compensationAmount)}
+                              </>
+                            ) : (
+                              <>
+                                Cách tính: Tiền hoàn trả = Tiền cọc (
+                                {formatCurrency(depositAmount)}) - Tổng tranh
+                                chấp ({formatCurrency(disputesTotalAll)}) ={" "}
+                                {formatCurrency(refundAmount)}
+                              </>
+                            )}
+                          </Typography>
+                        </Box>
+                        {/* Button placed at the bottom of the dispute details */}
+                        {statusNumber >= 3 &&
+                          (refundUnpaidAmount > 0 ||
+                            disputesTotalAll >
+                              (booking.snapshotDepositAmount || 0)) && (
+                            <Box
+                              sx={{
+                                mt: 2,
+                                display: "flex",
+                                justifyContent: "flex-end",
+                              }}
+                            >
+                              <Button
+                                variant="contained"
+                                onClick={handleProcessRefund}
+                                disabled={refundProcessing}
+                                startIcon={
+                                  refundProcessing ? (
+                                    <CircularProgress
+                                      size={18}
+                                      color="inherit"
+                                    />
+                                  ) : undefined
+                                }
+                                sx={{
+                                  bgcolor: "#F97316",
+                                  color: "white",
+                                  textTransform: "none",
+                                  fontWeight: 600,
+                                  "&:hover": { bgcolor: "#EA580C" },
+                                }}
+                              >
+                                {refundProcessing
+                                  ? "Đang xử lý..."
+                                  : refundUnpaidAmount > 0
+                                  ? "Xử lý hoàn trả"
+                                  : "Tạo payment bù tranh chấp"}
+                              </Button>
+                            </Box>
+                          )}
                       </Stack>
                     </Box>
                   </Collapse>

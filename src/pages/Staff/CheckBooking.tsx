@@ -59,6 +59,8 @@ import {
   formatCurrency,
   formatDate,
   getStatusInfo,
+  normalizeStatusText,
+  getStatusNumber,
 } from "../../utils/booking.utils";
 import { getItemName } from "../../helpers/booking.helper";
 import { useNavigate } from "react-router-dom";
@@ -147,6 +149,9 @@ const CheckBookings: React.FC = () => {
   const [updateStatusBookingId, setUpdateStatusBookingId] =
     useState<string>("");
   const [selectedStatus, setSelectedStatus] = useState<string>("");
+  const [allowedStatusOptions, setAllowedStatusOptions] = useState<string[]>(
+    []
+  );
   const navigate = useNavigate();
   useEffect(() => {
     loadAssignments();
@@ -535,7 +540,22 @@ const CheckBookings: React.FC = () => {
   const handleOpenUpdateStatusDialog = (bookingId: string) => {
     setUpdateStatusBookingId(bookingId);
     const booking = bookings.find((b) => b.id === bookingId);
-    setSelectedStatus(booking?.status || "");
+    // Don't pre-select current status — require staff to choose a forward status.
+    setSelectedStatus("");
+
+    // Compute allowed statuses: hide any status that is earlier or equal to current.
+    const currentStatusNumber = getStatusNumber(
+      normalizeStatusText(booking?.statusText || booking?.status || "")
+    );
+    const forwardStatuses = ["Confirmed", "PickedUp", "Returned", "Completed"];
+    const allowed = forwardStatuses.filter(
+      (s) => getStatusNumber(s) > currentStatusNumber
+    );
+    // Allow cancelling unless already cancelled
+    if ((booking?.status || "").toString() !== "Cancelled") {
+      allowed.push("Cancelled");
+    }
+    setAllowedStatusOptions(allowed);
     setUpdateStatusDialogOpen(true);
   };
 
@@ -900,7 +920,7 @@ const CheckBookings: React.FC = () => {
                     fontSize: "0.75rem",
                   }}
                 >
-                  Đã trả
+                  Đã trả máy
                 </Typography>
                 <Typography
                   variant="h5"
@@ -1149,7 +1169,7 @@ const CheckBookings: React.FC = () => {
               })`}
             />
             <Tab
-              label={`Đã trả (${
+              label={`Đã trả máy (${
                 bookings.filter((b) => b.status === "Returned").length
               })`}
             />
@@ -1756,58 +1776,72 @@ const CheckBookings: React.FC = () => {
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
             >
-              <FormControlLabel
-                value="Confirmed"
-                control={<Radio sx={{ color: "#10B981" }} />}
-                label={
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                    <CheckCircleOutline
-                      sx={{ color: "#10B981", fontSize: 20 }}
-                    />
-                    <Typography>Đã xác nhận</Typography>
-                  </Box>
-                }
-              />
-              <FormControlLabel
-                value="PickedUp"
-                control={<Radio sx={{ color: "#3B82F6" }} />}
-                label={
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                    <LocalShipping sx={{ color: "#3B82F6", fontSize: 20 }} />
-                    <Typography>Đã giao máy</Typography>
-                  </Box>
-                }
-              />
-              <FormControlLabel
-                value="Returned"
-                control={<Radio sx={{ color: "#8B5CF6" }} />}
-                label={
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                    <TaskAlt sx={{ color: "#8B5CF6", fontSize: 20 }} />
-                    <Typography>Đã trả máy</Typography>
-                  </Box>
-                }
-              />
-              <FormControlLabel
-                value="Completed"
-                control={<Radio sx={{ color: "#059669" }} />}
-                label={
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                    <TaskAlt sx={{ color: "#059669", fontSize: 20 }} />
-                    <Typography>Hoàn tất</Typography>
-                  </Box>
-                }
-              />
-              <FormControlLabel
-                value="Cancelled"
-                control={<Radio sx={{ color: "#EF4444" }} />}
-                label={
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                    <Clear sx={{ color: "#EF4444", fontSize: 20 }} />
-                    <Typography>Hủy đơn</Typography>
-                  </Box>
-                }
-              />
+              {allowedStatusOptions.includes("Confirmed") && (
+                <FormControlLabel
+                  value="Confirmed"
+                  control={<Radio sx={{ color: "#10B981" }} />}
+                  label={
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <CheckCircleOutline
+                        sx={{ color: "#10B981", fontSize: 20 }}
+                      />
+                      <Typography>Đã xác nhận</Typography>
+                    </Box>
+                  }
+                />
+              )}
+
+              {allowedStatusOptions.includes("PickedUp") && (
+                <FormControlLabel
+                  value="PickedUp"
+                  control={<Radio sx={{ color: "#3B82F6" }} />}
+                  label={
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <LocalShipping sx={{ color: "#3B82F6", fontSize: 20 }} />
+                      <Typography>Đã giao máy</Typography>
+                    </Box>
+                  }
+                />
+              )}
+
+              {allowedStatusOptions.includes("Returned") && (
+                <FormControlLabel
+                  value="Returned"
+                  control={<Radio sx={{ color: "#8B5CF6" }} />}
+                  label={
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <TaskAlt sx={{ color: "#8B5CF6", fontSize: 20 }} />
+                      <Typography>Đã trả máy</Typography>
+                    </Box>
+                  }
+                />
+              )}
+
+              {allowedStatusOptions.includes("Completed") && (
+                <FormControlLabel
+                  value="Completed"
+                  control={<Radio sx={{ color: "#059669" }} />}
+                  label={
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <TaskAlt sx={{ color: "#059669", fontSize: 20 }} />
+                      <Typography>Hoàn thành</Typography>
+                    </Box>
+                  }
+                />
+              )}
+
+              {allowedStatusOptions.includes("Cancelled") && (
+                <FormControlLabel
+                  value="Cancelled"
+                  control={<Radio sx={{ color: "#EF4444" }} />}
+                  label={
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <Clear sx={{ color: "#EF4444", fontSize: 20 }} />
+                      <Typography>Hủy đơn</Typography>
+                    </Box>
+                  }
+                />
+              )}
             </RadioGroup>
           </FormControl>
         </DialogContent>
@@ -1818,6 +1852,7 @@ const CheckBookings: React.FC = () => {
             variant="contained"
             disabled={!selectedStatus}
             sx={{ bgcolor: "#F97316", fontWeight: 600 }}
+            color="white"
           >
             Xác nhận
           </Button>

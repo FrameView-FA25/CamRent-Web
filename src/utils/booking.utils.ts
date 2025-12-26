@@ -105,7 +105,9 @@ export const normalizeStatusText = (status?: string): string => {
     "hoàn tất": "Hoàn thành",
     "hoan tat": "Hoàn thành",
     completed: "Hoàn thành",
-    returned: "Đã trả",
+    returned: "Đã trả máy",
+    "đã trả": "Đã trả máy",
+    "đã trả máy": "Đã trả máy",
     pickedup: "Đã giao máy",
     confirmed: "Đã xác nhận",
     pendingapproval: "Chờ xác nhận",
@@ -139,6 +141,7 @@ export const getStatusNumber = (statusText: string): number => {
     delivered: 3,
     returned: 3,
     "đã trả": 3,
+    "đã trả máy": 3,
     // Completed
     completed: 4,
     "hoàn thành": 4,
