@@ -475,7 +475,7 @@ const BookingManagement: React.FC = () => {
         />
 
         {/* Assign Staff Dialog */}
-        <AssignStaffDialog
+          <AssignStaffDialog
           open={dialogState.assignDialogOpen}
           onClose={() => dialogState.setAssignDialogOpen(false)}
           selectedBooking={dialogState.selectedBooking}
@@ -488,8 +488,7 @@ const BookingManagement: React.FC = () => {
               dialogState.selectedBooking,
               dialogState.selectedStaff,
               dialogState.setAssignLoading,
-              dialogState.setAssignDialogOpen,
-              loadBookings
+              dialogState.setAssignDialogOpen
             )
           }
         />
