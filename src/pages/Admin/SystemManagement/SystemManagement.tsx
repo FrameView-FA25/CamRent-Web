@@ -112,7 +112,7 @@ const SystemManagement: React.FC = () => {
   // Xử lý thay đổi input
   const handleInputChange = (
     field: keyof MoneyPlatformSettingsRequest,
-    value: any
+    value: string | number | boolean
   ) => {
     setFormData((prev) => ({
       ...prev,
@@ -162,14 +162,19 @@ const SystemManagement: React.FC = () => {
         <CardHeader
           title="Quản lý cấu hình hệ thống"
           action={
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<AddIcon />}
-              onClick={handleCreate}
-            >
-              Tạo cấu hình mới
-            </Button>
+            settings.length === 0 ? (
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<AddIcon />}
+                onClick={handleCreate}
+                sx={{
+                  color: "white",
+                }}
+              >
+                Tạo cấu hình mới
+              </Button>
+            ) : null
           }
         />
         <CardContent>

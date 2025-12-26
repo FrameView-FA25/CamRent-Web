@@ -311,6 +311,7 @@ const AccountManagement: React.FC = () => {
               "&:hover": { bgcolor: "#F4511E" },
               textTransform: "none",
               borderRadius: 2,
+              color: "white",
               px: 3,
             }}
           >

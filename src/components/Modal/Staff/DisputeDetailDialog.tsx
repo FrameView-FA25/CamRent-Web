@@ -37,7 +37,8 @@ const DisputeDetailDialog: React.FC<DisputeDetailDialogProps> = ({
   open,
   onClose,
   dispute,
-  onAddItem,
+    onAddItem,
+    onDeleteItem,
 }) => {
   const [showAddItem, setShowAddItem] = useState(false);
   const [newItem, setNewItem] = useState<AddDisputeItemRequest>({
