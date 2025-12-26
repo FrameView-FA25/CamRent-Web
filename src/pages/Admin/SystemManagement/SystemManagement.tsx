@@ -83,7 +83,7 @@ const SystemManagement: React.FC = () => {
         open: true,
         message:
           "Hệ thống đã có cấu hình. Vui lòng chỉnh sửa cấu hình hiện có.",
-        severity: "warning",
+        severity: "error",
       });
       return;
     }
@@ -173,7 +173,7 @@ const SystemManagement: React.FC = () => {
         <CardHeader
           title="Quản lý cấu hình hệ thống"
           action={
-            settings.length === 0 && (
+            settings.length === 0 ? (
               <Button
                 variant="contained"
                 color="primary"

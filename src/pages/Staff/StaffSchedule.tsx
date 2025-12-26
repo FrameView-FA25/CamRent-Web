@@ -356,18 +356,45 @@ const StaffSchedule: React.FC = () => {
     if (!slot) return null;
 
     const startHour = parseInt(slot.startTime.split(":")[0]);
+    const startMinute = parseInt(slot.startTime.split(":")[1]);
     const endHour = parseInt(slot.endTime.split(":")[0]);
+    const endMinute = parseInt(slot.endTime.split(":")[1]);
 
     return (
       scheduleData.find((event) => {
-        const eventDate = dayjs(event.startAt);
+        // Chuyển đổi từ UTC sang múi giờ địa phương (Việt Nam UTC+7)
+        const eventDate = dayjs(event.startAt).utcOffset(7 * 60);
         const eventHour = eventDate.hour();
+        const eventMinute = eventDate.minute();
 
-        return (
-          eventDate.isSame(targetDay, "day") &&
-          eventHour >= startHour &&
-          eventHour < endHour
-        );
+        // Kiểm tra xem event có thuộc ngày này không
+        if (!eventDate.isSame(targetDay, "day")) return false;
+
+        // Chuyển đổi thời gian thành phút để so sánh chính xác hơn
+        const eventTimeInMinutes = eventHour * 60 + eventMinute;
+        const slotStartInMinutes = startHour * 60 + startMinute;
+        const slotEndInMinutes = endHour * 60 + endMinute;
+
+        // Xác định loại event
+        const isPick = event.eventType === "BookingPickup";
+        const isReturn = event.eventType === "BookingReturn";
+
+        if (isPick) {
+          // Lấy hàng: so sánh với endTime của slot
+          return eventTimeInMinutes === slotEndInMinutes;
+        } else if (isReturn) {
+          // Trả hàng: so sánh trong khoảng startTime đến endTime
+          return (
+            eventTimeInMinutes >= slotStartInMinutes &&
+            eventTimeInMinutes < slotEndInMinutes
+          );
+        } else {
+          // Kiểm tra thiết bị: so sánh trong khoảng startTime đến endTime
+          return (
+            eventTimeInMinutes >= slotStartInMinutes &&
+            eventTimeInMinutes < slotEndInMinutes
+          );
+        }
       }) || null
     );
   };
