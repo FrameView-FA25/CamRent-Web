@@ -79,6 +79,15 @@ const BookingDetail: React.FC = () => {
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"PayOs" | "Cash">("PayOs");
+  // Refund / compensation method selection state
+  const [refundMethodDialogOpen, setRefundMethodDialogOpen] = useState(false);
+  const [refundMethod, setRefundMethod] = useState<
+    "PayOs" | "Cash" | "Transfer"
+  >("Cash");
+  const [refundAllowedMethods, setRefundAllowedMethods] = useState<
+    ("PayOs" | "Cash" | "Transfer")[]
+  >(["Cash", "Transfer"]);
+  const [refundAmountToProcess, setRefundAmountToProcess] = useState<number>(0);
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
@@ -342,30 +351,48 @@ const BookingDetail: React.FC = () => {
       return;
     }
 
-    if (
-      !window.confirm(
-        "Bạn có chắc chắn muốn xử lý hoàn trả/tiền bù cho đơn này không?"
-      )
-    ) {
+    // Directly prepare and open method selection dialog (no confirm)
+    await handleConfirmProcessRefund();
+  };
+
+  // Prepare and open method selection dialog for refund/compensation
+  const handleConfirmProcessRefund = async () => {
+    if (!booking) {
+      setSnackbar({
+        open: true,
+        message: "Không tìm thấy thông tin đơn hàng. Vui lòng thử lại.",
+        severity: "error",
+      });
       return;
     }
+    const depositAmount = booking.snapshotDepositAmount || 0;
+    const disputesTotalAll = disputes.reduce(
+      (sum, d) => sum + (d.totalAmount || 0),
+      0
+    );
+    const isCompensation = disputesTotalAll > depositAmount;
+    const allowed = isCompensation
+      ? (["PayOs", "Cash"] as ("PayOs" | "Cash" | "Transfer")[])
+      : (["Cash", "Transfer"] as ("PayOs" | "Cash" | "Transfer")[]);
 
+    const amountToProcess = isCompensation
+      ? Math.max(0, disputesTotalAll - depositAmount)
+      : Math.max(0, depositAmount - disputesTotalAll);
+
+    setRefundAllowedMethods(allowed);
+    setRefundMethod(allowed[0] as "PayOs" | "Cash" | "Transfer");
+    setRefundAmountToProcess(amountToProcess);
+    setRefundMethodDialogOpen(true);
+  };
+
+  const executeProcessRefund = async (
+    method: "PayOs" | "Cash" | "Transfer"
+  ) => {
+    if (!booking?.id) return;
     setRefundProcessing(true);
-
     try {
-      // Compute local diff to decide preferred backend method (used only to tell backend whether we prefer Cash or PayOs)
-      const depositAmount = booking.snapshotDepositAmount || 0;
-      const disputesTotalAll = disputes.reduce(
-        (sum, d) => sum + (d.totalAmount || 0),
-        0
-      );
-      const diff = depositAmount - disputesTotalAll;
-      const methodForBackend = diff > 0 ? "Cash" : "PayOs";
-
       const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
       const token = localStorage.getItem("accessToken");
-
-      // Backend will compute net and perform either refund (net > 0) or create offset payment (net < 0).
       const response = await fetch(`${API_BASE_URL}/Payments/refund`, {
         method: "POST",
         headers: {
@@ -374,7 +401,7 @@ const BookingDetail: React.FC = () => {
         },
         body: JSON.stringify({
           BookingId: booking.id,
-          Method: methodForBackend,
+          Method: method,
         }),
       });
 
@@ -383,7 +410,6 @@ const BookingDetail: React.FC = () => {
         throw new Error(text || "Không thể xử lý hoàn trả");
       }
 
-      // Parse JSON response (backend returns { type: "refund" | "offset" | "none", amount, paymentId })
       let result: { type?: string; amount?: number; paymentId?: string } = {};
       try {
         result = JSON.parse(text) as {
@@ -393,8 +419,6 @@ const BookingDetail: React.FC = () => {
         };
       } catch (parseErr) {
         console.warn("Failed to parse refund response:", parseErr);
-        // If backend returned plain string, attempt to auto-resolve disputes (best-effort),
-        // then show success and reload.
         try {
           const unresolvedDisputes = disputes.filter((d) => {
             const st = (d.status || "").toString().toLowerCase();
@@ -423,16 +447,13 @@ const BookingDetail: React.FC = () => {
         return;
       }
 
+      // Handle result
       if (result.type === "refund") {
         setSnackbar({
           open: true,
-          message: `Hoàn cọc thành công: ${formatCurrency(
-            result.amount || diff
-          )}`,
+          message: `Hoàn cọc thành công: ${formatCurrency(result.amount || 0)}`,
           severity: "success",
         });
-
-        // Mark disputes resolved on backend for items > 0 (best-effort)
         try {
           const unresolvedDisputes = disputes.filter((d) => {
             const st = (d.status || "").toString().toLowerCase();
@@ -450,19 +471,15 @@ const BookingDetail: React.FC = () => {
         } catch (err) {
           console.warn("Error resolving disputes after refund:", err);
         }
-
         await loadBookingDetail();
       } else if (result.type === "offset") {
-        const extra = result.amount || Math.abs(diff);
-        // If backend created an authorization payment for PayOs, open PayOS checkout
-        if (methodForBackend === "PayOs" && result.paymentId) {
+        const extra = result.amount || 0;
+        if ((method === "PayOs" || method === "Transfer") && result.paymentId) {
           setSnackbar({
             open: true,
             message: "Chuyển hướng sang trang thanh toán bù tranh chấp...",
             severity: "info",
           });
-
-          // Initialize PayOS link
           const payosResp = await fetch(
             `${API_BASE_URL}/Payments/${result.paymentId}/payos`,
             {
@@ -490,13 +507,10 @@ const BookingDetail: React.FC = () => {
             payosData.redirectUrl || payosData.checkoutUrl || payosData.url;
           if (!checkoutUrl)
             throw new Error("Không nhận được URL thanh toán từ hệ thống");
-
-          // Redirect to PayOS checkout
           setTimeout(() => {
             window.location.href = checkoutUrl;
           }, 800);
         } else {
-          // Cash offset created & captured by backend
           setSnackbar({
             open: true,
             message: `Tạo payment bù tranh chấp thành công: ${formatCurrency(
@@ -523,6 +537,7 @@ const BookingDetail: React.FC = () => {
       });
     } finally {
       setRefundProcessing(false);
+      setRefundMethodDialogOpen(false);
     }
   };
 
@@ -2309,13 +2324,6 @@ const BookingDetail: React.FC = () => {
                               • Tiền cọc thiết bị:{" "}
                               {formatCurrency(depositAmount)}
                             </Typography>
-                            <Typography
-                              variant="caption"
-                              sx={{ color: "#6B7280" }}
-                            >
-                              • Tiền đền bù:{" "}
-                              {formatCurrency(compensationAmount)}
-                            </Typography>
                           </Box>
                           <Typography
                             variant="caption"
@@ -2374,7 +2382,7 @@ const BookingDetail: React.FC = () => {
                                   ? "Đang xử lý..."
                                   : refundUnpaidAmount > 0
                                   ? "Xử lý hoàn trả"
-                                  : "Tạo payment bù tranh chấp"}
+                                  : "Xử lý đền bù"}
                               </Button>
                             </Box>
                           )}
@@ -2399,12 +2407,27 @@ const BookingDetail: React.FC = () => {
           open={paymentDialogOpen}
           onClose={() => setPaymentDialogOpen(false)}
           paymentMethod={paymentMethod}
-          setPaymentMethod={setPaymentMethod}
+          setPaymentMethod={(m) => setPaymentMethod(m as "PayOs" | "Cash")}
           onConfirmPayment={handleConfirmPayment}
           paymentLoading={paymentLoading}
           booking={booking}
           paymentDetails={paymentDetails}
         />
+        {/* Refund / Compensation Method Dialog */}
+        <PaymentMethodDialog
+          open={refundMethodDialogOpen}
+          onClose={() => setRefundMethodDialogOpen(false)}
+          paymentMethod={refundMethod}
+          setPaymentMethod={(m) =>
+            setRefundMethod(m as "PayOs" | "Cash" | "Transfer")
+          }
+          onConfirmPayment={() => executeProcessRefund(refundMethod)}
+          paymentLoading={refundProcessing}
+          booking={booking}
+          paymentDetails={{ unpaidAmount: refundAmountToProcess }}
+          allowedMethods={refundAllowedMethods}
+        />
+        {/* Confirm dialog removed: we open payment-method modal immediately */}
 
         {/* Snackbar for notifications */}
         <Snackbar
