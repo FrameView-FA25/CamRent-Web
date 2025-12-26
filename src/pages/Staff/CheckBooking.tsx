@@ -544,9 +544,30 @@ const CheckBookings: React.FC = () => {
     setSelectedStatus("");
 
     // Compute allowed statuses: hide any status that is earlier or equal to current.
-    const currentStatusNumber = getStatusNumber(
-      normalizeStatusText(booking?.statusText || booking?.status || "")
-    );
+    // Prefer canonical `booking.status` (English key) when available; fall back to
+    // normalized text which may be Vietnamese coming from API.
+    const computeStatusNumberFromBooking = (b?: Booking): number => {
+      if (!b) return 0;
+      const statusKey = (b.status || "").toString();
+      const canonicalMap: Record<string, number> = {
+        Confirmed: 1,
+        PickedUp: 2,
+        Returned: 3,
+        Completed: 4,
+        Cancelled: -1,
+      };
+      if (
+        statusKey &&
+        Object.prototype.hasOwnProperty.call(canonicalMap, statusKey)
+      ) {
+        return canonicalMap[statusKey];
+      }
+      // fallback: normalize text and use existing mapping
+      return getStatusNumber(
+        normalizeStatusText(b.statusText || b.status || "")
+      );
+    };
+    const currentStatusNumber = computeStatusNumberFromBooking(booking);
     const forwardStatuses = ["Confirmed", "PickedUp", "Returned", "Completed"];
     const allowed = forwardStatuses.filter(
       (s) => getStatusNumber(s) > currentStatusNumber
@@ -1742,20 +1763,26 @@ const CheckBookings: React.FC = () => {
           setCreateDisputeDialogOpen(false);
         }}
       />
-      <BookingDisputeListDialog
-        open={disputeDialogOpen}
-        onClose={() => setDisputeDialogOpen(false)}
-        bookingId={disputeBookingId}
-        onCreateDispute={() => {
-          setDisputeDialogOpen(false);
-          setCreateDisputeBookingId(disputeBookingId);
-          setCreateDisputeDialogOpen(true);
-        }}
-        allowCreateDispute={
-          bookings.find((b) => b.id === disputeBookingId)?.status !==
-          "Completed"
-        }
-      />
+      {(() => {
+        const disputeBooking = bookings.find((b) => b.id === disputeBookingId);
+        const disputeBookingStatusNumber = getStatusNumber(
+          normalizeStatusText(disputeBooking?.statusText || disputeBooking?.status || "")
+        );
+        const allowCreate = disputeBookingStatusNumber === 3; // only when 'Returned'
+        return (
+          <BookingDisputeListDialog
+            open={disputeDialogOpen}
+            onClose={() => setDisputeDialogOpen(false)}
+            bookingId={disputeBookingId}
+            onCreateDispute={() => {
+              setDisputeDialogOpen(false);
+              setCreateDisputeBookingId(disputeBookingId);
+              setCreateDisputeDialogOpen(true);
+            }}
+            allowCreateDispute={allowCreate}
+          />
+        );
+      })()}
 
       {/* Update Status Dialog */}
       <Dialog
@@ -1851,8 +1878,8 @@ const CheckBookings: React.FC = () => {
             onClick={handleSubmitUpdateStatus}
             variant="contained"
             disabled={!selectedStatus}
-            sx={{ bgcolor: "#F97316", fontWeight: 600 }}
-            color="white"
+            color="primary"
+            sx={{ bgcolor: "#F97316", fontWeight: 600, color: "white" }}
           >
             Xác nhận
           </Button>

@@ -109,6 +109,9 @@ export const normalizeStatusText = (status?: string): string => {
     "đã trả": "Đã trả máy",
     "đã trả máy": "Đã trả máy",
     pickedup: "Đã giao máy",
+    "đã nhận máy": "Đã giao máy",
+    "đã nhận": "Đã giao máy",
+    "nhận máy": "Đã giao máy",
     confirmed: "Đã xác nhận",
     pendingapproval: "Chờ xác nhận",
     pending: "Chờ xác nhận",
@@ -134,6 +137,8 @@ export const getStatusNumber = (statusText: string): number => {
     // Delivering / PickedUp / InProgress variants
     delivering: 2,
     pickedup: 2,
+    "đã nhận máy": 2,
+    "đã nhận": 2,
     inprogress: 2,
     "đang thuê": 2,
     "đang giao hàng": 2,
