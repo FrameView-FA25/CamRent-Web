@@ -31,6 +31,7 @@ import {
   getDisputesByBookingId,
   getDisputeById,
   addDisputeItem,
+  deleteDisputeItem,
   resolveDispute,
   rejectDispute,
 } from "../../../services/dispute.service";
@@ -151,6 +152,20 @@ const BookingDisputeListDialog: React.FC<BookingDisputeListDialogProps> = ({
     const updatedDispute = await getDisputeById(disputeId);
     setSelectedDispute(updatedDispute);
     await loadDisputes();
+  };
+
+  const handleDeleteItem = async (disputeId: string, itemId: string) => {
+    try {
+      await deleteDisputeItem(disputeId, itemId);
+      toast.success("Đã xóa mục bồi thường thành công");
+      // Reload dispute detail and list
+      const updatedDispute = await getDisputeById(disputeId);
+      setSelectedDispute(updatedDispute);
+      await loadDisputes();
+    } catch (error) {
+      console.error(error);
+      toast.error("Không thể xóa mục bồi thường");
+    }
   };
 
   const handleOpenResolutionDialog = (
@@ -444,6 +459,7 @@ const BookingDisputeListDialog: React.FC<BookingDisputeListDialogProps> = ({
         }}
         dispute={selectedDispute}
         onAddItem={handleAddItem}
+        onDeleteItem={handleDeleteItem}
       />
     </>
   );
