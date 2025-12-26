@@ -576,9 +576,9 @@ const IndividualStaffSchedule: React.FC = () => {
                 <Typography variant="body2" sx={{ color: "#6B7280" }}>
                   📧 {selectedStaff.email}
                 </Typography>
-                {selectedStaff.phoneNumber && (
+                {selectedStaff.phone && (
                   <Typography variant="body2" sx={{ color: "#6B7280" }}>
-                    📱 {selectedStaff.phoneNumber}
+                    📱 {selectedStaff.phone}
                   </Typography>
                 )}
               </Stack>

@@ -123,7 +123,7 @@ const SystemManagement: React.FC = () => {
   // Xử lý thay đổi input
   const handleInputChange = (
     field: keyof MoneyPlatformSettingsRequest,
-    value: any
+    value: string | number | boolean
   ) => {
     setFormData((prev) => ({
       ...prev,
@@ -179,10 +179,13 @@ const SystemManagement: React.FC = () => {
                 color="primary"
                 startIcon={<AddIcon />}
                 onClick={handleCreate}
+                sx={{
+                  color: "white",
+                }}
               >
                 Tạo cấu hình mới
               </Button>
-            )
+            ) : null
           }
         />
         <CardContent>

@@ -19,6 +19,10 @@ export interface Combo {
   name: string;
 }
 
+export interface BookingItemMedia {
+  url: string;
+}
+
 export interface BookingItem {
   itemId: string;
   itemName: string;
@@ -26,7 +30,7 @@ export interface BookingItem {
   unitPrice: number;
   quantity: number;
   depositAmount: number;
-  media: string[]; // URLs of images
+  media: BookingItemMedia[]; // Array of media objects with url property
   // ID mapping
   cameraId?: string;
   accessoryId?: string;
@@ -106,7 +110,7 @@ export interface Staff {
   userId: string;
   email: string;
   fullName: string;
-  phoneNumber?: string;
+  phone?: string;
   avatar?: string;
   role: string;
   conflictingBookings?: number;
@@ -280,26 +284,23 @@ export interface BookingPayment {
 export interface RenterInfo {
   renterId: string;
   renterName: string;
-  renterEmail: string;
+  email: string;
   renterPhone: string;
   totalBookings: number;
   totalRevenue: number;
-  lastBookingDate: string;
+  lastPickupAt: string;
 }
 
 export interface RenterBookingHistory {
   bookingId: string;
-  bookingDate: string;
   pickupAt: string;
   returnAt: string;
   status: string;
   statusText: string;
-  totalAmount: number;
   items: Array<{
     itemId: string;
     itemName: string;
     itemType: string;
-    quantity: number;
     unitPrice: number;
   }>;
 }

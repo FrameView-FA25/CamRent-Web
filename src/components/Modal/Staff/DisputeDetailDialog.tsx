@@ -19,6 +19,7 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
+import DeleteIcon from "@mui/icons-material/Delete";
 import type {
   Dispute,
   AddDisputeItemRequest,
@@ -29,13 +30,15 @@ export interface DisputeDetailDialogProps {
   onClose: () => void;
   dispute: Dispute | null;
   onAddItem?: (disputeId: string, item: AddDisputeItemRequest) => Promise<void>;
+  onDeleteItem?: (disputeId: string, itemId: string) => Promise<void>;
 }
 
 const DisputeDetailDialog: React.FC<DisputeDetailDialogProps> = ({
   open,
   onClose,
   dispute,
-  onAddItem,
+    onAddItem,
+    onDeleteItem,
 }) => {
   const [showAddItem, setShowAddItem] = useState(false);
   const [newItem, setNewItem] = useState<AddDisputeItemRequest>({
@@ -145,6 +148,21 @@ const DisputeDetailDialog: React.FC<DisputeDetailDialogProps> = ({
       setOtherType("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Có lỗi xảy ra");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteItem = async (itemId: string) => {
+    if (!dispute || !onDeleteItem) return;
+    const confirmed = window.confirm("Bạn có chắc muốn xóa mục bồi thường này?");
+    if (!confirmed) return;
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      await onDeleteItem(dispute.id, itemId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Có lỗi khi xóa mục bồi thường");
     } finally {
       setIsSubmitting(false);
     }
@@ -450,9 +468,22 @@ const DisputeDetailDialog: React.FC<DisputeDetailDialogProps> = ({
                           <Typography variant="body1" fontWeight="medium">
                             {getItemTypeLabel(item.type)}
                           </Typography>
-                          <Typography variant="h6" color="primary">
-                            {formatCurrency(item.amount)}
-                          </Typography>
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                            <Typography variant="h6" color="primary">
+                              {formatCurrency(item.amount)}
+                            </Typography>
+                            {onDeleteItem &&
+                              dispute.status.toLowerCase() !== "resolved" && (
+                                <IconButton
+                                  size="small"
+                                  onClick={() => handleDeleteItem(item.id)}
+                                  disabled={isSubmitting}
+                                  aria-label="delete-item"
+                                >
+                                  <DeleteIcon fontSize="small" color="error" />
+                                </IconButton>
+                              )}
+                          </Box>
                         </Box>
                       }
                       secondary={

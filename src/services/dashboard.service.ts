@@ -73,6 +73,14 @@ export interface BookingStatusCount {
   count: number;
 }
 
+export interface BranchRevenue {
+  branchId: string;
+  branchName: string;
+  commissionRevenue: number;
+  disputeRevenue: number;
+  netRevenue: number;
+}
+
 export interface AdminDashboardResponse {
   totalUsers: number;
   totalRenters: number;
@@ -87,6 +95,10 @@ export interface AdminDashboardResponse {
   bookingsByStatus: BookingStatusCount[];
   totalCapturedRevenue: number;
   totalRefundedAmount: number;
+  totalCommissionRevenue: number;
+  totalDisputeRevenue: number;
+  totalNetRevenue: number;
+  branchRevenues: BranchRevenue[];
   dailyStats: TimeSeriesStat[];
   monthlyStats: TimeSeriesStat[];
   openDisputes: number;

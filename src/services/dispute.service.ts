@@ -157,6 +157,37 @@ export const addDisputeItem = async (
 };
 
 /**
+ * Xóa item trong dispute
+ * @param disputeId - ID của dispute
+ * @param itemId - ID của item cần xóa
+ * @returns Promise<void>
+ */
+export const deleteDisputeItem = async (
+  disputeId: string,
+  itemId: string
+): Promise<void> => {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/Disputes/${disputeId}/items/${itemId}`,
+      {
+        method: "DELETE",
+        headers: getAuthHeaders(),
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.message || `Failed to delete dispute item: ${response.statusText}`
+      );
+    }
+  } catch (error) {
+    console.error("Error deleting dispute item:", error);
+    throw error;
+  }
+};
+
+/**
  * Cập nhật trạng thái dispute
  * @param disputeId - ID của dispute
  * @param status - Trạng thái mới
