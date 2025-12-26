@@ -153,8 +153,26 @@ const AddStaffDialog: React.FC<AddStaffDialogProps> = ({
         // Try to parse error message
         try {
           const errorJson = JSON.parse(errorText);
-          throw new Error(errorJson.message || "Thêm nhân viên thất bại");
+
+          // Kiểm tra nếu có message hoặc detail từ API
+          const errorMessage =
+            errorJson.message ||
+            errorJson.detail ||
+            errorJson.title ||
+            "Thêm nhân viên thất bại";
+
+          throw new Error(errorMessage);
         } catch {
+          // Nếu không parse được JSON, kiểm tra text trực tiếp
+          if (
+            errorText.includes("Email đã được đăng kí") ||
+            errorText.includes("email") ||
+            errorText.includes("Email")
+          ) {
+            throw new Error(
+              "Email đã được đăng ký. Vui lòng sử dụng email khác."
+            );
+          }
           throw new Error(`Thêm nhân viên thất bại: ${response.status}`);
         }
       }
