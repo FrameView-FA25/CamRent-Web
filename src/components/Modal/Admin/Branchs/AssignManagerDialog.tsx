@@ -106,7 +106,7 @@ const AssignManagerDialog: React.FC<AssignManagerDialogProps> = ({
           ? err.message
           : "Không thể tải danh sách quản lý chưa phân công";
       setError(message);
-      toast.error(message);
+      toast.error("Coming soon");
     } finally {
       setLoading(false);
     }

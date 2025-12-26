@@ -163,11 +163,7 @@ export default function ModalVerification({
         setWorkSlots(activeSlots);
       } catch (error) {
         console.error("Error fetching work slots:", error);
-        toast.error(
-          error instanceof Error
-            ? error.message
-            : "Không thể tải khung giờ làm việc"
-        );
+        toast.error("Coming soon");
         setWorkSlots([]);
       } finally {
         setLoadingSlots(false);

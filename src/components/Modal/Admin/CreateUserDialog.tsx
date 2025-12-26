@@ -151,7 +151,10 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
       console.error("Error creating user:", err);
       const errorMessage =
         err instanceof Error ? err.message : "Không thể tạo người dùng mới";
-      toast.error(errorMessage);
+
+      setError(errorMessage);
+      toast.error("Coming soon");
+
     } finally {
       setLoading(false);
     }

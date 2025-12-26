@@ -77,6 +77,17 @@ const SystemManagement: React.FC = () => {
 
   // Mở modal tạo mới
   const handleCreate = () => {
+    // Kiểm tra xem đã có cấu hình chưa
+    if (settings.length > 0) {
+      setSnackbar({
+        open: true,
+        message:
+          "Hệ thống đã có cấu hình. Vui lòng chỉnh sửa cấu hình hiện có.",
+        severity: "warning",
+      });
+      return;
+    }
+
     setEditingId(null);
     setFormData({
       upfrontPercent: 0,
@@ -162,7 +173,7 @@ const SystemManagement: React.FC = () => {
         <CardHeader
           title="Quản lý cấu hình hệ thống"
           action={
-            settings.length === 0 ? (
+            settings.length === 0 && (
               <Button
                 variant="contained"
                 color="primary"
@@ -181,6 +192,12 @@ const SystemManagement: React.FC = () => {
           {loading && settings.length === 0 ? (
             <Box display="flex" justifyContent="center" p={3}>
               <CircularProgress />
+            </Box>
+          ) : settings.length === 0 ? (
+            <Box display="flex" justifyContent="center" p={3}>
+              <Alert severity="info">
+                Chưa có cấu hình hệ thống. Vui lòng tạo cấu hình mới.
+              </Alert>
             </Box>
           ) : (
             <TableContainer component={Paper}>
