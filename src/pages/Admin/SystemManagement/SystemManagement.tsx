@@ -173,7 +173,7 @@ const SystemManagement: React.FC = () => {
         <CardHeader
           title="Quản lý cấu hình hệ thống"
           action={
-            settings.length === 0 && (
+            settings.length === 0 ? (
               <Button
                 variant="contained"
                 color="primary"
