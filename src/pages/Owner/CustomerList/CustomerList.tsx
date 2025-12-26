@@ -108,8 +108,7 @@ const CustomerList: React.FC = () => {
   const filteredRenters = renters.filter(
     (renter) =>
       renter.renterName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      renter.renterEmail.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      renter.renterPhone.includes(searchQuery)
+      renter.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const paginatedRenters = filteredRenters.slice(
@@ -213,7 +212,7 @@ const CustomerList: React.FC = () => {
       >
         <TextField
           fullWidth
-          placeholder="Tìm kiếm khách hàng theo tên, email, số điện thoại..."
+          placeholder="Tìm kiếm khách hàng theo tên, email..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           slotProps={{
@@ -269,17 +268,11 @@ const CustomerList: React.FC = () => {
                   <TableRow sx={{ bgcolor: "#f8fafc" }}>
                     <TableCell sx={{ fontWeight: 600 }}>Khách hàng</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Email</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>
-                      Số điện thoại
-                    </TableCell>
                     <TableCell sx={{ fontWeight: 600, textAlign: "center" }}>
                       Số lần thuê
                     </TableCell>
-                    <TableCell sx={{ fontWeight: 600, textAlign: "right" }}>
-                      Tổng doanh thu
-                    </TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>
-                      Lần thuê gần nhất
+                      Lần nhận gần nhất
                     </TableCell>
                     <TableCell sx={{ fontWeight: 600, textAlign: "center" }}>
                       Thao tác
@@ -310,14 +303,7 @@ const CustomerList: React.FC = () => {
                         </Box>
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2">
-                          {renter.renterEmail}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2">
-                          {renter.renterPhone}
-                        </Typography>
+                        <Typography variant="body2">{renter.email}</Typography>
                       </TableCell>
                       <TableCell sx={{ textAlign: "center" }}>
                         <Chip
@@ -326,14 +312,6 @@ const CustomerList: React.FC = () => {
                           color="primary"
                           sx={{ fontWeight: 600 }}
                         />
-                      </TableCell>
-                      <TableCell sx={{ textAlign: "right" }}>
-                        <Typography
-                          variant="body2"
-                          sx={{ fontWeight: 600, color: "#059669" }}
-                        >
-                          {formatCurrency(renter.totalRevenue)}
-                        </Typography>
                       </TableCell>
                       <TableCell>
                         <Box
@@ -347,7 +325,7 @@ const CustomerList: React.FC = () => {
                             sx={{ fontSize: 16, color: "#64748b" }}
                           />
                           <Typography variant="body2">
-                            {formatDate(renter.lastBookingDate)}
+                            {formatDate(renter.lastPickupAt)}
                           </Typography>
                         </Box>
                       </TableCell>
@@ -394,7 +372,7 @@ const CustomerList: React.FC = () => {
           open={dialogOpen}
           onClose={handleCloseDialog}
           renterName={selectedRenter.renterName}
-          renterEmail={selectedRenter.renterEmail}
+          renterEmail={selectedRenter.email}
           renterPhone={selectedRenter.renterPhone}
           bookings={bookingHistory}
           loading={historyLoading}

@@ -321,6 +321,9 @@ const WebsiteManagement: React.FC = () => {
               variant="contained"
               startIcon={<Add />}
               onClick={() => handleOpenCarouselDialog()}
+              sx={{
+                color: "white",
+              }}
             >
               Thêm Slide
             </Button>

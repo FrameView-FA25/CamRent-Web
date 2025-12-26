@@ -38,7 +38,7 @@ import {
   Assignment as AssignmentIcon,
   Visibility as VisibilityIcon,
 } from "@mui/icons-material";
-import type { Booking } from "@/types/booking.types";
+import type { Booking, BookingItem } from "@/types/booking.types";
 import type { Contract } from "@/types/contract.types";
 import {
   formatCurrency,
@@ -202,7 +202,7 @@ export const BookingDetailDialog: React.FC<BookingDetailDialogProps> = ({
   const rentalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
   // Get first image from item media
-  const getItemImage = (item: any) => {
+  const getItemImage = (item: BookingItem) => {
     if (item.media && item.media.length > 0) {
       return item.media[0].url;
     }
@@ -965,7 +965,7 @@ export const BookingDetailDialog: React.FC<BookingDetailDialogProps> = ({
                                               signature.role === "Owner"
                                                 ? "Chủ sở hữu"
                                                 : signature.role === "Platform"
-                                                ? "Nền tảng"
+                                                ? "Camrent"
                                                 : signature.role === "Renter"
                                                 ? "Người thuê"
                                                 : signature.role

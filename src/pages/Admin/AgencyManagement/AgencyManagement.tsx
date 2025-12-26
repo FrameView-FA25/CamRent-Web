@@ -405,6 +405,7 @@ const AgencyManagement: React.FC = () => {
               textTransform: "none",
               borderRadius: 2,
               px: 3,
+              color: "white",
             }}
           >
             Thêm chi nhánh

@@ -742,6 +742,7 @@ const InspectionManagement: React.FC = () => {
               textTransform: "none",
               bgcolor: "#F97316",
               "&:hover": { bgcolor: "#EA580C" },
+              color: "white",
             }}
           >
             Thêm phương pháp

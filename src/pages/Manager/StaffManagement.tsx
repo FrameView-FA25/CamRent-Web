@@ -63,7 +63,7 @@ const StaffManagement: React.FC = () => {
         (staff) =>
           staff.fullName.toLowerCase().includes(query) ||
           staff.email.toLowerCase().includes(query) ||
-          (staff.phoneNumber?.toLowerCase().includes(query) ?? false) ||
+          (staff.phone?.toLowerCase().includes(query) ?? false) ||
           staff.userId.toLowerCase().includes(query)
       );
       setFilteredStaff(filtered);
@@ -698,7 +698,7 @@ const StaffManagement: React.FC = () => {
                               <Typography
                                 sx={{ color: "#6B7280", fontSize: "0.875rem" }}
                               >
-                                {staff.phoneNumber || "Chưa có"}
+                                {staff.phone || "Chưa có"}
                               </Typography>
                             </Box>
                           </TableCell>

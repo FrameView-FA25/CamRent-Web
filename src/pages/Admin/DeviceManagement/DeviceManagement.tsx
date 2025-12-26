@@ -75,7 +75,9 @@ const DeviceManagement: React.FC = () => {
   const [accessoryDevices, setAccessoryDevices] = useState<AdminDevice[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [selectedDevice, setSelectedDevice] = useState<AdminDevice | null>(null);
+  const [selectedDevice, setSelectedDevice] = useState<AdminDevice | null>(
+    null
+  );
   const [openDialog, setOpenDialog] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -136,7 +138,11 @@ const DeviceManagement: React.FC = () => {
     const { label, color } = STATUS_DISPLAY[status];
     return {
       id: accessory.id,
-      name: buildDeviceName(accessory.brand, accessory.model, accessory.variant),
+      name: buildDeviceName(
+        accessory.brand,
+        accessory.model,
+        accessory.variant
+      ),
       type: "Phụ kiện",
       brand: accessory.brand || "Không rõ",
       branch: formatBranch(accessory.branchName, accessory.branchAddress),
@@ -212,9 +218,13 @@ const DeviceManagement: React.FC = () => {
     const keyword = searchTerm.trim().toLowerCase();
     if (!keyword) return currentDevices;
     return currentDevices.filter((device) =>
-      [device.name, device.type, device.brand, device.branch, device.owner].some(
-        (field) => field.toLowerCase().includes(keyword)
-      )
+      [
+        device.name,
+        device.type,
+        device.brand,
+        device.branch,
+        device.owner,
+      ].some((field) => field.toLowerCase().includes(keyword))
     );
   }, [currentDevices, searchTerm]);
 
@@ -261,11 +271,12 @@ const DeviceManagement: React.FC = () => {
           startIcon={<AddIcon />}
           onClick={handleOpenDialog}
           sx={{
-            bgcolor: "#DC2626",
-            "&:hover": { bgcolor: "#B91C1C" },
+            bgcolor: "#FF5722",
+            "&:hover": { bgcolor: "#F4511E" },
             textTransform: "none",
             borderRadius: 2,
             px: 3,
+            color: "white",
           }}
         >
           Thêm thiết bị
@@ -281,7 +292,10 @@ const DeviceManagement: React.FC = () => {
         }}
       >
         <Tab value="camera" label={`Camera (${cameraDevices.length})`} />
-        <Tab value="accessory" label={`Phụ kiện (${accessoryDevices.length})`} />
+        <Tab
+          value="accessory"
+          label={`Phụ kiện (${accessoryDevices.length})`}
+        />
       </Tabs>
 
       <Paper
