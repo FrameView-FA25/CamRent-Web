@@ -134,10 +134,37 @@ const ModalRegister: React.FC<Props> = ({
         onSwitchToLogin?.();
       }, 2000);
     } catch (err) {
-      const errorMessage =
-        err instanceof Error
-          ? err.message
-          : "Đăng ký thất bại. Vui lòng thử lại.";
+      console.error("Registration error:", err);
+
+      let errorMessage = "Đăng ký thất bại. Vui lòng thử lại.";
+
+      if (err instanceof Error) {
+        const message = err.message;
+        // Kiểm tra các thông báo lỗi từ API (không convert lowercase)
+        if (
+          message.includes("Email đã được đăng kí.") ||
+          message.includes("Đăng ký Owner thất bại với mã lỗi 400") ||
+          (message.toLowerCase().includes("email") &&
+            (message.toLowerCase().includes("đã") ||
+              message.toLowerCase().includes("already") ||
+              message.toLowerCase().includes("existed") ||
+              message.toLowerCase().includes("duplicate")))
+        ) {
+          errorMessage =
+            "Email đã được đăng ký. Vui lòng sử dụng email khác hoặc đăng nhập.";
+        } else if (
+          message.toLowerCase().includes("phone") &&
+          (message.toLowerCase().includes("đã được đăng") ||
+            message.toLowerCase().includes("already") ||
+            message.toLowerCase().includes("existed"))
+        ) {
+          errorMessage =
+            "Số điện thoại đã được đăng ký. Vui lòng sử dụng số điện thoại khác.";
+        } else {
+          errorMessage = err.message;
+        }
+      }
+
       setError(errorMessage);
     } finally {
       setLoading(false);
