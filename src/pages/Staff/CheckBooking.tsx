@@ -954,7 +954,7 @@ const CheckBookings: React.FC = () => {
                     fontSize: "0.75rem",
                   }}
                 >
-                  Hoàn tất
+                  Hoàn thành
                 </Typography>
                 <Typography
                   variant="h5"
