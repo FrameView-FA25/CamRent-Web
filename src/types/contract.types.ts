@@ -22,3 +22,18 @@ export interface ContractTemplate {
   updatedAt: string;
   usageCount: number;
 }
+export interface ContractSignature {
+  id: string;
+  role: "Owner" | "Platform" | "Renter";
+  isSigned: boolean;
+  signedAt?: string;
+}
+
+export interface Contract {
+  id: string;
+  status: string;
+  createdAt: string;
+  signatures?: ContractSignature[];
+  branchName?: string;
+  // ...other existing properties...
+}

@@ -22,7 +22,16 @@ export interface OwnerDashboardResponse {
   dailyStats?: TimeSeriesStat[];
   monthlyStats?: TimeSeriesStat[];
 }
-
+export interface ManagerDashboardResponse {
+  totalCameras: number;
+  totalAccessories: number;
+  totalBookingsForOwnerItems: number;
+  totalGrossRevenue: number;
+  totalNetRevenue: number;
+  topRentedAssets: TopRentedAsset[];
+  dailyStats?: TimeSeriesStat[];
+  monthlyStats?: TimeSeriesStat[];
+}
 export interface BookingStatusCount {
   status: string;
   count: number;
@@ -95,27 +104,11 @@ export interface AdminDashboardResponse {
   openDisputes: number;
   resolvedDisputes: number;
 }
-interface BookingStatus {
-  status: string;
-  statusText: string;
-  count: number;
-}
+
 export interface TimeSeriesStat {
   date: string;
   bookingCount: number;
   capturedRevenue: number;
-}
-interface ManagerDashboardResponse {
-  branchId: string;
-  branchName: string;
-  camerasInBranch: number;
-  accessoriesInBranch: number;
-  totalBookings: number;
-  bookingsByStatus: BookingStatus[];
-  totalCapturedRevenue: number;
-  openDisputes: number;
-  dailyStats: TimeSeriesStat[];
-  monthlyStats: TimeSeriesStat[];
 }
 /**
  * Lấy dữ liệu thống kê dashboard cho Owner

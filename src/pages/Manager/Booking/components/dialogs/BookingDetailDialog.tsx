@@ -20,6 +20,8 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  Button,
+  Tooltip,
 } from "@mui/material";
 import {
   Close as CloseIcon,
@@ -34,14 +36,17 @@ import {
   Image as ImageIcon,
   Cancel as CancelIcon,
   Assignment as AssignmentIcon,
+  Visibility as VisibilityIcon,
 } from "@mui/icons-material";
 import type { Booking } from "@/types/booking.types";
+import type { Contract } from "@/types/contract.types";
 import {
   formatCurrency,
   formatDate,
   getStatusInfo,
-} from "../../../../../utils/booking.utils";
+} from "@/utils/booking.utils";
 import { toast } from "react-toastify";
+import { contractService } from "@/services/contract.service";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -74,6 +79,7 @@ export const BookingDetailDialog: React.FC<BookingDetailDialogProps> = ({
 }) => {
   const [inspectionForms, setInspectionForms] = useState<InspectionForm[]>([]);
   const [loadingInspections, setLoadingInspections] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState<string | null>(null);
 
   // Fetch inspection forms when dialog opens
   useEffect(() => {
@@ -122,6 +128,69 @@ export const BookingDetailDialog: React.FC<BookingDetailDialogProps> = ({
     }
   };
 
+  const handlePreviewContract = async (contractId: string) => {
+    setPreviewLoading(contractId);
+    try {
+      const token = localStorage.getItem("accessToken");
+      if (!token) {
+        toast.error("Vui lòng đăng nhập để xem hợp đồng");
+        return;
+      }
+
+      const blob = await contractService.getPreview(contractId, token);
+      const pdfBlob = new Blob([blob], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(pdfBlob);
+
+      // Mở PDF trong tab mới
+      window.open(url, "_blank");
+
+      // Cleanup sau 1 phút
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+      }, 60000);
+    } catch (error) {
+      console.error("Error previewing contract:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Có lỗi khi xem trước hợp đồng."
+      );
+    } finally {
+      setPreviewLoading(null);
+    }
+  };
+
+  const getContractStatus = (contract: Contract) => {
+    if (contract.status === "Signed") {
+      return { label: "Đã ký", color: "#10B981", bg: "#F0FDF4" };
+    }
+
+    if (contract.status === "PendingSignatures") {
+      const anySigned = contract.signatures?.some((s) => s.isSigned) ?? false;
+
+      return anySigned
+        ? { label: "Đang ký", color: "#F59E0B", bg: "#FEF3C7" }
+        : { label: "Chờ ký", color: "#C8501D", bg: "#FFF4ED" };
+    }
+
+    return {
+      label: contract.status ?? "Chờ ký",
+      color: "#64748B",
+      bg: "#F1F5F9",
+    };
+  };
+
+  const formatDateTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleString("vi-VN", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
   if (!booking) return null;
 
   const statusInfo = getStatusInfo(booking.status);
@@ -164,7 +233,7 @@ export const BookingDetailDialog: React.FC<BookingDetailDialogProps> = ({
       >
         <Box>
           <Typography variant="h5" sx={{ fontWeight: 700, color: "#1F2937" }}>
-            Chi tiết đơn thuê
+            Chi tiết đơn thuêe
           </Typography>
           <Typography variant="body2" sx={{ color: "#6B7280", mt: 0.5 }}>
             ID: {booking.id}
@@ -733,7 +802,7 @@ export const BookingDetailDialog: React.FC<BookingDetailDialogProps> = ({
           </Paper>
         </Box>
 
-        {/* Contracts Section */}
+        {/* Contracts Section - Updated */}
         {booking.contracts && booking.contracts.length > 0 && (
           <Box sx={{ mt: 3 }}>
             <Paper
@@ -750,80 +819,238 @@ export const BookingDetailDialog: React.FC<BookingDetailDialogProps> = ({
                 sx={{ fontWeight: 700, mb: 2, display: "flex", gap: 1 }}
               >
                 <Description sx={{ fontSize: 20 }} />
-                Hợp đồng ({booking.contracts.length})
+                Danh Sách Hợp Đồng ({booking.contracts.length})
               </Typography>
 
-              <List sx={{ p: 0 }}>
-                {booking.contracts.slice(0, 3).map((contract, index) => (
-                  <ListItem
-                    key={index}
-                    sx={{
-                      p: 2,
-                      mb: 1,
-                      bgcolor: "white",
-                      borderRadius: 2,
-                      border: "1px solid #E5E7EB",
-                    }}
-                  >
-                    <ListItemText
-                      primary={
-                        <Box
-                          sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 1,
-                          }}
-                        >
-                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                            {contract.branchName || "Chi nhánh"}
-                          </Typography>
-                          <Chip
-                            label={contract.status}
-                            size="small"
+              <TableContainer>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow sx={{ bgcolor: "#F3F4F6" }}>
+                      <TableCell
+                        sx={{
+                          fontWeight: 700,
+                          color: "#475569",
+                          fontSize: "0.875rem",
+                        }}
+                      >
+                        Mã hợp đồng
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          fontWeight: 700,
+                          color: "#475569",
+                          fontSize: "0.875rem",
+                        }}
+                      >
+                        Trạng thái
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          fontWeight: 700,
+                          color: "#475569",
+                          fontSize: "0.875rem",
+                        }}
+                      >
+                        Ngày tạo
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          fontWeight: 700,
+                          color: "#475569",
+                          fontSize: "0.875rem",
+                        }}
+                      >
+                        Chữ ký
+                      </TableCell>
+                      <TableCell
+                        align="center"
+                        sx={{
+                          fontWeight: 700,
+                          color: "#475569",
+                          fontSize: "0.875rem",
+                        }}
+                      >
+                        Thao tác
+                      </TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {[...booking.contracts]
+                      .sort(
+                        (a, b) =>
+                          new Date(b.createdAt).getTime() -
+                          new Date(a.createdAt).getTime()
+                      )
+                      .map((contract, index) => {
+                        const contractStatus = getContractStatus(contract);
+                        return (
+                          <TableRow
+                            key={contract.id}
                             sx={{
-                              bgcolor: "#FFF7ED",
-                              color: "#F97316",
-                              fontSize: "0.7rem",
+                              bgcolor: index % 2 === 0 ? "#FFFFFF" : "#FAFAFA",
+                              "&:hover": {
+                                bgcolor: "#F3F4F6",
+                              },
                             }}
-                          />
-                        </Box>
-                      }
-                      secondary={
-                        <Box>
-                          <Typography
-                            variant="caption"
-                            sx={{ display: "block" }}
                           >
-                            ID: {contract.id.substring(0, 8)}...
-                          </Typography>
-                          <Typography
-                            variant="caption"
-                            sx={{ display: "block" }}
-                          >
-                            Tạo: {formatDate(contract.createdAt)}
-                          </Typography>
-                          {contract.branchAddress && (
-                            <Typography
-                              variant="caption"
-                              sx={{ color: "#6B7280" }}
-                            >
-                              {contract.branchAddress}
-                            </Typography>
-                          )}
-                        </Box>
-                      }
-                    />
-                  </ListItem>
-                ))}
-                {booking.contracts.length > 3 && (
-                  <Typography
-                    variant="caption"
-                    sx={{ color: "#6B7280", ml: 2 }}
-                  >
-                    và {booking.contracts.length - 3} hợp đồng khác...
-                  </Typography>
-                )}
-              </List>
+                            <TableCell>
+                              <Typography
+                                sx={{
+                                  fontWeight: 600,
+                                  color: "#1E293B",
+                                  fontSize: "0.875rem",
+                                  fontFamily: "monospace",
+                                }}
+                              >
+                                {contract.id.substring(0, 8)}...
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Chip
+                                label={contractStatus.label}
+                                size="small"
+                                sx={{
+                                  bgcolor: contractStatus.bg,
+                                  color: contractStatus.color,
+                                  fontWeight: 600,
+                                  fontSize: "0.75rem",
+                                }}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Typography
+                                sx={{
+                                  color: "#64748B",
+                                  fontSize: "0.875rem",
+                                }}
+                              >
+                                {formatDateTime(contract.createdAt)}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  gap: 0.5,
+                                }}
+                              >
+                                {contract.signatures &&
+                                contract.signatures.length > 0 ? (
+                                  contract.signatures.map(
+                                    (signature, sigIdx) => (
+                                      <Tooltip
+                                        key={sigIdx}
+                                        title={
+                                          signature.isSigned &&
+                                          signature.signedAt
+                                            ? `Đã ký lúc: ${formatDateTime(
+                                                signature.signedAt
+                                              )}`
+                                            : signature.isSigned
+                                            ? "Đã ký"
+                                            : "Chưa ký"
+                                        }
+                                        arrow
+                                      >
+                                        <Box
+                                          sx={{
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: 0.5,
+                                          }}
+                                        >
+                                          <Chip
+                                            label={
+                                              signature.role === "Owner"
+                                                ? "Chủ sở hữu"
+                                                : signature.role === "Platform"
+                                                ? "Nền tảng"
+                                                : signature.role === "Renter"
+                                                ? "Người thuê"
+                                                : signature.role
+                                            }
+                                            size="small"
+                                            sx={{
+                                              bgcolor: signature.isSigned
+                                                ? "#F0FDF4"
+                                                : "#FEF2F2",
+                                              color: signature.isSigned
+                                                ? "#10B981"
+                                                : "#EF4444",
+                                              fontWeight: 600,
+                                              fontSize: "0.7rem",
+                                              height: 20,
+                                            }}
+                                          />
+                                          {signature.isSigned ? (
+                                            <CheckCircle
+                                              sx={{
+                                                color: "#10B981",
+                                                fontSize: 16,
+                                              }}
+                                            />
+                                          ) : (
+                                            <CancelIcon
+                                              sx={{
+                                                color: "#EF4444",
+                                                fontSize: 16,
+                                              }}
+                                            />
+                                          )}
+                                        </Box>
+                                      </Tooltip>
+                                    )
+                                  )
+                                ) : (
+                                  <Typography
+                                    sx={{
+                                      color: "#94A3B8",
+                                      fontSize: "0.75rem",
+                                      fontStyle: "italic",
+                                    }}
+                                  >
+                                    Chưa có chữ ký
+                                  </Typography>
+                                )}
+                              </Box>
+                            </TableCell>
+                            <TableCell align="center">
+                              <Button
+                                variant="outlined"
+                                size="small"
+                                startIcon={<VisibilityIcon />}
+                                onClick={() =>
+                                  handlePreviewContract(contract.id)
+                                }
+                                disabled={previewLoading === contract.id}
+                                sx={{
+                                  borderColor: "#F97316",
+                                  color: "#F97316",
+                                  fontWeight: 600,
+                                  fontSize: "0.75rem",
+                                  textTransform: "none",
+                                  "&:hover": {
+                                    borderColor: "#EA580C",
+                                    bgcolor: "#FFF5F0",
+                                  },
+                                  "&:disabled": {
+                                    borderColor: "#FCDAD0",
+                                    color: "#FCDAD0",
+                                  },
+                                }}
+                              >
+                                {previewLoading === contract.id
+                                  ? "Đang tải..."
+                                  : "Xem trước"}
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                  </TableBody>
+                </Table>
+              </TableContainer>
             </Paper>
           </Box>
         )}
