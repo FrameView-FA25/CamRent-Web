@@ -1891,349 +1891,257 @@ const BookingDetail: React.FC = () => {
               )}
 
               {/* Dropdown cho Tiền hoàn trả (chỉ khi đã trả máy / statusNumber >= 3) */}
-              {statusNumber >= 3 && refundAmount > 0 && (
-                <Box>
-                  <Box
-                    onClick={() =>
-                      setDisputeDetailExpanded(!disputeDetailExpanded)
-                    }
-                    sx={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      cursor: "pointer",
-                      p: 1.5,
-                      borderRadius: 2,
-                      bgcolor: disputeDetailExpanded
-                        ? "#FFF7ED"
-                        : "transparent",
-                      transition: "all 0.2s ease",
-                      "&:hover": {
-                        bgcolor: "#FFF7ED",
-                      },
-                    }}
-                  >
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                      <Typography variant="body2" sx={{ color: "#6B7280" }}>
-                        Tiền hoàn trả
-                      </Typography>
-                      {disputeDetailExpanded ? (
-                        <ExpandLess sx={{ color: "#F97316", fontSize: 20 }} />
-                      ) : (
-                        <ExpandMore sx={{ color: "#F97316", fontSize: 20 }} />
-                      )}
-                    </Box>
-                    <Box sx={{ textAlign: "right" }}>
-                      <Typography
-                        variant="body1"
-                        sx={{ fontWeight: 600, color: "#059669" }}
-                      >
-                        {formatCurrency(refundAmount)}
-                      </Typography>
-                      {refundUnpaidAmount > 0 && (
-                        <Typography
-                          variant="caption"
-                          sx={{ color: "#DC2626", display: "block" }}
-                        >
-                          Chưa hoàn trả: {formatCurrency(refundUnpaidAmount)}
-                        </Typography>
-                      )}
-                      {refundPaidAmount > 0 && (
-                        <Typography
-                          variant="caption"
-                          sx={{ color: "#059669", display: "block" }}
-                        >
-                          Đã hoàn trả: {formatCurrency(refundPaidAmount)}
-                        </Typography>
-                      )}
-
-                      {/* Button to trigger backend refund/payment handling (only when booking returned) */}
-                      {statusNumber >= 3 && refundUnpaidAmount > 0 && (
-                        <Box sx={{ mt: 2 }}>
-                          <Button
-                            variant="contained"
-                            onClick={handleProcessRefund}
-                            disabled={refundProcessing}
-                            startIcon={
-                              refundProcessing ? (
-                                <CircularProgress size={18} color="inherit" />
-                              ) : undefined
-                            }
-                            sx={{
-                              bgcolor: "#F97316",
-                              color: "white",
-                              textTransform: "none",
-                              fontWeight: 600,
-                              "&:hover": { bgcolor: "#EA580C" },
-                            }}
-                          >
-                            {refundProcessing
-                              ? "Đang xử lý..."
-                              : "Xử lý hoàn trả"}
-                          </Button>
-                        </Box>
-                      )}
-                    </Box>
-                  </Box>
-
-                  <Collapse in={disputeDetailExpanded}>
+              {(statusNumber >= 3 && refundAmount > 0) ||
+                (disputes.length > 0 && (
+                  <Box>
                     <Box
+                      onClick={() =>
+                        setDisputeDetailExpanded(!disputeDetailExpanded)
+                      }
                       sx={{
-                        mt: 1,
-                        ml: 2,
-                        pl: 2,
-                        borderLeft: "2px solid #F97316",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        cursor: "pointer",
+                        p: 1.5,
+                        borderRadius: 2,
+                        bgcolor: disputeDetailExpanded
+                          ? "#FFF7ED"
+                          : "transparent",
+                        transition: "all 0.2s ease",
+                        "&:hover": {
+                          bgcolor: "#FFF7ED",
+                        },
                       }}
                     >
-                      <Stack spacing={2}>
-                        {disputesLoading ? (
-                          <Box
-                            sx={{
-                              display: "flex",
-                              justifyContent: "center",
-                              py: 2,
-                            }}
+                      <Box
+                        sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                      >
+                        <Typography variant="body2" sx={{ color: "#6B7280" }}>
+                          Tiền hoàn trả
+                        </Typography>
+                        {disputeDetailExpanded ? (
+                          <ExpandLess sx={{ color: "#F97316", fontSize: 20 }} />
+                        ) : (
+                          <ExpandMore sx={{ color: "#F97316", fontSize: 20 }} />
+                        )}
+                      </Box>
+                      <Box sx={{ textAlign: "right" }}>
+                        <Typography
+                          variant="body1"
+                          sx={{ fontWeight: 600, color: "#059669" }}
+                        >
+                          {formatCurrency(refundAmount)}
+                        </Typography>
+                        {refundUnpaidAmount > 0 && (
+                          <Typography
+                            variant="caption"
+                            sx={{ color: "#DC2626", display: "block" }}
                           >
-                            <CircularProgress size={24} />
+                            Chưa hoàn trả: {formatCurrency(refundUnpaidAmount)}
+                          </Typography>
+                        )}
+                        {refundPaidAmount > 0 && (
+                          <Typography
+                            variant="caption"
+                            sx={{ color: "#059669", display: "block" }}
+                          >
+                            Đã hoàn trả: {formatCurrency(refundPaidAmount)}
+                          </Typography>
+                        )}
+
+                        {/* Button to trigger backend refund/payment handling (only when booking returned) */}
+                        {statusNumber >= 3 && refundUnpaidAmount > 0 && (
+                          <Box sx={{ mt: 2 }}>
+                            <Button
+                              variant="contained"
+                              onClick={handleProcessRefund}
+                              disabled={refundProcessing}
+                              startIcon={
+                                refundProcessing ? (
+                                  <CircularProgress size={18} color="inherit" />
+                                ) : undefined
+                              }
+                              sx={{
+                                bgcolor: "#F97316",
+                                color: "white",
+                                textTransform: "none",
+                                fontWeight: 600,
+                                "&:hover": { bgcolor: "#EA580C" },
+                              }}
+                            >
+                              {refundProcessing
+                                ? "Đang xử lý..."
+                                : "Xử lý hoàn trả"}
+                            </Button>
                           </Box>
-                        ) : disputes.length > 0 ? (
-                          disputes
-                            .filter((dispute) => (dispute.totalAmount || 0) > 0)
-                            .map((dispute, disputeIndex) => {
-                              // Check if dispute has been refunded
-                              // Only treat as refunded if there is a payment line of type 'refund'/'dispute'
-                              // that is actually refunded (payment.status === 'Refunded') or a captured refund line.
-                              const disputeRefunded =
-                                booking.payments?.some((payment) =>
-                                  payment.lines?.some((line) => {
-                                    const lineType = (line.type || "")
-                                      .toString()
-                                      .toLowerCase();
-                                    const isDisputeLine =
-                                      lineType === "dispute" ||
-                                      lineType === "refund";
-                                    if (!isDisputeLine) return false;
-                                    // If payment was explicitly refunded on backend
-                                    if (payment.status === "Refunded")
-                                      return true;
-                                    // If payment is captured/authorized but the line itself represents a refund with amount > 0
-                                    const lineAmount =
-                                      line.capturedAmount || line.amount || 0;
-                                    if (
-                                      (payment.status === "Captured" ||
-                                        payment.status === "Authorized") &&
-                                      lineType === "refund" &&
-                                      lineAmount > 0
-                                    )
-                                      return true;
-                                    return false;
-                                  })
-                                ) || false;
+                        )}
+                      </Box>
+                    </Box>
 
-                              // Check if this is the last dispute (to show deposit refund)
-                              const isLastDispute =
-                                disputeIndex ===
-                                disputes.filter(
-                                  (d) =>
-                                    d.status === "resolved" && d.totalAmount > 0
-                                ).length -
-                                  1;
+                    <Collapse in={disputeDetailExpanded}>
+                      <Box
+                        sx={{
+                          mt: 1,
+                          ml: 2,
+                          pl: 2,
+                          borderLeft: "2px solid #F97316",
+                        }}
+                      >
+                        <Stack spacing={2}>
+                          {disputesLoading ? (
+                            <Box
+                              sx={{
+                                display: "flex",
+                                justifyContent: "center",
+                                py: 2,
+                              }}
+                            >
+                              <CircularProgress size={24} />
+                            </Box>
+                          ) : disputes.length > 0 ? (
+                            disputes
+                              .filter(
+                                (dispute) => (dispute.totalAmount || 0) > 0
+                              )
+                              .map((dispute, disputeIndex) => {
+                                // Check if dispute has been refunded
+                                // Only treat as refunded if there is a payment line of type 'refund'/'dispute'
+                                // that is actually refunded (payment.status === 'Refunded') or a captured refund line.
+                                const disputeRefunded =
+                                  booking.payments?.some((payment) =>
+                                    payment.lines?.some((line) => {
+                                      const lineType = (line.type || "")
+                                        .toString()
+                                        .toLowerCase();
+                                      const isDisputeLine =
+                                        lineType === "dispute" ||
+                                        lineType === "refund";
+                                      if (!isDisputeLine) return false;
+                                      // If payment was explicitly refunded on backend
+                                      if (payment.status === "Refunded")
+                                        return true;
+                                      // If payment is captured/authorized but the line itself represents a refund with amount > 0
+                                      const lineAmount =
+                                        line.capturedAmount || line.amount || 0;
+                                      if (
+                                        (payment.status === "Captured" ||
+                                          payment.status === "Authorized") &&
+                                        lineType === "refund" &&
+                                        lineAmount > 0
+                                      )
+                                        return true;
+                                      return false;
+                                    })
+                                  ) || false;
 
-                              return (
-                                <Box
-                                  key={dispute.id}
-                                  sx={{
-                                    p: 2,
-                                    bgcolor: "#F9FAFB",
-                                    borderRadius: 2,
-                                    border: "1px solid #E5E7EB",
-                                  }}
-                                >
+                                // Check if this is the last dispute (to show deposit refund)
+                                const isLastDispute =
+                                  disputeIndex ===
+                                  disputes.filter(
+                                    (d) =>
+                                      d.status === "resolved" &&
+                                      d.totalAmount > 0
+                                  ).length -
+                                    1;
+
+                                return (
                                   <Box
+                                    key={dispute.id}
                                     sx={{
-                                      display: "flex",
-                                      justifyContent: "space-between",
-                                      alignItems: "start",
-                                      mb: 1.5,
+                                      p: 2,
+                                      bgcolor: "#F9FAFB",
+                                      borderRadius: 2,
+                                      border: "1px solid #E5E7EB",
                                     }}
                                   >
-                                    <Box>
-                                      <Box
-                                        sx={{
-                                          display: "flex",
-                                          alignItems: "center",
-                                          gap: 1,
-                                        }}
-                                      >
-                                        <Typography
-                                          variant="body2"
+                                    <Box
+                                      sx={{
+                                        display: "flex",
+                                        justifyContent: "space-between",
+                                        alignItems: "start",
+                                        mb: 1.5,
+                                      }}
+                                    >
+                                      <Box>
+                                        <Box
                                           sx={{
-                                            fontWeight: 600,
-                                            color: "#1F2937",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: 1,
                                           }}
                                         >
-                                          {dispute.title}
+                                          <Typography
+                                            variant="body2"
+                                            sx={{
+                                              fontWeight: 600,
+                                              color: "#1F2937",
+                                            }}
+                                          >
+                                            {dispute.title}
+                                          </Typography>
+                                          <Chip
+                                            label={getDisputeStatusLabel(
+                                              dispute.status
+                                            )}
+                                            size="small"
+                                            sx={{
+                                              bgcolor: getDisputeStatusColor(
+                                                dispute.status
+                                              ),
+                                              color: "white",
+                                              fontSize: "0.7rem",
+                                              height: 20,
+                                            }}
+                                          />
+                                        </Box>
+                                        <Typography
+                                          variant="caption"
+                                          sx={{ color: "#6B7280" }}
+                                        >
+                                          {dispute.description}
+                                        </Typography>
+                                      </Box>
+                                      <Box sx={{ textAlign: "right" }}>
+                                        <Typography
+                                          variant="body1"
+                                          sx={{
+                                            fontWeight: 700,
+                                            color: disputeRefunded
+                                              ? "#059669"
+                                              : "#DC2626",
+                                          }}
+                                        >
+                                          {formatCurrency(dispute.totalAmount)}
                                         </Typography>
                                         <Chip
-                                          label={getDisputeStatusLabel(
-                                            dispute.status
-                                          )}
+                                          label={
+                                            disputeRefunded
+                                              ? "Đã hoàn trả"
+                                              : "Chưa hoàn trả"
+                                          }
                                           size="small"
                                           sx={{
-                                            bgcolor: getDisputeStatusColor(
-                                              dispute.status
-                                            ),
+                                            mt: 0.5,
+                                            bgcolor: disputeRefunded
+                                              ? "#059669"
+                                              : "#DC2626",
                                             color: "white",
                                             fontSize: "0.7rem",
                                             height: 20,
                                           }}
                                         />
                                       </Box>
-                                      <Typography
-                                        variant="caption"
-                                        sx={{ color: "#6B7280" }}
-                                      >
-                                        {dispute.description}
-                                      </Typography>
                                     </Box>
-                                    <Box sx={{ textAlign: "right" }}>
-                                      <Typography
-                                        variant="body1"
-                                        sx={{
-                                          fontWeight: 700,
-                                          color: disputeRefunded
-                                            ? "#059669"
-                                            : "#DC2626",
-                                        }}
-                                      >
-                                        {formatCurrency(dispute.totalAmount)}
-                                      </Typography>
-                                      <Chip
-                                        label={
-                                          disputeRefunded
-                                            ? "Đã hoàn trả"
-                                            : "Chưa hoàn trả"
-                                        }
-                                        size="small"
-                                        sx={{
-                                          mt: 0.5,
-                                          bgcolor: disputeRefunded
-                                            ? "#059669"
-                                            : "#DC2626",
-                                          color: "white",
-                                          fontSize: "0.7rem",
-                                          height: 20,
-                                        }}
-                                      />
-                                    </Box>
-                                  </Box>
 
-                                  {/* Chi tiết các khoản bồi thường */}
-                                  {dispute.items &&
-                                    dispute.items.length > 0 && (
-                                      <Box
-                                        sx={{
-                                          mt: 1.5,
-                                          pt: 1.5,
-                                          borderTop: "1px solid #E5E7EB",
-                                        }}
-                                      >
-                                        <Typography
-                                          variant="caption"
-                                          sx={{
-                                            color: "#6B7280",
-                                            fontWeight: 600,
-                                            display: "block",
-                                            mb: 1,
-                                          }}
-                                        >
-                                          Chi tiết bồi thường:
-                                        </Typography>
-                                        <Stack spacing={1}>
-                                          {dispute.items.map(
-                                            (item, itemIndex) => {
-                                              const getItemTypeLabel = (
-                                                type: string
-                                              ) => {
-                                                switch (type.toLowerCase()) {
-                                                  case "damage":
-                                                    return "Thiệt hại";
-                                                  case "missing":
-                                                    return "Mất thiết bị";
-                                                  case "late":
-                                                    return "Trễ hẹn";
-                                                  case "money":
-                                                    return "Tiền";
-                                                  default:
-                                                    return type;
-                                                }
-                                              };
-
-                                              return (
-                                                <Box
-                                                  key={itemIndex}
-                                                  sx={{
-                                                    display: "flex",
-                                                    justifyContent:
-                                                      "space-between",
-                                                    alignItems: "center",
-                                                  }}
-                                                >
-                                                  <Typography
-                                                    variant="caption"
-                                                    sx={{ color: "#6B7280" }}
-                                                  >
-                                                    {getItemTypeLabel(
-                                                      item.type
-                                                    )}
-                                                    {item.notes && (
-                                                      <Typography
-                                                        component="span"
-                                                        variant="caption"
-                                                        sx={{
-                                                          color: "#9CA3AF",
-                                                          ml: 0.5,
-                                                        }}
-                                                      >
-                                                        ({item.notes})
-                                                      </Typography>
-                                                    )}
-                                                  </Typography>
-                                                  <Typography
-                                                    variant="caption"
-                                                    sx={{
-                                                      fontWeight: 600,
-                                                      color: "#374151",
-                                                    }}
-                                                  >
-                                                    {formatCurrency(
-                                                      item.amount
-                                                    )}
-                                                  </Typography>
-                                                </Box>
-                                              );
-                                            }
-                                          )}
-                                        </Stack>
-                                      </Box>
-                                    )}
-
-                                  {/* Hiển thị tiền cọc thiết bị cần hoàn trả (chỉ ở dispute cuối cùng) */}
-                                  {isLastDispute &&
-                                    booking.snapshotDepositAmount > 0 && (
-                                      <Box
-                                        sx={{
-                                          mt: 1.5,
-                                          pt: 1.5,
-                                          borderTop: "1px solid #E5E7EB",
-                                        }}
-                                      >
+                                    {/* Chi tiết các khoản bồi thường */}
+                                    {dispute.items &&
+                                      dispute.items.length > 0 && (
                                         <Box
                                           sx={{
-                                            display: "flex",
-                                            justifyContent: "space-between",
-                                            alignItems: "center",
-                                            mb: 1,
+                                            mt: 1.5,
+                                            pt: 1.5,
+                                            borderTop: "1px solid #E5E7EB",
                                           }}
                                         >
                                           <Typography
@@ -2241,109 +2149,209 @@ const BookingDetail: React.FC = () => {
                                             sx={{
                                               color: "#6B7280",
                                               fontWeight: 600,
+                                              display: "block",
+                                              mb: 1,
                                             }}
                                           >
-                                            Tiền cọc thiết bị cần hoàn trả:
+                                            Chi tiết bồi thường:
                                           </Typography>
-                                          <Typography
-                                            variant="body2"
-                                            sx={{
-                                              fontWeight: 700,
-                                              color: "#059669",
-                                            }}
-                                          >
-                                            {formatCurrency(
-                                              booking.snapshotDepositAmount
+                                          <Stack spacing={1}>
+                                            {dispute.items.map(
+                                              (item, itemIndex) => {
+                                                const getItemTypeLabel = (
+                                                  type: string
+                                                ) => {
+                                                  switch (type.toLowerCase()) {
+                                                    case "damage":
+                                                      return "Thiệt hại";
+                                                    case "missing":
+                                                      return "Mất thiết bị";
+                                                    case "late":
+                                                      return "Trễ hẹn";
+                                                    case "money":
+                                                      return "Tiền";
+                                                    default:
+                                                      return type;
+                                                  }
+                                                };
+
+                                                return (
+                                                  <Box
+                                                    key={itemIndex}
+                                                    sx={{
+                                                      display: "flex",
+                                                      justifyContent:
+                                                        "space-between",
+                                                      alignItems: "center",
+                                                    }}
+                                                  >
+                                                    <Typography
+                                                      variant="caption"
+                                                      sx={{ color: "#6B7280" }}
+                                                    >
+                                                      {getItemTypeLabel(
+                                                        item.type
+                                                      )}
+                                                      {item.notes && (
+                                                        <Typography
+                                                          component="span"
+                                                          variant="caption"
+                                                          sx={{
+                                                            color: "#9CA3AF",
+                                                            ml: 0.5,
+                                                          }}
+                                                        >
+                                                          ({item.notes})
+                                                        </Typography>
+                                                      )}
+                                                    </Typography>
+                                                    <Typography
+                                                      variant="caption"
+                                                      sx={{
+                                                        fontWeight: 600,
+                                                        color: "#374151",
+                                                      }}
+                                                    >
+                                                      {formatCurrency(
+                                                        item.amount
+                                                      )}
+                                                    </Typography>
+                                                  </Box>
+                                                );
+                                              }
                                             )}
-                                          </Typography>
+                                          </Stack>
                                         </Box>
-                                        <Typography
-                                          variant="caption"
+                                      )}
+
+                                    {/* Hiển thị tiền cọc thiết bị cần hoàn trả (chỉ ở dispute cuối cùng) */}
+                                    {isLastDispute &&
+                                      booking.snapshotDepositAmount > 0 && (
+                                        <Box
                                           sx={{
-                                            color: "#9CA3AF",
-                                            fontStyle: "italic",
+                                            mt: 1.5,
+                                            pt: 1.5,
+                                            borderTop: "1px solid #E5E7EB",
                                           }}
                                         >
-                                          Tiền cọc sẽ được hoàn trả khi giải
-                                          quyết bồi thường
-                                        </Typography>
-                                      </Box>
-                                    )}
-                                </Box>
-                              );
-                            })
-                        ) : (
-                          <Typography
-                            variant="caption"
-                            sx={{ color: "#6B7280" }}
-                          >
-                            Không có bồi thường đã giải quyết nào
-                          </Typography>
-                        )}
+                                          <Box
+                                            sx={{
+                                              display: "flex",
+                                              justifyContent: "space-between",
+                                              alignItems: "center",
+                                              mb: 1,
+                                            }}
+                                          >
+                                            <Typography
+                                              variant="caption"
+                                              sx={{
+                                                color: "#6B7280",
+                                                fontWeight: 600,
+                                              }}
+                                            >
+                                              Tiền cọc thiết bị cần hoàn trả:
+                                            </Typography>
+                                            <Typography
+                                              variant="body2"
+                                              sx={{
+                                                fontWeight: 700,
+                                                color: "#059669",
+                                              }}
+                                            >
+                                              {formatCurrency(
+                                                booking.snapshotDepositAmount
+                                              )}
+                                            </Typography>
+                                          </Box>
+                                          <Typography
+                                            variant="caption"
+                                            sx={{
+                                              color: "#9CA3AF",
+                                              fontStyle: "italic",
+                                            }}
+                                          >
+                                            Tiền cọc sẽ được hoàn trả khi giải
+                                            quyết bồi thường
+                                          </Typography>
+                                        </Box>
+                                      )}
+                                  </Box>
+                                );
+                              })
+                          ) : (
+                            <Typography
+                              variant="caption"
+                              sx={{ color: "#6B7280" }}
+                            >
+                              Không có bồi thường đã giải quyết nào
+                            </Typography>
+                          )}
 
-                        {/* Hiển thị tổng tiền hoàn trả nếu có */}
-                        {refundAmount > 0 && (
-                          <Box
-                            sx={{
-                              mt: 2,
-                              pt: 2,
-                              borderTop: "2px solid #059669",
-                              bgcolor: "#F0FDF4",
-                              p: 2,
-                              borderRadius: 2,
-                            }}
-                          >
+                          {/* Hiển thị tổng tiền hoàn trả nếu có */}
+                          {refundAmount > 0 && (
                             <Box
                               sx={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                alignItems: "center",
-                                mb: 1,
+                                mt: 2,
+                                pt: 2,
+                                borderTop: "2px solid #059669",
+                                bgcolor: "#F0FDF4",
+                                p: 2,
+                                borderRadius: 2,
                               }}
                             >
-                              <Typography
-                                variant="body2"
-                                sx={{ fontWeight: 700, color: "#1F2937" }}
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  alignItems: "center",
+                                  mb: 1,
+                                }}
                               >
-                                Tổng tiền hoàn trả:
-                              </Typography>
-                              <Typography
-                                variant="h6"
-                                sx={{ fontWeight: 700, color: "#059669" }}
+                                <Typography
+                                  variant="body2"
+                                  sx={{ fontWeight: 700, color: "#1F2937" }}
+                                >
+                                  Tổng tiền hoàn trả:
+                                </Typography>
+                                <Typography
+                                  variant="h6"
+                                  sx={{ fontWeight: 700, color: "#059669" }}
+                                >
+                                  {formatCurrency(refundAmount)}
+                                </Typography>
+                              </Box>
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  alignItems: "center",
+                                  fontSize: "0.75rem",
+                                }}
                               >
-                                {formatCurrency(refundAmount)}
-                              </Typography>
+                                <Typography
+                                  variant="caption"
+                                  sx={{ color: "#6B7280" }}
+                                >
+                                  • Tiền bồi thường:{" "}
+                                  {formatCurrency(disputesTotalAll)}
+                                </Typography>
+                                <Typography
+                                  variant="caption"
+                                  sx={{ color: "#6B7280" }}
+                                >
+                                  • Tiền cọc thiết bị:{" "}
+                                  {formatCurrency(
+                                    booking.snapshotDepositAmount
+                                  )}
+                                </Typography>
+                              </Box>
                             </Box>
-                            <Box
-                              sx={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                alignItems: "center",
-                                fontSize: "0.75rem",
-                              }}
-                            >
-                              <Typography
-                                variant="caption"
-                                sx={{ color: "#6B7280" }}
-                              >
-                                • Tiền bồi thường:{" "}
-                                {formatCurrency(disputesTotalAll)}
-                              </Typography>
-                              <Typography
-                                variant="caption"
-                                sx={{ color: "#6B7280" }}
-                              >
-                                • Tiền cọc thiết bị:{" "}
-                                {formatCurrency(booking.snapshotDepositAmount)}
-                              </Typography>
-                            </Box>
-                          </Box>
-                        )}
-                      </Stack>
-                    </Box>
-                  </Collapse>
-                </Box>
-              )}
+                          )}
+                        </Stack>
+                      </Box>
+                    </Collapse>
+                  </Box>
+                ))}
             </Stack>
           </Paper>
         </Box>
