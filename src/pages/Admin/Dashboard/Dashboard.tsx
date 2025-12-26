@@ -933,7 +933,7 @@ export default function DashboardAdmin() {
                 mb: 0.5,
               }}
             >
-              Dashboard Admin
+              Thống kê Admin
             </Typography>
             <Typography variant="body2" sx={{ color: "#6B7280" }}>
               Tổng quan hệ thống CamRent
