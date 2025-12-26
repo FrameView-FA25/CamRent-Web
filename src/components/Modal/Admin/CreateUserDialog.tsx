@@ -220,7 +220,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
             error={!!errors.phone}
             helperText={errors.phone}
             disabled={loading}
-            inputProps={{ maxLength: 10 }}
+            slotProps={{ input: { inputProps: { maxLength: 10 } } }}
           />
 
           <FormControl fullWidth error={!!errors.role}>
@@ -282,10 +282,11 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
           variant="contained"
           disabled={loading}
           sx={{
-            bgcolor: "#DC2626",
-            "&:hover": { bgcolor: "#B91C1C" },
+            bgcolor: "#FF5722",
+            "&:hover": { bgcolor: "#F4511E" },
             minWidth: 120,
             textTransform: "none",
+            color: "white",
           }}
         >
           {loading ? (

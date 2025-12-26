@@ -188,7 +188,7 @@ const UpdateUserDialog: React.FC<UpdateUserDialogProps> = ({
             helperText={errors.phone}
             disabled={loading}
             placeholder="0912345678"
-            inputProps={{ maxLength: 10 }}
+            slotProps={{ input: { inputProps: { maxLength: 10 } } }}
             sx={{
               "& .MuiOutlinedInput-root": {
                 "&:hover fieldset": {
