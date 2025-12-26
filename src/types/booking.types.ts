@@ -284,26 +284,23 @@ export interface BookingPayment {
 export interface RenterInfo {
   renterId: string;
   renterName: string;
-  renterEmail: string;
+  email: string;
   renterPhone: string;
   totalBookings: number;
   totalRevenue: number;
-  lastBookingDate: string;
+  lastPickupAt: string;
 }
 
 export interface RenterBookingHistory {
   bookingId: string;
-  bookingDate: string;
   pickupAt: string;
   returnAt: string;
   status: string;
   statusText: string;
-  totalAmount: number;
   items: Array<{
     itemId: string;
     itemName: string;
     itemType: string;
-    quantity: number;
     unitPrice: number;
   }>;
 }

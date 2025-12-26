@@ -17,6 +17,7 @@ import {
   Box,
   Divider,
   Stack,
+  Tooltip,
 } from "@mui/material";
 import {
   AccountCircle,
@@ -145,8 +146,9 @@ const RenterBookingHistoryDialog: React.FC<RenterBookingHistoryDialogProps> = ({
               <TableHead>
                 <TableRow sx={{ bgcolor: "#f8fafc" }}>
                   <TableCell sx={{ fontWeight: 600 }}>Mã booking</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Ngày đặt</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Nhận - Trả</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>
+                    Ngày nhận - trả
+                  </TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Trạng thái</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Thiết bị</TableCell>
                   <TableCell sx={{ fontWeight: 600, textAlign: "right" }}>
@@ -162,12 +164,18 @@ const RenterBookingHistoryDialog: React.FC<RenterBookingHistoryDialogProps> = ({
                     sx={{ "&:last-child td": { border: 0 } }}
                   >
                     <TableCell>
-                      <Typography
-                        variant="body2"
-                        sx={{ fontFamily: "monospace" }}
-                      >
-                        {booking.bookingId.slice(0, 8)}...
-                      </Typography>
+                      <Tooltip title={booking.bookingId} placement="top">
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            fontFamily: "monospace",
+                            cursor: "pointer",
+                            "&:hover": { textDecoration: "underline" },
+                          }}
+                        >
+                          {booking.bookingId.slice(0, 8)}...
+                        </Typography>
+                      </Tooltip>
                     </TableCell>
                     <TableCell>
                       <Box
@@ -177,17 +185,12 @@ const RenterBookingHistoryDialog: React.FC<RenterBookingHistoryDialogProps> = ({
                           sx={{ fontSize: 16, color: "#64748b" }}
                         />
                         <Typography variant="body2">
-                          {formatDate(booking.bookingDate)}
+                          {formatDate(booking.pickupAt)}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          - {formatDate(booking.returnAt)}
                         </Typography>
                       </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2">
-                        {formatDate(booking.pickupAt)}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        đến {formatDate(booking.returnAt)}
-                      </Typography>
                     </TableCell>
                     <TableCell>
                       <Chip
@@ -217,7 +220,12 @@ const RenterBookingHistoryDialog: React.FC<RenterBookingHistoryDialogProps> = ({
                         variant="body2"
                         sx={{ fontWeight: 600, color: "#059669" }}
                       >
-                        {formatCurrency(booking.totalAmount)}
+                        {formatCurrency(
+                          booking.items.reduce(
+                            (total, item) => total + item.unitPrice,
+                            0
+                          )
+                        )}
                       </Typography>
                     </TableCell>
                   </TableRow>
