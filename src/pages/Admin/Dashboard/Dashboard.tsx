@@ -21,8 +21,9 @@ import {
   AccountBalanceWallet as WalletIcon,
   Group as GroupIcon,
   ShoppingCart as BookingIcon,
-  Gavel as DisputeIcon,
-  Camera as CameraIcon,
+  MonetizationOn as RevenueIcon,
+  TrendingUp as NetRevenueIcon,
+  Warning as DisputeRevenueIcon,
 } from "@mui/icons-material";
 import {
   Area,
@@ -39,8 +40,13 @@ import type {
   AdminDashboardResponse,
   TimeSeriesStat,
   BookingStatusCount,
+  BranchRevenue,
 } from "../../../services/dashboard.service";
 import { dashboardService } from "../../../services/dashboard.service";
+
+// Dashboard Admin - hiển thị số liệu tổng quan cho Admin
+// Lấy dữ liệu từ API thông qua `dashboardService.getAdminDashboard`
+// Các phần: Stat cards, Biểu đồ doanh thu, Bảng trạng thái & Bảng doanh thu chi nhánh
 
 type StatAccent =
   | "teal"
@@ -75,7 +81,28 @@ const COMPACT_CURRENCY_FORMATTER = new Intl.NumberFormat("vi-VN", {
   maximumFractionDigits: 1,
 });
 
-const formatCurrency = (value: number) => CURRENCY_FORMATTER.format(value);
+// formatCurrency: format số tiền cho UI (rút gọn M/B khi lớn)
+// - < 1M: hiển thị đầy đủ (ví dụ 90.000 đ)
+// - >=1M và <1B: hiển thị xM (ví dụ 25.5M đ)
+// - >=1B: hiển thị xB (ví dụ 2.5B đ)
+const formatCurrency = (value = 0) => {
+  if (!Number.isFinite(value)) return CURRENCY_FORMATTER.format(0);
+  const abs = Math.abs(value);
+  // >= 1 billion -> B
+  if (abs >= 1_000_000_000) {
+    const v = Math.round((value / 1_000_000_000) * 10) / 10;
+    // remove trailing .0
+    const short = Number.isInteger(v) ? `${v.toFixed(0)}` : `${v.toFixed(1)}`;
+    return `${short}B đ`;
+  }
+  // >= 1 million -> M
+  if (abs >= 1_000_000) {
+    const v = Math.round((value / 1_000_000) * 10) / 10;
+    const short = Number.isInteger(v) ? `${v.toFixed(0)}` : `${v.toFixed(1)}`;
+    return `${short}M đ`;
+  }
+  return CURRENCY_FORMATTER.format(value);
+};
 
 const formatChartLabel = (dateString: string, period: ChartPeriod) => {
   const date = new Date(dateString);
@@ -140,71 +167,62 @@ const STAT_ACCENT_STYLES: Record<
   },
 };
 
+// StatCard: component hiển thị một ô số liệu (title, value, description, icon)
+// Dùng lại cho tất cả metric ở phần header.
 const StatCard = ({ stat }: { stat: StatItem }) => {
   const palette = STAT_ACCENT_STYLES[stat.accent];
 
   return (
     <Card
-      elevation={0}
+      elevation={1}
       sx={{
         backgroundColor: "white",
-        border: "1px solid #E5E7EB",
         borderRadius: 2,
-        borderTop: palette.borderTop,
-        boxShadow: "0 1px 2px rgba(15,23,42,0.08)",
-        transition: "all 0.2s ease",
+        minHeight: 88,
+        display: "flex",
+        alignItems: "center",
+        p: { xs: 1, sm: 1.25 },
+        boxShadow: "0 6px 18px rgba(15,23,42,0.06)",
+        transition: "transform 0.18s ease, box-shadow 0.18s ease",
         "&:hover": {
-          boxShadow: "0 4px 12px rgba(15,23,42,0.12)",
-          transform: "translateY(-2px)",
+          transform: "translateY(-4px)",
+          boxShadow: "0 10px 30px rgba(15,23,42,0.10)",
         },
       }}
     >
-      <CardContent sx={{ p: 2.5 }}>
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "flex-start",
-            justifyContent: "space-between",
-            mb: 1.5,
-          }}
+      <Box
+        sx={{
+          width: 48,
+          height: 48,
+          borderRadius: 2,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          bgcolor: palette.iconBg,
+          color: palette.iconColor,
+          flexShrink: 0,
+          mr: 2,
+        }}
+      >
+        {stat.icon}
+      </Box>
+
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Typography
+          variant="subtitle2"
+          sx={{ color: "#6B7280", fontWeight: 700, fontSize: "0.85rem" }}
         >
-          <Typography
-            variant="subtitle2"
-            sx={{
-              color: "#6B7280",
-              fontSize: "0.75rem",
-              fontWeight: 600,
-              lineHeight: 1.4,
-              flex: 1,
-            }}
-          >
-            {stat.title}
-          </Typography>
-          <Box
-            sx={{
-              width: 36,
-              height: 36,
-              borderRadius: "8px",
-              bgcolor: palette.iconBg,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: palette.iconColor,
-              flexShrink: 0,
-            }}
-          >
-            {stat.icon}
-          </Box>
-        </Box>
+          {stat.title}
+        </Typography>
 
         <Typography
           variant="h5"
           sx={{
             color: "#0F172A",
-            fontWeight: 700,
-            fontSize: "1.75rem",
-            mb: 0.5,
-            lineHeight: 1.2,
+            fontWeight: 800,
+            fontSize: { xs: "1rem", sm: "1.25rem" },
+            lineHeight: 1.05,
+            mt: 0.25,
           }}
         >
           {stat.value}
@@ -212,22 +230,25 @@ const StatCard = ({ stat }: { stat: StatItem }) => {
 
         {stat.description && (
           <Typography
-            variant="body2"
-            sx={{ color: "#9CA3AF", fontSize: "0.75rem", lineHeight: 1.4 }}
+            variant="caption"
+            sx={{ color: "#9CA3AF", display: "block", mt: 0.5 }}
           >
             {stat.description}
           </Typography>
         )}
-      </CardContent>
+      </Box>
     </Card>
   );
 };
 
-const BookingStatusTable = ({
-  bookingsByStatus,
+const BranchRevenueTable = ({
+  branchRevenues,
 }: {
-  bookingsByStatus: BookingStatusCount[];
+  branchRevenues: BranchRevenue[];
 }) => {
+  // BranchRevenueTable: bảng liệt kê doanh thu theo chi nhánh
+  // Hiển thị tên chi nhánh và doanh thu ròng (netRevenue) đã được tổng hợp ở backend.
+  // Mục đích: cho admin so sánh hiệu quả giữa các chi nhánh.
   const headerCellStyle = {
     border: "none",
     color: "#6B7280",
@@ -238,7 +259,145 @@ const BookingStatusTable = ({
     paddingY: 1.5,
   };
 
-  const getStatusColor = (status: string) => {
+  return (
+    <Card
+      elevation={0}
+      sx={{
+        border: "1px solid #E5E7EB",
+        borderRadius: 2,
+        height: "100%",
+        boxShadow: "0 1px 2px rgba(15,23,42,0.08)",
+        backgroundColor: "white",
+      }}
+    >
+      <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+        <Box sx={{ mb: 2, display: "flex", flexDirection: "column", gap: 0.5 }}>
+          <Typography
+            variant="h6"
+            sx={{ color: "#0F172A", fontWeight: 700, fontSize: "1.1rem" }}
+          >
+            Doanh thu theo chi nhánh
+          </Typography>
+          <Typography variant="body2" sx={{ color: "#6B7280" }}>
+            Phân tích doanh thu hoa hồng và lợi nhuận từng chi nhánh.
+          </Typography>
+        </Box>
+
+        <TableContainer
+          sx={{
+            overflowX: "auto",
+            borderRadius: 2,
+            border: "1px solid #E5E7EB",
+          }}
+        >
+          <Table>
+            <TableHead>
+              <TableRow sx={{ backgroundColor: "#F9FAFB" }}>
+                <TableCell sx={{ ...headerCellStyle, width: "30%" }}>
+                  Chi nhánh
+                </TableCell>
+                <TableCell sx={{ ...headerCellStyle, textAlign: "center" }}>
+                  Hoa hồng
+                </TableCell>
+                <TableCell sx={{ ...headerCellStyle, textAlign: "center" }}>
+                  Tranh chấp
+                </TableCell>
+                <TableCell sx={{ ...headerCellStyle, textAlign: "center" }}>
+                  Lợi nhuận
+                </TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {branchRevenues.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={4} sx={{ border: "none", py: 4 }}>
+                    <Typography
+                      variant="body2"
+                      sx={{ color: "#999", textAlign: "center" }}
+                    >
+                      Chưa có dữ liệu doanh thu.
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                branchRevenues.map((branch) => (
+                  <TableRow
+                    key={branch.branchId}
+                    sx={{
+                      "&:hover": { bgcolor: "#F9FAFB" },
+                      borderBottom: "1px solid #F3F4F6",
+                    }}
+                  >
+                    <TableCell sx={{ border: "none", py: 1.75 }}>
+                      <Typography
+                        variant="body2"
+                        sx={{ color: "#0F172A", fontWeight: 600 }}
+                      >
+                        {branch.branchName}
+                      </Typography>
+                    </TableCell>
+                    <TableCell sx={{ border: "none", textAlign: "center" }}>
+                      <Typography
+                        variant="body2"
+                        sx={{ color: "#10B981", fontWeight: 600 }}
+                      >
+                        {formatCurrency(branch.commissionRevenue)}
+                      </Typography>
+                    </TableCell>
+                    <TableCell sx={{ border: "none", textAlign: "center" }}>
+                      <Typography
+                        variant="body2"
+                        sx={{ color: "#F59E0B", fontWeight: 600 }}
+                      >
+                        {formatCurrency(branch.disputeRevenue)}
+                      </Typography>
+                    </TableCell>
+                    <TableCell sx={{ border: "none", textAlign: "center" }}>
+                      <Typography
+                        variant="body2"
+                        sx={{ color: "#4F46E5", fontWeight: 600 }}
+                      >
+                        {formatCurrency(branch.netRevenue)}
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </CardContent>
+    </Card>
+  );
+};
+
+const BookingStatusTable = ({
+  bookingsByStatus,
+}: {
+  bookingsByStatus: BookingStatusCount[];
+}) => {
+  // BookingStatusTable: bảng tóm tắt số lượng booking theo trạng thái
+  // Dùng để xem phân bổ trạng thái (Draft, Confirmed, Completed...) trong hệ thống.
+  const headerCellStyle = {
+    border: "none",
+    color: "#6B7280",
+    fontWeight: 600,
+    fontSize: "0.72rem",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    paddingY: 1.5,
+  };
+
+  const getStatusColor = (
+    status: string
+  ):
+    | "default"
+    | "primary"
+    | "secondary"
+    | "error"
+    | "info"
+    | "success"
+    | "warning" => {
     switch (status) {
       case "Confirmed":
         return "success";
@@ -335,7 +494,7 @@ const BookingStatusTable = ({
                         <Chip
                           size="small"
                           label={booking.statusText}
-                          color={getStatusColor(booking.status) as any}
+                          color={getStatusColor(booking.status)}
                           sx={{ borderRadius: 1, fontWeight: 500 }}
                         />
                       </TableCell>
@@ -378,6 +537,9 @@ const RevenueChartCard = ({
   ) => void;
   isLoading: boolean;
 }) => {
+  // RevenueChartCard: hiển thị biểu đồ area cho doanh thu theo thời gian
+  // - `stats` là mảng time series từ backend (date, bookingCount, capturedRevenue)
+  // - Người dùng có thể đổi period giữa daily/monthly
   const hasData = stats.length > 0;
   const showLoadingState = isLoading && !hasData;
   const currentStat = stats[stats.length - 1];
@@ -566,6 +728,10 @@ const RevenueChartCard = ({
 };
 
 export default function DashboardAdmin() {
+  // Component chính DashboardAdmin
+  // - Lấy dữ liệu admin dashboard từ backend
+  // - Quản lý trạng thái loading / error
+  // - Chuẩn bị dữ liệu cho các component con (stats, charts, tables)
   const [data, setData] = useState<AdminDashboardResponse | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -667,28 +833,32 @@ export default function DashboardAdmin() {
         accent: "blue",
       },
       {
-        title: "Tranh chấp",
-        value: isLoading ? (
-          <CircularProgress size={24} />
-        ) : (
-          ((data?.openDisputes ?? 0) + (data?.resolvedDisputes ?? 0)).toString()
-        ),
-        description: `${data?.openDisputes ?? 0} đang mở, ${
-          data?.resolvedDisputes ?? 0
-        } đã giải quyết`,
-        icon: <DisputeIcon />,
-        accent: "red",
+        title: "Doanh thu hoa hồng",
+        value: formatCurrency(data?.totalCommissionRevenue ?? 0),
+        description: "Thu nhập từ hoa hồng",
+        icon: <RevenueIcon />,
+        accent: "green",
       },
       {
-        title: "Combo sản phẩm",
-        value: isLoading ? (
-          <CircularProgress size={24} />
-        ) : (
-          (data?.totalCombos ?? 0).toString()
-        ),
-        description: "Số lượng combo đang có",
-        icon: <CameraIcon />,
+        title: "Doanh thu tranh chấp",
+        value: formatCurrency(data?.totalDisputeRevenue ?? 0),
+        description: "Thu nhập từ xử lý tranh chấp",
+        icon: <DisputeRevenueIcon />,
         accent: "orange",
+      },
+      {
+        title: "Doanh thu ròng",
+        value: formatCurrency(data?.totalNetRevenue ?? 0),
+        description: "Lợi nhuận sau tất cả",
+        icon: <NetRevenueIcon />,
+        accent: "indigo",
+      },
+      {
+        title: "Doanh thu ròng",
+        value: formatCurrency(data?.totalNetRevenue ?? 0),
+        description: "Lợi nhuận sau tất cả",
+        icon: <NetRevenueIcon />,
+        accent: "indigo",
       },
     ],
     [isLoading, data]
@@ -794,18 +964,14 @@ export default function DashboardAdmin() {
           )}
         </Box>
 
-        {/* Stats Grid - More compact */}
+        {/* Stats Grid - responsive compact */}
         <Box
           sx={{
             display: "grid",
-            gridTemplateColumns: {
-              xs: "1fr",
-              sm: "repeat(2, 1fr)",
-              md: "repeat(3, 1fr)",
-              lg: "repeat(4, 1fr)",
-            },
-            gap: 2,
+            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+            gap: { xs: 2, sm: 3 },
             mb: 3,
+            alignItems: "stretch",
           }}
         >
           {stats.map((stat, index) => (
@@ -820,10 +986,17 @@ export default function DashboardAdmin() {
             onPeriodChange={handleChartPeriodChange}
             isLoading={isLoading}
           />
-          <Box>
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: { xs: "1fr", lg: "1fr 1fr" },
+              gap: 3,
+            }}
+          >
             <BookingStatusTable
               bookingsByStatus={data?.bookingsByStatus ?? []}
             />
+            <BranchRevenueTable branchRevenues={data?.branchRevenues ?? []} />
           </Box>
         </Box>
       </Box>
