@@ -236,7 +236,10 @@ const TopRentedAssetsTable = ({ assets }: { assets: TopRentedAsset[] }) => {
                   Số lượt thuê
                 </TableCell>
                 <TableCell sx={{ ...headerCellStyle, textAlign: "center" }}>
-                  Doanh thu ước tính
+                  Doanh thu từ đơn hàng
+                </TableCell>
+                <TableCell sx={{ ...headerCellStyle, textAlign: "center" }}>
+                  Doanh thu thực tế
                 </TableCell>
               </TableRow>
             </TableHead>
@@ -296,6 +299,18 @@ const TopRentedAssetsTable = ({ assets }: { assets: TopRentedAsset[] }) => {
                           currency: "VND",
                           maximumFractionDigits: 0,
                         }).format(asset.grossRevenue)}
+                      </Typography>
+                    </TableCell>
+                    <TableCell sx={{ border: "none", textAlign: "center" }}>
+                      <Typography
+                        variant="body2"
+                        sx={{ color: "#121212", fontWeight: 600 }}
+                      >
+                        {new Intl.NumberFormat("vi-VN", {
+                          style: "currency",
+                          currency: "VND",
+                          maximumFractionDigits: 0,
+                        }).format(asset.netRevenue)}
                       </Typography>
                     </TableCell>
                   </TableRow>
@@ -444,7 +459,10 @@ const ColumnChartCard = ({
                     }
                   />
                   <RechartsTooltip
-                    formatter={(value: number) => formatCurrency(value)}
+                    formatter={(value: number) =>
+                      // Return [formattedValue, label] so the tooltip shows a Vietnamese label
+                      [formatCurrency(value), "Doanh thu thực tế"]
+                    }
                     labelFormatter={(label: string) => `Thời gian: ${label}`}
                     contentStyle={{
                       borderRadius: 8,
@@ -609,9 +627,16 @@ export default function Dashboard() {
         accent: "amber",
       },
       {
-        title: "Tổng doanh thu ước tính",
+        title: "Tổng doanh thu đơn hàng",
         value: formatCurrency(data?.totalGrossRevenue ?? 0),
-        description: "Tổng doanh thu ước tính từ các booking.",
+        description: "Tổng doanh thu từ tất cả đơn hàng.",
+        icon: <MoneyIcon />,
+        accent: "amber",
+      },
+      {
+        title: "Tổng doanh thu thực tế",
+        value: formatCurrency(data?.totalNetRevenue ?? 0),
+        description: "Tổng doanh thu thực tế sau khi trừ phí nền tảng.",
         icon: <MoneyIcon />,
         accent: "amber",
       },
@@ -624,6 +649,7 @@ export default function Dashboard() {
       data?.totalBookingsForOwnerItems,
       data?.totalCameras,
       data?.totalGrossRevenue,
+      data?.totalNetRevenue,
     ]
   );
 

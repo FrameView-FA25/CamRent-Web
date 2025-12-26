@@ -8,6 +8,7 @@ export interface TopRentedAsset {
   name: string;
   rentalCount: number;
   grossRevenue: number;
+  netRevenue: number;
 }
 
 
@@ -16,6 +17,7 @@ export interface OwnerDashboardResponse {
   totalAccessories: number;
   totalBookingsForOwnerItems: number;
   totalGrossRevenue: number;
+  totalNetRevenue: number;
   topRentedAssets: TopRentedAsset[];
   dailyStats?: TimeSeriesStat[];
   monthlyStats?: TimeSeriesStat[];
