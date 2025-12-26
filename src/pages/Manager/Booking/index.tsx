@@ -309,7 +309,6 @@ const BookingManagement: React.FC = () => {
       </Box>
     );
   }
-
   return (
     <Box sx={{ bgcolor: "#F5F5F5", minHeight: "100vh", p: 3 }}>
       <ToastContainer />
@@ -444,9 +443,11 @@ const BookingManagement: React.FC = () => {
           onCancelBooking={handleCancelBookingClick}
           onViewDetails={handleViewDetails}
           bookingStatus={dialogState.selectedBooking?.status}
-          hasRenter={!!dialogState.selectedBooking?.renterId}
+          hasRenter={
+            !!dialogState.selectedBooking?.staffId &&
+            dialogState.selectedBooking.staffId !== ""
+          }
         />
-
         {/* Context Menu - Issue Reports */}
         <ContextMenu
           anchorEl={issueContextMenu}

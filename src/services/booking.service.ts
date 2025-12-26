@@ -7,7 +7,7 @@ import type {
   RenterInfo,
   RenterBookingHistory,
 } from "../types/booking.types";
-
+import { toast } from "react-toastify";
 export type { RenterInfo, RenterBookingHistory };
 
 type ApiBookingItem = BookingItem & {
@@ -294,7 +294,7 @@ export const assignStaffToBooking = async (
     );
 
     // ✅ 204 No Content = Success
-    if (response.status === 204) {
+    if (response.status === 200 || response.status === 204) {
       return { success: true };
     }
 

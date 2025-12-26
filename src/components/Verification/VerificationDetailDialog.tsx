@@ -436,12 +436,33 @@ export default function VerificationDetailModal({
       if (onRefresh) {
         onRefresh();
       }
-    } catch (error) {
-      console.error("Error updating status:", error);
+    } catch (error: any) {
+      // Check if trying to approve without manager signature
+      const isApproveStatus =
+        pendingStatusUpdate.status?.toLowerCase() === "approved";
+      const is500Error = error?.response?.status === 500;
+      const hasSignatureError = error?.response?.data?.detail
+        ?.toLowerCase()
+        .includes("chữ ký");
+
+      console.log("isApproveStatus:", isApproveStatus);
+      console.log("is500Error:", is500Error);
+      console.log("hasSignatureError:", hasSignatureError);
+
+      if (isApproveStatus && is500Error && hasSignatureError) {
+        toast.error(
+          "Bạn cần thêm chữ ký trước khi duyệt. Chuyển đến trang hồ sơ."
+        );
+        setTimeout(() => {
+          window.location.href = "/manager/profile";
+        }, 1500);
+        return;
+      }
+
       const errorMessage =
         error instanceof Error
           ? error.message
-          : "Không thể cập nhật trạng thái";
+          : error?.response?.data?.detail || "Không thể cập nhật trạng thái";
       toast.error(errorMessage);
     }
   };
