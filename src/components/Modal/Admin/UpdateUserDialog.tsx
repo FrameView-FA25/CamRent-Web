@@ -8,7 +8,6 @@ import {
   TextField,
   Box,
   IconButton,
-  Alert,
   CircularProgress,
 } from "@mui/material";
 import { X } from "lucide-react";
@@ -37,8 +36,31 @@ const UpdateUserDialog: React.FC<UpdateUserDialogProps> = ({
     phone: "",
     fullName: "",
   });
+
+  const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>(
+    {}
+  );
+
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+
+  const validateField = (field: keyof FormData, value: string) => {
+    switch (field) {
+      case "phone":
+        if (!value.trim()) return "Vui lòng nhập số điện thoại";
+        if (!/^[0-9]+$/.test(value.trim()))
+          return "Số điện thoại chỉ được chứa số";
+        if (value.trim().length !== 10)
+          return "Số điện thoại phải có đúng 10 chữ số";
+        break;
+
+      case "fullName":
+        if (!value.trim()) return "Vui lòng nhập họ và tên";
+        break;
+
+      default:
+        return;
+    }
+  };
 
   // Load user data when dialog opens
   useEffect(() => {
@@ -47,7 +69,7 @@ const UpdateUserDialog: React.FC<UpdateUserDialogProps> = ({
         phone: user.phone || "",
         fullName: user.fullName || "",
       });
-      setError(null);
+      setErrors({});
     }
   }, [user, open]);
 
@@ -58,28 +80,33 @@ const UpdateUserDialog: React.FC<UpdateUserDialogProps> = ({
         | React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
         | { target: { value: unknown } }
     ) => {
-      setFormData((prev) => ({ ...prev, [field]: e.target.value }));
-      setError(null);
+      const value = String(e.target.value);
+
+      setFormData((prev) => ({ ...prev, [field]: value }));
+
+      const message = validateField(field, value);
+      setErrors((prev) => ({ ...prev, [field]: message || "" }));
     };
 
-  const validateForm = (): string | null => {
-    if (!formData.phone.trim()) return "Vui lòng nhập số điện thoại";
-    if (!formData.fullName.trim()) return "Vui lòng nhập họ và tên";
-    return null;
+  const validateForm = () => {
+    const newErrors: Partial<Record<keyof FormData, string>> = {};
+
+    (Object.keys(formData) as (keyof FormData)[]).forEach((field) => {
+      const msg = validateField(field, formData[field] || "");
+      if (msg) newErrors[field] = msg;
+    });
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async () => {
     if (!user) return;
 
-    const validationError = validateForm();
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
+    if (!validateForm()) return;
 
     try {
       setLoading(true);
-      setError(null);
 
       await userService.updateUser(user.id, {
         phone: formData.phone,
@@ -97,7 +124,6 @@ const UpdateUserDialog: React.FC<UpdateUserDialogProps> = ({
         err instanceof Error
           ? err.message
           : "Không thể cập nhật thông tin người dùng";
-      setError(errorMessage);
       toast.error(errorMessage);
     } finally {
       setLoading(false);
@@ -106,7 +132,7 @@ const UpdateUserDialog: React.FC<UpdateUserDialogProps> = ({
 
   const handleClose = () => {
     if (!loading) {
-      setError(null);
+      setErrors({});
       onClose();
     }
   };
@@ -130,19 +156,14 @@ const UpdateUserDialog: React.FC<UpdateUserDialogProps> = ({
 
       <DialogContent>
         <Box sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 3 }}>
-          {/* Error Alert */}
-          {error && (
-            <Alert severity="error" sx={{ borderRadius: 2 }}>
-              {error}
-            </Alert>
-          )}
-
           {/* Full Name */}
           <TextField
             fullWidth
             label="Họ và tên *"
             value={formData.fullName}
             onChange={handleChange("fullName")}
+            error={!!errors.fullName}
+            helperText={errors.fullName}
             disabled={loading}
             placeholder="Nguyễn Văn A"
             sx={{
@@ -163,8 +184,11 @@ const UpdateUserDialog: React.FC<UpdateUserDialogProps> = ({
             label="Số điện thoại *"
             value={formData.phone}
             onChange={handleChange("phone")}
+            error={!!errors.phone}
+            helperText={errors.phone}
             disabled={loading}
             placeholder="0912345678"
+            inputProps={{ maxLength: 10 }}
             sx={{
               "& .MuiOutlinedInput-root": {
                 "&:hover fieldset": {

@@ -9,7 +9,6 @@ import {
   Box,
   IconButton,
   InputAdornment,
-  Alert,
   CircularProgress,
   FormControl,
   InputLabel,
@@ -59,9 +58,45 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
     fullName: "",
     role: "Staff",
   });
+
+  const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>(
+    {}
+  );
+
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+
+  const validateField = (field: keyof FormData, value: string) => {
+    switch (field) {
+      case "email": {
+        if (!value.trim()) return "Vui lòng nhập email";
+        const emailRegex =
+          /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|.(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{3,}))$/;
+        if (!emailRegex.test(value.trim())) return "Email không hợp lệ";
+        break;
+      }
+
+      case "phone":
+        if (!value.trim()) return "Vui lòng nhập số điện thoại";
+        if (!/^[0-9]+$/.test(value.trim()))
+          return "Số điện thoại chỉ được chứa số";
+        if (value.trim().length !== 10)
+          return "Số điện thoại phải có đúng 10 chữ số";
+        break;
+
+      case "password":
+        if (!value.trim()) return "Vui lòng nhập mật khẩu";
+        if (value.length < 6) return "Mật khẩu phải có ít nhất 6 ký tự";
+        break;
+
+      case "fullName":
+        if (!value.trim()) return "Vui lòng nhập họ và tên";
+        break;
+
+      default:
+        return;
+    }
+  };
 
   const handleChange =
     (field: keyof FormData) =>
@@ -70,37 +105,36 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
         | React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
         | { target: { value: unknown } }
     ) => {
-      setFormData((prev) => ({ ...prev, [field]: e.target.value }));
-      setError(null);
+      const value = String(e.target.value);
+
+      setFormData((prev) => ({ ...prev, [field]: value }));
+
+      const message = validateField(field, value);
+      setErrors((prev) => ({ ...prev, [field]: message || "" }));
     };
 
-  const validateForm = (): string | null => {
-    if (!formData.email.trim()) return "Vui lòng nhập email";
-    if (!formData.email.includes("@")) return "Email không hợp lệ";
-    if (!formData.phone.trim()) return "Vui lòng nhập số điện thoại";
-    if (!formData.password.trim()) return "Vui lòng nhập mật khẩu";
-    if (formData.password.length < 6) return "Mật khẩu phải có ít nhất 6 ký tự";
-    if (!formData.fullName.trim()) return "Vui lòng nhập họ và tên";
-    if (!formData.role) return "Vui lòng chọn vai trò";
-    return null;
+  const validateForm = () => {
+    const newErrors: Partial<Record<keyof FormData, string>> = {};
+
+    (Object.keys(formData) as (keyof FormData)[]).forEach((field) => {
+      const msg = validateField(field, formData[field]);
+      if (msg) newErrors[field] = msg;
+    });
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async () => {
-    const validationError = validateForm();
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
+    if (!validateForm()) return;
 
     try {
       setLoading(true);
-      setError(null);
 
       await userService.createUser(formData);
 
       toast.success("Tạo người dùng mới thành công!");
 
-      // Reset form
       setFormData({
         email: "",
         phone: "",
@@ -108,6 +142,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
         fullName: "",
         role: "Staff",
       });
+      setErrors({});
       setShowPassword(false);
 
       onSuccess();
@@ -116,7 +151,6 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
       console.error("Error creating user:", err);
       const errorMessage =
         err instanceof Error ? err.message : "Không thể tạo người dùng mới";
-      setError(errorMessage);
       toast.error(errorMessage);
     } finally {
       setLoading(false);
@@ -132,8 +166,8 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
         fullName: "",
         role: "Staff",
       });
+      setErrors({});
       setShowPassword(false);
-      setError(null);
       onClose();
     }
   };
@@ -157,76 +191,39 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
 
       <DialogContent>
         <Box sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 3 }}>
-          {/* Error Alert */}
-          {error && (
-            <Alert severity="error" sx={{ borderRadius: 2 }}>
-              {error}
-            </Alert>
-          )}
-
-          {/* Full Name */}
           <TextField
             fullWidth
             label="Họ và tên *"
             value={formData.fullName}
             onChange={handleChange("fullName")}
+            error={!!errors.fullName}
+            helperText={errors.fullName}
             disabled={loading}
-            placeholder="Nguyễn Văn A"
-            sx={{
-              "& .MuiOutlinedInput-root": {
-                "&:hover fieldset": {
-                  borderColor: "#DC2626",
-                },
-                "&.Mui-focused fieldset": {
-                  borderColor: "#DC2626",
-                },
-              },
-            }}
           />
 
-          {/* Email */}
           <TextField
             fullWidth
             label="Email *"
             type="email"
             value={formData.email}
             onChange={handleChange("email")}
+            error={!!errors.email}
+            helperText={errors.email}
             disabled={loading}
-            placeholder="user@example.com"
-            sx={{
-              "& .MuiOutlinedInput-root": {
-                "&:hover fieldset": {
-                  borderColor: "#DC2626",
-                },
-                "&.Mui-focused fieldset": {
-                  borderColor: "#DC2626",
-                },
-              },
-            }}
           />
 
-          {/* Phone */}
           <TextField
             fullWidth
             label="Số điện thoại *"
             value={formData.phone}
             onChange={handleChange("phone")}
+            error={!!errors.phone}
+            helperText={errors.phone}
             disabled={loading}
-            placeholder="0912345678"
-            sx={{
-              "& .MuiOutlinedInput-root": {
-                "&:hover fieldset": {
-                  borderColor: "#DC2626",
-                },
-                "&.Mui-focused fieldset": {
-                  borderColor: "#DC2626",
-                },
-              },
-            }}
+            inputProps={{ maxLength: 10 }}
           />
 
-          {/* Role */}
-          <FormControl fullWidth>
+          <FormControl fullWidth error={!!errors.role}>
             <InputLabel>Vai trò *</InputLabel>
             <Select
               value={formData.role}
@@ -237,16 +234,6 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
                 })
               }
               disabled={loading}
-              sx={{
-                "& .MuiOutlinedInput-notchedOutline": {
-                  "&:hover": {
-                    borderColor: "#DC2626",
-                  },
-                },
-                "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                  borderColor: "#DC2626",
-                },
-              }}
             >
               {ROLE_OPTIONS.map((role) => (
                 <MenuItem key={role} value={role}>
@@ -256,16 +243,18 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
             </Select>
           </FormControl>
 
-          {/* Password */}
           <TextField
             fullWidth
             label="Mật khẩu tạm *"
             type={showPassword ? "text" : "password"}
             value={formData.password}
             onChange={handleChange("password")}
+            error={!!errors.password}
+            helperText={
+              errors.password ||
+              "Mật khẩu tạm, người dùng sẽ được yêu cầu đổi mật khẩu sau khi đăng nhập"
+            }
             disabled={loading}
-            placeholder="Tối thiểu 6 ký tự"
-            helperText="Mật khẩu tạm, người dùng sẽ được yêu cầu đổi mật khẩu sau khi đăng nhập"
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
@@ -279,16 +268,6 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
                 </InputAdornment>
               ),
             }}
-            sx={{
-              "& .MuiOutlinedInput-root": {
-                "&:hover fieldset": {
-                  borderColor: "#DC2626",
-                },
-                "&.Mui-focused fieldset": {
-                  borderColor: "#DC2626",
-                },
-              },
-            }}
           />
         </Box>
       </DialogContent>
@@ -297,6 +276,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
         <Button onClick={handleClose} disabled={loading}>
           Hủy
         </Button>
+
         <Button
           onClick={handleSubmit}
           variant="contained"
