@@ -464,12 +464,23 @@ const Wallet: React.FC = () => {
                   >
                     Số tiền
                   </TableCell>
+                  <TableCell
+                    align="right"
+                    sx={{
+                      fontWeight: 700,
+                      color: "#374151",
+                      fontSize: "0.875rem",
+                      borderBottom: "2px solid #E5E7EB",
+                    }}
+                  >
+                    Số dư
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={4} sx={{ textAlign: "center", py: 8 }}>
+                    <TableCell colSpan={5} sx={{ textAlign: "center", py: 8 }}>
                       <CircularProgress sx={{ color: "#0D9488" }} />
                       <Typography
                         sx={{ mt: 2, color: "#6B7280", fontSize: "0.875rem" }}
@@ -481,7 +492,7 @@ const Wallet: React.FC = () => {
                 ) : !wallet?.recentTransactions ||
                   wallet.recentTransactions.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4} sx={{ textAlign: "center", py: 8 }}>
+                    <TableCell colSpan={5} sx={{ textAlign: "center", py: 8 }}>
                       <WalletIcon
                         sx={{ fontSize: 64, color: "#E5E7EB", mb: 2 }}
                       />
@@ -500,68 +511,97 @@ const Wallet: React.FC = () => {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  wallet.recentTransactions.map((transaction) => (
-                    <TableRow
-                      key={transaction.id}
-                      sx={{
-                        "&:hover": {
-                          bgcolor: "#F9FAFB",
-                        },
-                        transition: "background-color 0.2s ease",
-                        borderBottom: "1px solid #F3F4F6",
-                      }}
-                    >
-                      <TableCell>
-                        <Box
-                          sx={{ display: "flex", alignItems: "center", gap: 1 }}
-                        >
-                          {getTransactionIcon(transaction.isCredit)}
+                  (() => {
+                    // Calculate balance after each transaction (from newest to oldest)
+                    let runningBalance = wallet.balance;
+                    const transactionsWithBalance =
+                      wallet.recentTransactions.map((transaction) => {
+                        const balanceAfter = runningBalance;
+                        // Subtract this transaction to get previous balance
+                        runningBalance = transaction.isCredit
+                          ? runningBalance - transaction.amount
+                          : runningBalance + transaction.amount;
+                        return { ...transaction, balanceAfter };
+                      });
+
+                    return transactionsWithBalance.map((transaction) => (
+                      <TableRow
+                        key={transaction.id}
+                        sx={{
+                          "&:hover": {
+                            bgcolor: "#F9FAFB",
+                          },
+                          transition: "background-color 0.2s ease",
+                          borderBottom: "1px solid #F3F4F6",
+                        }}
+                      >
+                        <TableCell>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 1,
+                            }}
+                          >
+                            {getTransactionIcon(transaction.isCredit)}
+                            <Typography
+                              sx={{
+                                fontSize: "0.875rem",
+                                fontWeight: 500,
+                                color: "#111827",
+                              }}
+                            >
+                              {transaction.type || "Giao dịch"}
+                            </Typography>
+                          </Box>
+                        </TableCell>
+                        <TableCell>
                           <Typography
                             sx={{
                               fontSize: "0.875rem",
-                              fontWeight: 500,
-                              color: "#111827",
+                              color: "#374151",
+                              maxWidth: 300,
                             }}
                           >
-                            {transaction.type || "Giao dịch"}
+                            {transaction.description || "Không có mô tả"}
                           </Typography>
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Typography
-                          sx={{
-                            fontSize: "0.875rem",
-                            color: "#374151",
-                            maxWidth: 300,
-                          }}
-                        >
-                          {transaction.description || "Không có mô tả"}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography
-                          sx={{
-                            fontSize: "0.875rem",
-                            color: "#6B7280",
-                          }}
-                        >
-                          {formatDate(transaction.createdAt)}
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="right">
-                        <Typography
-                          sx={{
-                            fontSize: "0.875rem",
-                            fontWeight: 600,
-                            color: getTransactionColor(transaction.isCredit),
-                          }}
-                        >
-                          {getTransactionSign(transaction.isCredit)}
-                          {formatCurrency(Math.abs(transaction.amount))}
-                        </Typography>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                        </TableCell>
+                        <TableCell>
+                          <Typography
+                            sx={{
+                              fontSize: "0.875rem",
+                              color: "#6B7280",
+                            }}
+                          >
+                            {formatDate(transaction.createdAt)}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="right">
+                          <Typography
+                            sx={{
+                              fontSize: "0.875rem",
+                              fontWeight: 600,
+                              color: getTransactionColor(transaction.isCredit),
+                            }}
+                          >
+                            {getTransactionSign(transaction.isCredit)}
+                            {formatCurrency(Math.abs(transaction.amount))}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="right">
+                          <Typography
+                            sx={{
+                              fontSize: "0.875rem",
+                              fontWeight: 600,
+                              color: "#0D9488",
+                            }}
+                          >
+                            {formatCurrency(transaction.balanceAfter)}
+                          </Typography>
+                        </TableCell>
+                      </TableRow>
+                    ));
+                  })()
                 )}
               </TableBody>
             </Table>
@@ -590,6 +630,38 @@ const Wallet: React.FC = () => {
         </DialogTitle>
         <DialogContent sx={{ pt: 4, pb: 2, overflow: "visible" }}>
           <Stack spacing={4}>
+            {/* Current Balance Display */}
+            <Box
+              sx={{
+                p: 2.5,
+                borderRadius: 2,
+                bgcolor: "#F9FAFB",
+                border: "1px solid #E5E7EB",
+              }}
+            >
+              <Typography
+                variant="body2"
+                sx={{
+                  color: "#6B7280",
+                  fontSize: "0.875rem",
+                  fontWeight: 500,
+                  mb: 1,
+                }}
+              >
+                Số dư hiện tại trong ví:
+              </Typography>
+              <Typography
+                variant="h5"
+                sx={{
+                  color: "#374151",
+                  fontWeight: 700,
+                  fontSize: "1.5rem",
+                }}
+              >
+                {formatCurrency(wallet?.balance ?? 0)}
+              </Typography>
+            </Box>
+
             <TextField
               label="Số tiền (VNĐ)"
               type="number"
@@ -606,39 +678,102 @@ const Wallet: React.FC = () => {
               fullWidth
               helperText={`Tối thiểu: ${formatCurrency(10000)}`}
             />
+
+            {/* New Balance Calculation */}
             <Box
               sx={{
                 p: 3,
                 borderRadius: 2,
                 bgcolor: "#F0FDFA",
                 border: "2px solid #0D9488",
-                textAlign: "center",
               }}
             >
-              <Typography
-                variant="body2"
+              <Box
                 sx={{
-                  color: "#6B7280",
-                  fontSize: "0.875rem",
-                  fontWeight: 500,
-                  display: "block",
-                  mb: 1.5,
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  mb: 2,
                 }}
               >
-                Số tiền bạn sẽ nạp:
-              </Typography>
-              <Typography
-                variant="h4"
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: "#6B7280",
+                    fontSize: "0.875rem",
+                    fontWeight: 500,
+                  }}
+                >
+                  Số dư hiện tại:
+                </Typography>
+                <Typography
+                  variant="body1"
+                  sx={{
+                    color: "#374151",
+                    fontWeight: 600,
+                  }}
+                >
+                  {formatCurrency(wallet?.balance ?? 0)}
+                </Typography>
+              </Box>
+              <Box
                 sx={{
-                  color: "#0D9488",
-                  fontWeight: 700,
-                  fontSize: { xs: "1.5rem", sm: "2rem" },
-                  wordBreak: "break-word",
-                  overflowWrap: "break-word",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  mb: 2,
                 }}
               >
-                {formatCurrency(topupAmount || 0)}
-              </Typography>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: "#6B7280",
+                    fontSize: "0.875rem",
+                    fontWeight: 500,
+                  }}
+                >
+                  Số tiền nạp thêm:
+                </Typography>
+                <Typography
+                  variant="body1"
+                  sx={{
+                    color: "#0D9488",
+                    fontWeight: 600,
+                  }}
+                >
+                  + {formatCurrency(topupAmount || 0)}
+                </Typography>
+              </Box>
+              <Box
+                sx={{
+                  pt: 2,
+                  borderTop: "2px dashed #0D9488",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: "#0D9488",
+                    fontSize: "0.875rem",
+                    fontWeight: 600,
+                  }}
+                >
+                  Số dư sau khi nạp:
+                </Typography>
+                <Typography
+                  variant="h5"
+                  sx={{
+                    color: "#0D9488",
+                    fontWeight: 700,
+                    fontSize: "1.5rem",
+                  }}
+                >
+                  {formatCurrency((wallet?.balance ?? 0) + (topupAmount || 0))}
+                </Typography>
+              </Box>
             </Box>
             <Typography variant="body2" sx={{ color: "#6B7280" }}>
               Sau khi xác nhận, bạn sẽ được chuyển tới cổng thanh toán. Hoàn tất
