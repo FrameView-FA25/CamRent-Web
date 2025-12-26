@@ -50,9 +50,14 @@ import {
   formatCurrency,
   formatDate,
   getBookingType,
+  normalizeStatusText,
+  getStatusNumber,
 } from "../../utils/booking.utils";
 import { getItemName } from "../../helpers/booking.helper";
 // import { initiatePayment } from "../../services/payment.service";
+
+// Ghi chú: tham chiếu nhanh để tránh lỗi linter báo unused import trong một số môi trường
+void normalizeStatusText;
 
 const steps = [
   "Đơn hàng mới",
@@ -87,6 +92,7 @@ const BookingDetail: React.FC = () => {
   });
   const [refundProcessing, setRefundProcessing] = useState(false);
 
+  // Tải dữ liệu chi tiết đơn hàng từ API và gán renter nếu thiếu
   const loadBookingDetail = useCallback(async () => {
     if (!id) return;
     console.log("Loading booking detail for ID:", id);
@@ -94,12 +100,33 @@ const BookingDetail: React.FC = () => {
     setLoading(true);
     setError(null);
 
+    // Fetch disputes in parallel so UI can compute refund as soon as possible.
+    const disputesPromise = getDisputesByBookingId(id).catch((err) => {
+      console.error("Error loading disputes (parallel):", err);
+      return [] as Dispute[];
+    });
+
     const { booking: fetchedBooking, error: fetchError } =
       await fetchBookingById(id);
 
     if (fetchError) {
       setError(fetchError);
-    } else if (fetchedBooking) {
+      // Even if booking failed, still await disputes to keep UI consistent
+      try {
+        setDisputesLoading(true);
+        const disputesData = await disputesPromise;
+        setDisputes(disputesData);
+      } catch (err) {
+        console.error("Error awaiting disputes after failed booking:", err);
+        setDisputes([]);
+      } finally {
+        setDisputesLoading(false);
+      }
+      setLoading(false);
+      return;
+    }
+
+    if (fetchedBooking) {
       let renter = fetchedBooking.renter;
 
       if (!renter && fetchedBooking.renterId) {
@@ -111,16 +138,16 @@ const BookingDetail: React.FC = () => {
 
       setBooking({ ...fetchedBooking, renter });
     }
+
     setLoading(false);
 
-    // Always load disputes for the booking so they are visible in the booking detail
-    // even if they haven't been resolved yet.
+    // Await disputes we started earlier and set them (so refund amount is shown asap)
     setDisputesLoading(true);
     try {
-      const disputesData = await getDisputesByBookingId(id);
+      const disputesData = await disputesPromise;
       setDisputes(disputesData);
     } catch (err) {
-      console.error("Error loading disputes:", err);
+      console.error("Error loading disputes after booking:", err);
       setDisputes([]);
     } finally {
       setDisputesLoading(false);
@@ -509,7 +536,7 @@ const BookingDetail: React.FC = () => {
     setSnackbar({ ...snackbar, open: false });
   };
 
-  // Calculate payment details from actual payments
+  // Tính toán các con số thanh toán / hoàn trả từ data booking và disputes
   const calculatePaymentDetails = () => {
     if (!booking) {
       return {
@@ -650,40 +677,7 @@ const BookingDetail: React.FC = () => {
     };
   };
 
-  const getStatusNumber = (statusText: string): number => {
-    // Normalize incoming statusText (may be English code or localized string)
-    const key = (statusText || "").toString().trim();
-    const normalized = key.toLowerCase();
-
-    const statusMap: Record<string, number> = {
-      // Pending variants
-      pending: 0,
-      pendingapproval: 0,
-      "chờ duyệt": 0,
-      // Confirmed variants
-      confirmed: 1,
-      "đã xác nhận": 1,
-      // Delivering / PickedUp / InProgress variants
-      delivering: 2,
-      pickedup: 2,
-      inprogress: 2,
-      "đang thuê": 2,
-      "đang giao hàng": 2,
-      // Delivered / Returned variants (returned often means renter returned items -> step 3)
-      delivered: 3,
-      returned: 3,
-      "đã trả": 3,
-      // Completed
-      completed: 4,
-      "hoàn thành": 4,
-      // Cancelled / Rejected
-      cancelled: -1,
-      rejected: -1,
-      "đã hủy": -1,
-    };
-
-    return statusMap[normalized] ?? 0;
-  };
+  // NOTE: getStatusNumber đã được refactor vào utils: sử dụng hàm import ở trên
 
   const getActiveStep = (statusNumber: number) => {
     if (statusNumber === -1) return -1;
@@ -772,7 +766,11 @@ const BookingDetail: React.FC = () => {
     );
   }
 
-  const statusNumber = getStatusNumber(booking.statusText);
+  // Chuẩn hoá nhãn trạng thái (API có thể trả nhiều biến thể)
+  const normalizedStatusText = normalizeStatusText(booking.statusText);
+
+  // Lấy chỉ số bước (0..4 / -1) để hiển thị stepper
+  const statusNumber = getStatusNumber(normalizedStatusText);
   const paymentDetails = calculatePaymentDetails();
 
   // Tổng tất cả các khoản bồi thường (theo backend)
@@ -818,7 +816,7 @@ const BookingDetail: React.FC = () => {
               >
                 Chi tiết đơn hàng
                 <Chip
-                  label={booking.statusText}
+                  label={normalizedStatusText}
                   size="small"
                   sx={{
                     bgcolor: statusNumber === -1 ? "#FEE2E2" : "#FFF7ED",

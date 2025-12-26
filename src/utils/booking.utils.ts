@@ -94,6 +94,63 @@ export const getStatusInfo = (
   );
 };
 
+/**
+ * Chuẩn hoá chuỗi trạng thái đầu vào (API có thể trả nhiều biến thể).
+ * Trả về nhãn tiếng Việt chuẩn nếu có ánh xạ, ngược lại trả nguyên chuỗi.
+ */
+export const normalizeStatusText = (status?: string): string => {
+  if (!status) return "";
+  const s = status.toString().trim().toLowerCase();
+  const map: Record<string, string> = {
+    "hoàn tất": "Hoàn thành",
+    "hoan tat": "Hoàn thành",
+    completed: "Hoàn thành",
+    returned: "Đã trả",
+    pickedup: "Đã giao máy",
+    confirmed: "Đã xác nhận",
+    pendingapproval: "Chờ xác nhận",
+    pending: "Chờ xác nhận",
+    cancelled: "Đã hủy",
+  };
+  return map[s] || status;
+};
+
+/**
+ * Ánh xạ chuỗi trạng thái (tiếng Anh/Việt) sang chỉ số bước trên stepper.
+ * Trả về -1 cho hủy, 0..4 cho các bước tương ứng.
+ */
+export const getStatusNumber = (statusText: string): number => {
+  const key = (statusText || "").toString().trim().toLowerCase();
+  const statusMap: Record<string, number> = {
+    // Pending variants
+    pending: 0,
+    pendingapproval: 0,
+    "chờ duyệt": 0,
+    // Confirmed variants
+    confirmed: 1,
+    "đã xác nhận": 1,
+    // Delivering / PickedUp / InProgress variants
+    delivering: 2,
+    pickedup: 2,
+    inprogress: 2,
+    "đang thuê": 2,
+    "đang giao hàng": 2,
+    // Delivered / Returned variants
+    delivered: 3,
+    returned: 3,
+    "đã trả": 3,
+    // Completed
+    completed: 4,
+    "hoàn thành": 4,
+    // Cancelled / Rejected
+    cancelled: -1,
+    rejected: -1,
+    "đã hủy": -1,
+  };
+
+  return statusMap[key] ?? 0;
+};
+
 export const getBookingType = (type: string): string => {
   const typeMap: Record<string, string> = {
     Rental: "Thuê",
