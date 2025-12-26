@@ -98,7 +98,7 @@ const UpdateUserDialog: React.FC<UpdateUserDialogProps> = ({
           ? err.message
           : "Không thể cập nhật thông tin người dùng";
       setError(errorMessage);
-      toast.error(errorMessage);
+      toast.error("Coming soon");
     } finally {
       setLoading(false);
     }
