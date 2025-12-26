@@ -755,18 +755,6 @@ export default function CameraManagement() {
                     py: 2,
                   }}
                 >
-                  Thông Số
-                </TableCell>
-                <TableCell
-                  sx={{
-                    fontWeight: 700,
-                    color: "#475569",
-                    fontSize: "0.75rem",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.5px",
-                    py: 2,
-                  }}
-                >
                   Giá Thuê/Ngày
                 </TableCell>
                 <TableCell
@@ -928,20 +916,7 @@ export default function CameraManagement() {
                       {camera.branchName || "-"}
                     </Typography>
                   </TableCell>
-                  <TableCell>
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        color: "#64748B",
-                        maxWidth: 120,
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {camera.specsJson}
-                    </Typography>
-                  </TableCell>
+                  {/* Thông Số column removed */}
                   <TableCell>
                     <Typography
                       variant="body2"
