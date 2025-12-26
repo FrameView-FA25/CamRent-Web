@@ -83,7 +83,7 @@ const SystemManagement: React.FC = () => {
         open: true,
         message:
           "Hệ thống đã có cấu hình. Vui lòng chỉnh sửa cấu hình hiện có.",
-        severity: "warning",
+        severity: "error",
       });
       return;
     }
