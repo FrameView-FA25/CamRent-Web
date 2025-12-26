@@ -956,7 +956,7 @@ export default function VerificationDetailModal({
                                               signature.role === "Owner"
                                                 ? "Chủ sở hữu"
                                                 : signature.role === "Platform"
-                                                ? "Nền tảng"
+                                                ? "Camrent"
                                                 : signature.role === "Renter"
                                                 ? "Người thuê"
                                                 : signature.role
@@ -1043,35 +1043,64 @@ export default function VerificationDetailModal({
                                     ? "Đang tải..."
                                     : "Xem trước"}
                                 </Button>
-                                <Button
-                                  variant="contained"
-                                  size="small"
-                                  onClick={() =>
-                                    handleOpenSignature(contract.id)
+                                {(() => {
+                                  // Kiểm tra trạng thái chữ ký
+                                  const platformSignature =
+                                    contract.signatures?.find(
+                                      (s) => s.role === "Platform"
+                                    );
+                                  const ownerSignature =
+                                    contract.signatures?.find(
+                                      (s) => s.role === "Owner"
+                                    );
+
+                                  const platformHasSigned =
+                                    platformSignature?.isSigned === true;
+                                  const ownerHasSigned =
+                                    ownerSignature?.isSigned === true;
+
+                                  // Nếu cả hai đã ký thì ẩn nút ký
+                                  if (platformHasSigned && ownerHasSigned) {
+                                    return null;
                                   }
-                                  disabled={
-                                    signing ||
-                                    (signingContractId !== null &&
-                                      signingContractId !== contract.id)
-                                  }
-                                  sx={{
-                                    bgcolor: "#F97316",
-                                    fontWeight: 600,
-                                    fontSize: "0.75rem",
-                                    textTransform: "none",
-                                    "&:hover": {
-                                      bgcolor: "#EA580C",
-                                    },
-                                    "&:disabled": {
-                                      bgcolor: "#FCDAD0",
-                                    },
-                                    color: "white",
-                                  }}
-                                >
-                                  {signing && signingContractId === contract.id
-                                    ? "Đang ký..."
-                                    : "Ký hợp đồng"}
-                                </Button>
+
+                                  // Nếu Platform chưa ký thì Owner không được ký (chỉ xem)
+                                  const canSign = platformHasSigned;
+
+                                  return (
+                                    <Button
+                                      variant="contained"
+                                      size="small"
+                                      onClick={() =>
+                                        handleOpenSignature(contract.id)
+                                      }
+                                      disabled={
+                                        signing ||
+                                        (signingContractId !== null &&
+                                          signingContractId !== contract.id) ||
+                                        !canSign
+                                      }
+                                      sx={{
+                                        bgcolor: "#F97316",
+                                        fontWeight: 600,
+                                        fontSize: "0.75rem",
+                                        textTransform: "none",
+                                        "&:hover": {
+                                          bgcolor: "#EA580C",
+                                        },
+                                        "&:disabled": {
+                                          bgcolor: "#FCDAD0",
+                                        },
+                                        color: "white",
+                                      }}
+                                    >
+                                      {signing &&
+                                      signingContractId === contract.id
+                                        ? "Đang ký..."
+                                        : "Ký hợp đồng"}
+                                    </Button>
+                                  );
+                                })()}
                               </Box>
                             </TableCell>
                           </TableRow>

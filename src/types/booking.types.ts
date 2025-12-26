@@ -19,6 +19,10 @@ export interface Combo {
   name: string;
 }
 
+export interface BookingItemMedia {
+  url: string;
+}
+
 export interface BookingItem {
   itemId: string;
   itemName: string;
@@ -26,7 +30,7 @@ export interface BookingItem {
   unitPrice: number;
   quantity: number;
   depositAmount: number;
-  media: string[]; // URLs of images
+  media: BookingItemMedia[]; // Array of media objects with url property
   // ID mapping
   cameraId?: string;
   accessoryId?: string;
