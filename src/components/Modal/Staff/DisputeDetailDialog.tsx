@@ -107,6 +107,8 @@ const DisputeDetailDialog: React.FC<DisputeDetailDialogProps> = ({
         return "Mất thiết bị";
       case "late":
         return "Trễ hẹn";
+      case "downtime_fee":
+        return "Phí giãn đoạn";
       case "money":
         return "Tiền";
       case "other":
@@ -114,6 +116,17 @@ const DisputeDetailDialog: React.FC<DisputeDetailDialogProps> = ({
       default:
         // Nếu là loại tùy chỉnh khác, giữ nguyên
         return type;
+    }
+  };
+
+  const getDisputeTitleLabel = (title: string): string => {
+    switch (title.toLowerCase()) {
+      case "downtime":
+        return "Thời gian giãn đoạn";
+      case "late":
+        return "Trả muộn";
+      default:
+        return title;
     }
   };
 
@@ -244,8 +257,8 @@ const DisputeDetailDialog: React.FC<DisputeDetailDialogProps> = ({
             <Typography variant="subtitle2" color="text.secondary">
               Tiêu đề
             </Typography>
-            <Typography variant="body1" fontWeight="medium">
-              {dispute.title}
+          <Typography variant="body1" fontWeight="medium">
+              {getDisputeTitleLabel(dispute.title)}
             </Typography>
           </Box>
 

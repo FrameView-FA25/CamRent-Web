@@ -33,20 +33,39 @@ const CreateDisputeDialog: React.FC<CreateDisputeDialogProps> = ({
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedTitle, setSelectedTitle] = useState<string>("");
+  const [downtimeDays, setDowntimeDays] = useState<number | "">("");
 
   const handleChange = (field: keyof CreateDisputeRequest, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+    // Special handling for title selection: keep a separate selectedTitle state and set canonical title value
+    if (field === "title") {
+      setSelectedTitle(value);
+      setFormData((prev) => ({
+        ...prev,
+        title: value,
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [field]: value,
+      }));
+    }
     setError(null);
   };
 
   const handleSubmit = async () => {
     // Validation
-    if (!formData.title.trim()) {
-      setError("Vui lòng nhập tiêu đề");
+    if (!selectedTitle) {
+      setError("Vui lòng chọn tiêu đề");
       return;
+    }
+    if (selectedTitle === "downtime") {
+      if (downtimeDays === "" || downtimeDays < 0) {
+        setError("Vui lòng nhập số ngày gián đoạn hợp lệ");
+        return;
+      }
+      // sync into formData
+      setFormData((prev) => ({ ...prev, downtimeDays: Number(downtimeDays) }));
     }
     if (!formData.description.trim()) {
       setError("Vui lòng nhập mô tả");
@@ -65,7 +84,7 @@ const CreateDisputeDialog: React.FC<CreateDisputeDialogProps> = ({
     setError(null);
 
     try {
-      // Map severity từ tiếng Anh sang tiếng Việt theo yêu cầu API
+      // Map severity từ tiếng Anh sang tiếng Việt theo yêu cầu API (backend may expect localized values)
       const severityMap: Record<string, string> = {
         Low: "Thấp",
         Medium: "Trung bình",
@@ -74,19 +93,31 @@ const CreateDisputeDialog: React.FC<CreateDisputeDialogProps> = ({
 
       const requestData: CreateDisputeRequest = {
         bookingId: bookingId,
-        title: formData.title.trim(),
+        title: selectedTitle,
         description: formData.description.trim(),
         severity: severityMap[formData.severity] || formData.severity,
+        downtimeDays:
+          selectedTitle === "downtime" ? Number(downtimeDays || 0) : undefined,
       };
 
       await onSubmit(requestData);
       handleClose();
-    } catch (err: any) {
+    } catch (err) {
       console.error("Error creating dispute:", err);
-      const errorMessage =
-        err?.response?.data?.title ||
-        err?.message ||
-        "Có lỗi xảy ra khi tạo tranh chấp";
+      let errorMessage = "Có lỗi xảy ra khi tạo tranh chấp";
+      if (err instanceof Error) {
+        errorMessage = err.message || errorMessage;
+      } else if (typeof err === "string") {
+        errorMessage = err;
+      } else {
+        try {
+          const parsed = JSON.parse(JSON.stringify(err));
+          errorMessage =
+            parsed?.detail || parsed?.title || parsed?.message || errorMessage;
+        } catch {
+          // keep generic message
+        }
+      }
       setError(errorMessage);
     } finally {
       setIsSubmitting(false);
@@ -101,6 +132,8 @@ const CreateDisputeDialog: React.FC<CreateDisputeDialogProps> = ({
         description: "",
         severity: "Medium",
       });
+      setSelectedTitle("");
+      setDowntimeDays("");
       setError(null);
       onClose();
     }
@@ -124,20 +157,32 @@ const CreateDisputeDialog: React.FC<CreateDisputeDialogProps> = ({
           <TextField
             select
             label="Tiêu đề"
-            value={formData.title}
+            value={selectedTitle}
             onChange={(e) => handleChange("title", e.target.value)}
             fullWidth
             required
             size="small"
           >
-            <MenuItem value="Máy ảnh">Máy ảnh</MenuItem>
-            <MenuItem value="Ống kính">Ống kính</MenuItem>
-            <MenuItem value="Phụ kiện">Phụ kiện</MenuItem>
-            <MenuItem value="Trả muộn">Trả muộn</MenuItem>
-            <MenuItem value="Hư hỏng thiết bị">Hư hỏng thiết bị</MenuItem>
-            <MenuItem value="Mất thiết bị">Mất thiết bị</MenuItem>
-            <MenuItem value="Khác">Khác</MenuItem>
+            <MenuItem value="downtime">Thời gian giãn đoạn</MenuItem>
+            <MenuItem value="late">Trả muộn</MenuItem>
           </TextField>
+
+          {selectedTitle === "downtime" && (
+            <TextField
+              label="Số ngày gián đoạn"
+              type="number"
+              value={downtimeDays}
+              onChange={(e) =>
+                setDowntimeDays(
+                  e.target.value === "" ? "" : Number(e.target.value)
+                )
+              }
+              fullWidth
+              required
+              size="small"
+              inputProps={{ min: 0 }}
+            />
+          )}
 
           <TextField
             label="Mô tả"

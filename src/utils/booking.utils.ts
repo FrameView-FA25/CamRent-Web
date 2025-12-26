@@ -24,6 +24,20 @@ export const formatDate = (dateString: string): string => {
   });
 };
 
+export const formatDateTime = (dateString?: string): string => {
+  if (!dateString) return "N/A";
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return "N/A";
+  return date.toLocaleString("vi-VN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+};
+
 export const getStatusInfo = (
   status: string
 ): {
