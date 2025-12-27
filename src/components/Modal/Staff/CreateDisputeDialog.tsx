@@ -34,15 +34,18 @@ const CreateDisputeDialog: React.FC<CreateDisputeDialogProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedTitle, setSelectedTitle] = useState<string>("");
+  const [customTitle, setCustomTitle] = useState<string>("");
   const [downtimeDays, setDowntimeDays] = useState<number | "">("");
 
   const handleChange = (field: keyof CreateDisputeRequest, value: string) => {
     // Special handling for title selection: keep a separate selectedTitle state and set canonical title value
     if (field === "title") {
       setSelectedTitle(value);
+      // If user selected a preset title, sync into formData immediately.
+      // For "other", we'll wait for the user to type the custom title into the text input.
       setFormData((prev) => ({
         ...prev,
-        title: value,
+        title: value === "other" ? prev.title : value,
       }));
     } else {
       setFormData((prev) => ({
@@ -58,6 +61,14 @@ const CreateDisputeDialog: React.FC<CreateDisputeDialogProps> = ({
     if (!selectedTitle) {
       setError("Vui lòng chọn tiêu đề");
       return;
+    }
+    if (selectedTitle === "other") {
+      if (!customTitle || !customTitle.trim()) {
+        setError("Vui lòng nhập tiêu đề khác");
+        return;
+      }
+      // sync custom title into formData
+      setFormData((prev) => ({ ...prev, title: customTitle.trim() }));
     }
     if (selectedTitle === "downtime") {
       if (downtimeDays === "" || downtimeDays < 0) {
@@ -93,7 +104,7 @@ const CreateDisputeDialog: React.FC<CreateDisputeDialogProps> = ({
 
       const requestData: CreateDisputeRequest = {
         bookingId: bookingId,
-        title: selectedTitle,
+        title: selectedTitle === "other" ? customTitle.trim() : selectedTitle,
         description: formData.description.trim(),
         severity: severityMap[formData.severity] || formData.severity,
         downtimeDays:
@@ -133,6 +144,7 @@ const CreateDisputeDialog: React.FC<CreateDisputeDialogProps> = ({
         severity: "Medium",
       });
       setSelectedTitle("");
+      setCustomTitle("");
       setDowntimeDays("");
       setError(null);
       onClose();
@@ -165,6 +177,7 @@ const CreateDisputeDialog: React.FC<CreateDisputeDialogProps> = ({
           >
             <MenuItem value="downtime">Thời gian giãn đoạn</MenuItem>
             <MenuItem value="late">Trả muộn</MenuItem>
+            <MenuItem value="other">Khác</MenuItem>
           </TextField>
 
           {selectedTitle === "downtime" && (
@@ -181,6 +194,23 @@ const CreateDisputeDialog: React.FC<CreateDisputeDialogProps> = ({
               required
               size="small"
               inputProps={{ min: 0 }}
+            />
+          )}
+
+          {selectedTitle === "other" && (
+            <TextField
+              label="Tiêu đề khác"
+              value={customTitle}
+              onChange={(e) => {
+                const v = e.target.value;
+                setCustomTitle(v);
+                setFormData((prev) => ({ ...prev, title: v }));
+                setError(null);
+              }}
+              fullWidth
+              required
+              size="small"
+              placeholder="Nhập tiêu đề tranh chấp"
             />
           )}
 
