@@ -37,8 +37,8 @@ const DisputeDetailDialog: React.FC<DisputeDetailDialogProps> = ({
   open,
   onClose,
   dispute,
-    onAddItem,
-    onDeleteItem,
+  onAddItem,
+  onDeleteItem,
 }) => {
   const [showAddItem, setShowAddItem] = useState(false);
   const [newItem, setNewItem] = useState<AddDisputeItemRequest>({
@@ -168,14 +168,18 @@ const DisputeDetailDialog: React.FC<DisputeDetailDialogProps> = ({
 
   const handleDeleteItem = async (itemId: string) => {
     if (!dispute || !onDeleteItem) return;
-    const confirmed = window.confirm("Bạn có chắc muốn xóa mục bồi thường này?");
+    const confirmed = window.confirm(
+      "Bạn có chắc muốn xóa mục bồi thường này?"
+    );
     if (!confirmed) return;
     setIsSubmitting(true);
     setError(null);
     try {
       await onDeleteItem(dispute.id, itemId);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Có lỗi khi xóa mục bồi thường");
+      setError(
+        err instanceof Error ? err.message : "Có lỗi khi xóa mục bồi thường"
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -230,7 +234,7 @@ const DisputeDetailDialog: React.FC<DisputeDetailDialogProps> = ({
             alignItems: "center",
           }}
         >
-          <Typography variant="h6">Chi tiết Tranh Chấp</Typography>
+          <Typography variant="h6">Chi tiết thiệt hại</Typography>
           <IconButton onClick={onClose} size="small">
             <CloseIcon />
           </IconButton>
@@ -257,7 +261,7 @@ const DisputeDetailDialog: React.FC<DisputeDetailDialogProps> = ({
             <Typography variant="subtitle2" color="text.secondary">
               Tiêu đề
             </Typography>
-          <Typography variant="body1" fontWeight="medium">
+            <Typography variant="body1" fontWeight="medium">
               {getDisputeTitleLabel(dispute.title)}
             </Typography>
           </Box>
@@ -481,7 +485,13 @@ const DisputeDetailDialog: React.FC<DisputeDetailDialogProps> = ({
                           <Typography variant="body1" fontWeight="medium">
                             {getItemTypeLabel(item.type)}
                           </Typography>
-                          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 1,
+                            }}
+                          >
                             <Typography variant="h6" color="primary">
                               {formatCurrency(item.amount)}
                             </Typography>

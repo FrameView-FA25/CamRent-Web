@@ -28,7 +28,7 @@ const DRAWER_WIDTH = 280;
 
 const menuItems = [
   {
-    text: "Dashboard",
+    text: "Thống kê",
     icon: <DashboardIcon />,
     path: "/staff/dashboard",
   },

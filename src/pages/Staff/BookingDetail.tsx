@@ -2065,8 +2065,11 @@ const BookingDetail: React.FC = () => {
                                           }}
                                         >
                                           {(() => {
-                                            const t = (dispute.title || "").toString().toLowerCase();
-                                            if (t === "downtime") return "Thời gian giãn đoạn";
+                                            const t = (dispute.title || "")
+                                              .toString()
+                                              .toLowerCase();
+                                            if (t === "downtime")
+                                              return "Thời gian giãn đoạn";
                                             if (t === "late") return "Trả muộn";
                                             return dispute.title;
                                           })()}
@@ -2338,7 +2341,7 @@ const BookingDetail: React.FC = () => {
                           >
                             {isCompensation ? (
                               <>
-                                Cách tính: Tiền đền bù = Tổng tranh chấp (
+                                Cách tính: Tiền đền bù = Tổng thiệt hại (
                                 {formatCurrency(disputesTotalAll)}) - Tiền cọc (
                                 {formatCurrency(depositAmount)}) ={" "}
                                 {formatCurrency(compensationAmount)}
@@ -2346,8 +2349,8 @@ const BookingDetail: React.FC = () => {
                             ) : (
                               <>
                                 Cách tính: Tiền hoàn trả = Tiền cọc (
-                                {formatCurrency(depositAmount)}) - Tổng tranh
-                                chấp ({formatCurrency(disputesTotalAll)}) ={" "}
+                                {formatCurrency(depositAmount)}) - Tổng tiền
+                                thiệt hại ({formatCurrency(disputesTotalAll)}) ={" "}
                                 {formatCurrency(refundAmount)}
                               </>
                             )}

@@ -15,7 +15,7 @@ import {
 } from "@mui/material";
 import {
   Menu as MenuIcon,
-  Home as HomeIcon,
+  Dashboard as DashboardIcon,
   ExitToApp as LogoutIcon,
   Person as PersonIcon,
   VerifiedUser as VerifiedUserIcon,
@@ -34,7 +34,7 @@ import { AccessoryProvider } from "../../context/AccessoryContext/AccessoryConte
 const DRAWER_WIDTH = 280;
 
 const menuItems = [
-  { text: "Bảng điều khiển", icon: <HomeIcon />, path: "/owner/dashboard" },
+  { text: "Thống kê", icon: <DashboardIcon />, path: "/owner/dashboard" },
   {
     text: "Quản lý camera",
     icon: <CameraIcon />,
