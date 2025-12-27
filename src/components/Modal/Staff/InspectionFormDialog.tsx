@@ -77,7 +77,10 @@ const InspectionFormDialog: React.FC<InspectionFormDialogProps> = ({
   inspectionType,
 }) => {
   const verifyId = defaultValues?.verifyId || "";
-  const items: VerificationItem[] = defaultValues?.items || [];
+  const items: VerificationItem[] = React.useMemo(
+    () => defaultValues?.items || [],
+    [defaultValues?.items]
+  );
   const branchId = defaultValues?.branchId;
   const handoverType = defaultValues?.handoverType;
 
@@ -235,6 +238,12 @@ const InspectionFormDialog: React.FC<InspectionFormDialogProps> = ({
       setSelectedItemType(getItemTypeName(selectedItem.itemType));
     }
   };
+
+  const handoverLabel = React.useMemo(() => {
+    if (handoverType === 0) return "Giao hàng";
+    if (handoverType === 1) return "Trả hàng";
+    return "";
+  }, [handoverType]);
 
   const handleMethodToggle = (itemId: string, methodId: string) => {
     setChecklist((prev) =>
@@ -512,6 +521,16 @@ const InspectionFormDialog: React.FC<InspectionFormDialogProps> = ({
             border: `1px solid ${config.badgeColor}40`,
           }}
         />
+        {inspectionType === "Booking" &&
+          handoverType !== undefined &&
+          handoverType !== null && (
+            <Typography
+              variant="subtitle2"
+              sx={{ ml: 1, color: "#374151", fontWeight: 600 }}
+            >
+              {handoverLabel}
+            </Typography>
+          )}
       </DialogTitle>
       <DialogContent sx={{ mt: 2 }}>
         {/* Chọn thiết bị */}
@@ -569,6 +588,7 @@ const InspectionFormDialog: React.FC<InspectionFormDialogProps> = ({
               },
             }}
           />
+          {/* handoverType shown next to dialog title instead of here */}
         </Box>
 
         {/* Thống kê */}

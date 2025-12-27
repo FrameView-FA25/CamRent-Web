@@ -41,7 +41,6 @@ import {
 } from "@mui/icons-material";
 import {
   updateInspectionForm,
-  deleteInspection,
   getInspectionFormsByVerificationId,
   getInspectionFormById,
   type UpdateInspectionFormRequest,
@@ -191,9 +190,6 @@ const Inspections: React.FC = () => {
     useState<InspectionListItem | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [savingInspection, setSavingInspection] = useState(false);
-  const [deletingInspectionId, setDeletingInspectionId] = useState<
-    string | null
-  >(null);
   const [activeVerificationId, setActiveVerificationId] = useState<
     string | null
   >(null);
@@ -328,7 +324,6 @@ const Inspections: React.FC = () => {
     setInspectionFormDetails(new Map());
     setItemNameMap(new Map());
     setInspectionListSubtitle("");
-    setDeletingInspectionId(null);
     setActiveVerificationId(null);
   };
 
@@ -420,29 +415,6 @@ const Inspections: React.FC = () => {
     }
   };
 
-  const handleDeleteInspection = async (inspection: InspectionListItem) => {
-    const confirmDelete = window.confirm(
-      `Bạn có chắc muốn xóa phiếu kiểm tra "${
-        inspection.label || inspection.section
-      }"?`
-    );
-    if (!confirmDelete) return;
-    setDeletingInspectionId(inspection.id);
-    try {
-      await deleteInspection(inspection.id);
-      // Reload forms after deletion
-      if (activeVerificationId) {
-        await loadVerificationInspections(activeVerificationId);
-      }
-      toast.success("Xóa phiếu kiểm tra thành công");
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Xóa phiếu kiểm tra thất bại";
-      toast.error(message);
-    } finally {
-      setDeletingInspectionId(null);
-    }
-  };
   return (
     <Box
       sx={{
@@ -1199,8 +1171,6 @@ const Inspections: React.FC = () => {
         formDetails={inspectionFormDetails}
         loading={inspectionListLoading}
         onEditItem={handleEditInspection}
-        onDeleteItem={handleDeleteInspection}
-        deletingInspectionId={deletingInspectionId}
         itemNameMap={itemNameMap}
       />
       <EditInspectionDialog
