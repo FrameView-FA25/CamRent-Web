@@ -23,13 +23,7 @@ import {
   Tooltip,
   Stack,
 } from "@mui/material";
-import {
-  ExpandMore,
-  Edit,
-  DeleteOutline,
-  Visibility,
-  Close,
-} from "@mui/icons-material";
+import { ExpandMore, Edit, Visibility, Close } from "@mui/icons-material";
 import type {
   InspectionFormSummaryResponse,
   InspectionFormResponse,
@@ -48,8 +42,6 @@ export interface InspectionFormListDialogProps {
   onClose: () => void;
   onViewForm?: (formId: string) => void;
   onEditItem?: (item: InspectionListItem, formId: string) => void;
-  onDeleteItem?: (item: InspectionListItem) => void;
-  deletingInspectionId?: string | null;
   itemNameMap?: Map<string, string>; // Map itemId -> itemName
 }
 
@@ -107,8 +99,6 @@ const InspectionFormListDialog: React.FC<InspectionFormListDialogProps> = ({
   onClose,
   onViewForm,
   onEditItem,
-  onDeleteItem,
-  deletingInspectionId,
   itemNameMap = new Map(),
 }) => {
   const [expandedFormId, setExpandedFormId] = React.useState<string | false>(
@@ -384,7 +374,7 @@ const InspectionFormListDialog: React.FC<InspectionFormListDialogProps> = ({
                                 >
                                   Trạng thái
                                 </TableCell>
-                                {(onEditItem || onDeleteItem) && (
+                                {onEditItem && (
                                   <TableCell align="right"></TableCell>
                                 )}
                               </TableRow>
@@ -490,79 +480,30 @@ const InspectionFormListDialog: React.FC<InspectionFormListDialogProps> = ({
                                       <TableCell align="center">
                                         {statusChip(row.passed ?? null)}
                                       </TableCell>
-                                      {(onEditItem || onDeleteItem) && (
+                                      {onEditItem && (
                                         <TableCell align="right">
                                           <Box sx={{ display: "flex", gap: 1 }}>
-                                            {onEditItem && (
-                                              <Tooltip title="Chỉnh sửa">
-                                                <IconButton
-                                                  size="small"
-                                                  onClick={() =>
-                                                    onEditItem(
-                                                      inspectionItem,
-                                                      form.id
-                                                    )
-                                                  }
-                                                  sx={{
-                                                    border: "1px solid #E5E7EB",
-                                                    color: "#4B5563",
-                                                    "&:hover": {
-                                                      color: "#F97316",
-                                                      borderColor: "#F97316",
-                                                    },
-                                                  }}
-                                                >
-                                                  <Edit fontSize="small" />
-                                                </IconButton>
-                                              </Tooltip>
-                                            )}
-                                            {onDeleteItem && (
-                                              <Tooltip title="Xóa">
-                                                <span>
-                                                  <IconButton
-                                                    size="small"
-                                                    disabled={
-                                                      deletingInspectionId ===
-                                                      row.inspectionId
-                                                    }
-                                                    onClick={() =>
-                                                      onDeleteItem(
-                                                        inspectionItem
-                                                      )
-                                                    }
-                                                    sx={{
-                                                      border:
-                                                        "1px solid #FEE2E2",
-                                                      color: "#DC2626",
-                                                      bgcolor:
-                                                        deletingInspectionId ===
-                                                        row.inspectionId
-                                                          ? "#FEE2E2"
-                                                          : "transparent",
-                                                      "&:hover": {
-                                                        bgcolor: "#FEF2F2",
-                                                      },
-                                                      "&.Mui-disabled": {
-                                                        opacity: 0.6,
-                                                        color: "#DC2626",
-                                                      },
-                                                    }}
-                                                  >
-                                                    {deletingInspectionId ===
-                                                    row.inspectionId ? (
-                                                      <CircularProgress
-                                                        size={16}
-                                                        sx={{
-                                                          color: "#DC2626",
-                                                        }}
-                                                      />
-                                                    ) : (
-                                                      <DeleteOutline fontSize="small" />
-                                                    )}
-                                                  </IconButton>
-                                                </span>
-                                              </Tooltip>
-                                            )}
+                                            <Tooltip title="Chỉnh sửa">
+                                              <IconButton
+                                                size="small"
+                                                onClick={() =>
+                                                  onEditItem(
+                                                    inspectionItem,
+                                                    form.id
+                                                  )
+                                                }
+                                                sx={{
+                                                  border: "1px solid #E5E7EB",
+                                                  color: "#4B5563",
+                                                  "&:hover": {
+                                                    color: "#F97316",
+                                                    borderColor: "#F97316",
+                                                  },
+                                                }}
+                                              >
+                                                <Edit fontSize="small" />
+                                              </IconButton>
+                                            </Tooltip>
                                           </Box>
                                         </TableCell>
                                       )}

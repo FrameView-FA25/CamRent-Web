@@ -69,7 +69,6 @@ import InspectionFormDialog from "../../components/Modal/Staff/InspectionFormDia
 
 import {
   updateInspectionForm,
-  deleteInspection,
   getInspectionFormsByBookingId,
   getInspectionFormById,
   type UpdateInspectionFormRequest,
@@ -104,6 +103,13 @@ const CheckBookings: React.FC = () => {
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(
     null
   );
+  const [selectedHandoverType, setSelectedHandoverType] = useState<
+    number | null
+  >(null);
+  // keep dependency awareness for selectedHandoverType (used in defaultValues)
+  React.useEffect(() => {
+    // no-op: this ensures linters see selectedHandoverType as referenced
+  }, [selectedHandoverType]);
   const [inspectionListOpen, setInspectionListOpen] = useState(false);
   const [inspectionListLoading, setInspectionListLoading] = useState(false);
   const [inspectionListSubtitle, setInspectionListSubtitle] = useState("");
@@ -121,9 +127,6 @@ const CheckBookings: React.FC = () => {
     useState<InspectionListItem | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [savingInspection, setSavingInspection] = useState(false);
-  const [deletingInspectionId, setDeletingInspectionId] = useState<
-    string | null
-  >(null);
   const [activeInspectionBookingId, setActiveInspectionBookingId] = useState<
     string | null
   >(null);
@@ -217,14 +220,19 @@ const CheckBookings: React.FC = () => {
     setDeviceMenuBookingId(null);
   };
 
-  const handleOpenInspection = (bookingId: string) => {
+  const handleOpenInspection = (
+    bookingId: string,
+    handoverType: number | null
+  ) => {
     setSelectedBookingId(bookingId);
+    setSelectedHandoverType(handoverType);
     setInspectionModalOpen(true);
   };
 
   const handleCloseInspection = () => {
     setInspectionModalOpen(false);
     setSelectedBookingId(null);
+    setSelectedHandoverType(null);
   };
 
   // const getItemTypeNumber = (value?: string | number): number | undefined => {
@@ -382,7 +390,6 @@ const CheckBookings: React.FC = () => {
     setInspectionFormDetails(new Map());
     setItemNameMap(new Map());
     setInspectionListSubtitle("");
-    setDeletingInspectionId(null);
     // setCurrentInspectionItems([]);
     setActiveInspectionBookingId(null);
   };
@@ -510,30 +517,6 @@ const CheckBookings: React.FC = () => {
       toast.error(message);
     } finally {
       setSavingInspection(false);
-    }
-  };
-
-  const handleDeleteInspection = async (inspection: InspectionListItem) => {
-    const confirmDelete = window.confirm(
-      `Bạn có chắc muốn xóa mục kiểm tra "${
-        inspection.label || inspection.section
-      }"?`
-    );
-    if (!confirmDelete) return;
-    setDeletingInspectionId(inspection.id);
-    try {
-      await deleteInspection(inspection.id);
-      toast.success("Xóa mục kiểm tra thành công");
-      // Reload forms để cập nhật UI
-      if (activeInspectionBookingId) {
-        await loadInspectionList(activeInspectionBookingId);
-      }
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Xóa mục kiểm tra thất bại";
-      toast.error(message);
-    } finally {
-      setDeletingInspectionId(null);
     }
   };
 
@@ -1585,6 +1568,7 @@ const CheckBookings: React.FC = () => {
           inspectionType="Booking" // Thêm prop này
           defaultValues={{
             verifyId: selectedBookingId,
+            handoverType: selectedHandoverType ?? undefined,
             items: (
               bookings.find((b) => b.id === selectedBookingId)?.items || []
             )
@@ -1647,14 +1631,81 @@ const CheckBookings: React.FC = () => {
           <ListItemText primary="Xem phiếu kiểm tra" />
         </MenuItem>
         <MenuItem
-          onClick={() => {
+          onClick={async () => {
             const booking = bookings.find((b) => b.id === actionMenuBookingId);
             if (!booking) {
               handleCloseActionMenu();
               return;
             }
 
-            handleOpenInspection(booking.id);
+            // Determine handoverType based on booking status:
+            // Confirmed => Pickup (0)
+            // PickedUp => Return (1)
+            // Completed/Cancelled => disallow creation
+            const status = String(booking.status || "").toLowerCase();
+            if (status === "completed" || status === "cancelled") {
+              toast.warning(
+                "Không thể tạo phiếu kiểm tra cho đơn hàng đã hoàn thành hoặc đã hủy."
+              );
+              handleCloseActionMenu();
+              return;
+            }
+
+            const handoverType = status === "pickedup" ? 1 : 0;
+
+            // Normalize handoverType values coming from API (could be number or string like "Pickup"/"Return")
+            const normalizeHandoverType = (t: unknown): number | null => {
+              if (t === null || t === undefined) return null;
+              if (typeof t === "number") return t;
+              if (typeof t === "string") {
+                const s = t.trim().toLowerCase();
+                if (s === "pickup") return 0;
+                if (s === "return") return 1;
+                const n = parseInt(s, 10);
+                return Number.isNaN(n) ? null : n;
+              }
+              return null;
+            };
+
+            // Check existing forms for this booking and block creation if same handoverType already exists
+            try {
+              const existingForms = await getInspectionFormsByBookingId(
+                booking.id
+              );
+              const hasPickupInspection = existingForms.some(
+                (form) => normalizeHandoverType(form.handoverType) === 0
+              );
+              const hasReturnInspection = existingForms.some(
+                (form) => normalizeHandoverType(form.handoverType) === 1
+              );
+
+              if (handoverType === 0 && hasPickupInspection) {
+                toast.warning(
+                  "Đã có phiếu kiểm tra giao máy cho đơn hàng này."
+                );
+                handleCloseActionMenu();
+                return;
+              }
+
+              if (handoverType === 1 && hasReturnInspection) {
+                toast.warning("Đã có phiếu kiểm tra trả máy cho đơn hàng này.");
+                handleCloseActionMenu();
+                return;
+              }
+
+              if (hasPickupInspection && hasReturnInspection) {
+                toast.warning(
+                  "Đơn hàng này đã có đầy đủ phiếu kiểm tra giao máy và trả máy."
+                );
+                handleCloseActionMenu();
+                return;
+              }
+            } catch (err) {
+              console.error("Error checking existing inspection forms:", err);
+              // fallback: allow creation if check fails
+            }
+
+            handleOpenInspection(booking.id, handoverType);
             handleCloseActionMenu();
           }}
         >
@@ -1750,8 +1801,6 @@ const CheckBookings: React.FC = () => {
         formDetails={inspectionFormDetails}
         loading={inspectionListLoading}
         onEditItem={handleEditInspection}
-        onDeleteItem={handleDeleteInspection}
-        deletingInspectionId={deletingInspectionId}
         itemNameMap={itemNameMap}
       />
       <EditInspectionDialog
@@ -1775,7 +1824,9 @@ const CheckBookings: React.FC = () => {
       {(() => {
         const disputeBooking = bookings.find((b) => b.id === disputeBookingId);
         const disputeBookingStatusNumber = getStatusNumber(
-          normalizeStatusText(disputeBooking?.statusText || disputeBooking?.status || "")
+          normalizeStatusText(
+            disputeBooking?.statusText || disputeBooking?.status || ""
+          )
         );
         const allowCreate = disputeBookingStatusNumber === 3; // only when 'Returned'
         return (
