@@ -1651,7 +1651,18 @@ const CheckBookings: React.FC = () => {
               return;
             }
 
-            const handoverType = status === "pickedup" ? 1 : 0;
+            // Map booking status to handoverType:
+            // - "confirmed" => Pickup (0)
+            // - "pickedup" or "returned" => Return (1)
+            // Fallback to Pickup (0) for unknown statuses.
+            let handoverType: number | null = null;
+            if (status === "confirmed") {
+              handoverType = 0;
+            } else if (status === "pickedup" || status === "returned") {
+              handoverType = 1;
+            } else {
+              handoverType = 0;
+            }
 
             // Normalize handoverType values coming from API (could be number or string like "Pickup"/"Return")
             const normalizeHandoverType = (t: unknown): number | null => {
