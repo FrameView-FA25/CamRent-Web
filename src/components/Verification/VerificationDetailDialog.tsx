@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -191,6 +191,23 @@ export default function VerificationDetailModal({
       // Don't show toast error to avoid disturbing user
     }
   };
+
+  // Tính toán các thiết bị chưa kiểm tra
+  const uninspectedItems = useMemo(() => {
+    if (!currentVerification?.items || inspectionForms.length === 0) {
+      return currentVerification?.items || [];
+    }
+
+    // Lấy danh sách itemId đã được kiểm tra
+    const inspectedItemIds = new Set(
+      inspectionForms.map((form) => form.itemId)
+    );
+
+    // Filter các item chưa được kiểm tra
+    return currentVerification.items.filter(
+      (item) => !inspectedItemIds.has(item.itemId)
+    );
+  }, [currentVerification?.items, inspectionForms]);
 
   if (!currentVerification) return null;
 
@@ -444,10 +461,6 @@ export default function VerificationDetailModal({
       const hasSignatureError = error?.response?.data?.detail
         ?.toLowerCase()
         .includes("chữ ký");
-
-      console.log("isApproveStatus:", isApproveStatus);
-      console.log("is500Error:", is500Error);
-      console.log("hasSignatureError:", hasSignatureError);
 
       if (isApproveStatus && is500Error && hasSignatureError) {
         toast.error(
@@ -825,6 +838,7 @@ export default function VerificationDetailModal({
               elevation={0}
               sx={{
                 p: 3,
+                mb: 3,
                 border: "1px solid #E2E8F0",
                 borderRadius: 2,
               }}
@@ -1002,6 +1016,104 @@ export default function VerificationDetailModal({
                 </Box>
               )}
             </Paper>
+
+            {/* Thiết bị chưa kiểm tra */}
+            {uninspectedItems.length > 0 && (
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 3,
+                  border: "1px solid #FEE2E2",
+                  borderRadius: 2,
+                }}
+              >
+                <Box
+                  sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}
+                >
+                  <WarningIcon sx={{ color: "#DC2626" }} />
+                  <Typography variant="h6" fontWeight={600}>
+                    Thiết Bị Chưa Kiểm Tra ({uninspectedItems.length})
+                  </Typography>
+                </Box>
+
+                <Alert severity="info" sx={{ mb: 2 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    Các thiết bị sau chưa được kiểm tra. Vui lòng gán nhân viên
+                    để hoàn tất kiểm tra trước khi duyệt yêu cầu.
+                  </Typography>
+                </Alert>
+
+                <TableContainer>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell
+                          sx={{
+                            fontWeight: 700,
+                            color: "#991B1B",
+                            fontSize: "0.875rem",
+                          }}
+                        >
+                          Tên thiết bị
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            fontWeight: 700,
+                            color: "#991B1B",
+                            fontSize: "0.875rem",
+                          }}
+                        >
+                          Loại
+                        </TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {uninspectedItems.map((item, index) => (
+                        <TableRow
+                          key={item.itemId}
+                          sx={{
+                            bgcolor: index % 2 === 0 ? "#FFFFFF" : "#FEF2F2",
+                          }}
+                        >
+                          <TableCell>
+                            <Typography
+                              sx={{
+                                fontWeight: 600,
+                                color: "#1E293B",
+                                fontSize: "0.875rem",
+                              }}
+                            >
+                              {item.itemName}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Chip
+                              label={
+                                item.itemType === "Camera"
+                                  ? "Camera"
+                                  : "Phụ kiện"
+                              }
+                              size="small"
+                              sx={{
+                                bgcolor:
+                                  item.itemType === "Camera"
+                                    ? "#EFF6FF"
+                                    : "#F0FDF4",
+                                color:
+                                  item.itemType === "Camera"
+                                    ? "#3B82F6"
+                                    : "#10B981",
+                                fontWeight: 600,
+                              }}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Paper>
+            )}
           </Box>
         </DialogContent>
 
@@ -1215,7 +1327,7 @@ export default function VerificationDetailModal({
               <WarningIcon sx={{ color: "#F97316", fontSize: 28 }} />
             </Box>
             <Typography variant="h6" sx={{ fontWeight: 700, color: "#1E293B" }}>
-              Xác nhận tạo hợp đồng và ký
+              Xác nhận cập nhật trạng thái
             </Typography>
           </Box>
         </DialogTitle>
@@ -1246,6 +1358,14 @@ export default function VerificationDetailModal({
               )}
             </Box>
           </Alert>
+
+          {uninspectedItems.length > 0 && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                ⚠️ Còn {uninspectedItems.length} thiết bị chưa được kiểm tra!
+              </Typography>
+            </Alert>
+          )}
 
           <Typography
             variant="body1"
