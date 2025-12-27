@@ -300,7 +300,7 @@ const BranchRevenueTable = ({
                   Hoa hồng
                 </TableCell>
                 <TableCell sx={{ ...headerCellStyle, textAlign: "center" }}>
-                  Tranh chấp
+                  Đền bù
                 </TableCell>
                 <TableCell sx={{ ...headerCellStyle, textAlign: "center" }}>
                   Lợi nhuận
@@ -838,9 +838,9 @@ export default function DashboardAdmin() {
         accent: "green",
       },
       {
-        title: "Doanh thu tranh chấp",
+        title: "Doanh thu đền bù",
         value: formatCurrency(data?.totalDisputeRevenue ?? 0),
-        description: "Thu nhập từ xử lý tranh chấp",
+        description: "Thu nhập từ xử lý đền bù",
         icon: <DisputeRevenueIcon />,
         accent: "orange",
       },

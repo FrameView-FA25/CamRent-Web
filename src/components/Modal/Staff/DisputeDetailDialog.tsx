@@ -245,7 +245,7 @@ const DisputeDetailDialog: React.FC<DisputeDetailDialogProps> = ({
           {/* Basic Info */}
           <Box>
             <Typography variant="subtitle2" color="text.secondary">
-              Mã Tranh Chấp
+              Mã Đền Bù
             </Typography>
             <Typography variant="body1">{dispute.id}</Typography>
           </Box>

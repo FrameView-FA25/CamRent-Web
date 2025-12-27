@@ -477,7 +477,7 @@ const BookingDetail: React.FC = () => {
         if ((method === "PayOs" || method === "Transfer") && result.paymentId) {
           setSnackbar({
             open: true,
-            message: "Chuyển hướng sang trang thanh toán bù tranh chấp...",
+            message: "Chuyển hướng sang trang thanh toán đền bù...",
             severity: "info",
           });
           const payosResp = await fetch(
@@ -513,9 +513,7 @@ const BookingDetail: React.FC = () => {
         } else {
           setSnackbar({
             open: true,
-            message: `Tạo payment bù tranh chấp thành công: ${formatCurrency(
-              extra
-            )}`,
+            message: `Tạo payment đền bù thành công: ${formatCurrency(extra)}`,
             severity: "success",
           });
           await loadBookingDetail();

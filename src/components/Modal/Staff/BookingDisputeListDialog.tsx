@@ -433,8 +433,8 @@ const BookingDisputeListDialog: React.FC<BookingDisputeListDialogProps> = ({
       >
         <DialogTitle>
           {resolutionType === "resolve"
-            ? "Giải quyết tranh chấp"
-            : "Từ chối tranh chấp"}
+            ? "Giải quyết đền bù"
+            : "Từ chối đền bù"}
         </DialogTitle>
         <DialogContent>
           <Typography variant="body1" sx={{ mt: 2 }}>
