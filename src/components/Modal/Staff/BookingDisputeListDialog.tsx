@@ -291,7 +291,7 @@ const BookingDisputeListDialog: React.FC<BookingDisputeListDialogProps> = ({
           ) : disputes.length === 0 ? (
             <Box sx={{ textAlign: "center", py: 4 }}>
               <Typography variant="body1" color="text.secondary">
-                Booking này chưa có dispute nào
+                Đơn hàng này chưa có thiệt hại nào
               </Typography>
             </Box>
           ) : (
@@ -318,8 +318,12 @@ const BookingDisputeListDialog: React.FC<BookingDisputeListDialogProps> = ({
                       }}
                     >
                       <Box>
-                      <Typography variant="subtitle1" fontWeight="medium">
-                          {dispute.title === "downtime" ? "Thời gian giãn đoạn" : dispute.title === "late" ? "Trả muộn" : dispute.title}
+                        <Typography variant="subtitle1" fontWeight="medium">
+                          {dispute.title === "downtime"
+                            ? "Thời gian giãn đoạn"
+                            : dispute.title === "late"
+                            ? "Trả muộn"
+                            : dispute.title}
                         </Typography>
                         <Typography
                           variant="body2"

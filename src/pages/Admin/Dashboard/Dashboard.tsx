@@ -659,13 +659,11 @@ const RevenueChartCard = ({
                     }
                   />
                   <RechartsTooltip
-                    formatter={(value: number) => formatCurrency(value)}
+                    formatter={(value: number) => [
+                      formatCurrency(value),
+                      "Doanh thu đã thu",
+                    ]}
                     labelFormatter={(label: string) => `Thời gian: ${label}`}
-                    contentStyle={{
-                      borderRadius: 8,
-                      border: "1px solid #E5E7EB",
-                      boxShadow: "0 8px 24px rgba(15,23,42,0.12)",
-                    }}
                   />
                   <Area
                     type="monotone"

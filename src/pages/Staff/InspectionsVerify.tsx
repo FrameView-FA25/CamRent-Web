@@ -369,18 +369,19 @@ const Inspections: React.FC = () => {
 
       // Sử dụng methodIds trực tiếp từ formState (theo API backend)
       // Nếu không có methodIds, fallback về parse từ value (tương thích ngược)
-      const methodIds = formState.methodIds && formState.methodIds.length > 0
-        ? formState.methodIds
-        : (() => {
-            // Fallback: parse từ value nếu methodIds không có
-            const methodNames = formState.value
-              .split(", ")
-              .map((m) => m.trim())
-              .filter((m) => m !== "");
-            return targetRow.methods
-              .filter((m) => methodNames.includes(m.name))
-              .map((m) => m.id);
-          })();
+      const methodIds =
+        formState.methodIds && formState.methodIds.length > 0
+          ? formState.methodIds
+          : (() => {
+              // Fallback: parse từ value nếu methodIds không có
+              const methodNames = formState.value
+                .split(", ")
+                .map((m) => m.trim())
+                .filter((m) => m !== "");
+              return targetRow.methods
+                .filter((m) => methodNames.includes(m.name))
+                .map((m) => m.id);
+            })();
 
       const updateRequest: UpdateInspectionFormRequest = {
         passed: formState.passed ?? null,
@@ -1227,10 +1228,11 @@ const Inspections: React.FC = () => {
         <MenuItem
           onClick={() => {
             const row = data.find((d) => d.id === actionMenuVerificationId);
+            // close menu first to avoid UI flicker before navigation
+            handleCloseActionMenu();
             if (row) {
               handleViewDetail(row);
             }
-            handleCloseActionMenu();
           }}
         >
           <ListItemIcon>
@@ -1240,10 +1242,11 @@ const Inspections: React.FC = () => {
         </MenuItem>
         <MenuItem
           onClick={() => {
-            if (actionMenuVerificationId) {
-              handleManageVerificationInspections(actionMenuVerificationId);
-            }
+            const id = actionMenuVerificationId;
             handleCloseActionMenu();
+            if (id) {
+              handleManageVerificationInspections(id);
+            }
           }}
         >
           <ListItemIcon>
@@ -1251,20 +1254,28 @@ const Inspections: React.FC = () => {
           </ListItemIcon>
           <ListItemText primary="Xem phiếu kiểm tra" />
         </MenuItem>
-        <MenuItem
-          onClick={() => {
-            const row = data.find((d) => d.id === actionMenuVerificationId);
-            if (row) {
-              openInspectionDialog(row);
-            }
-            handleCloseActionMenu();
-          }}
-        >
-          <ListItemIcon>
-            <PlaylistAddCheck fontSize="small" sx={{ color: "#F97316" }} />
-          </ListItemIcon>
-          <ListItemText primary="Tạo phiếu kiểm tra" />
-        </MenuItem>
+        {(() => {
+          const target = data.find((d) => d.id === actionMenuVerificationId);
+          if (!target) return false;
+          const status = String(target.status || "").toLowerCase();
+          // hide create action when verification is approved or completed
+          return status !== "approved" && status !== "completed";
+        })() && (
+          <MenuItem
+            onClick={() => {
+              const row = data.find((d) => d.id === actionMenuVerificationId);
+              handleCloseActionMenu();
+              if (row) {
+                openInspectionDialog(row);
+              }
+            }}
+          >
+            <ListItemIcon>
+              <PlaylistAddCheck fontSize="small" sx={{ color: "#F97316" }} />
+            </ListItemIcon>
+            <ListItemText primary="Tạo phiếu kiểm tra" />
+          </MenuItem>
+        )}
       </Menu>
     </Box>
   );
