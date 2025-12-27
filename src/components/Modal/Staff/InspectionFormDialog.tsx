@@ -33,6 +33,7 @@ import {
   createInspectionForm,
   getInspectionFormById,
   updateInspection,
+  getInspectionFormsByVerificationId,
 } from "@/services/inspection.service";
 import type {
   ChecklistTemplateDetail,
@@ -89,6 +90,10 @@ const InspectionFormDialog: React.FC<InspectionFormDialogProps> = ({
   const [templateError, setTemplateError] = React.useState<string | null>(null);
   const [activeTemplate, setActiveTemplate] =
     React.useState<ChecklistTemplateDetail | null>(null);
+  // Existing inspection forms for the verification (used to filter device options)
+  const [existingFormsLoading, setExistingFormsLoading] = React.useState(false);
+  const [inspectionFormsForVerification, setInspectionFormsForVerification] =
+    React.useState<{ itemId: string; overallPassed?: boolean | null }[]>([]);
   const [submitting, setSubmitting] = React.useState(false);
 
   // Reset khi mở dialog
@@ -100,6 +105,8 @@ const InspectionFormDialog: React.FC<InspectionFormDialogProps> = ({
       setActiveTemplate(null);
       setTemplateError(null);
       setSubmitting(false);
+      setInspectionFormsForVerification([]);
+      setExistingFormsLoading(false);
     }
   }, [open]);
 
@@ -162,6 +169,56 @@ const InspectionFormDialog: React.FC<InspectionFormDialogProps> = ({
 
     loadTemplate();
   }, [inspectionType, selectedItemType]);
+
+  // Load existing inspection forms for this verification (so we can filter items)
+  React.useEffect(() => {
+    const loadExistingForms = async () => {
+      // Only applicable for Verification type and when we have a verifyId
+      if (!open) return;
+      if (inspectionType !== "Verification") return;
+      if (!verifyId) return;
+
+      try {
+        setExistingFormsLoading(true);
+        const forms = await getInspectionFormsByVerificationId(verifyId);
+        // Map to itemId + overallPassed
+        const mapped = forms.map((f) => ({
+          itemId: String(f.itemId || ""),
+          overallPassed: f.overallPassed ?? null,
+        }));
+        setInspectionFormsForVerification(mapped);
+      } catch (err) {
+        console.error("Error loading inspection forms for verification:", err);
+      } finally {
+        setExistingFormsLoading(false);
+      }
+    };
+
+    loadExistingForms();
+  }, [open, inspectionType, verifyId]);
+
+  // Compute available items to show in device select:
+  // - Only include items that either have no existing inspection form with overallPassed === true
+  // - (i.e. exclude items that already have a passed inspection form)
+  const availableItems = React.useMemo(() => {
+    if (!items || items.length === 0) return [];
+    if (
+      !inspectionFormsForVerification ||
+      inspectionFormsForVerification.length === 0
+    ) {
+      return items;
+    }
+
+    // Create a set of itemIds that have a passed form (overallPassed === true)
+    const passedItemIds = new Set(
+      inspectionFormsForVerification
+        .filter((f) => f.overallPassed === true)
+        .map((f) => String(f.itemId))
+    );
+
+    // Include item if it is not in passedItemIds
+    return items.filter((it) => !passedItemIds.has(String(it.itemId)));
+  }, [items, inspectionFormsForVerification]);
 
   const handleItemSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const itemId = e.target.value;
@@ -475,11 +532,26 @@ const InspectionFormDialog: React.FC<InspectionFormDialogProps> = ({
             }}
           >
             <MenuItem value="">-- Chọn thiết bị --</MenuItem>
-            {items.map((it) => (
+            {/* Use filtered availableItems so devices already passed are not shown */}
+            {availableItems.map((it) => (
               <MenuItem key={String(it.itemId)} value={String(it.itemId)}>
                 {it.itemName}
               </MenuItem>
             ))}
+            {/* If inspection forms are still loading, show a disabled note */}
+            {existingFormsLoading && (
+              <MenuItem disabled>
+                Đang kiểm tra trạng thái phiếu kiểm tra...
+              </MenuItem>
+            )}
+            {/* If none available and not loading, show a hint */}
+            {!existingFormsLoading &&
+              availableItems.length === 0 &&
+              items.length > 0 && (
+                <MenuItem disabled>
+                  Tất cả thiết bị đã có phiếu kiểm tra đạt
+                </MenuItem>
+              )}
           </TextField>
           <TextField
             label="Loại thiết bị"
