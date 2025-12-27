@@ -23,14 +23,15 @@ export interface OwnerDashboardResponse {
   monthlyStats?: TimeSeriesStat[];
 }
 export interface ManagerDashboardResponse {
-  totalCameras: number;
-  totalAccessories: number;
-  totalBookingsForOwnerItems: number;
+  camerasInBranch: number;
+  accessoriesInBranch: number;
+  totalBookings: number;
   totalGrossRevenue: number;
   totalNetRevenue: number;
   topRentedAssets: TopRentedAsset[];
   dailyStats?: TimeSeriesStat[];
   monthlyStats?: TimeSeriesStat[];
+  totalDisputeRevenue: number;
 }
 export interface BookingStatusCount {
   status: string;
