@@ -1678,35 +1678,58 @@ const CheckBookings: React.FC = () => {
               return null;
             };
 
-            // Check existing forms for this booking and block creation if same handoverType already exists
+            // Check existing forms for this booking.
+            // Allow creating a form for a handoverType as long as there exists at least
+            // one device in the booking that does NOT already have that handoverType.
+            // Previously we blocked creation if any form for the booking existed for the
+            // handoverType; that prevented creating Pickup/Return per device when multiple
+            // devices are present. Now we check per-device.
             try {
               const existingForms = await getInspectionFormsByBookingId(
                 booking.id
               );
-              const hasPickupInspection = existingForms.some(
-                (form) => normalizeHandoverType(form.handoverType) === 0
-              );
-              const hasReturnInspection = existingForms.some(
-                (form) => normalizeHandoverType(form.handoverType) === 1
-              );
 
-              if (handoverType === 0 && hasPickupInspection) {
+              // Map existing forms to sets of itemIds by handover type
+              const pickupItemIds = new Set<string>();
+              const returnItemIds = new Set<string>();
+              existingForms.forEach((form) => {
+                const ht = normalizeHandoverType(form.handoverType);
+                const iid = String(form.itemId || "");
+                if (!iid) return;
+                if (ht === 0) pickupItemIds.add(iid);
+                if (ht === 1) returnItemIds.add(iid);
+              });
+
+              // Get all item ids in booking that are Camera/Accessory (those shown in dialog)
+              const bookingItemIds: string[] = booking.items
+                .map((it) => it.itemId || it.cameraId || it.accessoryId || it.comboId || it.productId || "")
+                .filter((id) => id);
+
+              // Helper: returns true if EVERY booking item already has a form of given set
+              const allItemsHave = (itemIdSet: Set<string>) =>
+                bookingItemIds.length > 0 &&
+                bookingItemIds.every((id) => itemIdSet.has(String(id)));
+
+              const allHavePickup = allItemsHave(pickupItemIds);
+              const allHaveReturn = allItemsHave(returnItemIds);
+
+              if (handoverType === 0 && allHavePickup) {
                 toast.warning(
-                  "Đã có phiếu kiểm tra giao máy cho đơn hàng này."
+                  "Tất cả thiết bị trong đơn hàng đã có phiếu kiểm tra giao máy."
                 );
                 handleCloseActionMenu();
                 return;
               }
 
-              if (handoverType === 1 && hasReturnInspection) {
-                toast.warning("Đã có phiếu kiểm tra trả máy cho đơn hàng này.");
+              if (handoverType === 1 && allHaveReturn) {
+                toast.warning("Tất cả thiết bị trong đơn hàng đã có phiếu kiểm tra trả máy.");
                 handleCloseActionMenu();
                 return;
               }
 
-              if (hasPickupInspection && hasReturnInspection) {
+              if (allHavePickup && allHaveReturn) {
                 toast.warning(
-                  "Đơn hàng này đã có đầy đủ phiếu kiểm tra giao máy và trả máy."
+                  "Đơn hàng này đã có phiếu kiểm tra giao máy và trả máy cho tất cả thiết bị."
                 );
                 handleCloseActionMenu();
                 return;
