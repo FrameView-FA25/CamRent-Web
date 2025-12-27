@@ -642,7 +642,7 @@ export default function Dashboard() {
         value: isLoading ? (
           <CircularProgress size={24} />
         ) : (
-          (data?.totalCameras ?? 0).toString()
+          (data?.camerasInBranch ?? 0).toString()
         ),
         description: "Số lượng camera bạn đang cho thuê.",
         icon: <CameraIcon />,
@@ -653,7 +653,7 @@ export default function Dashboard() {
         value: isLoading ? (
           <CircularProgress size={24} />
         ) : (
-          (data?.totalAccessories ?? 0).toString()
+          (data?.accessoriesInBranch ?? 0).toString()
         ),
         description: "Số lượng phụ kiện bạn đang cho thuê.",
         icon: <PeopleIcon />,
@@ -664,7 +664,7 @@ export default function Dashboard() {
         value: isLoading ? (
           <CircularProgress size={24} />
         ) : (
-          (data?.totalBookingsForOwnerItems ?? 0).toString()
+          (data?.totalBookings ?? 0).toString()
         ),
         description: "Tổng số đơn thuê liên quan tới thiết bị của bạn.",
         icon: <PeopleIcon />,
@@ -680,7 +680,14 @@ export default function Dashboard() {
       {
         title: "Tổng doanh thu thực tế",
         value: formatCurrency(data?.totalNetRevenue ?? 0),
-        description: "Tổng doanh thu thực tế sau khi trừ phí nền tảng.",
+        description: "Tổng doanh thu thực tế nền tảng nhận.",
+        icon: <MoneyIcon />,
+        accent: "amber",
+      },
+      {
+        title: "Tổng doanh thu từ việc đền bù",
+        value: formatCurrency(data?.totalDisputeRevenue ?? 0),
+        description: "Tổng doanh thu thực tế nền tảng nhận.",
         icon: <MoneyIcon />,
         accent: "amber",
       },
@@ -689,11 +696,12 @@ export default function Dashboard() {
       wallet?.balance,
       isLoadingWallet,
       isLoading,
-      data?.totalAccessories,
-      data?.totalBookingsForOwnerItems,
-      data?.totalCameras,
+      data?.accessoriesInBranch,
+      data?.totalBookings,
+      data?.camerasInBranch,
       data?.totalGrossRevenue,
       data?.totalNetRevenue,
+      data?.totalDisputeRevenue,
     ]
   );
 

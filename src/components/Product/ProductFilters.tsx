@@ -17,6 +17,36 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
   onCategoryChange,
   itemCounts = {},
 }) => {
+  // Chuẩn hóa danh sách categories
+  const normalizedCategories = React.useMemo(() => {
+    const categoryMap = new Map<string, { original: string; count: number }>();
+
+    categories.forEach((cat) => {
+      const trimmed = cat.trim();
+      const normalized =
+        trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
+
+      if (categoryMap.has(normalized)) {
+        // Cộng dồn count nếu đã tồn tại
+        const existing = categoryMap.get(normalized)!;
+        existing.count += itemCounts[cat] || 0;
+      } else {
+        categoryMap.set(normalized, {
+          original: trimmed,
+          count: itemCounts[cat] || 0,
+        });
+      }
+    });
+
+    return Array.from(categoryMap.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([normalized, data]) => ({
+        display: normalized,
+        value: data.original,
+        count: data.count,
+      }));
+  }, [categories, itemCounts]);
+
   return (
     <Stack
       direction="row"
@@ -39,14 +69,13 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
         sx={{ display: { xs: "none", sm: "block" } }}
       />
       <Stack direction="row" spacing={1}>
-        {categories.map((cat) => {
-          const selected = selectedCategory === cat;
-          const count = itemCounts[cat] || 0;
+        {normalizedCategories.map((cat) => {
+          const selected = selectedCategory === cat.value;
           return (
             <Chip
-              key={cat}
-              label={`${cat} (${count})`}
-              onClick={() => onCategoryChange(cat)}
+              key={cat.display}
+              label={`${cat.display} (${cat.count})`}
+              onClick={() => onCategoryChange(cat.value)}
               sx={{
                 cursor: "pointer",
                 bgcolor: selected ? colors.primary.main : "white",
