@@ -15,7 +15,7 @@ import {
 } from "@mui/material";
 import {
   Menu as MenuIcon,
-  Home as HomeIcon,
+  Dashboard as DashboardIcon,
   People as PeopleIcon,
   Inventory as ProductsIcon,
   ShoppingCart as OrdersIcon,
@@ -29,7 +29,7 @@ import { Wallet } from "lucide-react";
 const DRAWER_WIDTH = 280;
 
 const menuItems = [
-  { text: "Thống kê", icon: <HomeIcon />, path: "/manager/dashboard" },
+  { text: "Thống kê", icon: <DashboardIcon />, path: "/manager/dashboard" },
   { text: "Quản lý nhân viên", icon: <PeopleIcon />, path: "/manager/staff" },
   {
     text: "Quản lý đơn thuê",
