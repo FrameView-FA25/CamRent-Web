@@ -542,8 +542,8 @@ const RevenueChartCard = ({
   // - Người dùng có thể đổi period giữa daily/monthly
   const hasData = stats.length > 0;
   const showLoadingState = isLoading && !hasData;
-  const currentStat = stats[stats.length - 1];
-  const previousStat = stats[stats.length - 2];
+  // const currentStat = stats[stats.length - 1];
+  // const previousStat = stats[stats.length - 2];
 
   const chartData = stats.map((stat) => ({
     ...stat,
@@ -677,7 +677,7 @@ const RevenueChartCard = ({
               </ResponsiveContainer>
             </Box>
 
-            <Box
+            {/* <Box
               sx={{
                 mt: 3,
                 display: "flex",
@@ -717,7 +717,7 @@ const RevenueChartCard = ({
                     : "-"}
                 </Typography>
               </Box>
-            </Box>
+            </Box> */}
           </>
         )}
       </CardContent>
