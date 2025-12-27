@@ -318,8 +318,12 @@ const BookingDisputeListDialog: React.FC<BookingDisputeListDialogProps> = ({
                       }}
                     >
                       <Box>
-                      <Typography variant="subtitle1" fontWeight="medium">
-                          {dispute.title === "downtime" ? "Thời gian giãn đoạn" : dispute.title === "late" ? "Trả muộn" : dispute.title}
+                        <Typography variant="subtitle1" fontWeight="medium">
+                          {dispute.title === "downtime"
+                            ? "Thời gian giãn đoạn"
+                            : dispute.title === "late"
+                            ? "Trả muộn"
+                            : dispute.title}
                         </Typography>
                         <Typography
                           variant="body2"
@@ -429,8 +433,8 @@ const BookingDisputeListDialog: React.FC<BookingDisputeListDialogProps> = ({
       >
         <DialogTitle>
           {resolutionType === "resolve"
-            ? "Giải quyết tranh chấp"
-            : "Từ chối tranh chấp"}
+            ? "Giải quyết đền bù"
+            : "Từ chối đền bù"}
         </DialogTitle>
         <DialogContent>
           <Typography variant="body1" sx={{ mt: 2 }}>

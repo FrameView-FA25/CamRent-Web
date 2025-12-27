@@ -32,7 +32,7 @@ const DRAWER_WIDTH = 280;
 
 const menuItems = [
   {
-    text: "Bảng điều khiển",
+    text: "Thống kê",
     icon: <DashboardIcon />,
     path: "/admin/dashboard",
   },
