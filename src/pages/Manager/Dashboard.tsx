@@ -341,8 +341,8 @@ const ColumnChartCard = ({
 }) => {
   const hasData = stats.length > 0;
   const showLoadingState = isLoading && !hasData;
-  const currentStat = stats[stats.length - 1];
-  const previousStat = stats[stats.length - 2];
+  // const currentStat = stats[stats.length - 1];
+  // const previousStat = stats[stats.length - 2];
 
   // Chuẩn hóa dữ liệu cho biểu đồ area
   const chartData = stats.map((stat) => ({
@@ -515,7 +515,7 @@ const ColumnChartCard = ({
               </ResponsiveContainer>
             </Box>
 
-            <Box
+            {/* <Box
               sx={{
                 mt: 3,
                 display: "flex",
@@ -555,7 +555,7 @@ const ColumnChartCard = ({
                     : "-"}
                 </Typography>
               </Box>
-            </Box>
+            </Box> */}
           </>
         )}
       </CardContent>

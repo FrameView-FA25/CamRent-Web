@@ -342,8 +342,8 @@ const ColumnChartCard = ({
 }) => {
   const hasData = stats.length > 0;
   const showLoadingState = isLoading && !hasData;
-  const currentStat = stats[stats.length - 1];
-  const previousStat = stats[stats.length - 2];
+  // const currentStat = stats[stats.length - 1];
+  // const previousStat = stats[stats.length - 2];
 
   // Chuẩn hóa dữ liệu cho biểu đồ area
   const chartData = stats.map((stat) => ({
@@ -514,48 +514,6 @@ const ColumnChartCard = ({
                   />
                 </AreaChart>
               </ResponsiveContainer>
-            </Box>
-
-            <Box
-              sx={{
-                mt: 3,
-                display: "flex",
-                flexWrap: "wrap",
-                gap: 4,
-              }}
-            >
-              <Box>
-                <Typography
-                  variant="caption"
-                  sx={{ color: "#666", textTransform: "uppercase" }}
-                >
-                  Thời điểm hiện tại
-                </Typography>
-                <Typography
-                  variant="h5"
-                  sx={{ color: "#0F172A", fontWeight: 700 }}
-                >
-                  {currentStat
-                    ? formatCurrency(currentStat.capturedRevenue)
-                    : "-"}
-                </Typography>
-              </Box>
-              <Box>
-                <Typography
-                  variant="caption"
-                  sx={{ color: "#666", textTransform: "uppercase" }}
-                >
-                  Kỳ trước
-                </Typography>
-                <Typography
-                  variant="h5"
-                  sx={{ color: "#0F172A", fontWeight: 700 }}
-                >
-                  {previousStat
-                    ? formatCurrency(previousStat.capturedRevenue)
-                    : "-"}
-                </Typography>
-              </Box>
             </Box>
           </>
         )}
