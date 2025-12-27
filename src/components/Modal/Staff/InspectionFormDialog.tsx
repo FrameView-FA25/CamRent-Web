@@ -34,6 +34,7 @@ import {
   getInspectionFormById,
   updateInspection,
   getInspectionFormsByVerificationId,
+  getInspectionFormsByBookingId,
 } from "@/services/inspection.service";
 import type {
   ChecklistTemplateDetail,
@@ -93,10 +94,15 @@ const InspectionFormDialog: React.FC<InspectionFormDialogProps> = ({
   const [templateError, setTemplateError] = React.useState<string | null>(null);
   const [activeTemplate, setActiveTemplate] =
     React.useState<ChecklistTemplateDetail | null>(null);
-  // Existing inspection forms for the verification (used to filter device options)
+  // Existing inspection forms for the verification/booking (used to filter device options)
   const [existingFormsLoading, setExistingFormsLoading] = React.useState(false);
-  const [inspectionFormsForVerification, setInspectionFormsForVerification] =
-    React.useState<{ itemId: string; overallPassed?: boolean | null }[]>([]);
+  const [inspectionFormsExisting, setInspectionFormsExisting] = React.useState<
+    {
+      itemId: string;
+      handoverType?: number | null;
+      overallPassed?: boolean | null;
+    }[]
+  >([]);
   const [submitting, setSubmitting] = React.useState(false);
 
   // Reset khi mở dialog
@@ -108,7 +114,7 @@ const InspectionFormDialog: React.FC<InspectionFormDialogProps> = ({
       setActiveTemplate(null);
       setTemplateError(null);
       setSubmitting(false);
-      setInspectionFormsForVerification([]);
+      setInspectionFormsExisting([]);
       setExistingFormsLoading(false);
     }
   }, [open]);
@@ -175,23 +181,47 @@ const InspectionFormDialog: React.FC<InspectionFormDialogProps> = ({
 
   // Load existing inspection forms for this verification (so we can filter items)
   React.useEffect(() => {
+    const normalizeHandoverType = (t: unknown): number | null => {
+      if (t === null || t === undefined) return null;
+      if (typeof t === "number") return t;
+      if (typeof t === "string") {
+        const s = t.trim().toLowerCase();
+        if (s === "pickup") return 0;
+        if (s === "return") return 1;
+        const n = parseInt(s, 10);
+        return Number.isNaN(n) ? null : n;
+      }
+      return null;
+    };
+
     const loadExistingForms = async () => {
-      // Only applicable for Verification type and when we have a verifyId
       if (!open) return;
-      if (inspectionType !== "Verification") return;
       if (!verifyId) return;
 
       try {
         setExistingFormsLoading(true);
-        const forms = await getInspectionFormsByVerificationId(verifyId);
-        // Map to itemId + overallPassed
-        const mapped = forms.map((f) => ({
-          itemId: String(f.itemId || ""),
-          overallPassed: f.overallPassed ?? null,
-        }));
-        setInspectionFormsForVerification(mapped);
+
+        if (inspectionType === "Verification") {
+          const forms = await getInspectionFormsByVerificationId(verifyId);
+          const mapped = forms.map((f) => ({
+            itemId: String(f.itemId || ""),
+            handoverType: normalizeHandoverType(f.handoverType ?? null),
+            overallPassed: f.overallPassed ?? null,
+          }));
+          setInspectionFormsExisting(mapped);
+        } else if (inspectionType === "Booking") {
+          const forms = await getInspectionFormsByBookingId(verifyId);
+          const mapped = forms.map((f) => ({
+            itemId: String(f.itemId || ""),
+            handoverType: normalizeHandoverType(f.handoverType ?? null),
+            overallPassed: f.overallPassed ?? null,
+          }));
+          setInspectionFormsExisting(mapped);
+        } else {
+          setInspectionFormsExisting([]);
+        }
       } catch (err) {
-        console.error("Error loading inspection forms for verification:", err);
+        console.error("Error loading existing inspection forms:", err);
       } finally {
         setExistingFormsLoading(false);
       }
@@ -200,28 +230,38 @@ const InspectionFormDialog: React.FC<InspectionFormDialogProps> = ({
     loadExistingForms();
   }, [open, inspectionType, verifyId]);
 
-  // Compute available items to show in device select:
-  // - Only include items that either have no existing inspection form with overallPassed === true
-  // - (i.e. exclude items that already have a passed inspection form)
+  // Compute available items to show in device select.
+  // - For Verification: exclude items that already have an overallPassed === true form.
+  // - For Booking: exclude items that already have an inspection form for the selected handoverType.
   const availableItems = React.useMemo(() => {
     if (!items || items.length === 0) return [];
-    if (
-      !inspectionFormsForVerification ||
-      inspectionFormsForVerification.length === 0
-    ) {
+    if (!inspectionFormsExisting || inspectionFormsExisting.length === 0) {
       return items;
     }
 
-    // Create a set of itemIds that have a passed form (overallPassed === true)
-    const passedItemIds = new Set(
-      inspectionFormsForVerification
-        .filter((f) => f.overallPassed === true)
-        .map((f) => String(f.itemId))
-    );
+    if (inspectionType === "Verification") {
+      const passedItemIds = new Set(
+        inspectionFormsExisting
+          .filter((f) => f.overallPassed === true)
+          .map((f) => String(f.itemId))
+      );
+      return items.filter((it) => !passedItemIds.has(String(it.itemId)));
+    }
 
-    // Include item if it is not in passedItemIds
-    return items.filter((it) => !passedItemIds.has(String(it.itemId)));
-  }, [items, inspectionFormsForVerification]);
+    if (inspectionType === "Booking") {
+      // If handoverType is undefined/null, don't exclude (shouldn't usually happen)
+      if (handoverType === undefined || handoverType === null) return items;
+
+      const excludedForHandover = new Set(
+        inspectionFormsExisting
+          .filter((f) => String(f.handoverType ?? "") === String(handoverType))
+          .map((f) => String(f.itemId))
+      );
+      return items.filter((it) => !excludedForHandover.has(String(it.itemId)));
+    }
+
+    return items;
+  }, [items, inspectionFormsExisting, inspectionType, handoverType]);
 
   const handleItemSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const itemId = e.target.value;
