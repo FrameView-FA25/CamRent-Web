@@ -18,7 +18,6 @@ import {
   People as PeopleIcon,
   Store as StoreIcon,
   Devices as DevicesIcon,
-  AccountBalanceWallet as WalletIcon,
   Group as GroupIcon,
   ShoppingCart as BookingIcon,
   MonetizationOn as RevenueIcon,
@@ -87,20 +86,6 @@ const COMPACT_CURRENCY_FORMATTER = new Intl.NumberFormat("vi-VN", {
 // - >=1B: hiển thị xB (ví dụ 2.5B đ)
 const formatCurrency = (value = 0) => {
   if (!Number.isFinite(value)) return CURRENCY_FORMATTER.format(0);
-  const abs = Math.abs(value);
-  // >= 1 billion -> B
-  if (abs >= 1_000_000_000) {
-    const v = Math.round((value / 1_000_000_000) * 10) / 10;
-    // remove trailing .0
-    const short = Number.isInteger(v) ? `${v.toFixed(0)}` : `${v.toFixed(1)}`;
-    return `${short}B đ`;
-  }
-  // >= 1 million -> M
-  if (abs >= 1_000_000) {
-    const v = Math.round((value / 1_000_000) * 10) / 10;
-    const short = Number.isInteger(v) ? `${v.toFixed(0)}` : `${v.toFixed(1)}`;
-    return `${short}M đ`;
-  }
   return CURRENCY_FORMATTER.format(value);
 };
 
@@ -821,15 +806,7 @@ export default function DashboardAdmin() {
         icon: <BookingIcon />,
         accent: "amber",
       },
-      {
-        title: "Doanh thu đã thu",
-        value: formatCurrency(data?.totalCapturedRevenue ?? 0),
-        description: `Hoàn tiền: ${formatCurrency(
-          data?.totalRefundedAmount ?? 0
-        )}`,
-        icon: <WalletIcon />,
-        accent: "blue",
-      },
+
       {
         title: "Doanh thu hoa hồng",
         value: formatCurrency(data?.totalCommissionRevenue ?? 0),
@@ -843,13 +820,6 @@ export default function DashboardAdmin() {
         description: "Thu nhập từ xử lý đền bù",
         icon: <DisputeRevenueIcon />,
         accent: "orange",
-      },
-      {
-        title: "Doanh thu ròng",
-        value: formatCurrency(data?.totalNetRevenue ?? 0),
-        description: "Lợi nhuận sau tất cả",
-        icon: <NetRevenueIcon />,
-        accent: "indigo",
       },
       {
         title: "Doanh thu ròng",
@@ -962,19 +932,42 @@ export default function DashboardAdmin() {
           )}
         </Box>
 
-        {/* Stats Grid - responsive compact */}
-        <Box
-          sx={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-            gap: { xs: 2, sm: 3 },
-            mb: 3,
-            alignItems: "stretch",
-          }}
-        >
-          {stats.map((stat, index) => (
-            <StatCard key={index} stat={stat} />
-          ))}
+        {/* Stats Grid - two rows of 4 boxes each */}
+        <Box sx={{ mb: 3 }}>
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "repeat(1, 1fr)",
+                sm: "repeat(2,1fr)",
+                md: "repeat(4, 1fr)",
+              },
+              gap: { xs: 2, sm: 3 },
+              mb: 3,
+              alignItems: "stretch",
+            }}
+          >
+            {stats.slice(0, 4).map((stat, index) => (
+              <StatCard key={`top-${index}`} stat={stat} />
+            ))}
+          </Box>
+
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "repeat(1, 1fr)",
+                sm: "repeat(2,1fr)",
+                md: "repeat(4, 1fr)",
+              },
+              gap: { xs: 2, sm: 3 },
+              alignItems: "stretch",
+            }}
+          >
+            {stats.slice(4, 8).map((stat, index) => (
+              <StatCard key={`bottom-${index}`} stat={stat} />
+            ))}
+          </Box>
         </Box>
 
         <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
