@@ -84,4 +84,12 @@ export const moneyPlatformSettingsService = {
     });
     return handleResponse<MoneyPlatformSettingsResponse>(response);
   },
+  // Lấy cấu hình active
+  getActive: async (): Promise<MoneyPlatformSettingsResponse> => {
+    const response = await fetch(`${API_BASE_URL}/MoneyPlatformSettings/active`, {
+      method: 'GET',
+      headers: getHeaders(),
+    });
+    return handleResponse<MoneyPlatformSettingsResponse>(response);
+  },
 };

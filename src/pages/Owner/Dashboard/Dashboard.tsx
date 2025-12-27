@@ -42,6 +42,7 @@ import type {
 import { dashboardService } from "../../../services/dashboard.service";
 import { getBalance } from "../../../services/wallet.service";
 import type { Wallet as WalletBalanceResponse } from "../../../types/wallet.types";
+import { moneyPlatformSettingsService } from "../../../services/moneyPlatformSettings.service";
 
 type StatAccent = "teal" | "indigo" | "amber" | "purple";
 
@@ -528,6 +529,10 @@ const ColumnChartCard = ({
 export default function Dashboard() {
   const [data, setData] = useState<OwnerDashboardResponse | null>(null);
   const [wallet, setWallet] = useState<WalletBalanceResponse | null>(null);
+  const [moneySettings, setMoneySettings] = useState<{
+    platformFeePercent?: number;
+    ownerSharePercent?: number;
+  } | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [isLoadingWallet, setIsLoadingWallet] = useState<boolean>(true);
@@ -566,8 +571,21 @@ export default function Dashboard() {
       }
     };
 
+    const fetchMoneySettings = async () => {
+      try {
+        const settings = await moneyPlatformSettingsService.getActive();
+        setMoneySettings({
+          platformFeePercent: settings.platformFeePercent,
+          ownerSharePercent: settings.ownerSharePercent,
+        });
+      } catch (err) {
+        console.error("Lỗi khi tải cấu hình tiền tệ:", err);
+      }
+    };
+
     fetchDashboard();
     fetchWallet();
+    fetchMoneySettings();
   }, []);
 
   // Tạo danh sách các năm có dữ liệu
@@ -595,6 +613,24 @@ export default function Dashboard() {
         description: "Số dư khả dụng trong ví của bạn.",
         icon: <WalletIcon />,
         accent: "teal",
+      },
+      {
+        title: "Phí nền tảng",
+        value: moneySettings
+          ? `${(moneySettings.platformFeePercent ?? 0) * 100}%`
+          : "-",
+        description: "Tỷ lệ phí nền tảng thu trên đơn hàng theo thời hiện tại",
+        icon: <MoneyIcon />,
+        accent: "purple",
+      },
+      {
+        title: "Tỷ lệ chủ sở hữu",
+        value: moneySettings
+          ? `${(moneySettings.ownerSharePercent ?? 0) * 100}%`
+          : "-",
+        description: "Tỷ lệ phần trăm chủ sở hữu nhận được theo thời hiện tại",
+        icon: <MoneyIcon />,
+        accent: "indigo",
       },
       {
         title: "Tổng camera",
